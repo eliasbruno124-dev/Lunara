@@ -1,0 +1,35 @@
+# Send only inputs used by infra/docker/api.Dockerfile to the builder. Parent
+# directories are reopened and their contents are immediately closed again;
+# only the explicit paths below can enter the build context.
+**
+
+!.dockerignore
+!package.json
+!package-lock.json
+!tsconfig.json
+
+!services
+services/**
+!services/api
+services/api/**
+!services/api/package.json
+!services/api/nest-cli.json
+!services/api/tsconfig.json
+!services/api/tsconfig.build.json
+!services/api/prisma
+!services/api/prisma/**
+!services/api/src
+!services/api/src/**
+
+# npm validates every workspace manifest referenced by the root lockfile.
+!packages
+packages/**
+!packages/openapi-client
+packages/openapi-client/**
+!packages/openapi-client/package.json
+
+!infra
+infra/**
+!infra/docker
+infra/docker/**
+!infra/docker/api.Dockerfile

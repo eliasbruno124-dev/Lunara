@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Rename Lunara here and in BrandTokens.kt; no screen hard-codes the name. -->
+    <string name="brand_name" translatable="false">Lunara</string>
+    <color name="brand_aubergine">#5B355D</color>
+    <color name="brand_coral">#D86F61</color>
+    <color name="brand_teal">#397D79</color>
+    <color name="brand_cream">#FFF8F4</color>
+</resources>

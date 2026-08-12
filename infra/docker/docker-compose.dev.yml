@@ -1,0 +1,10 @@
+services:
+  api:
+    ports:
+      - "127.0.0.1:13000:3000"
+    read_only: false
+    networks: !override
+      - app_internal
+  postgres:
+    ports:
+      - "127.0.0.1:15432:5432"

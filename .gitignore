@@ -1,0 +1,53 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+secrets/
+
+# Node / backend
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# Android / Gradle
+.gradle/
+.gradle-ci/
+**/build/
+local.properties
+.idea/
+*.iml
+captures/
+.kotlin/
+
+# Runtime and generated data
+/data/
+/backups/
+/tmp/
+*.log
+*.pid
+*.dump
+*.sql
+!services/api/prisma/migrations/**/*.sql
+*.zip
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/lunara-debug.apk
+!artifacts/SHA256SUMS
+authentik-gateway-credentials.json
+gateway-a.url
+gateway-b.url
+authentik-lunara-config.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/

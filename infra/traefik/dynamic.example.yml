@@ -1,0 +1,28 @@
+# Generic Traefik 3 file-provider example. On the target server Pangolin owns
+# routing; create the equivalent HTTPS resource there instead of editing this file.
+# This example deliberately targets Authentik, never Lunara's API directly.
+http:
+  routers:
+    lunara-authentik:
+      entryPoints: [websecure]
+      rule: Host(`lunara.example.com`)
+      service: authentik-outpost
+      tls:
+        certResolver: letsencrypt
+      middlewares: [lunara-security]
+  middlewares:
+    lunara-security:
+      headers:
+        contentTypeNosniff: true
+        referrerPolicy: no-referrer
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        forceSTSHeader: true
+        customResponseHeaders:
+          Server: ""
+          X-Powered-By: ""
+  services:
+    authentik-outpost:
+      loadBalancer:
+        servers:
+          - url: http://authentik-server:9000

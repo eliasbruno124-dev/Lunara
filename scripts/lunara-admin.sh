@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
+env_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
+lock_file="${LUNARA_OPERATION_LOCK:-/run/lock/lunara-maintenance.lock}"
+
+usage() {
+  cat >&2 <<'USAGE'
+Verwendung:
+  ./scripts/lunara-admin.sh users list
+  ./scripts/lunara-admin.sh bootstrap status
+  ./scripts/lunara-admin.sh invitations list
+  ./scripts/lunara-admin.sh users disable --user-id UUID --confirm DISABLE:UUID
+  ./scripts/lunara-admin.sh sessions revoke-all --user-id UUID --confirm REVOKE-SESSIONS:UUID
+  ./scripts/lunara-admin.sh invitations revoke --invitation-id UUID --confirm REVOKE-INVITATION:UUID
+  ./scripts/lunara-admin.sh backup
+  ./scripts/lunara-admin.sh migrate --confirm MIGRATE
+
+LUNARA_ENV_FILE kann auf eine eng benannte alternative Env-Datei zeigen.
+USAGE
+}
+
+if [[ ! -f "${env_file}" ]]; then
+  echo "Konfigurationsdatei fehlt: ${env_file}" >&2
+  exit 1
+fi
+if [[ $# -lt 1 ]]; then
+  usage
+  exit 2
+fi
+
+case "$1" in
+  backup)
+    if [[ $# -ne 1 ]]; then usage; exit 2; fi
+    LUNARA_ENV_FILE="${env_file}" "${script_dir}/backup.sh"
+    ;;
+  migrate)
+    if [[ $# -ne 3 || "$2" != "--confirm" || "$3" != "MIGRATE" ]]; then
+      echo "Migration abgelehnt: --confirm MIGRATE fehlt." >&2
+      exit 2
+    fi
+    exec 9>"${lock_file}"
+    if ! flock -n 9; then
+      echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
+      exit 1
+    fi
+    # Keep the maintenance lock for backup plus migration. The backup gets a
+    # narrowly named nested lock because descriptor 9 already owns the global one.
+    LUNARA_ENV_FILE="${env_file}" \
+      LUNARA_OPERATION_LOCK="${lock_file}.nested.$$" \
+      "${script_dir}/backup.sh"
+    docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
+      run --rm migrate
+    ;;
+  users|sessions|bootstrap|invitations)
+    docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
+      exec -T api node services/api/dist/admin/admin-cli.js "$@"
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac

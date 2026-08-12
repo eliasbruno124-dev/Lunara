@@ -1,0 +1,172 @@
+name: Android CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/android.yml"
+      - "apps/android/**"
+  pull_request:
+    paths:
+      - ".github/workflows/android.yml"
+      - "apps/android/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_VERSION: "9.3.1"
+
+jobs:
+  lint:
+    name: Android lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-provider: basic
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Run Android lint
+        run: gradle -p apps/android --no-daemon lintLocalDebug lintProductionDebug
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-lint-reports
+          path: |
+            apps/android/app/build/reports/lint-results-*
+          if-no-files-found: warn
+          retention-days: 14
+
+  unit-tests:
+    name: Android unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-provider: basic
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Run Android unit tests
+        run: >-
+          gradle -p apps/android --no-daemon
+          testLocalDebugUnitTest
+          testProductionDebugUnitTest
+
+      - name: Upload unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-unit-test-reports
+          path: |
+            apps/android/app/build/reports/tests/
+            apps/android/app/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  debug-build:
+    name: Android debug APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-provider: basic
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Build local and production debug APKs
+        run: >-
+          gradle -p apps/android --no-daemon
+          assembleLocalDebug
+          assembleProductionDebug
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v7
+        with:
+          name: lunara-debug-apks
+          path: |
+            apps/android/app/build/outputs/apk/local/debug/*.apk
+            apps/android/app/build/outputs/apk/production/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  unsigned-release:
+    name: Unsigned production release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-provider: basic
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+
+      - name: Build unsigned production release APK
+        run: gradle -p apps/android --no-daemon --max-workers=1 assembleProductionRelease
+
+      - name: Upload unsigned release APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: lunara-release-unsigned
+          path: apps/android/app/build/outputs/apk/production/release/*.apk
+          if-no-files-found: error
+          retention-days: 14

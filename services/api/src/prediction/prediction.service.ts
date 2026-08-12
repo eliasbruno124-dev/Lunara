@@ -1,0 +1,97 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PredictionConfidence, Prisma } from '@prisma/client';
+import { AuthenticatedUser } from '../common/types/authenticated-user.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  calculatePrediction,
+  PredictionResult,
+  UnavailablePrediction,
+} from './prediction.algorithm.js';
+import { UpdateCycleProfileDto } from './prediction.dto.js';
+
+@Injectable()
+export class PredictionService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async getProfile(userId: string) {
+    const profile = await this.prisma.cycleProfile.findUnique({ where: { userId } });
+    if (!profile) throw new NotFoundException('Cycle profile not found');
+    return profile;
+  }
+
+  async updateProfile(user: AuthenticatedUser, dto: UpdateCycleProfileDto) {
+    const profile = await this.prisma.cycleProfile.update({
+      where: { userId: user.userId },
+      data: dto,
+    });
+    await this.recalculateAndCache(user.userId);
+    return profile;
+  }
+
+  async calculateForUser(userId: string): Promise<PredictionResult | UnavailablePrediction> {
+    const [profile, periods] = await Promise.all([
+      this.prisma.cycleProfile.findUnique({ where: { userId } }),
+      this.prisma.periodEvent.findMany({
+        where: { userId, deletedAt: null },
+        orderBy: { startDate: 'asc' },
+        select: { startDate: true, endDate: true },
+      }),
+    ]);
+    if (!profile) throw new NotFoundException('Cycle profile not found');
+    return calculatePrediction({
+      periods: periods.map((period) => ({
+        startDate: this.localDate(period.startDate),
+        endDate: period.endDate ? this.localDate(period.endDate) : null,
+      })),
+      typicalCycleLength: profile.typicalCycleLengthOptional,
+      typicalPeriodLength: profile.typicalPeriodLengthOptional,
+      lutealLength: profile.lutealLengthOptional,
+      fertilityPredictionEnabled: profile.fertilityPredictionEnabled,
+      predictionPaused: profile.predictionPaused,
+      specialMode: profile.specialMode,
+    });
+  }
+
+  async recalculateAndCache(userId: string): Promise<PredictionResult | UnavailablePrediction> {
+    const prediction = await this.calculateForUser(userId);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.prediction.deleteMany({ where: { userId } });
+      if (!prediction.available) return;
+      await tx.prediction.create({
+        data: {
+          userId,
+          predictedStartFrom: this.parseLocalDate(prediction.predictedStartFrom),
+          predictedStartTo: this.parseLocalDate(prediction.predictedStartTo),
+          predictedEndFrom: this.parseLocalDate(prediction.predictedEndFrom),
+          predictedEndTo: this.parseLocalDate(prediction.predictedEndTo),
+          fertileWindowFrom: prediction.fertileWindowFrom
+            ? this.parseLocalDate(prediction.fertileWindowFrom)
+            : null,
+          fertileWindowTo: prediction.fertileWindowTo
+            ? this.parseLocalDate(prediction.fertileWindowTo)
+            : null,
+          confidence: prediction.confidence as PredictionConfidence,
+          basedOnCycleCount: prediction.basedOnCycleCount,
+          calculatedAt: new Date(prediction.calculatedAt),
+          algorithmVersion: prediction.algorithmVersion,
+          explanation: {
+            explanation: prediction.explanation,
+            statistics: prediction.statistics,
+          } as unknown as Prisma.InputJsonValue,
+          typicalCycleLength: prediction.typicalCycleLength,
+          typicalPeriodLength: prediction.typicalPeriodLength,
+          variationDays: prediction.variationDays,
+        },
+      });
+    });
+    return prediction;
+  }
+
+  localDate(value: Date): string {
+    return value.toISOString().slice(0, 10);
+  }
+
+  parseLocalDate(value: string): Date {
+    return new Date(`${value}T00:00:00.000Z`);
+  }
+}

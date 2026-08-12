@@ -1,0 +1,12 @@
+{
+  "name": "@lunara/openapi-client",
+  "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "export": "npm run build --workspace @lunara/api && node scripts/export-openapi.mjs",
+    "generate:kotlin": "bash scripts/generate-kotlin.sh",
+    "generate": "npm run export && npm run generate:kotlin",
+    "check": "node scripts/check-generated.mjs"
+  }
+}

@@ -1,0 +1,44 @@
+name: lunara-test
+
+services:
+  postgres-test:
+    image: postgres:18.4-bookworm@sha256:882236b897e39051d2368c5ccc6cda944904723506b2dfc97f2a8f5bc9afa382
+    environment:
+      POSTGRES_DB: lunara_test
+      POSTGRES_USER: lunara_test
+      POSTGRES_PASSWORD: integration-only-password
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U lunara_test -d lunara_test']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    tmpfs:
+      - /var/lib/postgresql:size=512m
+    networks:
+      - test_internal
+
+  api-test:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      NODE_ENV: test
+      PORT: "3000"
+      APP_NAME: Lunara Test
+      APP_VERSION: 1.0.0-test
+      PUBLIC_BASE_URL: http://api-test:3000
+      DATABASE_URL: postgresql://lunara_test:integration-only-password@postgres-test:5432/lunara_test?schema=public
+      APP_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      AUTH_SIGNING_KEY: integration-only-signing-key-at-least-32-bytes
+      REFRESH_TOKEN_PEPPER: integration-only-refresh-pepper-at-least-32-bytes
+      BOOTSTRAP_TOKEN: integration-only-bootstrap-token
+      REGISTRATION_ENABLED: "false"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - test_internal
+
+networks:
+  test_internal:
+    internal: true

@@ -1,0 +1,85 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/backend.yml"
+      - "eslint.config.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "services/api/**"
+      - "packages/openapi-client/**"
+  pull_request:
+    paths:
+      - ".github/workflows/backend.yml"
+      - "eslint.config.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "services/api/**"
+      - "packages/openapi-client/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-prisma-test-build:
+    name: Lint, Prisma, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://lunara_ci:lunara_ci@127.0.0.1:5432/lunara_ci
+      PUBLIC_BASE_URL: https://lunara.invalid
+      AUTH_SIGNING_KEY: ci-only-signing-key-not-used-outside-tests
+      REFRESH_TOKEN_PEPPER: ci-only-refresh-pepper-not-used-outside-tests
+      BOOTSTRAP_TOKEN: ci-only-bootstrap-token-not-used-in-production
+      APP_MASTER_KEY: ci-only-application-master-key-not-production
+      REGISTRATION_ENABLED: "false"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.18.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint backend
+        run: npm run lint --workspace=@lunara/api -- --no-error-on-unmatched-pattern
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate --workspace=@lunara/api
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=@lunara/api
+
+      - name: Run backend unit tests
+        run: npm run test --workspace=@lunara/api -- --ci
+
+      - name: Build backend
+        run: npm run build --workspace=@lunara/api
+
+      - name: Verify generated OpenAPI Kotlin client
+        run: npm run check --workspace=@lunara/openapi-client
+
+  postgres-e2e:
+    name: PostgreSQL 18 end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Run isolated core flow
+        run: ./scripts/e2e.sh

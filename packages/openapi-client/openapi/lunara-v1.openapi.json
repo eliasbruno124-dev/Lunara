@@ -1,0 +1,3299 @@
+{
+  "components": {
+    "schemas": {
+      "AuthResponse": {
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "sessionId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tokenType": {
+            "enum": [
+              "Bearer"
+            ],
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUserResponse"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "tokenType",
+          "expiresInSeconds",
+          "sessionId",
+          "user"
+        ],
+        "type": "object"
+      },
+      "AuthUserResponse": {
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "householdId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "enum": [
+              "DE",
+              "EN"
+            ],
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "TRACKER",
+              "PARTNER"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "preferredLanguage",
+          "role",
+          "householdId"
+        ],
+        "type": "object"
+      },
+      "CheckInResponse": {
+        "properties": {
+          "answeredAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "householdId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "recipientUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "response": {
+            "nullable": true,
+            "type": "string"
+          },
+          "senderUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "ANSWERED",
+              "EXPIRED",
+              "DISMISSED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "senderUserId",
+          "recipientUserId",
+          "prompt",
+          "response",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "answeredAt"
+        ],
+        "type": "object"
+      },
+      "CreateCheckInDto": {
+        "properties": {
+          "prompt": {
+            "default": "Wie kann ich dich gerade unterstützen?",
+            "maxLength": 240,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateCustomSymptomDto": {
+        "properties": {
+          "id": {
+            "description": "Client-generated idempotent identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object"
+      },
+      "CreateDailyLogDto": {
+        "properties": {
+          "bodyTemperature": {
+            "maximum": 45,
+            "minimum": 30,
+            "type": "number"
+          },
+          "customSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "energy": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "flowLevel": {
+            "enum": [
+              "SPOTTING",
+              "LIGHT",
+              "MEDIUM",
+              "HEAVY"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "mood": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "ovulationTestResult": {
+            "enum": [
+              "NEGATIVE",
+              "POSITIVE",
+              "UNCLEAR"
+            ],
+            "type": "string"
+          },
+          "painLevel": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "sleepQuality": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "localDate"
+        ],
+        "type": "object"
+      },
+      "CreateInvitationDto": {
+        "properties": {
+          "expiresInMinutes": {
+            "description": "Cannot exceed the server policy",
+            "maximum": 1440,
+            "minimum": 5,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePeriodDto": {
+        "properties": {
+          "endDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "object"
+          },
+          "id": {
+            "description": "Client-generated idempotent identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "default": "MANUAL",
+            "enum": [
+              "MANUAL",
+              "IMPORT",
+              "SYNC"
+            ],
+            "type": "string"
+          },
+          "startDate": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "startDate"
+        ],
+        "type": "object"
+      },
+      "CreateUserDefinedTipDto": {
+        "properties": {
+          "applicablePhase": {
+            "enum": [
+              "MENSTRUATION",
+              "FOLLICULAR_ESTIMATE",
+              "OVULATION_ESTIMATE",
+              "LUTEAL_ESTIMATE",
+              "PREMENSTRUAL_ESTIMATE",
+              "UNKNOWN"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "applicableSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "bodyDe": {
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "bodyEn": {
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "callToActionDe": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "callToActionEn": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "id": {
+            "description": "Client-generated idempotent identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "priority": {
+            "default": 50,
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "requiredSharedFields": {
+            "items": {
+              "enum": [
+                "sharePrediction",
+                "sharePeriodDates",
+                "sharePhase",
+                "shareFlow",
+                "sharePain",
+                "shareMood",
+                "shareEnergy",
+                "shareSleep",
+                "shareSymptoms",
+                "shareNotes",
+                "shareFertileWindow"
+              ],
+              "type": "string"
+            },
+            "maxItems": 11,
+            "type": "array"
+          },
+          "titleDe": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "titleEn": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "titleDe",
+          "bodyDe",
+          "callToActionDe",
+          "titleEn",
+          "bodyEn",
+          "callToActionEn"
+        ],
+        "type": "object"
+      },
+      "CustomSymptomResponseDto": {
+        "properties": {
+          "archivedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "archivedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "DailyLogResponse": {
+        "properties": {
+          "bodyTemperature": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "energy": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "flowLevel": {
+            "enum": [
+              "SPOTTING",
+              "LIGHT",
+              "MEDIUM",
+              "HEAVY"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "mood": {
+            "nullable": true,
+            "type": "string"
+          },
+          "note": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ovulationTestResult": {
+            "enum": [
+              "NEGATIVE",
+              "POSITIVE",
+              "UNCLEAR"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "painLevel": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "sleepQuality": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "localDate",
+          "flowLevel",
+          "painLevel",
+          "mood",
+          "energy",
+          "sleepQuality",
+          "bodyTemperature",
+          "ovulationTestResult",
+          "customSymptoms",
+          "note",
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "version"
+        ],
+        "type": "object"
+      },
+      "DeleteAccountDto": {
+        "properties": {
+          "deleteHousehold": {
+            "default": false,
+            "type": "boolean"
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "type": "object"
+      },
+      "ExportDto": {
+        "properties": {
+          "format": {
+            "default": "JSON",
+            "enum": [
+              "JSON",
+              "PERIODS_CSV",
+              "DAILY_LOGS_CSV",
+              "ENCRYPTED_JSON"
+            ],
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "type": "object"
+      },
+      "GenericObjectResponse": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "ImportDto": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "description": "Object previously returned by the JSON export",
+            "type": "object"
+          },
+          "preview": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "InvitationResponse": {
+        "properties": {
+          "assignedRole": {
+            "enum": [
+              "PARTNER"
+            ],
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "assignedRole",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "JoinHouseholdDto": {
+        "properties": {
+          "deviceName": {
+            "example": "Pixel 10",
+            "type": "string"
+          },
+          "displayName": {
+            "example": "Partner B",
+            "type": "string"
+          },
+          "invitationCode": {
+            "maxLength": 12,
+            "minLength": 8,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "preferredLanguage": {
+            "default": "DE",
+            "enum": [
+              "DE",
+              "EN"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "example": "partner-a",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "deviceName",
+          "invitationCode",
+          "displayName"
+        ],
+        "type": "object"
+      },
+      "LoginDto": {
+        "properties": {
+          "deviceName": {
+            "example": "Pixel 10",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "example": "partner-a",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "deviceName"
+        ],
+        "type": "object"
+      },
+      "LogoutDto": {
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "type": "object"
+      },
+      "MetaResponse": {
+        "properties": {
+          "apiVersion": {
+            "enum": [
+              "v1"
+            ],
+            "type": "string"
+          },
+          "gatewayHeaderName": {
+            "enum": [
+              "X-Lunara-Authorization"
+            ],
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "registrationEnabled": {
+            "type": "boolean"
+          },
+          "serverTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "setupRequired": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "apiVersion",
+          "setupRequired",
+          "registrationEnabled",
+          "serverTime",
+          "gatewayHeaderName"
+        ],
+        "type": "object"
+      },
+      "PartnerDashboardResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "periodDates": {
+            "items": {
+              "$ref": "#/components/schemas/PeriodResponse"
+            },
+            "type": "array"
+          },
+          "phase": {
+            "nullable": true,
+            "type": "string"
+          },
+          "prediction": {
+            "$ref": "#/components/schemas/PredictionResponse",
+            "nullable": true
+          },
+          "sharingPaused": {
+            "type": "boolean"
+          },
+          "todayLog": {
+            "$ref": "#/components/schemas/DailyLogResponse",
+            "nullable": true
+          }
+        },
+        "required": [
+          "sharingPaused"
+        ],
+        "type": "object"
+      },
+      "PeriodResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "endDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "MANUAL",
+              "IMPORT",
+              "SYNC"
+            ],
+            "type": "string"
+          },
+          "startDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "startDate",
+          "endDate",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "version"
+        ],
+        "type": "object"
+      },
+      "PredefinedSymptomResponseDto": {
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "labelDe": {
+            "type": "string"
+          },
+          "labelEn": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "labelDe",
+          "labelEn"
+        ],
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "algorithmVersion": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "basedOnCycleCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "confidence": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "UNAVAILABLE"
+            ],
+            "type": "string"
+          },
+          "fertileWindowFrom": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "fertileWindowTo": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "predictedEndFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedEndTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedStartFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedStartTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "typicalCycleLength": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "typicalPeriodLength": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "variationDays": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "confidence",
+          "algorithmVersion"
+        ],
+        "type": "object"
+      },
+      "RefreshDto": {
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RespondCheckInDto": {
+        "properties": {
+          "response": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "response"
+        ],
+        "type": "object"
+      },
+      "SessionResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revokedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "deviceName",
+          "lastUsedAt",
+          "createdAt",
+          "expiresAt",
+          "revokedAt",
+          "current"
+        ],
+        "type": "object"
+      },
+      "SetupDto": {
+        "properties": {
+          "bootstrapToken": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "deviceName": {
+            "example": "Pixel 10",
+            "type": "string"
+          },
+          "displayName": {
+            "example": "Partner A",
+            "type": "string"
+          },
+          "householdName": {
+            "example": "Unser Haushalt",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          },
+          "preferredLanguage": {
+            "default": "DE",
+            "enum": [
+              "DE",
+              "EN"
+            ],
+            "type": "string"
+          },
+          "username": {
+            "example": "partner-a",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "deviceName",
+          "bootstrapToken",
+          "householdName",
+          "displayName"
+        ],
+        "type": "object"
+      },
+      "SymptomCatalogResponseDto": {
+        "properties": {
+          "custom": {
+            "items": {
+              "$ref": "#/components/schemas/CustomSymptomResponseDto"
+            },
+            "type": "array"
+          },
+          "predefined": {
+            "items": {
+              "$ref": "#/components/schemas/PredefinedSymptomResponseDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "predefined",
+          "custom"
+        ],
+        "type": "object"
+      },
+      "SyncMutationDto": {
+        "properties": {
+          "clientMutationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entityType": {
+            "enum": [
+              "PERIOD",
+              "DAILY_LOG"
+            ],
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "UPSERT",
+              "DELETE"
+            ],
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object"
+          }
+        },
+        "required": [
+          "clientMutationId",
+          "entityType",
+          "operation",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "SyncRequestDto": {
+        "properties": {
+          "cursor": {
+            "default": "0",
+            "pattern": "^\\d+$",
+            "type": "string"
+          },
+          "mutations": {
+            "items": {
+              "$ref": "#/components/schemas/SyncMutationDto"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mutations"
+        ],
+        "type": "object"
+      },
+      "SyncResponse": {
+        "additionalProperties": true,
+        "properties": {
+          "changes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cursor",
+          "hasMore",
+          "changes"
+        ],
+        "type": "object"
+      },
+      "TipFeedbackDto": {
+        "properties": {
+          "dismissed": {
+            "default": false,
+            "type": "boolean"
+          },
+          "helpful": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "TipResponse": {
+        "properties": {
+          "applicablePhase": {
+            "nullable": true,
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "callToAction": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "title",
+          "body",
+          "callToAction",
+          "applicablePhase"
+        ],
+        "type": "object"
+      },
+      "TodayTipResponse": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "tip": {
+            "$ref": "#/components/schemas/TipResponse",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tip"
+        ],
+        "type": "object"
+      },
+      "UpdateCarePreferencesDto": {
+        "properties": {
+          "customHelpfulActions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "customUnhelpfulActions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "dislikesUnsolicitedAdvice": {
+            "type": "boolean"
+          },
+          "likesConversation": {
+            "type": "boolean"
+          },
+          "likesCuddling": {
+            "type": "boolean"
+          },
+          "likesHouseholdHelp": {
+            "type": "boolean"
+          },
+          "likesReminders": {
+            "type": "boolean"
+          },
+          "likesSnacks": {
+            "type": "boolean"
+          },
+          "likesSpace": {
+            "type": "boolean"
+          },
+          "likesWarmth": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateCustomSymptomDto": {
+        "properties": {
+          "archived": {
+            "description": "Set false to restore an archived custom symptom.",
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateCycleProfileDto": {
+        "properties": {
+          "fertilityPredictionEnabled": {
+            "default": false,
+            "type": "boolean"
+          },
+          "lutealLengthOptional": {
+            "maximum": 20,
+            "minimum": 8,
+            "nullable": true,
+            "type": "number"
+          },
+          "predictionPaused": {
+            "default": false,
+            "type": "boolean"
+          },
+          "specialMode": {
+            "enum": [
+              "NONE",
+              "HORMONAL_CONTRACEPTION",
+              "PREGNANCY",
+              "POSTPARTUM",
+              "MENOPAUSE_TRANSITION",
+              "PAUSED"
+            ],
+            "type": "string"
+          },
+          "timezone": {
+            "example": "Europe/Berlin",
+            "type": "string"
+          },
+          "typicalCycleLengthOptional": {
+            "maximum": 90,
+            "minimum": 15,
+            "nullable": true,
+            "type": "number"
+          },
+          "typicalPeriodLengthOptional": {
+            "maximum": 14,
+            "minimum": 1,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateDailyLogDto": {
+        "properties": {
+          "bodyTemperature": {
+            "maximum": 45,
+            "minimum": 30,
+            "type": "number"
+          },
+          "customSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "energy": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "flowLevel": {
+            "enum": [
+              "SPOTTING",
+              "LIGHT",
+              "MEDIUM",
+              "HEAVY"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "localDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "mood": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 4000,
+            "type": "string"
+          },
+          "ovulationTestResult": {
+            "enum": [
+              "NEGATIVE",
+              "POSITIVE",
+              "UNCLEAR"
+            ],
+            "type": "string"
+          },
+          "painLevel": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "sleepQuality": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "number"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "localDate",
+          "version"
+        ],
+        "type": "object"
+      },
+      "UpdateMeDto": {
+        "properties": {
+          "customRoleLabel": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "enum": [
+              "DE",
+              "EN"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdatePeriodDto": {
+        "properties": {
+          "endDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "object"
+          },
+          "startDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "version": {
+            "description": "Current version for optimistic conflict detection",
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "UpdateSharingDto": {
+        "properties": {
+          "allowSymptomBasedTips": {
+            "type": "boolean"
+          },
+          "checkInsEnabled": {
+            "type": "boolean"
+          },
+          "disabledTipCategories": {
+            "items": {
+              "enum": [
+                "COMMUNICATION",
+                "PRACTICAL_HELP",
+                "COMFORT",
+                "SPACE",
+                "FOOD_AND_DRINK",
+                "EMOTIONAL_SUPPORT",
+                "PERIOD_DAYS",
+                "PREMENSTRUAL_ESTIMATE",
+                "GENERAL",
+                "USER_DEFINED"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "privateDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "object"
+          },
+          "shareEnergy": {
+            "type": "boolean"
+          },
+          "shareFertileWindow": {
+            "type": "boolean"
+          },
+          "shareFlow": {
+            "type": "boolean"
+          },
+          "shareMood": {
+            "type": "boolean"
+          },
+          "shareNotes": {
+            "type": "boolean"
+          },
+          "sharePain": {
+            "type": "boolean"
+          },
+          "sharePeriodDates": {
+            "type": "boolean"
+          },
+          "sharePhase": {
+            "type": "boolean"
+          },
+          "sharePrediction": {
+            "type": "boolean"
+          },
+          "shareSleep": {
+            "type": "boolean"
+          },
+          "shareSymptoms": {
+            "type": "boolean"
+          },
+          "sharingPaused": {
+            "type": "boolean"
+          },
+          "tipsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserDefinedTipDto": {
+        "properties": {
+          "applicablePhase": {
+            "enum": [
+              "MENSTRUATION",
+              "FOLLICULAR_ESTIMATE",
+              "OVULATION_ESTIMATE",
+              "LUTEAL_ESTIMATE",
+              "PREMENSTRUAL_ESTIMATE",
+              "UNKNOWN"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "applicableSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "bodyDe": {
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "bodyEn": {
+            "maxLength": 600,
+            "minLength": 1,
+            "type": "string"
+          },
+          "callToActionDe": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "callToActionEn": {
+            "maxLength": 240,
+            "minLength": 1,
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "priority": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "requiredSharedFields": {
+            "items": {
+              "enum": [
+                "sharePrediction",
+                "sharePeriodDates",
+                "sharePhase",
+                "shareFlow",
+                "sharePain",
+                "shareMood",
+                "shareEnergy",
+                "shareSleep",
+                "shareSymptoms",
+                "shareNotes",
+                "shareFertileWindow"
+              ],
+              "type": "string"
+            },
+            "maxItems": 11,
+            "type": "array"
+          },
+          "titleDe": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          },
+          "titleEn": {
+            "maxLength": 160,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UserDefinedTipResponseDto": {
+        "properties": {
+          "applicablePhase": {
+            "enum": [
+              "MENSTRUATION",
+              "FOLLICULAR_ESTIMATE",
+              "OVULATION_ESTIMATE",
+              "LUTEAL_ESTIMATE",
+              "PREMENSTRUAL_ESTIMATE",
+              "UNKNOWN"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "applicableSymptoms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "bodyDe": {
+            "type": "string"
+          },
+          "bodyEn": {
+            "type": "string"
+          },
+          "callToActionDe": {
+            "type": "string"
+          },
+          "callToActionEn": {
+            "type": "string"
+          },
+          "category": {
+            "default": "USER_DEFINED",
+            "enum": [
+              "COMMUNICATION",
+              "PRACTICAL_HELP",
+              "COMFORT",
+              "SPACE",
+              "FOOD_AND_DRINK",
+              "EMOTIONAL_SUPPORT",
+              "PERIOD_DAYS",
+              "PREMENSTRUAL_ESTIMATE",
+              "GENERAL",
+              "USER_DEFINED"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "priority": {
+            "type": "number"
+          },
+          "requiredSharedFields": {
+            "items": {
+              "enum": [
+                "sharePrediction",
+                "sharePeriodDates",
+                "sharePhase",
+                "shareFlow",
+                "sharePain",
+                "shareMood",
+                "shareEnergy",
+                "shareSleep",
+                "shareSymptoms",
+                "shareNotes",
+                "shareFertileWindow"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "titleDe": {
+            "type": "string"
+          },
+          "titleEn": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "titleDe",
+          "bodyDe",
+          "callToActionDe",
+          "titleEn",
+          "bodyEn",
+          "callToActionEn",
+          "requiredSharedFields",
+          "applicablePhase",
+          "applicableSymptoms",
+          "priority",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "description": "Normal Lunara access token transport.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "gatewayBearer": {
+        "description": "Use the value `Bearer <access-token>` when Authorization is occupied by an outer Basic-auth gateway.",
+        "in": "header",
+        "name": "X-Lunara-Authorization",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
+    "title": "Lunara API",
+    "version": "1.0.0",
+    "x-api-version": "v1",
+    "x-generated-from": "services/api Nest metadata"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/v1/account": {
+      "delete": {
+        "operationId": "DataManagement_deleteAccount",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "data management"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "Auth_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "Auth_logout",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "Auth_refresh",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "operationId": "Auth_sessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{id}": {
+      "delete": {
+        "operationId": "Auth_revokeSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/care-preferences": {
+      "get": {
+        "operationId": "Care_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "care preferences"
+        ]
+      },
+      "patch": {
+        "operationId": "Care_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCarePreferencesDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "care preferences"
+        ]
+      }
+    },
+    "/api/v1/check-ins": {
+      "get": {
+        "operationId": "CheckIns_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CheckInResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "check-ins"
+        ]
+      },
+      "post": {
+        "operationId": "CheckIns_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCheckInDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "check-ins"
+        ]
+      }
+    },
+    "/api/v1/check-ins/{id}/respond": {
+      "post": {
+        "operationId": "CheckIns_respond",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondCheckInDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckInResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "check-ins"
+        ]
+      }
+    },
+    "/api/v1/cycle/profile": {
+      "get": {
+        "operationId": "Prediction_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cycle"
+        ]
+      },
+      "patch": {
+        "operationId": "Prediction_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCycleProfileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cycle"
+        ]
+      }
+    },
+    "/api/v1/daily-logs": {
+      "get": {
+        "operationId": "DailyLogs_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DailyLogResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "daily logs"
+        ]
+      },
+      "post": {
+        "operationId": "DailyLogs_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyLogDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyLogResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "daily logs"
+        ]
+      }
+    },
+    "/api/v1/daily-logs/{id}": {
+      "delete": {
+        "operationId": "DailyLogs_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "daily logs"
+        ]
+      },
+      "patch": {
+        "operationId": "DailyLogs_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDailyLogDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyLogResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "daily logs"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "Realtime_stream",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "realtime"
+        ]
+      }
+    },
+    "/api/v1/export": {
+      "post": {
+        "operationId": "DataManagement_export",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "data management"
+        ]
+      }
+    },
+    "/api/v1/household": {
+      "get": {
+        "operationId": "Household_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "household"
+        ]
+      }
+    },
+    "/api/v1/household/invitations": {
+      "post": {
+        "operationId": "Household_createInvitation",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "household"
+        ]
+      }
+    },
+    "/api/v1/household/invitations/{id}": {
+      "delete": {
+        "operationId": "Household_revokeInvitation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "household"
+        ]
+      }
+    },
+    "/api/v1/household/join": {
+      "post": {
+        "operationId": "Household_join",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinHouseholdDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "tags": [
+          "household"
+        ]
+      }
+    },
+    "/api/v1/import": {
+      "post": {
+        "operationId": "DataManagement_import",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "data management"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "Users_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "account"
+        ]
+      },
+      "patch": {
+        "operationId": "Users_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "operationId": "Meta_getMeta",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Server identity, compatibility and setup state",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/api/v1/partner/dashboard": {
+      "get": {
+        "operationId": "Partner_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerDashboardResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner"
+        ]
+      }
+    },
+    "/api/v1/periods": {
+      "get": {
+        "operationId": "Periods_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PeriodResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "periods"
+        ]
+      },
+      "post": {
+        "operationId": "Periods_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePeriodDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "periods"
+        ]
+      }
+    },
+    "/api/v1/periods/{id}": {
+      "delete": {
+        "operationId": "Periods_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "periods"
+        ]
+      },
+      "patch": {
+        "operationId": "Periods_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePeriodDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "periods"
+        ]
+      }
+    },
+    "/api/v1/predictions": {
+      "get": {
+        "operationId": "Prediction_getPrediction",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cycle"
+        ]
+      }
+    },
+    "/api/v1/setup": {
+      "post": {
+        "operationId": "Auth_setup",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create the first household and TRACKER account",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/sharing": {
+      "get": {
+        "operationId": "Sharing_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sharing"
+        ]
+      },
+      "patch": {
+        "operationId": "Sharing_update",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSharingDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sharing"
+        ]
+      }
+    },
+    "/api/v1/symptoms": {
+      "get": {
+        "operationId": "Symptoms_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SymptomCatalogResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "symptoms"
+        ]
+      },
+      "post": {
+        "operationId": "Symptoms_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomSymptomDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSymptomResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "symptoms"
+        ]
+      }
+    },
+    "/api/v1/symptoms/{id}": {
+      "delete": {
+        "operationId": "Symptoms_archive",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Custom symptom archived"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "symptoms"
+        ]
+      },
+      "patch": {
+        "operationId": "Symptoms_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomSymptomDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSymptomResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "symptoms"
+        ]
+      }
+    },
+    "/api/v1/sync": {
+      "get": {
+        "operationId": "Sync_pull",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sync"
+        ]
+      },
+      "post": {
+        "operationId": "Sync_push",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRequestDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/tips/{id}/feedback": {
+      "post": {
+        "operationId": "Tips_feedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TipFeedbackDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      }
+    },
+    "/api/v1/tips/custom": {
+      "get": {
+        "operationId": "TrackerTips_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeDisabled",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserDefinedTipResponseDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      },
+      "post": {
+        "operationId": "TrackerTips_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDefinedTipDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDefinedTipResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      }
+    },
+    "/api/v1/tips/custom/{id}": {
+      "delete": {
+        "operationId": "TrackerTips_disable",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User-defined tip disabled"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      },
+      "patch": {
+        "operationId": "TrackerTips_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDefinedTipDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDefinedTipResponseDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      }
+    },
+    "/api/v1/tips/today": {
+      "get": {
+        "operationId": "Tips_today",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayTipResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "partner tips"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "Health_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Liveness check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "Health_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Readiness check including PostgreSQL",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Configured self-hosted server",
+      "url": "https://lunara.example.com"
+    }
+  ],
+  "tags": []
+}

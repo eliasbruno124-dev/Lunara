@@ -1,0 +1,3 @@
+-keepattributes Signature, *Annotation*
+-keep class de.lunara.app.data.remote.dto.** { *; }
+-dontwarn javax.annotation.**

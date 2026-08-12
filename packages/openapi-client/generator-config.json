@@ -1,0 +1,16 @@
+{
+  "artifactId": "lunara-openapi-client",
+  "artifactVersion": "0.1.0",
+  "groupId": "de.lunara",
+  "packageName": "de.lunara.api",
+  "apiPackage": "de.lunara.api.apis",
+  "modelPackage": "de.lunara.api.models",
+  "library": "jvm-retrofit2",
+  "serializationLibrary": "moshi",
+  "useCoroutines": true,
+  "useResponseReturnType": true,
+  "dateLibrary": "java8",
+  "enumPropertyNaming": "UPPERCASE",
+  "hideGenerationTimestamp": true,
+  "omitGradleWrapper": false
+}

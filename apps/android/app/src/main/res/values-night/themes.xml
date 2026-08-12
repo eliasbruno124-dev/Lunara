@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Lunara" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#1D1A1E</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="Theme.Lunara.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1D1A1E</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_lunara_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.Lunara</item>
+    </style>
+</resources>

@@ -1,0 +1,33 @@
+{
+  "name": "lunara",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private, self-hosted cycle tracking for two-person households",
+  "workspaces": [
+    "services/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspace @lunara/api",
+    "lint": "npm run lint --workspace @lunara/api",
+    "test": "npm run test --workspace @lunara/api",
+    "test:e2e": "npm run test:e2e --workspace @lunara/api",
+    "openapi:generate": "npm run generate --workspace @lunara/openapi-client",
+    "openapi:check": "npm run check --workspace @lunara/openapi-client",
+    "prisma:generate": "npm run prisma:generate --workspace @lunara/api",
+    "prisma:validate": "npm run prisma:validate --workspace @lunara/api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace @lunara/api"
+  },
+  "overrides": {
+    "@nestjs/swagger": {
+      "js-yaml": "5.2.3"
+    },
+    "@prisma/streams-local": {
+      "ajv": "8.20.0"
+    }
+  }
+}
