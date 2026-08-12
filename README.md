@@ -55,7 +55,11 @@ Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
 - Ein PostgreSQL-Backup wurde erstellt, seine Archivprüfsummen und die
   `pg_restore`-Inhaltsliste wurden erfolgreich validiert. Ein destruktiver
   Voll-Restore wurde nicht auf der Live-Instanz ausgeführt.
-- Bestehende Heimserver-Dienste einschließlich Emby wurden nicht neu gestartet.
+- Lunara bleibt vollständig außerhalb von Emby und dessen Plugins. Während des
+  Android-Builds beendete der Kernel Emby einmal wegen globalen Speichermangels;
+  Docker stellte den Dienst automatisch wieder her. Der Buildablauf besitzt
+  deshalb nun einen Hostspeicher-Vorabcheck und feste Containergrenzen. Details
+  stehen im Abschlussbericht.
 
 Offen bleiben der Cloudflare-DNS-Eintrag und das private GitHub-Repository.
 

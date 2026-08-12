@@ -4,8 +4,9 @@ Stand: 12. August 2026
 
 Dieser Bericht enthält die Ergebnisse der finalen Prüfkette und des
 Pre-DNS-Live-Deployments. Aussagen mit „erfolgreich“ beruhen ausschließlich auf
-wirklich ausgeführten Befehlen. Offen sind der Cloudflare-DNS-Eintrag und die
-Veröffentlichung in einem privaten GitHub-Repository.
+wirklich ausgeführten Befehlen. Offen sind der Cloudflare-DNS-Eintrag und – bis
+zum Abschluss der separat verifizierten GitHub-Anmeldung – die Veröffentlichung
+in einem privaten GitHub-Repository.
 
 ## Architektur
 
@@ -117,7 +118,16 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 - Ein echtes Backup wurde erstellt, seine Archivprüfsummen wurden validiert und
   `pg_restore --list` konnte den Dump vollständig lesen. Ein destruktiver Restore
   wurde auf der Live-Instanz bewusst nicht ausgeführt.
-- Kein bestehender Heimserver-Dienst einschließlich Emby wurde neu gestartet.
+- Es wurde kein manueller Emby-/Mediencontainer-Neustart ausgeführt und keine
+  Emby-Datei geändert. Während des Android-Builds löste der Kernel jedoch am
+  12. August 2026 um 21:02 Uhr CEST einen globalen OOM aus und beendete
+  `EmbyServer`. Docker startete den Dienst durch dessen bestehende
+  `restart: always`-Policy automatisch; der öffentliche Emby-Info-Endpunkt
+  lieferte danach wieder HTTP 200. Der parallele Gradle-/Docker-Build war sehr
+  wahrscheinlich der unmittelbare zusätzliche Speicherdruck. Als Folgemaßnahme
+  besitzt `scripts/build-android.sh` nun einen 4-GiB-Hostspeicher-Vorabcheck,
+  einen einzelnen Gradle-Worker sowie feste CPU-, RAM- und Swap-Grenzen für den
+  Buildcontainer.
 - Noch nicht geprüft ist der Zugriff über die normale Domain ohne lokale
   Resolve-Hilfe; dafür fehlt ausschließlich der Cloudflare-DNS-Eintrag.
 

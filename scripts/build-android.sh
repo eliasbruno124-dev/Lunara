@@ -7,10 +7,32 @@ android_dir="${project_dir}/apps/android"
 artifact_dir="${project_dir}/artifacts"
 builder_image="${ANDROID_BUILDER_IMAGE:-mingc/android-build-box:1.29.0}"
 gradle_jvm_args="${ANDROID_GRADLE_JVM_ARGS:--Xmx768m -XX:MaxMetaspaceSize=384m -Dfile.encoding=UTF-8}"
+builder_memory="${ANDROID_BUILDER_MEMORY:-2g}"
+builder_memory_swap="${ANDROID_BUILDER_MEMORY_SWAP:-3g}"
+minimum_available_kib="${ANDROID_MIN_AVAILABLE_KIB:-4194304}"
+
+if [[ ! "${minimum_available_kib}" =~ ^[0-9]+$ ]]; then
+  echo "ANDROID_MIN_AVAILABLE_KIB muss eine nichtnegative Ganzzahl sein." >&2
+  exit 2
+fi
+
+available_kib="$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)"
+if [[ -z "${available_kib}" || ! "${available_kib}" =~ ^[0-9]+$ ]]; then
+  echo "Der verfügbare Hostspeicher konnte nicht bestimmt werden." >&2
+  exit 1
+fi
+if (( available_kib < minimum_available_kib )); then
+  echo "Android-Build abgebrochen: nur ${available_kib} KiB Hostspeicher verfügbar; benötigt werden mindestens ${minimum_available_kib} KiB." >&2
+  echo "Grenze nur nach Prüfung aktiver produktiver Dienste über ANDROID_MIN_AVAILABLE_KIB anpassen." >&2
+  exit 1
+fi
 
 mkdir -p -- "${artifact_dir}"
 
 docker run --rm \
+  --memory "${builder_memory}" \
+  --memory-swap "${builder_memory_swap}" \
+  --cpus 2 \
   --user "$(id -u):$(id -g)" \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
   -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
@@ -43,6 +65,9 @@ if [[ "${BUILD_ANDROID_RELEASE:-false}" != "true" ]]; then
 fi
 
 docker run --rm \
+  --memory "${builder_memory}" \
+  --memory-swap "${builder_memory_swap}" \
+  --cpus 2 \
   --user "$(id -u):$(id -g)" \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
   -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \

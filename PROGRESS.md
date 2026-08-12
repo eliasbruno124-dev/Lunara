@@ -46,7 +46,14 @@ Stand: 12. August 2026
   getrennten Gateway-Konten lokal vor DNS erfolgreich geprüft; ohne Anmeldung
   antwortet der Gateway mit HTTP 302.
 - [x] Live-Backup erstellt, Archivprüfsummen und `pg_restore`-Inhaltsliste
-  validiert; bestehende Dienste einschließlich Emby blieben ohne Neustart.
+  validiert.
+- [x] Unbeabsichtigten globalen OOM während des Android-Builds untersucht:
+  Kernel beendete Emby, Docker stellte den Dienst automatisch wieder her und
+  der öffentliche Info-Endpunkt liefert wieder HTTP 200. Keine Emby-Datei und
+  kein Emby-Plugin wurden geändert.
+- [x] Android-Build gegen erneuten Host-Speicherdruck gehärtet: Vorabcheck auf
+  4 GiB verfügbaren Speicher, ein Gradle-Worker und feste Containergrenzen für
+  CPU, RAM und Swap.
 - [x] Tatsächliche Live-Ergebnisse in `FINAL_REPORT.md` festgehalten.
 
 ## In Arbeit
