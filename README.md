@@ -11,8 +11,10 @@ Medizinprodukt, stellt keine Diagnose und darf nicht als Verhütungsmethode
 verwendet werden.
 
 Der Quellcode ist für ein **privates GitHub-Repository** vorgesehen. Der
-produktive Dienst ist über eine öffentliche Domain erreichbar, liegt aber
-hinter einer zusätzlichen Authentik-Gateway-Anmeldung.
+Produktionsstack läuft getrennt unter `/docker/lunara`; Authentik und Pangolin
+sind eingerichtet und beide Gateway-Konten wurden vor DNS erfolgreich geprüft.
+Für die Erreichbarkeit über den normalen Domainnamen fehlt nur noch der
+Cloudflare-DNS-Eintrag.
 
 ## Umgesetzter Kern
 
@@ -24,11 +26,14 @@ hinter einer zusätzlichen Authentik-Gateway-Anmeldung.
   Freigaben, Care Preferences, mindestens 50 zweisprachige Tipps und Check-ins
 - verschlüsselte Freitextnotizen, Soft Deletes, Cursor-Sync, optimistische
   Versionskonflikte und idempotente Offline-Mutationen
-- JSON-/CSV-/passwortverschlüsselter Export sowie validierter
-  JSON-Import mit Vorschau und Duplikaterkennung
+- JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
+  `.lunarabackup`-JSON-Format; kein ZIP-Container
+- feldvalidierter JSON-Import mit Vorschau und Erkennung bereits vorhandener
+  aktiver Perioden und Tageslogs
 - native Compose-App mit deutschem/englischem Onboarding,
   Authentik-Header-Login, SQLCipher/Keystore, Room, WorkManager,
-  rollenabhängigen Ansichten, Kalender, Verlauf, Freigaben und `FLAG_SECURE`
+  rollenabhängigen Ansichten, Basis-Tageslog, Kalender, Verlauf, Freigaben und
+  `FLAG_SECURE`
 - gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
   Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
 - versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
@@ -36,6 +41,23 @@ hinter einer zusätzlichen Authentik-Gateway-Anmeldung.
 
 Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
 [`FINAL_REPORT.md`](FINAL_REPORT.md) und [`PROGRESS.md`](PROGRESS.md).
+
+## Verifizierter Live-Stand
+
+- API und PostgreSQL laufen gesund unter `/docker/lunara`; zwei Migrationen
+  sind angewendet.
+- Weder API noch Datenbank veröffentlichen einen Host-Port. Die API läuft als
+  UID/GID `10001:10001` mit read-only Root-Dateisystem und ohne Linux-
+  Capabilities.
+- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Beide
+  getrennten Gateway-Konten lieferten im lokalen Pre-DNS-Test eine gültige
+  Lunara-Metaantwort; ein nicht authentifizierter Aufruf endete mit HTTP 302.
+- Ein PostgreSQL-Backup wurde erstellt, seine Archivprüfsummen und die
+  `pg_restore`-Inhaltsliste wurden erfolgreich validiert. Ein destruktiver
+  Voll-Restore wurde nicht auf der Live-Instanz ausgeführt.
+- Bestehende Heimserver-Dienste einschließlich Emby wurden nicht neu gestartet.
+
+Offen bleiben der Cloudflare-DNS-Eintrag und das private GitHub-Repository.
 
 ## APK
 

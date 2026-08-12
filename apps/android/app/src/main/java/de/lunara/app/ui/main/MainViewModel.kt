@@ -167,10 +167,10 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun sendCheckIn() {
+    fun sendCheckIn(prompt: String) {
         if (checkInSent.value) return
         viewModelScope.launch {
-            runCatching { dashboardRepository.sendCheckIn() }
+            runCatching { dashboardRepository.sendCheckIn(prompt) }
                 .onSuccess { checkInSent.value = true; checkInError.value = false }
                 .onFailure { checkInError.value = true }
         }

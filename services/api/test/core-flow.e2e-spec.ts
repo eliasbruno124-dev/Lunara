@@ -241,6 +241,15 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       await prisma.periodEvent.count({ where: { id: foreignPeriodId, deletedAt: null } }),
     ).toBe(1);
 
+    const isolatedSyncPull = await request(app.getHttpServer())
+      .get('/api/v1/sync?cursor=0')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(200);
+    expect(isolatedSyncPull.body.changes).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ entityId: foreignPeriodId })]),
+    );
+    expect(JSON.stringify(isolatedSyncPull.body)).not.toContain(foreignPeriodId);
+
     const periodStarts = ['2026-04-01', '2026-05-01', '2026-05-31', '2026-06-30'];
     const createdPeriods = [] as Array<{ id: string; version: number }>;
     for (const startDate of periodStarts) {
@@ -526,11 +535,15 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         expiresAt: new Date(Date.now() - 60_000),
       },
     });
-    await request(app.getHttpServer())
+    const initialSyncPush = await request(app.getHttpServer())
       .post('/api/v1/sync')
       .set('Authorization', `Bearer ${trackerAccess}`)
       .send(syncBody)
       .expect(201);
+    expect(initialSyncPush.body.changes).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ entityId: foreignPeriodId })]),
+    );
+    expect(JSON.stringify(initialSyncPush.body)).not.toContain(foreignPeriodId);
     await request(app.getHttpServer())
       .post('/api/v1/sync')
       .set('Authorization', `Bearer ${trackerAccess}`)

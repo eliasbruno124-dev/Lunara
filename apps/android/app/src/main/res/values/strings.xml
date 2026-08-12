@@ -107,7 +107,7 @@
     <string name="server_information">Server-Informationen</string>
     <string name="partner_connect">Partner verbinden</string>
     <string name="partner_connect_summary">Erzeuge einen einmal verwendbaren Einladungscode. Er enthält weder Passwort noch Server-Zugangsdaten.</string>
-    <string name="create_invitation">Einladung für 24 Stunden erstellen</string>
+    <string name="create_invitation">Zeitlich begrenzte Einladung erstellen</string>
     <string name="invitation_code_value">Einladungscode: %1$s</string>
     <string name="invitation_expiry">Gültig bis %1$s</string>
     <string name="invitation_qr_description">QR-Code für Einladung %1$s. Er enthält nur den Einladungscode.</string>

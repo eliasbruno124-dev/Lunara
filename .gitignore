@@ -19,6 +19,7 @@ coverage/
 # Android / Gradle
 .gradle/
 .gradle-ci/
+/.gradle-container/
 **/build/
 local.properties
 .idea/

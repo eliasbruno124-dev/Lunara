@@ -76,16 +76,21 @@ class PeriodRepository @Inject constructor(
         val id = existing?.id ?: UUID.randomUUID().toString()
         val mutationId = UUID.randomUUID().toString()
         val now = Instant.now().toString()
-        val symptomsJson = gson.toJson(symptoms.map(String::trim).filter(String::isNotBlank).distinct().take(30))
+        val safeMood = ApiPayloadPolicy.sanitizeMood(mood)
+        val safeSymptoms = ApiPayloadPolicy.sanitizeSymptoms(symptoms)
+        val safePain = painLevel?.coerceIn(0, 10)
+        val safeEnergy = energy?.coerceIn(0, 10)
+        val safeSleep = sleepQuality?.coerceIn(0, 10)
+        val symptomsJson = gson.toJson(safeSymptoms)
         val log = DailyLogEntity(
             id = id,
             userId = userId,
             localDate = localDate,
             flowLevel = flowLevel,
-            painLevel = painLevel?.coerceIn(0, 10),
-            mood = mood?.take(80),
-            energy = energy?.coerceIn(0, 10),
-            sleepQuality = sleepQuality?.coerceIn(0, 10),
+            painLevel = safePain,
+            mood = safeMood,
+            energy = safeEnergy,
+            sleepQuality = safeSleep,
             symptomsJson = symptomsJson,
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
@@ -96,11 +101,11 @@ class PeriodRepository @Inject constructor(
             "id" to id,
             "localDate" to localDate,
             "flowLevel" to flowLevel,
-            "painLevel" to painLevel,
-            "mood" to mood,
-            "energy" to energy,
-            "sleepQuality" to sleepQuality,
-            "customSymptoms" to symptoms,
+            "painLevel" to safePain,
+            "mood" to safeMood,
+            "energy" to safeEnergy,
+            "sleepQuality" to safeSleep,
+            "customSymptoms" to safeSymptoms,
         ).apply {
             if (existing != null && existing.version > 0) put("version", existing.version)
         }.filterValues { it != null }
@@ -126,4 +131,21 @@ class PeriodRepository @Inject constructor(
         syncScheduler.requestImmediate()
         return id
     }
+}
+
+internal object ApiPayloadPolicy {
+    const val MAX_MOOD_LENGTH = 64
+    const val MAX_SYMPTOM_LENGTH = 80
+    const val MAX_SYMPTOM_COUNT = 30
+
+    fun sanitizeMood(value: String?): String? = value
+        ?.trim()
+        ?.take(MAX_MOOD_LENGTH)
+        ?.ifBlank { null }
+
+    fun sanitizeSymptoms(values: List<String>): List<String> = values
+        .map { it.trim().take(MAX_SYMPTOM_LENGTH) }
+        .filter(String::isNotBlank)
+        .distinct()
+        .take(MAX_SYMPTOM_COUNT)
 }

@@ -165,7 +165,7 @@ data class PartnerDashboardDto(
 
 data class TodayTipDto(val tip: PartnerTipDto? = null, val date: String? = null)
 
-data class CreateCheckInRequest(val prompt: String = "Wie kann ich dich gerade unterstützen?")
+data class CreateCheckInRequest(val prompt: String)
 data class CheckInDto(
     val id: String,
     val prompt: String,
@@ -174,7 +174,7 @@ data class CheckInDto(
     val expiresAt: String,
 )
 
-data class CreateInvitationRequest(val expiresInMinutes: Int = 1440)
+data class CreateInvitationRequest(val expiresInMinutes: Int? = null)
 data class InvitationDto(
     val id: String,
     val code: String,

@@ -6,20 +6,24 @@ project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 android_dir="${project_dir}/apps/android"
 artifact_dir="${project_dir}/artifacts"
 builder_image="${ANDROID_BUILDER_IMAGE:-mingc/android-build-box:1.29.0}"
+gradle_jvm_args="${ANDROID_GRADLE_JVM_ARGS:--Xmx768m -XX:MaxMetaspaceSize=384m -Dfile.encoding=UTF-8}"
 
 mkdir -p -- "${artifact_dir}"
 
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
+  -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
+  -e "LUNARA_GRADLE_JVM_ARGS=${gradle_jvm_args}" \
   -v "${project_dir}:/workspace" \
   -w /workspace/apps/android \
   "${builder_image}" \
-  ./gradlew --no-daemon --max-workers=1 \
-    testLocalDebugUnitTest \
-    lintLocalDebug \
-    lintProductionDebug \
-    assembleProductionDebug
+  bash -ceu '
+    for task in testLocalDebugUnitTest lintLocalDebug lintProductionDebug assembleProductionDebug; do
+      ./gradlew --no-daemon --max-workers=1 \
+        "-Dorg.gradle.jvmargs=${LUNARA_GRADLE_JVM_ARGS}" "${task}"
+    done
+  '
 
 debug_apk="${android_dir}/app/build/outputs/apk/production/debug/app-production-debug.apk"
 if [[ ! -s "${debug_apk}" ]]; then
@@ -41,10 +45,12 @@ fi
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
+  -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
   -v "${project_dir}:/workspace" \
   -w /workspace/apps/android \
   "${builder_image}" \
-  ./gradlew --no-daemon --max-workers=1 assembleProductionRelease
+  ./gradlew --no-daemon --max-workers=1 \
+    "-Dorg.gradle.jvmargs=${gradle_jvm_args}" assembleProductionRelease
 
 release_apk="${android_dir}/app/build/outputs/apk/production/release/app-production-release-unsigned.apk"
 

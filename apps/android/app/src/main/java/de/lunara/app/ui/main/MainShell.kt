@@ -91,6 +91,7 @@ import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
+import de.lunara.app.data.repository.ApiPayloadPolicy
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.StatusPill
@@ -401,7 +402,7 @@ private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Uni
                 MetricSlider(stringResource(R.string.sleep_quality), sleep) { sleep = it }
                 OutlinedTextField(
                     value = mood,
-                    onValueChange = { mood = it.take(80) },
+                    onValueChange = { mood = it.take(ApiPayloadPolicy.MAX_MOOD_LENGTH) },
                     label = { Text(stringResource(R.string.mood)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -426,7 +427,7 @@ private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Uni
                             mood = mood.trim().ifBlank { null },
                             energy = energy.toInt(),
                             sleepQuality = sleep.toInt(),
-                            symptoms = symptoms.split(',').map(String::trim).filter(String::isNotBlank).distinct().take(30),
+                            symptoms = ApiPayloadPolicy.sanitizeSymptoms(symptoms.split(',')),
                         ),
                     )
                 },
@@ -484,8 +485,9 @@ fun PartnerDashboard(
     onRefresh: () -> Unit,
     checkInSent: Boolean = false,
     checkInError: Boolean = false,
-    onCheckIn: () -> Unit = {},
+    onCheckIn: (String) -> Unit = {},
 ) {
+    val checkInPrompt = stringResource(R.string.check_in)
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -532,7 +534,7 @@ fun PartnerDashboard(
             }
         }
         item {
-            FilledTonalButton(onClick = onCheckIn, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Icon(Icons.Rounded.FavoriteBorder, contentDescription = null)
                 Text(stringResource(R.string.check_in), Modifier.padding(start = 10.dp))
             }
@@ -692,8 +694,9 @@ private fun SupportScreen(
     dashboard: PartnerDashboardDto?,
     checkInSent: Boolean,
     checkInError: Boolean,
-    onCheckIn: () -> Unit,
+    onCheckIn: (String) -> Unit,
 ) {
+    val checkInPrompt = stringResource(R.string.check_in)
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item { LunaraHeader(title = stringResource(R.string.support), body = stringResource(R.string.support_principle)) }
         item {
@@ -714,7 +717,7 @@ private fun SupportScreen(
             }
         }
         item {
-            FilledTonalButton(onClick = onCheckIn, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Icon(Icons.Rounded.FavoriteBorder, contentDescription = null)
                 Text(stringResource(R.string.check_in), Modifier.padding(start = 10.dp))
             }

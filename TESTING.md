@@ -34,17 +34,26 @@ Suite unter anderem ab:
 1. Setup-Status und einmalige Bootstrap-Sperre
 2. generische Loginfehler sowie Refresh-Rotation und Replay-Widerruf
 3. Tracker, Einmal-Einladung, Partner und Rollenprüfung
-4. Fremdhaushalts-IDOR bei Perioden, Sync und eigenen Symptomen
+4. Fremdhaushalts-IDOR bei Perioden, Pull-/Push-Sync und eigenen Symptomen
 5. Perioden, deterministische Prognose und Partnerfreigaben
 6. Verschlüsselung einer Notiz im Datenbankzustand
 7. Tipp-/Care-Filter ohne Rückschluss auf gesperrte Symptome
-8. JSON-Export, Importvorschau und Duplikaterkennung
+8. JSON-Export, Importvorschau und Erkennung bereits vorhandener aktiver
+   Datensätze
 9. Soft Delete, Offline-Sync-Idempotenz und Versionskonflikt
 10. strikte Sync-Payloads und Recovery einer abgelaufenen
     In-Progress-Reservation
 
 Eine Test-Suite ist nicht dasselbe wie ein Testfall; Jest berichtet die genaue
 Anzahl bei jedem Lauf.
+
+Gezielte Unit-/E2E-Regressionen decken unter anderem strikte Sync-Payloads,
+Recovery einer abgelaufenen Idempotenz-Reservation, Haushaltsisolation im
+Pull-/Push-Sync, Create-ID-Payloadkonflikte, die serverseitige
+Einladungslaufzeit-Policy, CSV-Formelschutz, den gültigen Einsatz der
+Tracker-IANA-Zeitzone und die fail-closed Partnerphase ab. Der Importtest erkennt
+Duplikate gegen den vorhandenen aktiven Datenbestand; Duplikate innerhalb eines
+einzelnen neuen Import-Payloads sind damit nicht abgedeckt.
 
 ## Android
 
@@ -97,10 +106,16 @@ docker image inspect lunara-api:1.0.0
 einer Instanz. `docker compose up` wird ausschließlich mit einer außerhalb von
 Git erzeugten echten `.env` und gemäß `DEPLOYMENT.md` verwendet.
 
+Auf dem Zielserver wurde der Stack anschließend unter `/docker/lunara`
+tatsächlich gestartet und geprüft: API und PostgreSQL sind gesund, zwei
+Migrationen sind angewendet, es existieren keine veröffentlichten Host-Ports und
+die API läuft als UID/GID `10001:10001` mit read-only Root-Dateisystem und
+vollständigem Capability-Drop.
+
 ## Gateway und Betrieb
 
 Die beiden additiven Infrastrukturhelfer besitzen einen read-only
-`--check-only`-Modus. Vor jeder Live-Änderung werden damit Zielcontainer,
+`--check`-Modus. Vor jeder Live-Änderung werden damit Zielcontainer,
 Versionen, Schema und Namenskonflikte geprüft. Der öffentliche Gatewaytest liest
 die Zugangsdaten aus einer lokalen Datei, ohne sie in Prozessargumente oder
 Ausgabe zu schreiben:
@@ -111,6 +126,13 @@ sudo /docker/lunara/scripts/configure-pangolin.sh --check
 sudo /docker/lunara/scripts/verify-gateway.sh /docker/lunara/gateway-a.url
 ```
 
+Authentik und Pangolin wurden auf dem Zielserver additiv eingerichtet. Beide
+getrennten Gateway-Konten bestanden den lokalen Pre-DNS-Test bis zur gültigen
+Lunara-Metaantwort; ein Aufruf ohne Anmeldung antwortete mit HTTP 302. Dabei
+wurde kein bestehender Dienst einschließlich Emby neu gestartet.
+
 Ein produktiver Restore wird nicht als Test verwendet. Er ist destruktiv und
 erfordert den dokumentierten expliziten Bestätigungsschalter; ein Restore-Test
 gehört in eine separat benannte Instanz mit Kopien von Dump und Master-Key.
+Ein echtes Live-Backup wurde jedoch erstellt, die Archivprüfsummen wurden
+geprüft und `pg_restore --list` konnte den Dump vollständig lesen.

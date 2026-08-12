@@ -107,7 +107,7 @@
     <string name="server_information">Server information</string>
     <string name="partner_connect">Connect partner</string>
     <string name="partner_connect_summary">Create a single-use invitation code. It contains neither a password nor server credentials.</string>
-    <string name="create_invitation">Create 24-hour invitation</string>
+    <string name="create_invitation">Create time-limited invitation</string>
     <string name="invitation_code_value">Invitation code: %1$s</string>
     <string name="invitation_expiry">Valid until %1$s</string>
     <string name="invitation_qr_description">QR code for invitation %1$s. It only contains the invitation code.</string>

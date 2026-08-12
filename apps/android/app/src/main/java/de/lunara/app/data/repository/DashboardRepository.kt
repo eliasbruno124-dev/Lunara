@@ -55,9 +55,9 @@ class DashboardRepository @Inject constructor(
         return response.requireBody()
     }
 
-    suspend fun sendCheckIn(): de.lunara.app.data.remote.dto.CheckInDto {
+    suspend fun sendCheckIn(prompt: String): de.lunara.app.data.remote.dto.CheckInDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        val request = de.lunara.app.data.remote.dto.CreateCheckInRequest()
+        val request = de.lunara.app.data.remote.dto.CreateCheckInRequest(prompt.take(240))
         var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
             .createCheckIn(endpoint(base, "api/v1/check-ins"), request)
         if (response.code() == 401 && connectionRepository.refresh()) {
