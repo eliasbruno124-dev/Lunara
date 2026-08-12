@@ -69,6 +69,12 @@ betrieben. Kein Befehl in dieser Anleitung richtet sich gegen Stack 20.
 
 ## 4. Authentik Proxy Provider und Pangolin-Ressource
 
+`LUNARA_AUTHENTIK_HUMAN_USERS` enthält die exakten, bereits vorhandenen
+Authentik-Benutzernamen, die Lunara zusätzlich zur nativen Header-Auth verwenden
+dürfen. Auf dem Zielserver sind dies `Dune` (Dunja) und `Elias`. Die beiden
+technischen App-Zugänge bleiben davon getrennt und besitzen weiterhin eigene
+App-Passwörter.
+
 Authentik unterstützt eingehende HTTP-Basic-Authentifizierung an einem Proxy
 Provider. Dabei muss das Passwort ein Authentik-**App-Passwort** sein; ein
 normales Kontopasswort wird absichtlich nicht verwendet. Das mitgelieferte
@@ -116,8 +122,16 @@ Das Ergebnis entspricht folgender Provider-Konfiguration:
 - External host: `https://lunara.3li361.de`
 - Internal host: `http://lunara-api:3000`
 - Intercept header authentication: aktiviert
-- Anwendung: ausschließlich die vorgesehenen Lunara-Gateway-Konten/-Gruppe
+- Anwendung: ausschließlich die zwei technischen Lunara-Gateway-Konten sowie
+  die explizit in `LUNARA_AUTHENTIK_HUMAN_USERS` freigegebenen Konten
 - Outpost: vorhandener eingebetteter Authentik-Outpost
+
+Für Browser-Anmeldung und Header-Auth wird dieselbe Domain verwendet:
+`https://lunara.3li361.de`. Es gibt absichtlich keine ungeschützte zweite
+Subdomain. Auf dem Zielserver liegen die beiden vollständigen, geheimen
+Header-Auth-URLs getrennt als `/docker/lunara/dunja-headerauth.url` und
+`/docker/lunara/elias-headerauth.url` mit Modus `0600`; ihr Inhalt darf weder in
+Git noch in Dokumentation, Chat oder QR-Codes übernommen werden.
 
 Lege anschließend genau die Lunara-Ressource in Pangolin an. Das Skript prüft
 verifizierte Domain und aktive Site, verweigert das Überschreiben einer

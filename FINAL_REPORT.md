@@ -118,6 +118,12 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
   antwortet der öffentliche Gateway mit HTTP 302 zu Authentik; beide getrennten
   Gateway-Konten bestanden anschließend den vollständigen Test ohne lokale
   DNS- oder TLS-Ausnahme bis zur gültigen Lunara-Metaantwort.
+- Dunjas vorhandenes Authentik-Konto `Dune` und das Konto `Elias` wurden nach
+  einem validierten Authentik-Datenbankbackup explizit für die Lunara-Anwendung
+  freigegeben. Frische Policy-Engine-Prüfungen lieferten für beide `allowed`.
+  Die beiden getrennten geheimen Header-Auth-URLs wurden lokal mit Modus `0600`
+  abgelegt und jeweils Ende-zu-Ende geprüft. Es war kein Containerneustart
+  erforderlich.
 - Ein echtes Backup wurde erstellt, seine Archivprüfsummen wurden validiert und
   `pg_restore --list` konnte den Dump vollständig lesen. Ein destruktiver Restore
   wurde auf der Live-Instanz bewusst nicht ausgeführt.

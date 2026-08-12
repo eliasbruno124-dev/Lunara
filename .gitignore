@@ -44,6 +44,7 @@ artifacts/*
 authentik-gateway-credentials.json
 gateway-a.url
 gateway-b.url
+*-headerauth.url
 authentik-lunara-config.log
 
 # Editor / OS

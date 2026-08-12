@@ -48,6 +48,11 @@ Stand: 12. August 2026
 - [x] Cloudflare-CNAME auf beiden autoritativen Nameservern geprüft,
   Let’s-Encrypt-Zertifikat ausgestellt und beide Gateway-Zugänge anschließend
   ohne Resolve- oder TLS-Ausnahme erfolgreich bis zur API getestet.
+- [x] Authentik-Zugriff für Dunjas bestehendes Konto `Dune` und `Elias`
+  freigegeben; beide Policy-Entscheidungen sowie beide getrennten Header-Auth-
+  Zugänge gegen `https://lunara.3li361.de` erfolgreich geprüft. Vor der
+  Änderung wurde ein validierter PostgreSQL-Custom-Dump erstellt; kein Dienst
+  musste neu gestartet werden.
 - [x] Fehlgeschlagene ACME-Erstanforderung nach eng benanntem Pangolin-Backup
   ausschließlich durch Neuladen der Lunara-Ressource erneut ausgelöst; kein
   Containerneustart erforderlich.

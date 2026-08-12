@@ -32,6 +32,13 @@ public_host="${LUNARA_PUBLIC_HOST:-lunara.3li361.de}"
 internal_host="${LUNARA_INTERNAL_URL:-http://lunara-api:3000}"
 expected_authentik_version="2026.5.3"
 owner_marker="lunara-authentik-gateway-v1"
+allowed_human_usernames_csv="${LUNARA_AUTHENTIK_HUMAN_USERS:-Dune,Elias}"
+
+if [[ ! "${allowed_human_usernames_csv}" =~ ^[A-Za-z0-9_.@+-]+(,[A-Za-z0-9_.@+-]+)*$ ]] ||
+   (( ${#allowed_human_usernames_csv} > 512 )); then
+  echo "LUNARA_AUTHENTIK_HUMAN_USERS muss eine kurze, kommagetrennte Liste exakter Authentik-Benutzernamen sein." >&2
+  exit 2
+fi
 
 for command_name in docker sed tail; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
@@ -85,6 +92,7 @@ run_authentik_model_check() {
     -e LUNARA_PUBLIC_HOST="${public_host}" \
     -e LUNARA_INTERNAL_URL="${internal_host}" \
     -e LUNARA_OWNER_MARKER="${owner_marker}" \
+    -e LUNARA_ALLOWED_HUMAN_USERS="${allowed_human_usernames_csv}" \
     "${authentik_container}" \
     ak shell --no-imports -v 0 <<'PYTHON'
 import json
@@ -113,6 +121,7 @@ EXPECTED_STATE = os.environ["LUNARA_EXPECTED_STATE"]
 PUBLIC_HOST = os.environ["LUNARA_PUBLIC_HOST"]
 INTERNAL_HOST = os.environ["LUNARA_INTERNAL_URL"]
 OWNER = os.environ["LUNARA_OWNER_MARKER"]
+ALLOWED_HUMAN_USERNAMES = tuple(os.environ["LUNARA_ALLOWED_HUMAN_USERS"].split(","))
 OWNER_KEY = "lunara.infrastructure.owner"
 OWNER_ATTRIBUTES = {OWNER_KEY: OWNER}
 PROVIDER_NAME = "Lunara Proxy"
@@ -125,9 +134,12 @@ USER_PATH = "service-accounts/lunara"
 TOKEN_DESCRIPTION = f"Lunara native app header authentication [{OWNER}]"
 EXTERNAL_HOST = f"https://{PUBLIC_HOST}"
 
-
 def fail(message):
     raise RuntimeError(f"Lunara Authentik preflight failed: {message}")
+
+
+if len(ALLOWED_HUMAN_USERNAMES) != len(set(ALLOWED_HUMAN_USERNAMES)):
+    fail("duplicate usernames in the human access allowlist")
 
 
 def dependencies():
@@ -157,6 +169,19 @@ def dependencies():
     if len(scopes) != 5:
         fail("the five pinned managed proxy scope mappings are not available")
     return flows, outpost, scopes
+
+
+def allowed_human_users():
+    users = []
+    for username in ALLOWED_HUMAN_USERNAMES:
+        matches = list(User.objects.filter(username=username))
+        if len(matches) != 1:
+            fail(f"allowed human user {username} is missing or ambiguous")
+        user = matches[0]
+        if not user.is_active or user.type != UserTypes.INTERNAL:
+            fail(f"allowed human user {username} is not an active internal account")
+        users.append(user)
+    return users
 
 
 def lock_configuration_namespace():
@@ -212,7 +237,7 @@ def named_objects_state():
     }
 
 
-def verify_owned(objects, flows, outpost, expected_scopes):
+def verify_owned(objects, flows, outpost, expected_scopes, human_users):
     provider = objects["provider"]
     application = objects["application"]
     group = objects["group"]
@@ -324,8 +349,9 @@ def verify_owned(objects, flows, outpost, expected_scopes):
 
     credentials = {}
     expected_user_ids = {objects["users"][suffix].pk for suffix in ("a", "b")}
+    expected_user_ids.update(user.pk for user in human_users)
     if set(group.users.values_list("pk", flat=True)) != expected_user_ids:
-        fail("gateway group contains users outside the two owned service accounts")
+        fail("gateway group does not exactly contain the two service accounts and allowed human users")
     for suffix in ("a", "b"):
         username = f"lunara-gateway-{suffix}"
         user = objects["users"][suffix]
@@ -366,7 +392,7 @@ def verify_owned(objects, flows, outpost, expected_scopes):
     return credentials
 
 
-def create_owned(flows, outpost):
+def create_owned(flows, outpost, human_users):
     state, _ = named_objects_state()
     if state != "create":
         fail("named objects appeared after preflight; refusing to adopt or overwrite them")
@@ -445,17 +471,19 @@ def create_owned(flows, outpost):
             expiring=False,
             expires=None,
         )
+    group.users.add(*human_users)
 
 
 if ACTION not in {"check", "apply"}:
     fail("invalid action")
 flows, outpost, expected_scopes = dependencies()
+human_users = allowed_human_users()
 if ACTION == "check":
     with transaction.atomic():
         lock_configuration_namespace()
         state, objects = named_objects_state()
         if state == "existing":
-            verify_owned(objects, flows, outpost, expected_scopes)
+            verify_owned(objects, flows, outpost, expected_scopes, human_users)
     print(f"LUNARA_AUTHENTIK_PREFLIGHT={state}")
 else:
     if EXPECTED_STATE not in {"create", "existing"}:
@@ -466,9 +494,9 @@ else:
         if state != EXPECTED_STATE:
             fail("named object state changed after preflight")
         if state == "create":
-            create_owned(flows, outpost)
+            create_owned(flows, outpost, human_users)
             state, objects = named_objects_state()
-        credentials = verify_owned(objects, flows, outpost, expected_scopes)
+        credentials = verify_owned(objects, flows, outpost, expected_scopes, human_users)
     print("LUNARA_GATEWAY_JSON=" + json.dumps(credentials, separators=(",", ":")))
 PYTHON
 }
