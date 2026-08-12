@@ -4,9 +4,8 @@ Stand: 12. August 2026
 
 Dieser Bericht enthält die Ergebnisse der finalen Prüfkette und des
 Live-Deployments. Aussagen mit „erfolgreich“ beruhen ausschließlich auf wirklich
-ausgeführten Befehlen. Bis zum Abschluss der separat verifizierten
-GitHub-Anmeldung ist nur noch die Veröffentlichung in einem privaten
-GitHub-Repository offen.
+ausgeführten Befehlen. Der geprüfte Quellstand und die APK sind zusätzlich in
+einem privaten GitHub-Repository veröffentlicht.
 
 ## Architektur
 
@@ -140,9 +139,11 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 
 ### Privates GitHub-Repository
 
-Wird nach erfolgreicher GitHub-Authentifizierung ergänzt. Echte `.env`,
-Gateway-Zugangsdaten, Tokens, Datenbankdumps und Infrastruktur-Backups werden
-nicht hochgeladen.
+Das Repository `https://github.com/eliasbruno124-dev/Lunara` wurde vor dem
+ersten Push als privat geprüft. `main` und der lokale Commit stimmten nach dem
+Push exakt überein. Das private Release `v1.0.0` enthält die geprüfte
+`lunara-debug.apk` mit 24.219.463 Bytes. Echte `.env`, Gateway-Zugangsdaten,
+Tokens, Datenbankdumps und Infrastruktur-Backups wurden nicht hochgeladen.
 
 ## Bekannte Funktionsgrenzen
 

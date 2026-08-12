@@ -61,10 +61,15 @@ Stand: 12. August 2026
   4 GiB verfügbaren Speicher, ein Gradle-Worker und feste Containergrenzen für
   CPU, RAM und Swap.
 - [x] Tatsächliche Live-Ergebnisse in `FINAL_REPORT.md` festgehalten.
+- [x] Privates GitHub-Repository vor dem ersten Push auf private Sichtbarkeit
+  geprüft, vollständigen `main`-Stand gepusht und lokalen/entfernten Commit
+  verglichen.
+- [x] APK als privates GitHub-Release `v1.0.0` veröffentlicht und Größe sowie
+  SHA-256 vor dem Upload erneut geprüft.
 
 ## In Arbeit
 
-- [ ] Privates GitHub-Repository erstellen und secret-geprüften Commit pushen.
+Keine offenen Bereitstellungsschritte.
 
 ## Bewusst offen nach dem produktionsnahen Kern
 

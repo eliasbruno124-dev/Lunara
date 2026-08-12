@@ -10,7 +10,8 @@ Google-Play-Services-Abhängigkeit für Kernfunktionen. Sie ist kein
 Medizinprodukt, stellt keine Diagnose und darf nicht als Verhütungsmethode
 verwendet werden.
 
-Der Quellcode ist für ein **privates GitHub-Repository** vorgesehen. Der
+Der Quellcode liegt im privaten Repository
+[`eliasbruno124-dev/Lunara`](https://github.com/eliasbruno124-dev/Lunara). Der
 Produktionsstack läuft getrennt unter `/docker/lunara`; Authentik und Pangolin
 sind eingerichtet. Die öffentliche Domain, das Let’s-Encrypt-Zertifikat und
 beide getrennten Gateway-Konten wurden vollständig geprüft.
@@ -62,7 +63,7 @@ Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
   deshalb nun einen Hostspeicher-Vorabcheck und feste Containergrenzen. Details
   stehen im Abschlussbericht.
 
-Offen bleibt nur noch das private GitHub-Repository.
+Die Bereitstellungsschritte sind abgeschlossen.
 
 ## APK
 
@@ -71,6 +72,10 @@ Die installierbare Produktions-Debug-APK liegt unter:
 ```text
 artifacts/lunara-debug.apk
 ```
+
+Für berechtigte GitHub-Benutzer steht sie außerdem im privaten
+[`v1.0.0-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.0)
+als direkter Download bereit.
 
 Sie erzwingt HTTPS und verwendet standardmäßig
 `https://lunara.3li361.de/`. Vor der Installation den Hash prüfen:
