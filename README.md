@@ -12,9 +12,8 @@ verwendet werden.
 
 Der Quellcode ist für ein **privates GitHub-Repository** vorgesehen. Der
 Produktionsstack läuft getrennt unter `/docker/lunara`; Authentik und Pangolin
-sind eingerichtet und beide Gateway-Konten wurden vor DNS erfolgreich geprüft.
-Für die Erreichbarkeit über den normalen Domainnamen fehlt nur noch der
-Cloudflare-DNS-Eintrag.
+sind eingerichtet. Die öffentliche Domain, das Let’s-Encrypt-Zertifikat und
+beide getrennten Gateway-Konten wurden vollständig geprüft.
 
 ## Umgesetzter Kern
 
@@ -49,9 +48,11 @@ Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
 - Weder API noch Datenbank veröffentlichen einen Host-Port. Die API läuft als
   UID/GID `10001:10001` mit read-only Root-Dateisystem und ohne Linux-
   Capabilities.
-- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Beide
-  getrennten Gateway-Konten lieferten im lokalen Pre-DNS-Test eine gültige
-  Lunara-Metaantwort; ein nicht authentifizierter Aufruf endete mit HTTP 302.
+- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Der
+  Cloudflare-CNAME und das Let’s-Encrypt-Zertifikat sind aktiv. Beide getrennten
+  Gateway-Konten lieferten ohne DNS- oder TLS-Ausnahme eine gültige
+  Lunara-Metaantwort; ein nicht authentifizierter Aufruf endet mit HTTP 302 zu
+  Authentik.
 - Ein PostgreSQL-Backup wurde erstellt, seine Archivprüfsummen und die
   `pg_restore`-Inhaltsliste wurden erfolgreich validiert. Ein destruktiver
   Voll-Restore wurde nicht auf der Live-Instanz ausgeführt.
@@ -61,7 +62,7 @@ Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
   deshalb nun einen Hostspeicher-Vorabcheck und feste Containergrenzen. Details
   stehen im Abschlussbericht.
 
-Offen bleiben der Cloudflare-DNS-Eintrag und das private GitHub-Repository.
+Offen bleibt nur noch das private GitHub-Repository.
 
 ## APK
 

@@ -45,6 +45,12 @@ Stand: 12. August 2026
 - [x] Authentik-Provider und Pangolin-Ressource additiv angelegt und beide
   getrennten Gateway-Konten lokal vor DNS erfolgreich geprüft; ohne Anmeldung
   antwortet der Gateway mit HTTP 302.
+- [x] Cloudflare-CNAME auf beiden autoritativen Nameservern geprüft,
+  Let’s-Encrypt-Zertifikat ausgestellt und beide Gateway-Zugänge anschließend
+  ohne Resolve- oder TLS-Ausnahme erfolgreich bis zur API getestet.
+- [x] Fehlgeschlagene ACME-Erstanforderung nach eng benanntem Pangolin-Backup
+  ausschließlich durch Neuladen der Lunara-Ressource erneut ausgelöst; kein
+  Containerneustart erforderlich.
 - [x] Live-Backup erstellt, Archivprüfsummen und `pg_restore`-Inhaltsliste
   validiert.
 - [x] Unbeabsichtigten globalen OOM während des Android-Builds untersucht:
@@ -58,8 +64,6 @@ Stand: 12. August 2026
 
 ## In Arbeit
 
-- [ ] Cloudflare-DNS-Eintrag für `lunara.3li361.de` anlegen und beide
-  Gateway-Zugänge danach ohne lokale Resolve-/TLS-Ausnahme erneut prüfen.
 - [ ] Privates GitHub-Repository erstellen und secret-geprüften Commit pushen.
 
 ## Bewusst offen nach dem produktionsnahen Kern

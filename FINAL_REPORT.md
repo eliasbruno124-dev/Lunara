@@ -3,10 +3,10 @@
 Stand: 12. August 2026
 
 Dieser Bericht enthält die Ergebnisse der finalen Prüfkette und des
-Pre-DNS-Live-Deployments. Aussagen mit „erfolgreich“ beruhen ausschließlich auf
-wirklich ausgeführten Befehlen. Offen sind der Cloudflare-DNS-Eintrag und – bis
-zum Abschluss der separat verifizierten GitHub-Anmeldung – die Veröffentlichung
-in einem privaten GitHub-Repository.
+Live-Deployments. Aussagen mit „erfolgreich“ beruhen ausschließlich auf wirklich
+ausgeführten Befehlen. Bis zum Abschluss der separat verifizierten
+GitHub-Anmeldung ist nur noch die Veröffentlichung in einem privaten
+GitHub-Repository offen.
 
 ## Architektur
 
@@ -112,9 +112,13 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 - API und PostgreSQL veröffentlichen keine Host-Ports. Die API läuft als
   UID/GID `10001:10001`, mit read-only Root-Dateisystem,
   `no-new-privileges` und vollständigem Capability-Drop.
-- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Beide
-  getrennten Gateway-Konten bestanden den lokalen Pre-DNS-Test bis zur gültigen
-  Lunara-Metaantwort; ohne Anmeldung antwortet der Gateway mit HTTP 302.
+- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Der
+  Cloudflare-CNAME `lunara.3li361.de` wurde auf beiden autoritativen
+  Nameservern verifiziert. Let’s Encrypt stellte ein Zertifikat mit passendem
+  SAN aus, gültig vom 12. August bis 10. November 2026. Ohne Anmeldung
+  antwortet der öffentliche Gateway mit HTTP 302 zu Authentik; beide getrennten
+  Gateway-Konten bestanden anschließend den vollständigen Test ohne lokale
+  DNS- oder TLS-Ausnahme bis zur gültigen Lunara-Metaantwort.
 - Ein echtes Backup wurde erstellt, seine Archivprüfsummen wurden validiert und
   `pg_restore --list` konnte den Dump vollständig lesen. Ein destruktiver Restore
   wurde auf der Live-Instanz bewusst nicht ausgeführt.
@@ -128,8 +132,11 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
   besitzt `scripts/build-android.sh` nun einen 4-GiB-Hostspeicher-Vorabcheck,
   einen einzelnen Gradle-Worker sowie feste CPU-, RAM- und Swap-Grenzen für den
   Buildcontainer.
-- Noch nicht geprüft ist der Zugriff über die normale Domain ohne lokale
-  Resolve-Hilfe; dafür fehlt ausschließlich der Cloudflare-DNS-Eintrag.
+- Die erste ACME-Anforderung war vor dem DNS-Eintrag erwartungsgemäß an
+  `NXDOMAIN` gescheitert. Nach einem konsistenten Pangolin-Datenbankbackup wurde
+  ausschließlich die neue Lunara-Ressource kurz deaktiviert und wieder
+  aktiviert. Dadurch wurde die Zertifikatsanforderung ohne Containerneustart
+  erneut ausgelöst und erfolgreich abgeschlossen.
 
 ### Privates GitHub-Repository
 
@@ -183,14 +190,11 @@ Keystore-/SQLCipher-Wipe-Integration.
 
 ## Verbleibende Schritte zum ersten produktiven App-Start
 
-1. Cloudflare-DNS für `lunara.3li361.de` gemäß `DEPLOYMENT.md` ergänzen.
-2. Beide Gateway-Konten danach ohne lokale Resolve- oder TLS-Ausnahme erneut
-   prüfen.
-3. Eine der lokalen `gateway-a.url`/`gateway-b.url`-Dateien ausschließlich auf
+1. Eine der lokalen `gateway-a.url`/`gateway-b.url`-Dateien ausschließlich auf
    dem Server öffnen und in Android eingeben; niemals teilen oder in QR kodieren.
-4. Den `BOOTSTRAP_TOKEN` lokal aus `/docker/lunara/.env` verwenden und das erste
+2. Den `BOOTSTRAP_TOKEN` lokal aus `/docker/lunara/.env` verwenden und das erste
    Tracker-Konto anlegen.
-5. Über die App einen Einmalcode erzeugen und das Partnerkonto mit eigenen
+3. Über die App einen Einmalcode erzeugen und das Partnerkonto mit eigenen
    Zugangsdaten anlegen.
-6. Gateway- und Lunara-Passwörter getrennt sichern, `APP_MASTER_KEY` separat
+4. Gateway- und Lunara-Passwörter getrennt sichern, `APP_MASTER_KEY` separat
    verschlüsselt offline verwahren und das erste Backup prüfen.
