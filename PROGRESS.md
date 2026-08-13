@@ -88,9 +88,9 @@ Stand: 13. August 2026, Quellstand 1.0.4
   installiert und bleibt Aufgabe des CI-History-Scans.
 - [x] Geprüften 1.0.4-Quellstand sowie Debug- und unsignierte Release-APK lokal
   im Branch `agent/authentik-human-access` committet.
-- [ ] Commit ins private GitHub-Repository übertragen. Der nicht-interaktive
-  Push wurde versucht und ausschließlich wegen fehlender GitHub-/HTTPS-
-  Anmeldung auf diesem Server abgewiesen.
+- [x] GitHub-Geräteanmeldung durch den Eigentümer bestätigt, geprüften
+  1.0.4-Stand in `agent/authentik-human-access` gepusht und Dateigrößen beider
+  APKs über GitHub verifiziert; Draft-Pull-Request 1 auf 1.0.4 aktualisiert.
 
 ## Bewusst offen nach dem produktionsnahen Kern
 

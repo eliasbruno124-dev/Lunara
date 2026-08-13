@@ -311,26 +311,28 @@ studie nicht seriös.
 
 ## Privates GitHub-Repository
 
-Das vorgesehene private Repository ist:
+Das private Repository ist:
 
 ```text
 https://github.com/eliasbruno124-dev/Lunara
 ```
 
-Der vollständige 1.0.4-Stand einschließlich beider APKs wurde nach dem finalen
-Secret-Scan lokal im Branch `agent/authentik-human-access` committet. Der
-anschließende nicht-interaktive Push-Versuch wurde von GitHub abgewiesen, weil
-auf diesem Server weder die GitHub-CLI noch der HTTPS-Git-Zugang angemeldet
-sind. **Lunara 1.0.4 wurde deshalb noch nicht zu GitHub übertragen.** Der dort
-vorhandene Branch darf bis zum späteren Push nicht als aktueller 1.0.4-Download
-bezeichnet werden.
+Nach einer vom Eigentümer bestätigten GitHub-Geräteanmeldung wurde der
+vollständige 1.0.4-Stand einschließlich beider APKs erfolgreich in den Branch
+`agent/authentik-human-access` übertragen. GitHub bestätigte den Release-
+Commit `e60800c1278053d136336dc9579785f4b817e432`; die über GitHub gelesenen
+Dateigrößen stimmen mit den lokal geprüften Artefakten überein.
 
-Nach einer bewussten Anmeldung genügt:
+Direkte private Downloadpfade:
 
 ```text
-gh auth login -h github.com
-git -C /root/Lunara push origin agent/authentik-human-access
+https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-debug.apk
+https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-release-unsigned.apk
 ```
+
+Der bestehende Draft-Pull-Request 1 wurde auf Lunara 1.0.4 aktualisiert. Wegen
+des privaten Repositorys müssen Downloads mit dem berechtigten GitHub-Konto
+angemeldet geöffnet werden.
 
 Echte `.env`-Dateien, Authentik-Zugänge, Passwörter, Token, Dumps und
 Serverbackups bleiben ausschließlich auf dem Server.
