@@ -7,8 +7,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import de.lunara.app.ui.onboarding.OnboardingScreen
+import de.lunara.app.ui.onboarding.AuthMode
 import de.lunara.app.ui.onboarding.OnboardingStage
 import de.lunara.app.ui.onboarding.OnboardingUiState
+import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.ui.theme.LunaraTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,7 +29,7 @@ class OnboardingComposeTest {
                     onLanguage = {}, onContinue = { continued++ }, onBack = {}, onServerUrl = {},
                     onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
                     onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {}, onUsername = {},
-                    onPassword = {}, onDisplayName = {}, onHouseholdName = {}, onBootstrapToken = {},
+                    onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
                     onInvitationCode = {}, onSubmit = {},
                 )
             }
@@ -48,7 +50,7 @@ class OnboardingComposeTest {
                     onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = { value = it },
                     onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = { tests++ },
                     onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {}, onUsername = {},
-                    onPassword = {}, onDisplayName = {}, onHouseholdName = {}, onBootstrapToken = {},
+                    onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
                     onInvitationCode = {}, onSubmit = {},
                 )
             }
@@ -75,7 +77,7 @@ class OnboardingComposeTest {
                     onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
                     onConfirmServerChange = { confirmed++ }, onCancelServerChange = { cancelled++ },
                     onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
-                    onHouseholdName = {}, onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
+                    onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
                 )
             }
         }
@@ -83,5 +85,51 @@ class OnboardingComposeTest {
         compose.onNodeWithText("Server wechseln und Daten löschen").assertIsDisplayed().performClick()
         assertEquals(1, confirmed)
         assertEquals(0, cancelled)
+    }
+
+    @Test
+    fun registrationIsShownOnlyWhenTheServerEnablesIt() {
+        var selected: AuthMode? = null
+        compose.setContent {
+            LunaraTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(
+                        stage = OnboardingStage.AUTH,
+                        meta = MetaDto("Lunara", "1.0.3", "v1", false, true, "now"),
+                    ),
+                    onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {},
+                    onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
+                    onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = { selected = it },
+                    onUsername = {}, onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
+                    onInvitationCode = {}, onSubmit = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Neue Beziehung starten").assertIsDisplayed().performClick()
+        assertEquals(AuthMode.REGISTER, selected)
+    }
+
+    @Test
+    fun setupAndRegistrationNeverAskForAHouseholdName() {
+        compose.setContent {
+            LunaraTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(
+                        stage = OnboardingStage.AUTH,
+                        authMode = AuthMode.REGISTER,
+                        meta = MetaDto("Lunara", "1.0.3", "v1", false, true, "now"),
+                    ),
+                    onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {},
+                    onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
+                    onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {},
+                    onUsername = {}, onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
+                    onInvitationCode = {}, onSubmit = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Beziehung starten").assertIsDisplayed()
+        compose.onNodeWithText("Name des Haushalts").assertDoesNotExist()
     }
 }

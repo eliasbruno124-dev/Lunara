@@ -30,6 +30,18 @@ interface PeriodDao {
     @Query("UPDATE period_events SET syncState = :state, version = :version WHERE id = :id")
     suspend fun markSynced(id: String, state: String, version: Long)
 
+    @Query("UPDATE period_events SET syncState = :state WHERE id = :id")
+    suspend fun setSyncState(id: String, state: String)
+
+    @Query("UPDATE period_events SET syncState = 'RESOLVING', version = -1 WHERE id = :id")
+    suspend fun prepareServerReload(id: String)
+
+    @Query("DELETE FROM period_events WHERE userId = :userId AND syncState = 'RESOLVING'")
+    suspend fun deleteUnmatchedResolving(userId: String): Int
+
+    @Query("SELECT COUNT(*) FROM period_events WHERE syncState = 'RESOLVING'")
+    fun observeResolvingCount(): Flow<Int>
+
     @Query("DELETE FROM period_events")
     suspend fun clear()
 }
@@ -54,6 +66,18 @@ interface DailyLogDao {
     @Query("UPDATE daily_logs SET syncState = :state, version = :version WHERE id = :id")
     suspend fun markSynced(id: String, state: String, version: Long)
 
+    @Query("UPDATE daily_logs SET syncState = :state WHERE id = :id")
+    suspend fun setSyncState(id: String, state: String)
+
+    @Query("UPDATE daily_logs SET syncState = 'RESOLVING', version = -1 WHERE id = :id")
+    suspend fun prepareServerReload(id: String)
+
+    @Query("DELETE FROM daily_logs WHERE userId = :userId AND syncState = 'RESOLVING'")
+    suspend fun deleteUnmatchedResolving(userId: String): Int
+
+    @Query("SELECT COUNT(*) FROM daily_logs WHERE syncState = 'RESOLVING'")
+    fun observeResolvingCount(): Flow<Int>
+
     @Query("DELETE FROM daily_logs")
     suspend fun clear()
 }
@@ -63,7 +87,7 @@ interface MutationDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun enqueue(mutation: MutationEntity): Long
 
-    @Query("SELECT * FROM mutation_queue WHERE state = 'PENDING' AND nextAttemptAt <= :now ORDER BY createdAt, id LIMIT :limit")
+    @Query("SELECT mutation_queue.* FROM mutation_queue WHERE state = 'PENDING' AND nextAttemptAt <= :now AND NOT EXISTS (SELECT 1 FROM mutation_queue AS earlier WHERE earlier.entityType = mutation_queue.entityType AND earlier.entityId = mutation_queue.entityId AND earlier.state IN ('PENDING', 'IN_FLIGHT', 'FAILED', 'CONFLICT') AND (earlier.createdAt < mutation_queue.createdAt OR (earlier.createdAt = mutation_queue.createdAt AND earlier.id < mutation_queue.id))) ORDER BY createdAt, id LIMIT :limit")
     suspend fun ready(now: String, limit: Int = 50): List<MutationEntity>
 
     @Query("UPDATE mutation_queue SET state = 'IN_FLIGHT' WHERE id IN (:ids) AND state = 'PENDING'")
@@ -78,13 +102,19 @@ interface MutationDao {
     @Query("UPDATE mutation_queue SET state = 'FAILED', attemptCount = attemptCount + 1, lastErrorCode = :errorCode WHERE id IN (:ids)")
     suspend fun markFailed(ids: List<String>, errorCode: String)
 
-    @Query("UPDATE mutation_queue SET state = 'PENDING', attemptCount = 0, nextAttemptAt = :now, lastErrorCode = NULL WHERE state = 'FAILED'")
+    @Query("UPDATE mutation_queue SET state = 'PENDING', nextAttemptAt = :now, lastErrorCode = NULL WHERE state = 'FAILED'")
     suspend fun resetFailed(now: String): Int
+
+    @Query("UPDATE mutation_queue SET nextAttemptAt = :now WHERE state = 'PENDING' AND nextAttemptAt > :now")
+    suspend fun makePendingReady(now: String): Int
 
     @Query("UPDATE mutation_queue SET state = 'CONFLICT', lastErrorCode = :reason WHERE clientMutationId IN (:clientMutationIds)")
     suspend fun markConflicted(clientMutationIds: List<String>, reason: String = "VERSION_CONFLICT")
 
-    @Query("UPDATE mutation_queue SET payloadJson = :payloadJson, createdAt = :createdAt, nextAttemptAt = :nextAttemptAt WHERE entityType = :entityType AND entityId = :entityId AND state = 'PENDING'")
+    @Query("UPDATE mutation_queue SET state = 'CONFLICT', lastErrorCode = :reason WHERE id = :id AND state = 'IN_FLIGHT'")
+    suspend fun markConflictedById(id: String, reason: String = "VERSION_CONFLICT")
+
+    @Query("UPDATE mutation_queue SET payloadJson = :payloadJson, createdAt = :createdAt, nextAttemptAt = :nextAttemptAt WHERE entityType = :entityType AND entityId = :entityId AND state = 'PENDING' AND attemptCount = 0")
     suspend fun replacePendingPayload(
         entityType: String,
         entityId: String,
@@ -93,11 +123,38 @@ interface MutationDao {
         nextAttemptAt: String,
     ): Int
 
+    @Query("SELECT * FROM mutation_queue WHERE entityType = :entityType AND entityId = :entityId ORDER BY createdAt, id")
+    suspend fun forEntity(entityType: String, entityId: String): List<MutationEntity>
+
+    @Query("SELECT COUNT(*) FROM mutation_queue WHERE entityType = :entityType AND entityId = :entityId AND state IN ('PENDING', 'IN_FLIGHT', 'FAILED', 'CONFLICT')")
+    suspend fun unresolvedCountForEntity(entityType: String, entityId: String): Int
+
+    @Query("UPDATE mutation_queue SET operation = :operation, payloadJson = :payloadJson, baseVersion = :baseVersion, nextAttemptAt = :nextAttemptAt, lastErrorCode = NULL WHERE id = :id AND state = 'PENDING' AND attemptCount = 0")
+    suspend fun replaceUnattempted(
+        id: String,
+        operation: String,
+        payloadJson: String,
+        baseVersion: Long,
+        nextAttemptAt: String,
+    ): Int
+
+    @Query("UPDATE mutation_queue SET state = 'PENDING', nextAttemptAt = :now, lastErrorCode = NULL WHERE entityType = :entityType AND entityId = :entityId AND state = 'FAILED'")
+    suspend fun reviveFailedForEntity(entityType: String, entityId: String, now: String): Int
+
     @Query("UPDATE mutation_queue SET state = 'PENDING' WHERE state = 'IN_FLIGHT'")
     suspend fun releaseInterrupted()
 
-    @Query("SELECT COUNT(*) FROM mutation_queue WHERE state IN ('PENDING', 'IN_FLIGHT', 'FAILED')")
+    @Query("SELECT COUNT(*) FROM mutation_queue WHERE state IN ('PENDING', 'IN_FLIGHT', 'FAILED', 'CONFLICT')")
     fun observeCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM mutation_queue WHERE state = 'CONFLICT'")
+    fun observeConflictCount(): Flow<Int>
+
+    @Query("SELECT * FROM mutation_queue WHERE state = 'CONFLICT' ORDER BY createdAt, id")
+    suspend fun conflicts(): List<MutationEntity>
+
+    @Query("DELETE FROM mutation_queue WHERE entityType = :entityType AND entityId = :entityId")
+    suspend fun deleteForEntity(entityType: String, entityId: String)
 
     @Query("DELETE FROM mutation_queue")
     suspend fun clear()

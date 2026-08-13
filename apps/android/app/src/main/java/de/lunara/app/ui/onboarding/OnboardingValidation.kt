@@ -3,6 +3,9 @@ package de.lunara.app.ui.onboarding
 private val usernamePattern = Regex("^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]*$")
 private val invitationPattern = Regex("^[A-HJ-NP-Z2-9]{8,12}$", RegexOption.IGNORE_CASE)
 
+internal fun registrationAvailable(state: OnboardingUiState): Boolean =
+    state.meta?.let { !it.setupRequired && it.registrationEnabled } == true
+
 internal fun validateOnboardingForm(state: OnboardingUiState): OnboardingError? {
     val username = state.username.trim()
     if (username.length !in 3..64 || !usernamePattern.matches(username)) {
@@ -14,8 +17,12 @@ internal fun validateOnboardingForm(state: OnboardingUiState): OnboardingError? 
         AuthMode.LOGIN -> null
         AuthMode.SETUP -> when {
             state.displayName.trim().length !in 1..120 -> OnboardingError.DISPLAY_NAME
-            state.householdName.trim().length !in 1..120 -> OnboardingError.HOUSEHOLD_NAME
             normalizeBootstrapToken(state.bootstrapToken).length !in 20..256 -> OnboardingError.BOOTSTRAP_TOKEN
+            else -> null
+        }
+        AuthMode.REGISTER -> when {
+            !registrationAvailable(state) -> OnboardingError.REGISTRATION_UNAVAILABLE
+            state.displayName.trim().length !in 1..120 -> OnboardingError.DISPLAY_NAME
             else -> null
         }
         AuthMode.JOIN -> when {

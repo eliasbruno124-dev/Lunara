@@ -12,7 +12,6 @@ class OnboardingValidationTest {
         username = "elias",
         password = "a-secure-password",
         displayName = "Elias",
-        householdName = "Unser Haushalt",
         bootstrapToken = "b".repeat(32),
     )
 
@@ -53,11 +52,44 @@ class OnboardingValidationTest {
     }
 
     @Test
+    fun `registration requires the authoritative server capability`() {
+        val registration = validSetup.copy(
+            authMode = AuthMode.REGISTER,
+            bootstrapToken = "",
+            meta = MetaDto("Lunara", "1.0.3", "v1", false, false, "now"),
+        )
+
+        assertEquals(
+            OnboardingError.REGISTRATION_UNAVAILABLE,
+            validateOnboardingForm(registration),
+        )
+        assertNull(
+            validateOnboardingForm(
+                registration.copy(meta = requireNotNull(registration.meta).copy(registrationEnabled = true)),
+            ),
+        )
+    }
+
+    @Test
+    fun `registration stays unavailable while initial setup is required`() {
+        val registration = validSetup.copy(
+            authMode = AuthMode.REGISTER,
+            bootstrapToken = "",
+            meta = MetaDto("Lunara", "1.0.3", "v1", true, true, "now"),
+        )
+
+        assertEquals(
+            OnboardingError.REGISTRATION_UNAVAILABLE,
+            validateOnboardingForm(registration),
+        )
+    }
+
+    @Test
     fun `authoritative setup conflict clears bootstrap data and switches to login`() {
         val reconciled = authenticationFailureState(
             validSetup.copy(
                 isBusy = true,
-                meta = MetaDto("Lunara", "1.0.2", "v1", true, false, "now"),
+                meta = MetaDto("Lunara", "1.0.3", "v1", true, false, "now"),
             ),
             OnboardingError.SETUP_COMPLETE,
         )

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AuditEventType, PrismaClient } from '@prisma/client';
+import { isServerBootstrapped } from '../common/database/database-coordination.js';
 import {
   isSupportedCommand,
   parseArguments,
@@ -123,11 +124,21 @@ async function revokeAllSessions(
 }
 
 async function bootstrapStatus(prisma: PrismaClient): Promise<void> {
-  const [users, households] = await Promise.all([
+  const [bootstrapped, state, users, households] = await Promise.all([
+    isServerBootstrapped(prisma),
+    prisma.serverState.findUniqueOrThrow({
+      where: { id: 1 },
+      select: { bootstrappedAt: true },
+    }),
     prisma.user.count(),
     prisma.household.count(),
   ]);
-  output({ setupRequired: users === 0, users, households });
+  output({
+    setupRequired: !bootstrapped,
+    bootstrappedAt: state.bootstrappedAt,
+    users,
+    households,
+  });
 }
 
 async function listInvitations(prisma: PrismaClient): Promise<void> {

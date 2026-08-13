@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   GoneException,
   Injectable,
@@ -13,6 +14,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'node:crypto';
 import { AuthResponse, AuthService } from '../auth/auth.service.js';
+import { lockRelationship } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateInvitationDto, JoinHouseholdDto } from './household.dto.js';
@@ -29,15 +31,27 @@ export class HouseholdService {
 
   async getHousehold(user: AuthenticatedUser) {
     const household = await this.prisma.household.findFirst({
-      where: { id: user.householdId, memberships: { some: { userId: user.userId } } },
+      where: {
+        id: user.householdId,
+        memberships: { some: { userId: user.userId } },
+      },
       include: {
         memberships: {
           orderBy: { createdAt: 'asc' },
-          include: { user: { select: { id: true, username: true, displayName: true, disabledAt: true } } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                disabledAt: true,
+              },
+            },
+          },
         },
       },
     });
-    if (!household) throw new NotFoundException('Household not found');
+    if (!household) throw new NotFoundException('Relationship not found');
     return {
       id: household.id,
       name: household.name,
@@ -60,33 +74,72 @@ export class HouseholdService {
       where: { householdId: user.householdId, role: UserRole.PARTNER },
     });
     if (partnerExists > 0) {
-      throw new ConflictException('The PARTNER role is already assigned in this household');
+      throw new ConflictException(
+        'A partner is already connected to this relationship',
+      );
     }
-    const code = Array.from({ length: 10 }, () =>
-      INVITATION_ALPHABET[randomInt(INVITATION_ALPHABET.length)],
+    if (dto.neverExpires && dto.expiresInMinutes !== undefined) {
+      throw new BadRequestException(
+        'expiresInMinutes cannot be combined with neverExpires',
+      );
+    }
+    const codeLength = dto.neverExpires ? 12 : 10;
+    const code = Array.from(
+      { length: codeLength },
+      () => INVITATION_ALPHABET[randomInt(INVITATION_ALPHABET.length)],
     ).join('');
-    const policyMinutes = Number(this.config.get<string>('INVITATION_TTL_MINUTES', '30'));
+    const policyMinutes = Number(
+      this.config.get<string>('INVITATION_TTL_MINUTES', '30'),
+    );
     const requestedMinutes = dto.expiresInMinutes ?? policyMinutes;
-    if (requestedMinutes > policyMinutes) {
-      throw new ConflictException(`Invitation lifetime cannot exceed ${policyMinutes} minutes`);
+    if (!dto.neverExpires && requestedMinutes > policyMinutes) {
+      throw new ConflictException(
+        `Invitation lifetime cannot exceed ${policyMinutes} minutes`,
+      );
     }
-    const expiresAt = new Date(Date.now() + requestedMinutes * 60_000);
-    const invitation = await this.prisma.invitation.create({
-      data: {
-        householdId: user.householdId,
-        tokenHash: this.hashInvitation(code),
-        assignedRole: UserRole.PARTNER,
-        expiresAt,
-        createdByUserId: user.userId,
-      },
-    });
-    await this.prisma.auditEvent.create({
-      data: {
-        householdId: user.householdId,
-        actorUserId: user.userId,
-        type: AuditEventType.INVITATION_CREATED,
-        metadata: { invitationId: invitation.id, assignedRole: UserRole.PARTNER },
-      },
+    const expiresAt = dto.neverExpires
+      ? null
+      : new Date(Date.now() + requestedMinutes * 60_000);
+    const invitation = await this.prisma.$transaction(async (tx) => {
+      await lockRelationship(tx, user.householdId);
+      const roleOccupied = await tx.membership.count({
+        where: { householdId: user.householdId, role: UserRole.PARTNER },
+      });
+      if (roleOccupied > 0) {
+        throw new ConflictException(
+          'A partner is already connected to this relationship',
+        );
+      }
+      await tx.invitation.updateMany({
+        where: {
+          householdId: user.householdId,
+          assignedRole: UserRole.PARTNER,
+          usedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+      const created = await tx.invitation.create({
+        data: {
+          householdId: user.householdId,
+          tokenHash: this.hashInvitation(code),
+          assignedRole: UserRole.PARTNER,
+          expiresAt,
+          createdByUserId: user.userId,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          householdId: user.householdId,
+          actorUserId: user.userId,
+          type: AuditEventType.INVITATION_CREATED,
+          metadata: {
+            invitationId: created.id,
+            assignedRole: UserRole.PARTNER,
+          },
+        },
+      });
+      return created;
     });
     return {
       id: invitation.id,
@@ -97,7 +150,32 @@ export class HouseholdService {
     };
   }
 
-  async revokeInvitation(user: AuthenticatedUser, invitationId: string): Promise<void> {
+  async listOpenInvitations(user: AuthenticatedUser) {
+    const invitations = await this.prisma.invitation.findMany({
+      where: {
+        householdId: user.householdId,
+        assignedRole: UserRole.PARTNER,
+        usedAt: null,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        assignedRole: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+    });
+    // Invitation codes are bearer credentials. Only their hashes are stored,
+    // so a code can be displayed once after creation but never recovered here.
+    return invitations;
+  }
+
+  async revokeInvitation(
+    user: AuthenticatedUser,
+    invitationId: string,
+  ): Promise<void> {
     const result = await this.prisma.invitation.updateMany({
       where: {
         id: invitationId,
@@ -124,34 +202,74 @@ export class HouseholdService {
     const username = this.auth.normalizeUsername(dto.username);
 
     // Reject invalid, expired or already-used codes before deliberately costly
-    // Argon2 password hashing. The serializable transaction below repeats this
-    // check and performs the conditional one-time claim atomically.
-    const candidate = await this.prisma.invitation.findUnique({ where: { tokenHash } });
+    // Argon2 password hashing. The relationship lock below repeats this check
+    // and performs the conditional one-time claim atomically.
+    const candidate = await this.prisma.invitation.findUnique({
+      where: { tokenHash },
+    });
     if (!candidate) throw new NotFoundException('Invitation is invalid');
-    if (candidate.usedAt || candidate.revokedAt || candidate.expiresAt <= new Date()) {
-      throw new GoneException('Invitation has expired or is no longer available');
+    if (
+      candidate.usedAt ||
+      candidate.revokedAt ||
+      (candidate.expiresAt !== null && candidate.expiresAt <= new Date())
+    ) {
+      throw new GoneException(
+        'Invitation has expired or is no longer available',
+      );
     }
     const passwordHash = await this.auth.hashPassword(dto.password);
 
     try {
       return await this.prisma.$transaction(
         async (tx) => {
-          const invitation = await tx.invitation.findUnique({ where: { tokenHash } });
+          await lockRelationship(tx, candidate.householdId);
+          const invitation = await tx.invitation.findUnique({
+            where: { tokenHash },
+          });
           if (!invitation) throw new NotFoundException('Invitation is invalid');
-          if (invitation.usedAt || invitation.revokedAt || invitation.expiresAt <= new Date()) {
-            throw new GoneException('Invitation has expired or is no longer available');
+          if (
+            invitation.usedAt ||
+            invitation.revokedAt ||
+            (invitation.expiresAt !== null &&
+              invitation.expiresAt <= new Date())
+          ) {
+            throw new GoneException(
+              'Invitation has expired or is no longer available',
+            );
           }
           const occupied = await tx.membership.count({
-            where: { householdId: invitation.householdId, role: invitation.assignedRole },
+            where: {
+              householdId: invitation.householdId,
+              role: invitation.assignedRole,
+            },
           });
           if (occupied > 0) {
-            throw new ConflictException(`The ${invitation.assignedRole} role is already assigned`);
+            throw new ConflictException(
+              `The ${invitation.assignedRole} role is already assigned`,
+            );
           }
           const claimed = await tx.invitation.updateMany({
-            where: { id: invitation.id, usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+            where: {
+              id: invitation.id,
+              usedAt: null,
+              revokedAt: null,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
             data: { usedAt: new Date() },
           });
-          if (claimed.count !== 1) throw new GoneException('Invitation is no longer available');
+          if (claimed.count !== 1)
+            throw new GoneException('Invitation is no longer available');
+
+          await tx.invitation.updateMany({
+            where: {
+              householdId: invitation.householdId,
+              assignedRole: invitation.assignedRole,
+              id: { not: invitation.id },
+              usedAt: null,
+              revokedAt: null,
+            },
+            data: { revokedAt: new Date() },
+          });
 
           const joinedUser = await tx.user.create({
             data: {
@@ -190,7 +308,6 @@ export class HouseholdService {
           });
           return response;
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
       if (
@@ -200,7 +317,10 @@ export class HouseholdService {
       ) {
         throw error;
       }
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException('Username is already in use');
       }
       throw error;
@@ -210,4 +330,5 @@ export class HouseholdService {
   private hashInvitation(rawCode: string): string {
     return this.auth.hashToken(`invitation:${rawCode.trim().toUpperCase()}`);
   }
+
 }

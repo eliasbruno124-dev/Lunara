@@ -38,12 +38,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.time.LocalDate
 
 data class MainUiState(
     val sessionUserId: String? = null,
     val periods: List<PeriodEntity> = emptyList(),
     val dailyLogs: List<de.lunara.app.data.local.DailyLogEntity> = emptyList(),
     val pendingMutations: Int = 0,
+    val conflictMutations: Int = 0,
     val lastSyncAt: String? = null,
     val privacyMode: Boolean = true,
     val useSystemTheme: Boolean = true,
@@ -53,6 +55,7 @@ data class MainUiState(
     val checkInSent: Boolean = false,
     val checkInError: Boolean = false,
     val invitation: InvitationDto? = null,
+    val partnerConnected: Boolean = false,
     val sharing: SharingSettingsDto? = null,
     val settingsBusy: Boolean = false,
     val settingsError: Boolean = false,
@@ -62,7 +65,11 @@ data class MainUiState(
 
 sealed interface MainEvent {
     data object PeriodSaved : MainEvent
+    data object PeriodUpdated : MainEvent
+    data object PeriodDeleted : MainEvent
+    data object PeriodChangeFailed : MainEvent
     data object DailyLogSaved : MainEvent
+    data object DailyLogFailed : MainEvent
     data object PasswordChanged : MainEvent
 }
 
@@ -70,6 +77,7 @@ private data class SessionUiExtras(
     val checkInSent: Boolean,
     val checkInError: Boolean,
     val invitation: InvitationDto?,
+    val partnerConnected: Boolean,
     val sharing: SharingSettingsDto?,
     val settingsBusy: Boolean,
     val settingsError: Boolean,
@@ -92,6 +100,7 @@ class MainViewModel @Inject constructor(
     private val checkInSent = MutableStateFlow(false)
     private val checkInError = MutableStateFlow(false)
     private val invitation = MutableStateFlow<InvitationDto?>(null)
+    private val partnerConnected = MutableStateFlow(false)
     private val sharing = MutableStateFlow<SharingSettingsDto?>(null)
     private val settingsBusy = MutableStateFlow(false)
     private val settingsError = MutableStateFlow(false)
@@ -99,6 +108,7 @@ class MainViewModel @Inject constructor(
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
     private val sessionOwnerId = MutableStateFlow<String?>(null)
     private var sessionOperations: CoroutineScope? = null
+    private var invitationRevision = 0L
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
@@ -106,12 +116,14 @@ class MainViewModel @Inject constructor(
         preferences.state,
         periodRepository.observePeriods(),
         periodRepository.observePendingCount(),
+        periodRepository.observeConflictCount(),
         periodRepository.observeDailyLogs(),
-    ) { prefs, periods, pending, dailyLogs ->
+    ) { prefs, periods, pending, conflicts, dailyLogs ->
         MainUiState(
             sessionUserId = prefs.session?.userId,
             periods = periods.filter { it.userId == prefs.session?.userId },
             pendingMutations = pending,
+            conflictMutations = conflicts,
             dailyLogs = dailyLogs.filter { it.userId == prefs.session?.userId },
             lastSyncAt = prefs.lastSyncAt,
             privacyMode = prefs.privacyMode,
@@ -124,18 +136,19 @@ class MainViewModel @Inject constructor(
         partnerUnavailable,
     ) { partner, unavailable -> partner to unavailable }
     private val sessionExtras = combine(
-        checkInSent, checkInError, invitation, sharing, settingsBusy, settingsError, trackerPrediction,
-        passwordChangeStatus,
+        checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
+        trackerPrediction, passwordChangeStatus,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
             checkInError = values[1] as Boolean,
             invitation = values[2] as InvitationDto?,
-            sharing = values[3] as SharingSettingsDto?,
-            settingsBusy = values[4] as Boolean,
-            settingsError = values[5] as Boolean,
-            trackerPrediction = values[6] as PredictionDto?,
-            passwordChangeStatus = values[7] as PasswordChangeStatus,
+            partnerConnected = values[3] as Boolean,
+            sharing = values[4] as SharingSettingsDto?,
+            settingsBusy = values[5] as Boolean,
+            settingsError = values[6] as Boolean,
+            trackerPrediction = values[7] as PredictionDto?,
+            passwordChangeStatus = values[8] as PasswordChangeStatus,
         )
     }
     val state: StateFlow<MainUiState> = combine(
@@ -155,6 +168,7 @@ class MainViewModel @Inject constructor(
                 checkInSent = extra.checkInSent,
                 checkInError = extra.checkInError,
                 invitation = extra.invitation,
+                partnerConnected = extra.partnerConnected,
                 sharing = extra.sharing,
                 settingsBusy = extra.settingsBusy,
                 settingsError = extra.settingsError,
@@ -175,6 +189,7 @@ class MainViewModel @Inject constructor(
                     resetSessionState()
                     if (session == null) return@collectLatest
                     sessionOwnerId.value = session.userId
+                    preferencesStateRole = session.role
                     sessionOperations = CoroutineScope(
                         viewModelScope.coroutineContext +
                             SupervisorJob(viewModelScope.coroutineContext[Job]),
@@ -203,6 +218,7 @@ class MainViewModel @Inject constructor(
                         }
                     } else {
                         coroutineScope {
+                            launch { loadInvitationNow(session.userId) }
                             launch { loadSharingNow(session.userId) }
                             launch { refreshTrackerPredictionNow(session.userId) }
                             launch {
@@ -211,7 +227,10 @@ class MainViewModel @Inject constructor(
                                     .drop(1)
                                     .filterNotNull()
                                     .distinctUntilChanged()
-                                    .collectLatest { refreshTrackerPredictionNow(session.userId) }
+                                    .collectLatest {
+                                        refreshTrackerPredictionNow(session.userId)
+                                        loadInvitationNow(session.userId)
+                                    }
                             }
                         }
                     }
@@ -221,11 +240,14 @@ class MainViewModel @Inject constructor(
 
     private fun resetSessionState() {
         sessionOwnerId.value = null
+        preferencesStateRole = null
         partnerDashboard.value = null
         partnerUnavailable.value = false
         checkInSent.value = false
         checkInError.value = false
         invitation.value = null
+        partnerConnected.value = false
+        invitationRevision += 1
         sharing.value = null
         settingsBusy.value = false
         settingsError.value = false
@@ -234,10 +256,29 @@ class MainViewModel @Inject constructor(
     }
 
     fun startPeriod(userId: String) {
-        if (sessionOwnerId.value != userId) return
+        if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation { periodRepository.startPeriod(userId) }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodSaved) } }
+                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
+        }
+    }
+
+    fun updatePeriodStart(userId: String, periodId: String, startDate: LocalDate) {
+        if (!canManagePeriod(userId)) return
+        launchForSession(userId) {
+            runSessionOperation { periodRepository.updatePeriodStart(userId, periodId, startDate) }
+                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) } }
+                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
+        }
+    }
+
+    fun deletePeriod(userId: String, periodId: String) {
+        if (!canManagePeriod(userId)) return
+        launchForSession(userId) {
+            runSessionOperation { periodRepository.deletePeriod(userId, periodId) }
+                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodDeleted) } }
+                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
         }
     }
 
@@ -250,17 +291,25 @@ class MainViewModel @Inject constructor(
         sleepQuality: Int?,
         symptoms: List<String>,
     ) {
-        if (sessionOwnerId.value != userId) return
+        if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation {
                 periodRepository.logToday(userId, flowLevel, painLevel, mood, energy, sleepQuality, symptoms)
-            }.onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.DailyLogSaved) } }
+            }
+                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.DailyLogSaved) } }
+                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.DailyLogFailed) } }
         }
     }
 
     fun syncNow() {
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) { periodRepository.retryFailedMutations() }
+    }
+
+    fun discardConflictsAndReload() {
+        val ownerId = sessionOwnerId.value ?: return
+        if (!canManagePeriod(ownerId)) return
+        launchForSession(ownerId) { periodRepository.discardConflictsAndReload() }
     }
 
     fun refreshPartnerDashboard() {
@@ -305,10 +354,65 @@ class MainViewModel @Inject constructor(
 
     fun createInvitation() {
         val ownerId = sessionOwnerId.value ?: return
+        if (settingsBusy.value || invitation.value != null || partnerConnected.value) return
+        val revision = ++invitationRevision
         launchForSession(ownerId) {
             ifCurrentSession(ownerId) { settingsBusy.value = true }
             runSessionOperation { householdRepository.createInvitation() }
-                .onSuccess { result -> ifCurrentSession(ownerId) { invitation.value = result; settingsError.value = false } }
+                .onSuccess { result ->
+                    ifCurrentSession(ownerId) {
+                        if (invitationRevision == revision) invitation.value = result
+                        settingsError.value = false
+                    }
+                }
+                .onFailure {
+                    ifCurrentSession(ownerId) {
+                        if (invitationRevision == revision) settingsError.value = true
+                    }
+                }
+            ifCurrentSession(ownerId) { settingsBusy.value = false }
+        }
+    }
+
+    private suspend fun loadInvitationNow(ownerId: String) {
+        val revision = invitationRevision
+        runSessionOperation { householdRepository.invitationOverview() }
+            .onSuccess { result ->
+                ifCurrentSession(ownerId) {
+                    if (invitationRevision == revision) {
+                        invitation.value = result.invitation
+                        partnerConnected.value = result.partnerConnected
+                        settingsError.value = false
+                    }
+                }
+            }
+            .onFailure {
+                ifCurrentSession(ownerId) {
+                    if (invitationRevision == revision) settingsError.value = true
+                }
+            }
+    }
+
+    fun refreshInvitation() {
+        val ownerId = sessionOwnerId.value ?: return
+        if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
+        launchForSession(ownerId) { loadInvitationNow(ownerId) }
+    }
+
+    fun revokeInvitation() {
+        val ownerId = sessionOwnerId.value ?: return
+        val currentInvitation = invitation.value ?: return
+        if (settingsBusy.value) return
+        val revision = ++invitationRevision
+        launchForSession(ownerId) {
+            ifCurrentSession(ownerId) { settingsBusy.value = true }
+            runSessionOperation { householdRepository.revokeInvitation(currentInvitation.id) }
+                .onSuccess {
+                    ifCurrentSession(ownerId) {
+                        if (invitationRevision == revision) invitation.value = null
+                        settingsError.value = false
+                    }
+                }
                 .onFailure { ifCurrentSession(ownerId) { settingsError.value = true } }
             ifCurrentSession(ownerId) { settingsBusy.value = false }
         }
@@ -389,6 +493,11 @@ class MainViewModel @Inject constructor(
     private inline fun ifCurrentSession(ownerId: String, action: () -> Unit) {
         if (sessionOwnerId.value == ownerId) action()
     }
+
+    private fun canManagePeriod(userId: String): Boolean =
+        sessionOwnerId.value == userId && preferencesStateRole?.let(de.lunara.app.core.model.RoleNavigation::canManagePeriods) == true
+
+    private var preferencesStateRole: UserRole? = null
 
     private fun launchForSession(ownerId: String, action: suspend () -> Unit) {
         val scope = sessionOperations ?: return

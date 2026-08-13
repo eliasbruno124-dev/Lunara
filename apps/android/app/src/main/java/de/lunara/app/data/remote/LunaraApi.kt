@@ -14,6 +14,8 @@ import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PeriodDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.RefreshRequest
+import de.lunara.app.data.remote.dto.RegisterRequest
+import de.lunara.app.data.remote.dto.RelationshipDto
 import de.lunara.app.data.remote.dto.SetupRequest
 import de.lunara.app.data.remote.dto.SyncRequest
 import de.lunara.app.data.remote.dto.SyncResponseDto
@@ -23,6 +25,7 @@ import de.lunara.app.data.remote.dto.SharingSettingsDto
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.Query
@@ -32,6 +35,7 @@ import retrofit2.http.Url
 interface LunaraApi {
     @GET suspend fun meta(@Url url: String): Response<MetaDto>
     @POST suspend fun setup(@Url url: String, @Body request: SetupRequest): Response<AuthResponseDto>
+    @POST suspend fun registerTracker(@Url url: String, @Body request: RegisterRequest): Response<AuthResponseDto>
     @POST suspend fun login(@Url url: String, @Body request: LoginRequest): Response<AuthResponseDto>
     @POST suspend fun join(@Url url: String, @Body request: JoinRequest): Response<AuthResponseDto>
     @POST suspend fun refresh(@Url url: String, @Body request: RefreshRequest): Response<AuthResponseDto>
@@ -45,6 +49,9 @@ interface LunaraApi {
     @GET suspend fun todayTip(@Url url: String): Response<TodayTipDto>
     @POST suspend fun createCheckIn(@Url url: String, @Body request: CreateCheckInRequest): Response<CheckInDto>
     @POST suspend fun createInvitation(@Url url: String, @Body request: CreateInvitationRequest): Response<InvitationDto>
+    @GET suspend fun openInvitations(@Url url: String): Response<List<InvitationDto>>
+    @GET suspend fun relationship(@Url url: String): Response<RelationshipDto>
+    @DELETE suspend fun revokeInvitation(@Url url: String): Response<Unit>
     @GET suspend fun sharing(@Url url: String): Response<SharingSettingsDto>
     @PATCH suspend fun updateSharing(@Url url: String, @Body request: UpdateSharingRequest): Response<SharingSettingsDto>
 }

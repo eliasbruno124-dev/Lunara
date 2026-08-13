@@ -29,7 +29,7 @@ const configuration = new DocumentBuilder()
     'Versioned API for the self-hosted Lunara Android application. ' +
       'Health information is returned according to server-side role and sharing checks.',
   )
-  .setVersion('1.0.2')
+  .setVersion('1.0.3')
   .addServer('https://lunara.example.com', 'Configured self-hosted server')
   .addBearerAuth(
     {
@@ -120,7 +120,13 @@ function addResponseContracts(document) {
       id: uuidSchema(),
       code: stringSchema(),
       assignedRole: { type: 'string', enum: ['PARTNER'] },
-      expiresAt: dateTimeSchema(),
+      expiresAt: nullable(dateTimeSchema()),
+    }),
+    InvitationSummaryResponse: objectSchema({
+      id: uuidSchema(),
+      assignedRole: { type: 'string', enum: ['PARTNER'] },
+      expiresAt: nullable(dateTimeSchema()),
+      createdAt: dateTimeSchema(),
     }),
     PeriodResponse: objectSchema({
       id: uuidSchema(),
@@ -224,11 +230,18 @@ function addResponseContracts(document) {
   });
 
   response(document, 'get', '/api/v1/meta', 200, ref('MetaResponse'));
-  for (const path of ['/api/v1/setup', '/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/household/join']) {
+  for (const path of [
+    '/api/v1/setup',
+    '/api/v1/auth/register',
+    '/api/v1/auth/login',
+    '/api/v1/auth/refresh',
+    '/api/v1/household/join',
+  ]) {
     response(document, 'post', path, 201, ref('AuthResponse'));
   }
   response(document, 'get', '/api/v1/auth/sessions', 200, arrayOf('SessionResponse'));
   response(document, 'post', '/api/v1/household/invitations', 201, ref('InvitationResponse'));
+  response(document, 'get', '/api/v1/household/invitations', 200, arrayOf('InvitationSummaryResponse'));
   response(document, 'get', '/api/v1/periods', 200, arrayOf('PeriodResponse'));
   response(document, 'post', '/api/v1/periods', 201, ref('PeriodResponse'));
   response(document, 'patch', '/api/v1/periods/{id}', 200, ref('PeriodResponse'));

@@ -14,6 +14,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -27,63 +28,65 @@ export class CreateDailyLogDto {
   @Matches(LOCAL_DATE_PATTERN)
   localDate!: string;
 
-  @ApiPropertyOptional({ enum: FlowLevel })
+  @ApiPropertyOptional({ enum: FlowLevel, nullable: true })
   @IsOptional()
   @IsEnum(FlowLevel)
-  flowLevel?: FlowLevel;
+  flowLevel?: FlowLevel | null;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 10, nullable: true })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(10)
-  painLevel?: number;
+  painLevel?: number | null;
 
-  @ApiPropertyOptional({ maxLength: 64 })
+  @ApiPropertyOptional({ type: String, maxLength: 64, nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(64)
-  mood?: string;
+  mood?: string | null;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 10, nullable: true })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(10)
-  energy?: number;
+  energy?: number | null;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 10 })
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 10, nullable: true })
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(10)
-  sleepQuality?: number;
+  sleepQuality?: number | null;
 
-  @ApiPropertyOptional({ minimum: 30, maximum: 45 })
+  @ApiPropertyOptional({ type: Number, minimum: 30, maximum: 45, nullable: true })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(30)
   @Max(45)
-  bodyTemperature?: number;
+  bodyTemperature?: number | null;
 
-  @ApiPropertyOptional({ enum: OvulationTestResult })
+  @ApiPropertyOptional({ enum: OvulationTestResult, nullable: true })
   @IsOptional()
   @IsEnum(OvulationTestResult)
-  ovulationTestResult?: OvulationTestResult;
+  ovulationTestResult?: OvulationTestResult | null;
 
   @ApiPropertyOptional({ type: [String], maxItems: 30 })
-  @IsOptional()
+  // Unlike the nullable scalar fields, null is not meaningful here: omission
+  // preserves an existing list on PATCH, while [] explicitly clears it.
+  @ValidateIf((_object, value) => value !== undefined)
   @IsArray()
   @ArrayMaxSize(30)
   @IsString({ each: true })
   @MaxLength(80, { each: true })
   customSymptoms?: string[];
 
-  @ApiPropertyOptional({ maxLength: 4000 })
+  @ApiPropertyOptional({ type: String, maxLength: 4000, nullable: true })
   @IsOptional()
   @IsString()
   @Length(0, 4000)
-  note?: string;
+  note?: string | null;
 }
 
 export class UpdateDailyLogDto extends CreateDailyLogDto {

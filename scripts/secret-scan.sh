@@ -21,7 +21,7 @@ trap 'rm -f -- "${pattern_report}" "${entropy_report}"' EXIT
 
 git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn "${patterns}" \
-  | grep -vE '^(scripts/(generate-secrets|secret-scan|configure-authentik|verify-gateway|e2e)\.sh:|apps/android/app/src/(main/java/de/lunara/app/data/repository/SessionSecrets\.kt|test/java/de/lunara/app/core/network/ServerAddressParserTest\.kt):)' \
+  | grep -vE '^(scripts/(generate-secrets|secret-scan|configure-authentik|verify-gateway|e2e|remove-bootstrap-token)\.sh:|apps/android/app/src/(main/java/de/lunara/app/data/repository/SessionSecrets\.kt|test/java/de/lunara/app/core/network/ServerAddressParserTest\.kt):)' \
   | grep -vE '^README\.md:[0-9]+:https://\{BENUTZERNAME\}:\{AUTHENTIK-APP-PASSWORT\}@lunara\.3li361\.de$' \
   | grep -vE '^DEPLOYMENT\.md:[0-9]+:.*https://gateway-user:gateway-pass@lunara\.3li361\.de.*$' \
   | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.de</string>$' \
@@ -45,9 +45,12 @@ git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
   | grep -Ev '(package-lock\.json|gradle-wrapper\.properties|sha256|integrity|distributionUrl|docs/partner-tips\.seed\.json|@sha256:|^[^:]*Dockerfile:[0-9]+:[a-f0-9]{64}$|^docker-compose\.yml:[0-9]+:[a-f0-9]{64}$)' \
   | grep -Ev '(^\.env\.example:|^infra/docker/docker-compose\.test\.yml:|^scripts/(build-android|secret-scan|e2e)\.sh:|^packages/openapi-client/scripts/(export-openapi\.mjs|generate-kotlin\.sh):)' \
-  | grep -Ev '(^FINAL_REPORT\.md:[0-9]+:(OpenAPI-Spezifikation SHA-256: `|- SHA-256: `|  Zertifikat SHA-256: `)[a-f0-9]{64}`[.;]?$|^PROGRESS\.md:[0-9]+:  SHA-256 \(v1\.0\.[12]\): `[a-f0-9]{64}`\.$)' \
+  | grep -Ev '(^FINAL_REPORT\.md:[0-9]+:(OpenAPI-Spezifikation SHA-256: `|- SHA-256: `|  Zertifikat SHA-256: `)[a-f0-9]{64}`[.;]?$|^PROGRESS\.md:[0-9]+:  SHA-256 \(v1\.0\.[123]\): `[a-f0-9]{64}`\.$|^TESTING\.md:[0-9]+:`[a-f0-9]{64}`\.$)' \
+  | grep -Ev '^(CHANGELOG|FINAL_REPORT|PROGRESS|README|TESTING)\.md:[0-9]+:[[:space:]]*`?(sha256:)?[a-f0-9]{64}`?[.;)]{0,2}$' \
+  | grep -Ev '^(FINAL_REPORT|PROGRESS|TESTING)\.md:[0-9]+:.*lunara-pre-server-state-[0-9]{8}T[0-9]{6}Z\.dump.*$' \
   | grep -Ev '(^README\.md:[0-9]+:als \[direkter APK-Download\]\(https://github\.com/eliasbruno124-dev/Lunara/releases/download/v1\.0\.2/lunara-debug\.apk\)$|^DEPLOYMENT\.md:[0-9]+:https://docs\.goauthentik\.io/add-secure-apps/providers/proxy/header_authentication$|^IMPLEMENTATION_PLAN\.md:[0-9]+:- Android: JVM-Tests für URL/Auth/Prediction-Sichtmodelle/Queue/Navigation und$|^PROGRESS\.md:[0-9]+:- \[x\] Docker-/CI-/Backup-/Restore-/Update-/Gateway-Skripte und Dokumentation$)' \
   | grep -Ev '(^packages/openapi-client/openapi/lunara-v1\.openapi\.json:[0-9]+:.*?/components/schemas/PredefinedSymptomResponseDto.*$|^scripts/configure-pangolin\.sh:[0-9]+:expected_(resources|targets|domains|sites)_schema="[a-f0-9]{64}"$)' \
+  | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*fun [A-Za-z][A-Za-z0-9]*\(' \
   | grep -Ev '(^\.github/workflows/|^apps/android/gradlew:|^artifacts/SHA256SUMS:|^services/api/prisma/migrations/[^/]+/migration\.sql:|^packages/openapi-client/generated/kotlin/(gradlew|\.lunara-generation\.json|\.openapi-generator/FILES):)' \
   > "${entropy_report}" || true
 

@@ -74,7 +74,7 @@ internal object GatewayHeaderPolicy {
 }
 
 /**
- * Authentik's proxy provider redirects anonymous API traffic to an HTML login page. Cookies set
+ * A reverse proxy may redirect anonymous API traffic to an HTML login page. Cookies set
  * during that anonymous redirect are not proof of authentication, so the app password is sent
  * preemptively on every request to the configured server origin and never to another origin.
  */
@@ -125,7 +125,7 @@ class ApiClientFactory @Inject constructor(
             .authenticator(GatewayAuthenticator(gateway, gatewayOrigin))
             .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, gatewayOrigin))
             .addInterceptor(AppTokenInterceptor(accessToken, gateway != null))
-            // A REST client must not follow Authentik's browser-login redirect and try to parse
+            // A REST client must not follow a browser-login redirect and try to parse
             // HTML as JSON. A valid gateway header returns the API response directly.
             .followRedirects(false)
             .followSslRedirects(false)

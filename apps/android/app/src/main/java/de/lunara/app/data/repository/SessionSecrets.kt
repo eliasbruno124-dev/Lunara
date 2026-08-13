@@ -14,6 +14,11 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
         get() = store.getString(REFRESH)
         set(value) = store.putString(REFRESH, value)
 
+    /** The one-time invitation bearer code is kept only in Android Keystore-backed storage. */
+    var activeInvitationJson: String?
+        get() = store.getString(ACTIVE_INVITATION)
+        set(value) = store.putString(ACTIVE_INVITATION, value)
+
     var gatewayCredentials: GatewayCredentials?
         get() {
             val user = store.getString(GATEWAY_USER) ?: return null
@@ -28,12 +33,14 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
     fun clearAccountSecrets() {
         accessToken = null
         refreshToken = null
+        activeInvitationJson = null
         gatewayCredentials = null
     }
 
     private companion object {
         const val ACCESS = "session.access_token"
         const val REFRESH = "session.refresh_token"
+        const val ACTIVE_INVITATION = "relationship.active_invitation.v1"
         const val GATEWAY_USER = "gateway.username"
         const val GATEWAY_PASSWORD = "gateway.app_password"
     }

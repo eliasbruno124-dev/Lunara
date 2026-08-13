@@ -11,6 +11,7 @@ import de.lunara.api.models.ChangePasswordDto
 import de.lunara.api.models.LoginDto
 import de.lunara.api.models.LogoutDto
 import de.lunara.api.models.RefreshDto
+import de.lunara.api.models.RegisterDto
 import de.lunara.api.models.SessionResponse
 import de.lunara.api.models.SetupDto
 
@@ -68,6 +69,19 @@ interface AuthenticationApi {
     suspend fun authRefresh(@Body refreshDto: RefreshDto): Response<AuthResponse>
 
     /**
+     * POST api/v1/auth/register
+     * Create an isolated private relationship and its TRACKER account when registration is enabled
+     *
+     * Responses:
+     *  - 201: Successful response
+     *
+     * @param registerDto
+     * @return [AuthResponse]
+     */
+    @POST("api/v1/auth/register")
+    suspend fun authRegister(@Body registerDto: RegisterDto): Response<AuthResponse>
+
+    /**
      * DELETE api/v1/auth/sessions/{id}
      *
      *
@@ -94,7 +108,7 @@ interface AuthenticationApi {
 
     /**
      * POST api/v1/setup
-     * Create the first household and TRACKER account
+     * Create the first private relationship and TRACKER account
      *
      * Responses:
      *  - 201: Successful response

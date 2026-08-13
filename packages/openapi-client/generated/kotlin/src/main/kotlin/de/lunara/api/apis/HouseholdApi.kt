@@ -9,6 +9,7 @@ import com.squareup.moshi.Json
 import de.lunara.api.models.AuthResponse
 import de.lunara.api.models.CreateInvitationDto
 import de.lunara.api.models.InvitationResponse
+import de.lunara.api.models.InvitationSummaryResponse
 import de.lunara.api.models.JoinHouseholdDto
 
 interface HouseholdApi {
@@ -49,6 +50,18 @@ interface HouseholdApi {
      */
     @POST("api/v1/household/join")
     suspend fun householdJoin(@Body joinHouseholdDto: JoinHouseholdDto): Response<AuthResponse>
+
+    /**
+     * GET api/v1/household/invitations
+     *
+     *
+     * Responses:
+     *  - 200: Successful response
+     *
+     * @return [kotlin.collections.List<InvitationSummaryResponse>]
+     */
+    @GET("api/v1/household/invitations")
+    suspend fun householdListInvitations(): Response<kotlin.collections.List<InvitationSummaryResponse>>
 
     /**
      * DELETE api/v1/household/invitations/{id}

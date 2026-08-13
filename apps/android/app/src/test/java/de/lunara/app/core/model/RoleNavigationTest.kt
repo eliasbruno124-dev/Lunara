@@ -12,6 +12,7 @@ class RoleNavigationTest {
         assertTrue(MainDestination.HISTORY in destinations)
         assertFalse(MainDestination.SUPPORT in destinations)
         assertTrue(RoleNavigation.canCreatePeriod(UserRole.TRACKER))
+        assertTrue(RoleNavigation.canManagePeriods(UserRole.TRACKER))
     }
 
     @Test
@@ -22,5 +23,6 @@ class RoleNavigationTest {
             destinations,
         )
         assertFalse(RoleNavigation.canCreatePeriod(UserRole.PARTNER))
+        assertFalse(RoleNavigation.canManagePeriods(UserRole.PARTNER))
     }
 }

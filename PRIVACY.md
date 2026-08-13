@@ -8,7 +8,8 @@ Google-Play-Services-Pflicht für Kernfunktionen.
 ## Gespeicherte Daten
 
 - Konto: Benutzername, Anzeigename, Sprache, Rolle und Gerätesitzungen
-- Haushalt: Mitgliedschaften, Einladungen, Freigaben und Care Preferences
+- Beziehung: eine für Benutzer unsichtbare interne Mandanten-ID,
+  Mitgliedschaften, Einladungen, Freigaben und Care Preferences
 - Gesundheit: Periodenstart/-ende, Tageslogs, Intensitäten, Temperatur,
   Ovulationstest-Markierung, Symptome und verschlüsselte optionale Notizen
 - abgeleitete Daten: Bereichsprognosen, Statistik und Erklärung
@@ -17,6 +18,13 @@ Google-Play-Services-Pflicht für Kernfunktionen.
   Sitzungs-/Einladungswiderruf, Freigabeänderung, Export und Kontolöschung
 
 Audit-Logs enthalten keine Gesundheitswerte oder Freitextnotizen.
+
+Bei `REGISTRATION_ENABLED=true` können mehrere Paare dieselbe Serverinstanz
+verwenden. Eine neue öffentliche Registrierung erzeugt ausschließlich ein
+`TRACKER`-Konto in einer neuen, getrennten Beziehung. Das zugehörige
+`PARTNER`-Konto entsteht nur über einen permanenten, einmal verwendbaren und
+widerrufbaren Einladungscode. Pro Beziehung ist jede Rolle höchstens einmal
+belegt; serverseitige Abfragen werden auf diese interne Beziehungs-ID begrenzt.
 
 Notizen in Tageslogs sind anwendungsseitig verschlüsselt. Kurze Check-in-
 Prompts und Antworten liegen in Version 1 dagegen als strukturierter Klartext in
@@ -38,22 +46,25 @@ Nullzustand. Care Preferences und symptomabhängige Tipps werden ausschließlich
 verwendet, wenn die dafür nötigen Einstellungen dies erlauben.
 
 Die Android-Einstellungsansicht bietet derzeit die wichtigsten Freigaben,
-Freigabepause, Einladungen und Screenshot-Schutz. Weitere serverseitig
+Freigabepause, permanente Einmal-Einladungen samt Widerruf,
+Lunara-Passwortwechsel und Screenshot-Schutz. Weitere serverseitig
 vorhandene Schalter – unter anderem Flow, Stimmung, Energie, Schlaf,
 Tipps/Check-ins, privates Datum und symptomabhängige Tipps – müssen in Version 1
-noch per API verwaltet werden. Eine Partner-Trennen- oder Haushalt-verlassen-UI
+noch per API verwaltet werden. Eine Partner-Trennen- oder Beziehung-verlassen-UI
 ist noch nicht vorhanden.
 
 Bereits außerhalb von Lunara gespeicherte Screenshots oder Abschriften können
 nicht nachträglich zurückgerufen werden.
 
-## Gateway-Zugangsdaten
+## Serveradresse und Authentik
 
-Authentik-App-Passwörter sind Infrastrukturzugänge, keine Lunara-
-Gesundheitsdaten. Android akzeptiert sie im Userinfo-Teil einer Setup-URL,
-entfernt sie danach sofort aus der Serveradresse und speichert sie
-Keystore-geschützt. Trotzdem können Zwischenablage oder Tastaturverlauf die
-ursprüngliche Eingabe sehen. QR-Codes dürfen keine Zugangsdaten enthalten.
+Android verbindet sich über eine normale HTTPS-Basisadresse und benötigt keine
+Authentik-Header-Zugangsdaten. Authentik überspringt seinen Browser-Login nur
+für `/api/v1`; geschützte API-Daten bleiben durch Lunara-Token, Rollen,
+Eigentum und die interne Beziehungsgrenze abgesichert. OpenAPI-/Browserpfade
+bleiben Authentik-geschützt. Deren lokal gespeicherte administrative
+Prüfzugänge sind Infrastrukturgeheimnisse und dürfen weder in die App noch in
+QR-Codes, Chat, Git oder Cloudflare-DNS gelangen.
 
 ## Benachrichtigungen
 
@@ -71,7 +82,7 @@ Die API kann folgende Formate exportieren:
 - CSV der Perioden oder Tageslogs
 - dasselbe JSON als passwortverschlüsseltes Lunara-Backupformat
 
-„Vollständig“ bezieht sich in Version 1 auf diese Tracker-Kerndaten; Haushalts-
+„Vollständig“ bezieht sich in Version 1 auf diese Tracker-Kerndaten; Beziehungs-
 mitglieder, Geräte, Einladungen, Check-ins, Tippfeedback, eigene Tipps,
 Audit-Ereignisse und Sync-Metadaten sind nicht Teil des Exports.
 
@@ -83,5 +94,7 @@ Android-Oberfläche bindet Export, Import und Kontolöschung noch nicht ein.
 
 Die Kontolöschungs-API verlangt das Passwort erneut, widerruft durch die
 Datenbanklöschung alle zugehörigen Sitzungen und erzwingt bei der Tracker-Rolle
-eine bewusste Löschung des Haushalts. Serverbackups können gelöschte Daten bis
-zum Ablauf der selbst festgelegten Aufbewahrungsfrist enthalten.
+eine bewusste Löschung des gesamten internen Beziehungsmandanten. Dieses
+technische Modell ist kein sichtbares Haushaltskonzept, verhindert aber den
+Zugriff anderer Paare. Serverbackups können gelöschte Daten bis zum Ablauf der
+selbst festgelegten Aufbewahrungsfrist enthalten.

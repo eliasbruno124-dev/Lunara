@@ -22,8 +22,8 @@ android {
         applicationId = "de.lunara.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -45,7 +45,16 @@ android {
         }
         create("production") {
             dimension = "environment"
-            buildConfigField("String", "DEFAULT_API_URL", escapedBuildConfig(localProperties.getProperty("LUNARA_PRODUCTION_API_URL", "")))
+            buildConfigField(
+                "String",
+                "DEFAULT_API_URL",
+                escapedBuildConfig(
+                    localProperties.getProperty(
+                        "LUNARA_PRODUCTION_API_URL",
+                        "https://lunara.3li361.de",
+                    ),
+                ),
+            )
             buildConfigField("boolean", "ALLOW_INSECURE_HTTP", "false")
             manifestPlaceholders["usesCleartextTraffic"] = "false"
         }

@@ -1,6 +1,12 @@
 package de.lunara.app.data.remote.dto
 
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.TypeAdapter
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonWriter
 
 data class MetaDto(
     val name: String,
@@ -20,7 +26,17 @@ data class LoginRequest(
 
 data class SetupRequest(
     val bootstrapToken: String,
-    val householdName: String,
+    val username: String,
+    val displayName: String,
+    val password: String,
+    val preferredLanguage: String,
+    val deviceName: String,
+    // Kept only for compatibility with older v1 servers. This internal value is
+    // deliberately neutral and is never requested or shown in the app.
+    val householdName: String = "Lunara",
+)
+
+data class RegisterRequest(
     val username: String,
     val displayName: String,
     val password: String,
@@ -95,8 +111,31 @@ data class SyncMutationDto(
     val clientMutationId: String,
     val entityType: String,
     val operation: String,
-    val payload: Map<String, Any?>,
+    /**
+     * A tree payload plus the field adapter retains explicit JsonNull values on the actual
+     * Retrofit wire. Daily-log edits can therefore clear an optional value without globally
+     * enabling serializeNulls for unrelated PATCH requests.
+     */
+    @field:JsonAdapter(ExplicitNullJsonObjectAdapter::class)
+    val payload: JsonObject,
 )
+
+/** Enables explicit nulls only while Gson writes the mutation's nested payload object. */
+class ExplicitNullJsonObjectAdapter : TypeAdapter<JsonObject>() {
+    private val delegate = Gson().getAdapter(JsonObject::class.java)
+
+    override fun write(writer: JsonWriter, value: JsonObject?) {
+        val previousSerializeNulls = writer.serializeNulls
+        writer.serializeNulls = true
+        try {
+            delegate.write(writer, value)
+        } finally {
+            writer.serializeNulls = previousSerializeNulls
+        }
+    }
+
+    override fun read(reader: JsonReader): JsonObject? = delegate.read(reader)
+}
 
 data class SyncRequest(
     val cursor: String? = null,
@@ -179,12 +218,24 @@ data class CheckInDto(
     val expiresAt: String,
 )
 
-data class CreateInvitationRequest(val expiresInMinutes: Int? = null)
+data class CreateInvitationRequest(
+    val neverExpires: Boolean = true,
+)
 data class InvitationDto(
     val id: String,
-    val code: String,
+    val code: String? = null,
     val assignedRole: String,
-    val expiresAt: String,
+    val expiresAt: String? = null,
+    val createdAt: String? = null,
+)
+
+data class RelationshipMemberDto(
+    val role: String,
+    val disabled: Boolean = false,
+)
+
+data class RelationshipDto(
+    val members: List<RelationshipMemberDto> = emptyList(),
 )
 
 data class SharingSettingsDto(

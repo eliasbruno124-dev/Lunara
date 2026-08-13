@@ -1,5 +1,10 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Redirect,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -7,6 +12,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 @Controller()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
+
+  @Public()
+  @Get()
+  @Redirect('/api/v1/meta', 302)
+  @ApiExcludeEndpoint()
+  root(): undefined {
+    return undefined;
+  }
 
   @Public()
   @Get('health')

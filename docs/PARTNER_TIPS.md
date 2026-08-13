@@ -28,16 +28,18 @@ Each item contains:
 - `translations.de` and `translations.en`: complete `title`, `body`,
   and `callToAction` values.
 
-`USER_DEFINED` is intentionally absent from the built-in seed. It is
-reserved for text authored by the tracker and scoped to that household.
+`USER_DEFINED` is intentionally absent from the built-in seed. It is reserved
+for text authored by the tracker and scoped to that internal relationship
+tenant.
 
 ## Eligibility and selection
 
 The server must select a tip from a privacy-filtered view, not directly from a
 tracker's health records. The recommended order is:
 
-1. Resolve the authenticated partner's active household membership. Never
-   accept a household or owner ID supplied by the client as authorization.
+1. Resolve the authenticated partner's active relationship membership. Never
+   accept a relationship/tenant or owner ID supplied by the client as
+   authorization.
 2. Read the current tracker sharing settings, private-day state, sharing pause,
    category preferences, care preferences, quiet hours, and dismissed-tip
    feedback.
@@ -59,14 +61,14 @@ tracker's health records. The recommended order is:
    marked as less frequent. Honor per-day and per-category frequency limits.
 9. Rank the remaining candidates by priority, preference match, recent
    repetition penalty, and a deterministic daily tie-breaker scoped to the
-   household. Select at most the configured number of tips.
+   internal relationship tenant. Select at most the configured number of tips.
 10. If no data-dependent item is eligible, use a general item with empty
     `requiredSharedFields`, `ANY`, and no symptoms. Returning no tip is also
     valid when tips are disabled.
 
 The deterministic tie-breaker should use a keyed server-side hash of the
-household ID, local date, and tip key. It must not expose identifiers and must
-not make private data observable through ordering.
+internal relationship ID, local date, and tip key. It must not expose
+identifiers and must not make private data observable through ordering.
 
 ## Non-negotiable privacy behavior
 
@@ -106,8 +108,8 @@ Built-in and user-defined tips should:
 - remain useful when read without hidden health context.
 
 User-defined tips are validated for length and plain text, rendered without
-HTML, and visible only inside their household. The tracker can edit or disable
-them at any time. They must never be promoted into the global seed.
+HTML, and visible only inside their relationship tenant. The tracker can edit
+or disable them at any time. They must never be promoted into the global seed.
 
 ## Localization
 
@@ -131,7 +133,7 @@ At minimum, automated tests should prove:
 - private-day and sharing-pause modes remove all data-dependent candidates;
 - changing a permission prevents a previously eligible tip from being returned
   immediately;
-- an authenticated member cannot influence or retrieve another household's
-  candidate set;
+- an authenticated member cannot influence or retrieve another relationship
+  tenant's candidate set;
 - the response and structured logs contain no unshared symptom, note, severity,
   or matching reason.

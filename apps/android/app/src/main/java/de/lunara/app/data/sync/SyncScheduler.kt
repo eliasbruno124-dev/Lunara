@@ -25,14 +25,24 @@ class SyncScheduler @Inject constructor(@ApplicationContext context: Context) {
         enqueueOneTime(IMMEDIATE, ExistingWorkPolicy.KEEP)
     }
 
+    /** A user action deliberately replaces only the manual slot, never mutation retries. */
+    fun requestManual() {
+        enqueueOneTime(MANUAL, ExistingWorkPolicy.REPLACE)
+    }
+
     /**
      * Local mutations are committed while [ProcessSyncGate] is held and call this only after
-     * the previous worker has left that gate. A separate REPLACE slot therefore cannot cancel
-     * an in-progress database/network sync, but it does guarantee that a fresh mutation is not
-     * lost while WorkManager is still finalising the preceding WorkSpec.
+     * the previous worker has left that gate. APPEND_OR_REPLACE preserves an existing WorkManager
+     * retry/backoff instead of cancelling the only scheduled retry when another local edit is
+     * made. If the old chain is terminal, the new request becomes a fresh root.
      */
     fun requestAfterMutation() {
-        enqueueOneTime(MUTATION, ExistingWorkPolicy.REPLACE)
+        enqueueOneTime(MUTATION, ExistingWorkPolicy.APPEND_OR_REPLACE)
+    }
+
+    /** Continues a deliberately capped successful drain without WorkManager retry backoff. */
+    fun requestContinuation() {
+        enqueueOneTime(CONTINUATION, ExistingWorkPolicy.APPEND_OR_REPLACE)
     }
 
     private fun enqueueOneTime(uniqueName: String, policy: ExistingWorkPolicy) {
@@ -57,13 +67,17 @@ class SyncScheduler @Inject constructor(@ApplicationContext context: Context) {
         workManager.cancelAllWorkByTag(SYNC_TAG).result.await()
         // Also cancel requests created by versions that predate the common tag.
         workManager.cancelUniqueWork(IMMEDIATE).result.await()
+        workManager.cancelUniqueWork(MANUAL).result.await()
         workManager.cancelUniqueWork(MUTATION).result.await()
+        workManager.cancelUniqueWork(CONTINUATION).result.await()
         workManager.cancelUniqueWork(PERIODIC).result.await()
     }
 
     private companion object {
         const val IMMEDIATE = "lunara-sync-now"
+        const val MANUAL = "lunara-sync-manual"
         const val MUTATION = "lunara-sync-mutation"
+        const val CONTINUATION = "lunara-sync-continuation"
         const val PERIODIC = "lunara-sync-periodic"
         const val SYNC_TAG = "lunara-sync"
     }

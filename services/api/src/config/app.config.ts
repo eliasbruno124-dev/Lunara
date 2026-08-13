@@ -14,7 +14,7 @@ const booleanValue = (value: string | undefined, fallback = false): boolean =>
 export const appConfig = (): { lunara: LunaraConfig } => ({
   lunara: {
     appName: process.env.APP_NAME?.trim() || 'Lunara',
-    appVersion: process.env.APP_VERSION?.trim() || '1.0.2',
+    appVersion: process.env.APP_VERSION?.trim() || '1.0.3',
     publicBaseUrl: process.env.PUBLIC_BASE_URL?.trim() || 'http://localhost:3000',
     registrationEnabled: booleanValue(process.env.REGISTRATION_ENABLED),
     accessTokenTtlSeconds: Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 900),
@@ -41,7 +41,6 @@ export function validateEnvironment(
     'DATABASE_URL',
     'AUTH_SIGNING_KEY',
     'REFRESH_TOKEN_PEPPER',
-    'BOOTSTRAP_TOKEN',
     'APP_MASTER_KEY',
   ] as const;
 
@@ -68,8 +67,16 @@ export function validateEnvironment(
   ) {
     throw new Error('APP_MASTER_KEY must be exactly 32 random bytes encoded as canonical base64');
   }
-  if (stringValue('BOOTSTRAP_TOKEN').length < 20) {
-    throw new Error('BOOTSTRAP_TOKEN must contain at least 20 characters');
+  const bootstrapToken = environment.BOOTSTRAP_TOKEN;
+  if (bootstrapToken !== undefined && typeof bootstrapToken !== 'string') {
+    throw new Error('BOOTSTRAP_TOKEN must be a string');
+  }
+  if (
+    typeof bootstrapToken === 'string' &&
+    bootstrapToken.length > 0 &&
+    (bootstrapToken.length < 20 || bootstrapToken.length > 256)
+  ) {
+    throw new Error('BOOTSTRAP_TOKEN must contain between 20 and 256 characters');
   }
 
   const nodeEnv = stringValue('NODE_ENV', 'development');

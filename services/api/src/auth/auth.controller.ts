@@ -18,6 +18,7 @@ import {
   ChangePasswordDto,
   LoginDto,
   LogoutDto,
+  RegisterDto,
   RefreshDto,
   SetupDto,
 } from './auth.dto.js';
@@ -31,9 +32,20 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @Post('setup')
-  @ApiOperation({ summary: 'Create the first household and TRACKER account' })
+  @ApiOperation({ summary: 'Create the first private relationship and TRACKER account' })
   setup(@Body() dto: SetupDto): Promise<AuthResponse> {
     return this.auth.setup(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Post('auth/register')
+  @ApiOperation({
+    summary:
+      'Create an isolated private relationship and its TRACKER account when registration is enabled',
+  })
+  register(@Body() dto: RegisterDto): Promise<AuthResponse> {
+    return this.auth.register(dto);
   }
 
   @Public()

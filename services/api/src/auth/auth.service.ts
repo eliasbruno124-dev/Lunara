@@ -20,9 +20,19 @@ import {
   randomUUID,
   timingSafeEqual,
 } from 'node:crypto';
+import {
+  isServerBootstrapped,
+  lockBootstrap,
+  markServerBootstrapped,
+} from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ChangePasswordDto, LoginDto, SetupDto } from './auth.dto.js';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  SetupDto,
+} from './auth.dto.js';
 
 const PASSWORD_OPTIONS = {
   type: argon2.argon2id,
@@ -78,11 +88,12 @@ export class AuthService {
   ) {}
 
   async setup(dto: SetupDto): Promise<AuthResponse> {
+    const configuredBootstrapToken =
+      this.config.get<string>('BOOTSTRAP_TOKEN') ?? '';
     if (
-      !this.constantTimeEqual(
-        dto.bootstrapToken,
-        this.config.getOrThrow('BOOTSTRAP_TOKEN'),
-      )
+      configuredBootstrapToken.length < 20 ||
+      configuredBootstrapToken.length > 256 ||
+      !this.constantTimeEqual(dto.bootstrapToken, configuredBootstrapToken)
     ) {
       throw new UnauthorizedException(
         'Setup token is invalid or setup is unavailable',
@@ -96,13 +107,111 @@ export class AuthService {
     try {
       result = await this.prisma.$transaction(
         async (tx) => {
-          if ((await tx.user.count()) !== 0) {
+          await lockBootstrap(tx);
+          if (await isServerBootstrapped(tx)) {
             throw new ConflictException(
               'Server setup has already been completed',
             );
           }
           const household = await tx.household.create({
-            data: { name: dto.householdName.trim() },
+            data: { name: this.householdName(dto.preferredLanguage) },
+          });
+          const user = await tx.user.create({
+            data: {
+              username,
+              displayName: dto.displayName.trim(),
+              passwordHash,
+              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.DE,
+            },
+          });
+          const membership = await tx.membership.create({
+            data: {
+              householdId: household.id,
+              userId: user.id,
+              role: UserRole.TRACKER,
+            },
+          });
+          await Promise.all([
+            tx.cycleProfile.create({ data: { userId: user.id } }),
+            tx.carePreferences.create({ data: { userId: user.id } }),
+            tx.sharingSettings.create({
+              data: { ownerUserId: user.id, householdId: household.id },
+            }),
+          ]);
+          const session = await this.persistSession(
+            tx,
+            user.id,
+            dto.deviceName,
+            refreshToken,
+          );
+          await tx.auditEvent.create({
+            data: {
+              householdId: household.id,
+              actorUserId: user.id,
+              type: AuditEventType.NEW_DEVICE,
+              metadata: { sessionId: session.id },
+            },
+          });
+          if (!(await markServerBootstrapped(tx))) {
+            throw new ConflictException(
+              'Server setup has already been completed',
+            );
+          }
+          return {
+            identity: {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              preferredLanguage: user.preferredLanguage,
+              role: membership.role,
+              householdId: membership.householdId,
+            },
+            sessionId: session.id,
+          };
+        },
+      );
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Server setup has already been completed');
+      }
+      throw error;
+    }
+    return this.buildAuthResponse(
+      result.identity,
+      result.sessionId,
+      refreshToken,
+    );
+  }
+
+  async register(dto: RegisterDto): Promise<AuthResponse> {
+    if (!this.config.get<boolean>('lunara.registrationEnabled', false)) {
+      throw new ForbiddenException('Registration is disabled');
+    }
+    if (!(await isServerBootstrapped(this.prisma))) {
+      throw new ConflictException(
+        'Server bootstrap must be completed before registration',
+      );
+    }
+    const username = this.normalizeUsername(dto.username);
+    const passwordHash = await argon2.hash(dto.password, PASSWORD_OPTIONS);
+    const refreshToken = this.createOpaqueToken();
+
+    let result: { identity: SessionIdentity; sessionId: string };
+    try {
+      result = await this.prisma.$transaction(
+        async (tx) => {
+          await lockBootstrap(tx);
+          if (!(await isServerBootstrapped(tx))) {
+            throw new ConflictException(
+              'Server bootstrap must be completed before registration',
+            );
+          }
+          const household = await tx.household.create({
+            data: { name: this.householdName(dto.preferredLanguage) },
           });
           const user = await tx.user.create({
             data: {
@@ -152,7 +261,6 @@ export class AuthService {
             sessionId: session.id,
           };
         },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
       if (error instanceof ConflictException) throw error;
@@ -160,7 +268,7 @@ export class AuthService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException('Server setup has already been completed');
+        throw new ConflictException('Username is already in use');
       }
       throw error;
     }
@@ -521,6 +629,12 @@ export class AuthService {
 
   normalizeUsername(username: string): string {
     return username.trim().normalize('NFKC').toLocaleLowerCase('en-US');
+  }
+
+  private householdName(preferredLanguage?: PreferredLanguage): string {
+    return preferredLanguage === PreferredLanguage.EN
+      ? 'Private relationship'
+      : 'Private Beziehung';
   }
 
   private async recordPasswordChangeFailure(

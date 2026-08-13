@@ -23,7 +23,7 @@ import javax.inject.Inject
 import javax.net.ssl.SSLException
 
 enum class OnboardingStage { INTRO, SERVER, AUTH }
-enum class AuthMode { LOGIN, SETUP, JOIN }
+enum class AuthMode { LOGIN, SETUP, REGISTER, JOIN }
 enum class OnboardingError {
     INVALID_URL,
     HTTPS_REQUIRED,
@@ -35,14 +35,18 @@ enum class OnboardingError {
     GATEWAY_AUTH,
     API,
     USERNAME,
+    USERNAME_IN_USE,
     PASSWORD,
     DISPLAY_NAME,
-    HOUSEHOLD_NAME,
     BOOTSTRAP_TOKEN,
     BOOTSTRAP_REJECTED,
     SETUP_COMPLETE,
     INVITATION_CODE,
+    INVITATION_INVALID,
+    INVITATION_UNAVAILABLE,
+    PARTNER_ALREADY_CONNECTED,
     INVALID_CREDENTIALS,
+    REGISTRATION_UNAVAILABLE,
     GENERIC,
 }
 
@@ -57,7 +61,6 @@ data class OnboardingUiState(
     val username: String = "",
     val password: String = "",
     val displayName: String = "",
-    val householdName: String = "",
     val bootstrapToken: String = "",
     val invitationCode: String = "",
     val serverChangeConfirmationRequired: Boolean = false,
@@ -95,11 +98,16 @@ class OnboardingViewModel @Inject constructor(
         }
     }
     fun setAllowHttp(value: Boolean) = _state.update { it.copy(allowInsecureHttp = value, error = null) }
-    fun setAuthMode(value: AuthMode) = _state.update { it.copy(authMode = value, error = null, password = "") }
+    fun setAuthMode(value: AuthMode) = _state.update { state ->
+        if (value == AuthMode.REGISTER && !registrationAvailable(state)) {
+            state.copy(error = OnboardingError.REGISTRATION_UNAVAILABLE, password = "")
+        } else {
+            state.copy(authMode = value, error = null, password = "")
+        }
+    }
     fun setUsername(value: String) = _state.update { it.copy(username = value.take(64), error = null) }
     fun setPassword(value: String) = _state.update { it.copy(password = value.take(128), error = null) }
     fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(120), error = null) }
-    fun setHouseholdName(value: String) = _state.update { it.copy(householdName = value.take(120), error = null) }
     fun setBootstrapToken(value: String) = _state.update { it.copy(bootstrapToken = value.take(256), error = null) }
     fun setInvitationCode(value: String) = _state.update { it.copy(invitationCode = value.take(32), error = null) }
 
@@ -146,6 +154,7 @@ class OnboardingViewModel @Inject constructor(
 
     fun submitAuthentication() {
         val snapshot = _state.value
+        if (snapshot.isBusy) return
         val validationError = validateOnboardingForm(snapshot)
         if (validationError != null) {
             _state.update { it.copy(error = validationError) }
@@ -158,7 +167,12 @@ class OnboardingViewModel @Inject constructor(
                     AuthMode.LOGIN -> connectionRepository.login(snapshot.username, snapshot.password)
                     AuthMode.SETUP -> connectionRepository.setup(
                         snapshot.bootstrapToken,
-                        snapshot.householdName,
+                        snapshot.username,
+                        snapshot.displayName,
+                        snapshot.password,
+                        snapshot.language,
+                    )
+                    AuthMode.REGISTER -> connectionRepository.register(
                         snapshot.username,
                         snapshot.displayName,
                         snapshot.password,
@@ -192,6 +206,21 @@ class OnboardingViewModel @Inject constructor(
         }
         if (error is ApiException && mode == AuthMode.LOGIN && error.status == 401) {
             return OnboardingError.INVALID_CREDENTIALS
+        }
+        if (error is ApiException && mode == AuthMode.REGISTER) {
+            if (error.status == 403) return OnboardingError.REGISTRATION_UNAVAILABLE
+            if (error.status == 409) return OnboardingError.USERNAME_IN_USE
+        }
+        if (error is ApiException && mode == AuthMode.JOIN) {
+            if (error.status == 404) return OnboardingError.INVITATION_INVALID
+            if (error.status == 410) return OnboardingError.INVITATION_UNAVAILABLE
+            if (error.status == 409) {
+                return if (error.message?.contains("username", ignoreCase = true) == true) {
+                    OnboardingError.USERNAME_IN_USE
+                } else {
+                    OnboardingError.PARTNER_ALREADY_CONNECTED
+                }
+            }
         }
         return mapError(error)
     }

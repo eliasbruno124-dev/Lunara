@@ -3,28 +3,36 @@
 ## Bedrohungsmodell
 
 Lunara schützt sensible Zyklus-, Symptom-, Freitext-, Konto- und
-Beziehungsdaten gegen fremde Haushalte, unberechtigte Partneransichten,
-gestohlene Refresh-Tokens, verlorene Geräte und versehentliche Offenlegung in
-Logs oder Backups. Der Serveradministrator und der Debian-Host gelten als
-vertrauenswürdig. Gegen einen vollständig kompromittierten Root-Host oder ein
-kompromittiertes Android-Betriebssystem kann die Anwendung nicht schützen.
+Beziehungsdaten gegen andere interne Beziehungsmandanten, unberechtigte
+Partneransichten, gestohlene Refresh-Tokens, verlorene Geräte und
+versehentliche Offenlegung in Logs oder Backups. Der Serveradministrator und
+der Debian-Host gelten als vertrauenswürdig. Gegen einen vollständig
+kompromittierten Root-Host oder ein kompromittiertes Android-Betriebssystem
+kann die Anwendung nicht schützen.
 
 ## Verteidigungsschichten
 
 - TLS endet am Traefik/Pangolin-Eingang. Der API-Container besitzt keinen
   veröffentlichten Host-Port; der einzige öffentliche Router zeigt auf den
   Authentik-Proxy-Outpost.
-- Authentik-Header-Authentifizierung verwendet pro Person ein eigenes,
-  widerrufbares App-Passwort. Sie ist eine zusätzliche Gateway-Schranke, keine
-  Ersatzanmeldung und keine Mehrfaktorprüfung.
+- Authentik überspringt den Browser-Login exakt für `/api/v1`. Diese Requests
+  durchlaufen weiterhin denselben Proxy, werden aber von Lunara selbst
+  authentifiziert. Öffentliche Setup-/Meta-/Login-/Registrierungsendpunkte sind
+  eng validiert und rate-limitiert; alle übrigen API-Endpunkte verlangen ein
+  gültiges Lunara-Token.
+- `/api-docs`, `/api-docs-json` und sonstige Browserpfade bleiben durch
+  Authentik geschützt. Lokale Header-Auth-Zugänge dienen nur ihrer
+  administrativen Prüfung und werden nicht in der Android-App verwendet.
 - Lunara verwendet getrennte App-Konten, Argon2id-Passworthashes, kurze
   signierte Access-Tokens und rotierende, nur als Pepper-Hash gespeicherte
   Refresh-Tokens pro Gerät.
-- Rollen, Haushalt und Eigentümerschaft werden serverseitig geprüft. Partner-
-  Antworten entstehen aus der jeweils aktuellen Freigabekonfiguration.
+- Rollen, unsichtbare interne Beziehungsgrenze und Eigentümerschaft werden
+  serverseitig geprüft. Pro Beziehung sind genau ein `TRACKER` und ein
+  `PARTNER` vorgesehen. Partnerantworten entstehen aus der jeweils aktuellen
+  Freigabekonfiguration.
 - Freitextnotizen werden anwendungsseitig mit AES-256-GCM verschlüsselt.
 - Android speichert die Room-Datenbank mit SQLCipher; Datenbankschlüssel,
-  Tokens, Cookies und optionale Gateway-Zugangsdaten liegen hinter einem
+  Tokens und eventuell vorhandene Legacy-Verbindungswerte liegen hinter einem
   nicht exportierbaren Android-Keystore-Schlüssel.
 
 ## Authentifizierung und Sitzungen
@@ -35,6 +43,23 @@ Refresh-Tokens widerruft dessen Token-Familie. Sitzungen lassen sich einzeln
 oder über die Admin-CLI vollständig widerrufen. Die API stellt die
 Gerätesitzungen bereit; eine vollständige Geräteverwaltung ist in der
 Android-Oberfläche noch nicht umgesetzt.
+
+Bei aktivierter öffentlicher Tracker-Registrierung wird für jedes neue Konto
+serverseitig eine eigene interne Beziehungs-/Mandantengrenze erzeugt. Diese ist
+nicht als „Haushalt“ in der Oberfläche sichtbar. Registrierung vergibt nur die
+`TRACKER`-Rolle; ein `PARTNER` kann ausschließlich mit einem einmal verwendbaren
+und widerrufbaren Einladungscode beitreten. Permanente Codes besitzen kein
+Ablaufdatum, sind deshalb bis zur Verwendung oder zum Widerruf wie
+Bearer-Zugangsdaten zu schützen. Der Server speichert nur ihren Hash und gibt
+den Rohcode genau einmal aus.
+
+Der `BOOTSTRAP_TOKEN` autorisiert ausschließlich das erste Setup einer noch nie
+eingerichteten Datenbank. Nach dem erfolgreichen Setup speichert der Server den
+Abschluss dauerhaft in `ServerState`; auch das spätere Löschen aller Konten
+öffnet Bootstrap nicht wieder. Der Token kann und soll danach aus der Live-
+Konfiguration entfernt werden. Auf einer frischen Datenbank ohne konfigurierten
+Token bleibt Setup fail-closed gesperrt. Die additive Migration markiert eine
+bestehende Installation mit vorhandenen Konten automatisch als eingerichtet.
 
 Der Passwortwechsel in den Android-Einstellungen verlangt das aktuelle
 Lunara-Passwort, ist separat rate-limitiert und hasht das neue Passwort mit
@@ -47,8 +72,7 @@ werden pro Benutzer durch eine transaktionsgebundene PostgreSQL-Sperre
 serialisiert; dadurch kann kein bereits mit dem alten Passwort geprüfter Login
 nachträglich eine neue Sitzung anlegen. Erfolg sowie abgelehnte Autorisierungs-,
 Gleichheits- und Race-Versuche werden ohne Passwort- oder Gesundheitsdaten
-auditiert; reine DTO-Formatfehler erreichen den Auth-Service nicht. Das
-getrennte Authentik-App-Passwort wird dabei nicht verändert.
+auditiert; reine DTO-Formatfehler erreichen den Auth-Service nicht.
 
 Mutierende Offline-Sync-Aufrufe verwenden dauerhafte
 `clientMutationId`-Werte, clientseitige UUIDs und serverseitige
@@ -73,24 +97,23 @@ werden mit PBKDF2-SHA-256 abgeleitet und der Export mit AES-256-GCM geschützt.
 
 Beim Logout oder bestätigten Serverwechsel führt Android den lokalen Wipe auch
 dann vollständig aus, wenn die Serververbindung scheitert: Room-Tabellen,
-Mutation-Queue, WAL/Cache, DataStore, Cookies, Token-/Gateway-Secrets und der
+Mutation-Queue, WAL/Cache, DataStore, Cookies, Tokens und der
 alte Keystore-Alias werden entfernt. Nicht synchronisierte Daten gehen dabei
 absichtlich verloren; die UI warnt vorher. Dieser Ablauf ist auf JVM-Ebene
 getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
-## HTTP, Zertifikate und URL-Zugangsdaten
+## HTTP, Zertifikate und Serveradresse
 
 Der ausgelieferte Produktions-Debug-Build erzwingt HTTPS und vertraut nur dem
 normalen Android-Zertifikatsspeicher. Selbst signierte Zertifikate werden nicht
 umgangen; die unsichere HTTP-Option existiert ausschließlich in der separaten
 `local`-Entwicklungsvariante.
 
-Eine Setup-URL darf temporär URL-Benutzerinfo in der Form
-`user:app-passwort@host` hinter dem `https://`-Schema enthalten. Die App trennt
-die Userinfo sofort von der Server-URL und speichert sie
-Keystore-geschützt. Vor diesem Zeitpunkt können Zwischenablage, Tastatur oder
-Bildschirmaufzeichnung die Eingabe sehen. Deshalb App-Passwörter nie per Chat
-versenden, nicht in QR-Codes einbetten und bei Verdacht in Authentik widerrufen.
+Die Produktions-App verwendet die normale HTTPS-Basisadresse, beispielsweise
+`https://lunara.3li361.de`. Zugangsdaten im Userinfo-Teil einer URL sind weder
+erforderlich noch vorgesehen. Partner-QR-Codes enthalten nur den Lunara-
+Einladungscode; Passwörter, Refresh-Tokens und Bootstrap-Token dürfen nie in
+QR-Codes, Chat, Git oder Cloudflare-Konfiguration gelangen.
 
 Helmet, Body-Limit, DTO-Validierung und restriktives CORS sind aktiv. Tokens,
 Passwörter, Header, Freitextnotizen und Gesundheitswerte werden nicht
@@ -101,8 +124,8 @@ read-only Root-Dateisystem und `no-new-privileges`.
 
 1. Über ein verbleibendes Konto oder die Admin-CLI die betroffene bzw. alle
    Lunara-Sitzungen widerrufen.
-2. Das Authentik-App-Passwort dieses Geräts/Kontos widerrufen und neu erzeugen.
-3. Lunara-Kontopasswort ändern, wenn seine Kenntnis möglich ist.
+2. Lunara-Kontopasswort ändern, wenn seine Kenntnis möglich ist.
+3. Offene Partner-Einladungen widerrufen, wenn deren Code auf dem Gerät lag.
 4. Betriebssystem-Sperre bzw. Remote-Wipe verwenden.
 5. Sicherheits-Audit-Ereignisse prüfen; sie enthalten keine Gesundheitswerte.
 
@@ -128,7 +151,7 @@ in einer isolierten Instanz testen.
   WorkManager im Hintergrund; der manuelle Knopf bleibt als Zusatz vorhanden.
 - Check-in-Prompt und -Antwort sind in Version 1 in PostgreSQL nicht zusätzlich
   anwendungsseitig verschlüsselt. Sie unterliegen Datenbank-/Backup-Schutz und
-  strikter Haushalt-Autorisierung, sollten aber nicht für ausführliche sensible
+  strikter Beziehungsautorisierung, sollten aber nicht für ausführliche sensible
   Freitexte verwendet werden.
 - Der SSE-Änderungsstrom wird nur von SyncChange-Datensätzen gespeist;
   Check-in-, Freigabe- und Profiländerungen werden daher nicht für alle Clients
@@ -146,6 +169,15 @@ in einer isolierten Instanz testen.
   Änderungen an Pangolin/Authentik muss geprüft werden, dass der erwartete
   Client-IP-Hop weiterhin stimmt und kein direkt erreichbarer Peer Header
   vortäuschen kann.
+- Die optionale öffentliche Tracker-Registrierung ist mit drei Versuchen pro
+  Minute und Client-IP begrenzt, verwendet in Version 1 aber den flüchtigen
+  In-Memory-Throttler des einzelnen API-Prozesses. Ein Neustart setzt Zähler
+  zurück; mehrere API-Replikate würden keine gemeinsamen Zähler führen. Der
+  produktive Heimserver betreibt deshalb genau eine API-Instanz. Öffentliche
+  Registrierung kann CPU- und Datenbankmissbrauch reduzieren, aber nicht
+  vollständig verhindern; bei Missbrauch `REGISTRATION_ENABLED=false` setzen
+  und vor horizontaler Skalierung einen dauerhaften gemeinsamen Limiter
+  ergänzen.
 - Check-in-Erzeugung und der passwortgeschützte Export besitzen noch keine
   datenbankseitige Einzigkeitsgarantie bzw. ausgelagerten KDF-Worker; die
   vorhandenen API-Limits reduzieren, beseitigen diese Grenzen aber nicht.

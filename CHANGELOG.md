@@ -1,5 +1,69 @@
 # Changelog
 
+## 1.0.3 – 2026-08-13
+
+- Sichtbares Haushaltsfeld und entsprechende Produkttexte aus Onboarding und
+  Einstellungen entfernt. Die intern weiterhin vorhandene Beziehungs-ID dient
+  ausschließlich als serverseitige Mandanten- und Autorisierungsgrenze.
+- Optionale öffentliche Tracker-Registrierung ergänzt. Bei
+  `REGISTRATION_ENABLED=true` können beliebig viele voneinander isolierte Paare
+  dieselbe Instanz verwenden; jede Beziehung erlaubt genau ein `TRACKER`- und
+  ein `PARTNER`-Konto.
+- Permanente Partner-Einladungen ergänzt: zwölf Zeichen, nur einmal verwendbar,
+  jederzeit widerrufbar und als passwortfreier QR-Code teilbar. Der Rohcode
+  wird nur bei der Erstellung ausgegeben und serverseitig ausschließlich als
+  Hash gespeichert. Ein neuer offener Partnercode widerruft ältere Codes
+  derselben Beziehung.
+- Gleichzeitiges Registrieren, Einladen und Beitreten durch
+  transaktionsgebundene Beziehungssperren gegen doppelt vergebene Rollen und
+  mehrfach beanspruchte Codes gehärtet.
+- Erfolgreichen Erst-Bootstrap dauerhaft in einem singletonartigen
+  `ServerState` gespeichert. Das Löschen aller Konten öffnet Setup nicht mehr;
+  bestehende Installationen werden bei der additiven Migration als bereits
+  eingerichtet erkannt und der `BOOTSTRAP_TOKEN` kann danach entfernt werden.
+- App-Verbindung auf die normale HTTPS-Basisadresse
+  `https://lunara.3li361.de` umgestellt. Die App benötigt keine Authentik-
+  Header-Zugangsdaten mehr.
+- Authentik-Proxy so vorbereitet, dass `/api/v1` ohne Browser-Login zur
+  weiterhin durch Lunara-Token, Rollen und Eigentum geschützten API gelangt;
+  `/api-docs` und `/api-docs-json` bleiben Authentik-geschützt.
+- Bereits in 1.0.2 ergänzten Passwortwechsel in der rollenabhängigen
+  Einstellungsansicht beibehalten.
+- Tracker-Oberfläche um nachträgliches Bearbeiten des Startdatums und
+  bestätigtes Löschen eines fälschlich gestarteten Periodeneintrags ergänzt.
+  Beide Aktionen verwenden die Offline-Mutationswarteschlange und werden
+  automatisch synchronisiert.
+- Synchronisationswarteschlange pro Datensatz geordnet und gegen das
+  Überschreiben neuer lokaler Folgeänderungen durch ältere Bestätigungen oder
+  Serverstände gehärtet.
+- Erfolgreiche Offline-Mutationen werden ohne künstlichen Retry-Backoff bis zu
+  einer fairen 100er-Grenze geleert; echte Versionskonflikte bleiben sichtbar
+  und behalten die lokale Fassung bis zu einer ausdrücklichen Entscheidung.
+- Konfliktauflösung lädt die bestätigte Serverfassung neu und sperrt betroffene
+  Einträge bis dahin gegen weitere Änderungen. Bewusst geleerte Tageswerte
+  werden als explizite `null`-Werte serverseitig zuverlässig entfernt.
+- Explizite JSON-`null`-Werte in der Android-Sync-Schicht erhalten, damit
+  bewusst geleerte optionale Tageswerte serverseitig zuverlässig gelöscht
+  werden; Abwesenheit eines Felds bleibt weiterhin von `null` unterscheidbar.
+- Datenbankconstraint ergänzt, das pro Person und Kalenderdatum höchstens einen
+  nicht gelöschten Periodenstart erlaubt.
+- API-, Android- und OpenAPI-Version auf 1.0.3 angehoben. Final bestanden:
+  Prisma-Erzeugung/-Validierung, Backend-Lint und -Build, 14/14 Suites mit
+  59/59 Tests, OpenAPI-Hashprüfung sowie 63/63 Android-JVM-Tests, beide Lints,
+  Instrumentierungstest-Kompilierung und Production-Debug-APK-Build.
+- Sechs Migrationen produktiv angewendet, `BOOTSTRAP_TOKEN` nach bestätigtem
+  persistentem Setupstatus aus der Live-Konfiguration entfernt und nur die
+  Lunara-API aktualisiert. Die vorhandenen Emby-, Authentik-, Pangolin- und
+  PostgreSQL-Container wurden nicht neu gestartet.
+- Production-Debug-APK 1.0.3 erzeugt: 24.362.451 Bytes, SHA-256
+  `4dac957e020684f3d5ee5699fdc584a0f68393a58a76452801a21831616dd416`.
+  Instrumentierte Tests wurden mangels Gerät/Emulator nur kompiliert. Der
+  aktuelle 1.0.3-Stand ist in dieser Dokumentationsfassung noch nicht auf
+  GitHub veröffentlicht.
+- Der echte PostgreSQL-E2E-Lauf wurde nach den beiden finalen Migrationen nicht
+  erneut ausgeführt; ein erfolgreicher Lauf des früheren 1.0.3-Zwischenstands
+  wird nicht als Abschlussnachweis für den finalen Stand gewertet.
+
 ## 1.0.2 – 2026-08-13
 
 - Produktions-Onboarding startet ohne vorausgefüllte Domain; die persönliche

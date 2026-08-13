@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PreferredLanguage } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -13,12 +14,25 @@ import {
 import { CredentialsDto } from '../auth/auth.dto.js';
 
 export class CreateInvitationDto {
-  @ApiPropertyOptional({ minimum: 5, maximum: 1440, description: 'Cannot exceed the server policy' })
+  @ApiPropertyOptional({
+    minimum: 5,
+    maximum: 1440,
+    description: 'Cannot exceed the server policy',
+  })
   @IsOptional()
   @IsInt()
   @Min(5)
   @Max(1_440)
   expiresInMinutes?: number;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Create a single-use, revocable invitation without an expiry date',
+  })
+  @IsOptional()
+  @IsBoolean()
+  neverExpires?: boolean;
 }
 
 export class JoinHouseholdDto extends CredentialsDto {
@@ -31,9 +45,13 @@ export class JoinHouseholdDto extends CredentialsDto {
   @ApiProperty({ example: 'Partner B' })
   @IsString()
   @Length(1, 120)
+  @Matches(/\S/u)
   displayName!: string;
 
-  @ApiPropertyOptional({ enum: PreferredLanguage, default: PreferredLanguage.DE })
+  @ApiPropertyOptional({
+    enum: PreferredLanguage,
+    default: PreferredLanguage.DE,
+  })
   @IsOptional()
   @IsEnum(PreferredLanguage)
   preferredLanguage?: PreferredLanguage;

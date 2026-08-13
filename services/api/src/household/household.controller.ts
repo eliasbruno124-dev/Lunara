@@ -33,6 +33,14 @@ export class HouseholdController {
 
   @ApiBearerAuth()
   @Roles(UserRole.TRACKER)
+  @Get('invitations')
+  listInvitations(@CurrentUser() user: AuthenticatedUser) {
+    return this.households.listOpenInvitations(user);
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.TRACKER)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @Post('invitations')
   createInvitation(
     @CurrentUser() user: AuthenticatedUser,

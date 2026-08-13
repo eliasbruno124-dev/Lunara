@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PeriodEvent, SyncOperation } from '@prisma/client';
+import { PeriodEvent, Prisma, SyncOperation } from '@prisma/client';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -41,28 +41,36 @@ export class PeriodsService {
       return this.serialize(existing);
     }
 
-    const period = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.periodEvent.create({
-        data: {
-          id: dto.id,
-          userId: user.userId,
-          startDate: this.parseDate(dto.startDate),
-          endDate: dto.endDate ? this.parseDate(dto.endDate) : null,
-          source: dto.source,
-        },
+    let period: PeriodEvent;
+    try {
+      period = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.periodEvent.create({
+          data: {
+            id: dto.id,
+            userId: user.userId,
+            startDate: this.parseDate(dto.startDate),
+            endDate: dto.endDate ? this.parseDate(dto.endDate) : null,
+            source: dto.source,
+          },
+        });
+        await tx.syncChange.create({
+          data: {
+            householdId: user.householdId,
+            ownerUserId: user.userId,
+            entityType: 'PeriodEvent',
+            entityId: created.id,
+            operation: SyncOperation.UPSERT,
+            entityVersion: created.version,
+          },
+        });
+        return created;
       });
-      await tx.syncChange.create({
-        data: {
-          householdId: user.householdId,
-          ownerUserId: user.userId,
-          entityType: 'PeriodEvent',
-          entityId: created.id,
-          operation: SyncOperation.UPSERT,
-          entityVersion: created.version,
-        },
-      });
-      return created;
-    });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw this.createUniqueConflict(error);
+      }
+      throw error;
+    }
     await this.predictions.recalculateAndCache(user.userId);
     return this.serialize(period);
   }
@@ -80,37 +88,45 @@ export class PeriodsService {
       : dto.endDate;
     this.validateRange(startDate, endDate);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.periodEvent.updateMany({
-        where: { id, userId: user.userId, version: dto.version, deletedAt: null },
-        data: {
-          ...(dto.startDate !== undefined ? { startDate: this.parseDate(dto.startDate) } : {}),
-          ...(dto.endDate !== undefined
-            ? { endDate: dto.endDate ? this.parseDate(dto.endDate) : null }
-            : {}),
-          version: { increment: 1 },
-        },
-      });
-      if (result.count !== 1) {
-        throw new ConflictException({
-          message: 'Period entry was changed on another device',
-          expectedVersion: dto.version,
-          currentVersion: current.version,
+    let updated: PeriodEvent;
+    try {
+      updated = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.periodEvent.updateMany({
+          where: { id, userId: user.userId, version: dto.version, deletedAt: null },
+          data: {
+            ...(dto.startDate !== undefined ? { startDate: this.parseDate(dto.startDate) } : {}),
+            ...(dto.endDate !== undefined
+              ? { endDate: dto.endDate ? this.parseDate(dto.endDate) : null }
+              : {}),
+            version: { increment: 1 },
+          },
         });
-      }
-      const entity = await tx.periodEvent.findUniqueOrThrow({ where: { id } });
-      await tx.syncChange.create({
-        data: {
-          householdId: user.householdId,
-          ownerUserId: user.userId,
-          entityType: 'PeriodEvent',
-          entityId: entity.id,
-          operation: SyncOperation.UPSERT,
-          entityVersion: entity.version,
-        },
+        if (result.count !== 1) {
+          throw new ConflictException({
+            message: 'Period entry was changed on another device',
+            expectedVersion: dto.version,
+            currentVersion: current.version,
+          });
+        }
+        const entity = await tx.periodEvent.findUniqueOrThrow({ where: { id } });
+        await tx.syncChange.create({
+          data: {
+            householdId: user.householdId,
+            ownerUserId: user.userId,
+            entityType: 'PeriodEvent',
+            entityId: entity.id,
+            operation: SyncOperation.UPSERT,
+            entityVersion: entity.version,
+          },
+        });
+        return entity;
       });
-      return entity;
-    });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException('An active period entry already exists for this date');
+      }
+      throw error;
+    }
     await this.predictions.recalculateAndCache(user.userId);
     return this.serialize(updated);
   }
@@ -172,5 +188,35 @@ export class PeriodsService {
 
   private localDate(value: Date): string {
     return value.toISOString().slice(0, 10);
+  }
+
+  private isUniqueConstraintError(
+    error: unknown,
+  ): error is Prisma.PrismaClientKnownRequestError {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+
+  private createUniqueConflict(
+    error: Prisma.PrismaClientKnownRequestError,
+  ): ConflictException {
+    const target = error.meta?.target;
+    const targetParts = Array.isArray(target)
+      ? target.filter((part): part is string => typeof part === 'string')
+      : typeof target === 'string'
+        ? [target]
+        : [];
+    const isStartDateConflict = targetParts.some(
+      (part) =>
+        part.includes('PeriodEvent_userId_startDate_active_key') ||
+        part === 'startDate',
+    );
+    return new ConflictException(
+      isStartDateConflict
+        ? 'An active period entry already exists for this date'
+        : 'A period entry with this date or client identifier already exists',
+    );
   }
 }

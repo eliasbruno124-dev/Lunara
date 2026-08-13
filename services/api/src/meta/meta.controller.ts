@@ -1,6 +1,7 @@
 import { Controller, Get, Header } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { isServerBootstrapped } from '../common/database/database-coordination.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -28,12 +29,12 @@ export class MetaController {
   @Header('Pragma', 'no-cache')
   @ApiOperation({ summary: 'Server identity, compatibility and setup state' })
   async getMeta(): Promise<MetaResponse> {
-    const users = await this.prisma.user.count();
+    const bootstrapped = await isServerBootstrapped(this.prisma);
     return {
       name: this.config.get<string>('lunara.appName', 'Lunara'),
-      version: this.config.get<string>('lunara.appVersion', '1.0.2'),
+      version: this.config.get<string>('lunara.appVersion', '1.0.3'),
       apiVersion: 'v1',
-      setupRequired: users === 0,
+      setupRequired: !bootstrapped,
       registrationEnabled: this.config.get<boolean>(
         'lunara.registrationEnabled',
         false,

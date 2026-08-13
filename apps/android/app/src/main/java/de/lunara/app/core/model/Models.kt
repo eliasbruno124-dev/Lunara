@@ -14,7 +14,9 @@ object RoleNavigation {
         MainDestination.SETTINGS,
     )
 
-    fun canCreatePeriod(role: UserRole): Boolean = role == UserRole.TRACKER
+    fun canCreatePeriod(role: UserRole): Boolean = canManagePeriods(role)
+
+    fun canManagePeriods(role: UserRole): Boolean = role == UserRole.TRACKER
 }
 
 data class AppSession(

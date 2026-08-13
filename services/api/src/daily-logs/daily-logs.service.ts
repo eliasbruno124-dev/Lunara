@@ -62,12 +62,13 @@ export class DailyLogsService {
           localDate: this.parseDate(dto.localDate),
           flowLevel: dto.flowLevel,
           painLevel: dto.painLevel,
-          mood: dto.mood?.trim(),
+          mood:
+            dto.mood === undefined ? undefined : dto.mood?.trim() || null,
           energy: dto.energy,
           sleepQuality: dto.sleepQuality,
           bodyTemperature: dto.bodyTemperature,
           ovulationTestResult: dto.ovulationTestResult,
-          customSymptoms: dto.customSymptoms ?? [],
+          customSymptoms: dto.customSymptoms,
           encryptedNote: dto.note === undefined ? undefined : dto.note ? this.encryption.encrypt(dto.note) : null,
           version: { increment: 1 },
         },
@@ -125,7 +126,7 @@ export class DailyLogsService {
       localDate: this.parseDate(dto.localDate),
       flowLevel: dto.flowLevel,
       painLevel: dto.painLevel,
-      mood: dto.mood?.trim(),
+      mood: dto.mood?.trim() || null,
       energy: dto.energy,
       sleepQuality: dto.sleepQuality,
       bodyTemperature: dto.bodyTemperature,
@@ -145,7 +146,7 @@ export class DailyLogsService {
       log.localDate.toISOString().slice(0, 10) === dto.localDate &&
       log.flowLevel === (dto.flowLevel ?? null) &&
       log.painLevel === (dto.painLevel ?? null) &&
-      log.mood === (dto.mood?.trim() ?? null) &&
+      log.mood === (dto.mood?.trim() || null) &&
       log.energy === (dto.energy ?? null) &&
       log.sleepQuality === (dto.sleepQuality ?? null) &&
       (log.bodyTemperature === null ? null : Number(log.bodyTemperature)) ===

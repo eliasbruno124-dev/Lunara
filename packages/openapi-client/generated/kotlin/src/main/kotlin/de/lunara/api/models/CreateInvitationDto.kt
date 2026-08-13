@@ -31,6 +31,7 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param expiresInMinutes Cannot exceed the server policy
+ * @param neverExpires Create a single-use, revocable invitation without an expiry date
  */
 
 
@@ -38,7 +39,11 @@ data class CreateInvitationDto (
 
     /* Cannot exceed the server policy */
     @Json(name = "expiresInMinutes")
-    val expiresInMinutes: java.math.BigDecimal? = null
+    val expiresInMinutes: java.math.BigDecimal? = null,
+
+    /* Create a single-use, revocable invitation without an expiry date */
+    @Json(name = "neverExpires")
+    val neverExpires: kotlin.Boolean? = false
 
 ) {
 

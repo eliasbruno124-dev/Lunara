@@ -15,6 +15,22 @@ describe('validateEnvironment', () => {
     expect(validateEnvironment({ ...valid })).toMatchObject(valid);
   });
 
+  it('allows the bootstrap token to be removed after first setup', () => {
+    const withoutBootstrap = { ...valid };
+    delete (withoutBootstrap as Partial<typeof valid>).BOOTSTRAP_TOKEN;
+
+    expect(validateEnvironment(withoutBootstrap)).toEqual(withoutBootstrap);
+    expect(
+      validateEnvironment({ ...withoutBootstrap, BOOTSTRAP_TOKEN: '' }),
+    ).toMatchObject({ BOOTSTRAP_TOKEN: '' });
+  });
+
+  it('rejects a configured but weak bootstrap token', () => {
+    expect(() =>
+      validateEnvironment({ ...valid, BOOTSTRAP_TOKEN: 'too-short' }),
+    ).toThrow('BOOTSTRAP_TOKEN');
+  });
+
   it('rejects production HTTP and malformed boolean values', () => {
     expect(() =>
       validateEnvironment({ ...valid, PUBLIC_BASE_URL: 'http://lunara.example.test' }),

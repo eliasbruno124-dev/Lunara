@@ -45,7 +45,8 @@ without_scheme="${gateway_url#https://}"
 public_authority="${without_scheme#*@}"
 public_authority="${public_authority%/}"
 public_host="${public_authority%%:*}"
-authenticated_endpoint="${gateway_url%/}/api/v1/meta"
+authenticated_endpoint="${gateway_url%/}/api-docs-json"
+cookie_endpoint="https://${public_authority}/api-docs-json"
 public_endpoint="https://${public_authority}/api/v1/meta"
 unset without_scheme gateway_pattern
 
@@ -136,12 +137,11 @@ unset gateway_url authenticated_endpoint
 
 if [[ "${first_status}" != "200" ]] ||
    ! jq -e '
-     .apiVersion == "v1" and
-     (.name | type == "string" and length > 0) and
-     (.setupRequired | type == "boolean") and
-     (.registrationEnabled | type == "boolean")
+     (.openapi | type == "string" and length > 0) and
+     (.info.title | type == "string" and length > 0) and
+     (.info.version | type == "string" and length > 0)
    ' "${response_file}" >/dev/null 2>&1; then
-  echo "Gateway-Prüfung fehlgeschlagen: Authentik lieferte keine gültige Lunara-Metaantwort (HTTP ${first_status})." >&2
+  echo "Gateway-Prüfung fehlgeschlagen: Authentik lieferte keine gültige geschützte Lunara-OpenAPI-Antwort (HTTP ${first_status})." >&2
   exit 1
 fi
 
@@ -159,16 +159,36 @@ if ! cookie_status="$(curl --disable --silent --proto '=https' --tlsv1.2 \
   "${curl_network_options[@]}" \
   --connect-timeout 10 --max-time 30 \
   --output "${response_file}" --cookie "${cookie_jar}" \
-  --write-out '%{http_code}' "${public_endpoint}" 2>/dev/null)"; then
+  --write-out '%{http_code}' "${cookie_endpoint}" 2>/dev/null)"; then
   echo "Gateway-Prüfung fehlgeschlagen: Die Authentik-Sitzung konnte nicht erneut verwendet werden." >&2
   exit 1
 fi
 
 if [[ "${cookie_status}" != "200" ]] ||
-   ! jq -e '.apiVersion == "v1" and (.name | type == "string" and length > 0)' \
-     "${response_file}" >/dev/null 2>&1; then
-  echo "Gateway-Prüfung fehlgeschlagen: Cookie-Weiterleitung zur Lunara-API war nicht erfolgreich (HTTP ${cookie_status})." >&2
+   ! jq -e '(.openapi | type == "string" and length > 0) and (.info.title | type == "string" and length > 0)' \
+   "${response_file}" >/dev/null 2>&1; then
+  echo "Gateway-Prüfung fehlgeschlagen: Die Authentik-Sitzung öffnete die geschützte OpenAPI nicht (HTTP ${cookie_status})." >&2
   exit 1
 fi
 
-echo "Gateway-Prüfung erfolgreich: Basic-Anmeldung, Authentik-Sitzung und Lunara-Metaendpoint funktionieren."
+: > "${response_file}"
+if ! public_status="$(curl --disable --silent --proto '=https' --tlsv1.2 \
+  "${curl_network_options[@]}" \
+  --connect-timeout 10 --max-time 30 \
+  --output "${response_file}" --write-out '%{http_code}' \
+  "${public_endpoint}" 2>/dev/null)"; then
+  echo "Gateway-Prüfung fehlgeschlagen: Der native Lunara-Metaendpoint ist nicht erreichbar." >&2
+  exit 1
+fi
+if [[ "${public_status}" != "200" ]] ||
+   ! jq -e '
+     .apiVersion == "v1" and
+     (.name | type == "string" and length > 0) and
+     (.setupRequired | type == "boolean") and
+     (.registrationEnabled | type == "boolean")
+   ' "${response_file}" >/dev/null 2>&1; then
+  echo "Gateway-Prüfung fehlgeschlagen: Der native Lunara-Metaendpoint lieferte keine gültige Antwort (HTTP ${public_status})." >&2
+  exit 1
+fi
+
+echo "Gateway-Prüfung erfolgreich: Authentik schützt OpenAPI; Sitzung und native Lunara-API funktionieren."

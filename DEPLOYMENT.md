@@ -61,8 +61,14 @@ Beim ersten `up` startet Compose PostgreSQL, führt danach den einmaligen,
 nicht-privilegierten Dienst `migrate` aus und startet `api` nur, wenn die
 Migration erfolgreich beendet wurde. Das API-Image selbst verändert beim Start
 kein Schema. `/health` prüft den Prozess; `/ready` prüft zusätzlich PostgreSQL.
-Ein normaler Start darf keine offene Registrierung einschalten. Ein beendeter
-`migrate`-Container mit Exitcode 0 ist erwarteter Zustand und kein Fehler.
+`REGISTRATION_ENABLED=false` ist der sichere Standard. Soll dieselbe Instanz
+mehrere voneinander getrennte Paare aufnehmen, muss der Betreiber nach dem
+ersten Bootstrap bewusst `REGISTRATION_ENABLED=true` in `.env` setzen und nur
+den Lunara-API-Dienst über den dokumentierten Update-Ablauf neu laden. Dadurch
+kann jede neue zyklustrackende Person ein eigenes `TRACKER`-Konto mit einer
+neuen internen Beziehungs-/Mandantengrenze anlegen; offene Partnerkonten
+entstehen weiterhin nur per Einladung. Ein beendeter `migrate`-Container mit
+Exitcode 0 ist erwarteter Zustand und kein Fehler.
 
 Auf dem aktuellen Server wird Lunara als eigenständiges Compose-Projekt ohne
 Portainer-Ownership betrieben. Kein Befehl in dieser Anleitung richtet sich
@@ -70,19 +76,19 @@ gegen den Portainer-Hauptstack 20.
 
 ## 4. Authentik Proxy Provider und Pangolin-Ressource
 
-`LUNARA_AUTHENTIK_HUMAN_USERS` enthält die exakten, bereits vorhandenen
-Authentik-Benutzernamen, die Lunara zusätzlich zur nativen Header-Auth verwenden
-dürfen. Auf dem Zielserver sind dies `Dune` (Dunja) und `Elias`. Die beiden
-technischen App-Zugänge bleiben davon getrennt und besitzen weiterhin eigene
-App-Passwörter.
+Authentik bleibt der einzige vorgeschaltete öffentliche Proxy. Für native
+App-Aufrufe setzt der Provider jedoch exakt
+`skip_path_regex = ^/api/v1(?:/|$)`: Authentik leitet diese Pfade ohne
+Browser-Login an Lunara weiter. Das ist keine ungeschützte zweite Route. Die
+Lunara-API erzwingt für alle nicht ausdrücklich öffentlichen Endpunkte weiterhin
+Access-Token, Rollen, Eigentum und die interne Beziehungs-/Mandantengrenze.
 
-Authentik unterstützt eingehende HTTP-Basic-Authentifizierung an einem Proxy
-Provider. Dabei muss das Passwort ein Authentik-**App-Passwort** sein; ein
-normales Kontopasswort wird absichtlich nicht verwendet. Das mitgelieferte
-Skript erstellt einen eng gebundenen Provider, die Gruppenrichtlinie, zwei
-getrennte Service-Konten und deren App-Passwörter. Siehe auch die offizielle
-Dokumentation:
-https://docs.goauthentik.io/add-secure-apps/providers/proxy/header_authentication
+Browser- und OpenAPI-Pfade wie `/api-docs` und `/api-docs-json` werden nicht
+übersprungen und bleiben Authentik-geschützt. Die in
+`LUNARA_AUTHENTIK_HUMAN_USERS` aufgeführten bestehenden Authentik-Konten sowie
+lokal verwaltete technische Prüfzugänge sind ausschließlich für diese
+administrative Browser-/OpenAPI-Schicht bestimmt. Die Android-App benötigt
+weder einen Authentik-Benutzernamen noch ein Authentik-App-Passwort.
 
 Prüfe zunächst Namen und Pfade read-only. Die Standardwerte entsprechen dem
 aktuellen Zielserver und können über die genannten Variablen überschrieben
@@ -122,19 +128,18 @@ Das Ergebnis entspricht folgender Provider-Konfiguration:
 - Modus: Proxy
 - External host: `https://lunara.3li361.de`
 - Internal host: `http://lunara-api:3000`
-- Intercept header authentication: aktiviert
-- Anwendung: ausschließlich die zwei technischen Lunara-Gateway-Konten sowie
-  die explizit in `LUNARA_AUTHENTIK_HUMAN_USERS` freigegebenen Konten
+- Skip path regex: `^/api/v1(?:/|$)`
+- Intercept header authentication: für die geschützte Browser-/OpenAPI-Prüfung
+  aktiviert
+- Anwendung: ausschließlich lokal verwaltete technische Prüfzugänge sowie die
+  explizit in `LUNARA_AUTHENTIK_HUMAN_USERS` freigegebenen Konten
 - Outpost: vorhandener eingebetteter Authentik-Outpost
 
-Für Browser-Anmeldung und Header-Auth wird dieselbe Domain verwendet:
-`https://lunara.3li361.de`. Es gibt absichtlich keine ungeschützte zweite
-Subdomain. Das Skript erzeugt standardmäßig `gateway-a.url` und `gateway-b.url`.
-Auf dem aktuellen Zielserver existieren zusätzlich die eindeutig zugeordneten
-lokalen Aliasdateien `/docker/lunara/dunja-headerauth.url` und
-`/docker/lunara/elias-headerauth.url`. Alle Dateien haben Modus `0600`; ihr
-Inhalt darf weder in Git noch in Dokumentation, Chat oder QR-Codes übernommen
-werden.
+App und Browser verwenden dieselbe Domain `https://lunara.3li361.de`; es gibt
+absichtlich keine zweite Subdomain und keinen direkten öffentlichen API-Port.
+Das Skript kann lokale URL-Dateien für die geschützte OpenAPI-Prüfung erzeugen.
+Diese Dateien haben Modus `0600`, sind Zugangsdaten und dürfen weder in die App
+noch in Git, Dokumentation, Chat, QR-Codes oder Cloudflare übernommen werden.
 
 Lege anschließend genau die Lunara-Ressource in Pangolin an. Das Skript prüft
 verifizierte Domain und aktive Site, verweigert das Überschreiben einer
@@ -171,35 +176,23 @@ Die erzeugte HTTPS-Ressource besitzt folgende Route:
 - TLS: Let's Encrypt über den vorhandenen Resolver
 - WebSocket ist nicht erforderlich; der Server-Sent-Events-Endpoint wird durch
   den HTTP-Proxy unterstützt, wird von Android Version 1 aber noch nicht genutzt
-- Pangolin-eigene Basic Auth: deaktiviert; Authentik prüft den Header
+- Pangolin-eigene Basic Auth: deaktiviert; Authentik schützt die nicht
+  übersprungenen Browserpfade
 
 Kontrolliere die Ressource anschließend in Pangolin. Die Compose-Labels von
 Lunara sind absichtlich deaktiviert; es darf keinen zweiten Traefik-Router geben,
 der direkt auf `lunara-api:3000` zeigt und Authentik umgeht.
 
-Die API nutzt getrennte Lunara-Konten zusätzlich zur äußeren Authentik-Schranke.
-Android sendet anfangs bzw. nach Ablauf der Outpost-Sitzung:
+Die Android-App wird ausschließlich mit der normalen Basisadresse eingerichtet:
 
 ```text
-Authorization: Basic <gateway credentials>
-X-Lunara-Authorization: Bearer <Lunara access token>
+https://lunara.3li361.de
 ```
 
-Nach erfolgreicher Basic-Prüfung entfernt Authentik den Basic-Header, liefert
-einen Session-Cookie und leitet die Anfrage weiter. Android persistiert diesen
-Cookie; spätere Requests können so ohne erneute Passwortprüfung laufen. Das
-App-Passwort wird dennoch Keystore-geschützt behalten, um eine abgelaufene
-Outpost-Sitzung automatisch neu aufzubauen.
-
-Die App akzeptiert beim Setup bequem
-`https://gateway-user:gateway-pass@lunara.3li361.de`, entfernt Userinfo jedoch
-sofort aus der gespeicherten/angezeigten URL und legt die Zugangsdaten
-Keystore-geschützt separat ab. QR-Codes enthalten niemals Passwörter.
-
-Die Header-Prüfung ist echte Authentik-Authentifizierung, aber keine MFA: Ein
-App-Passwort ist ein langlebiges Maschinen-Zugangsmittel. Redirect-basierte
-Authentik-Anmeldung bleibt Browser-Fallback und ersetzt die Lunara-Anmeldung
-nicht.
+Sie verwendet danach einen Lunara-Bearer-Access-Token und die rotierende
+Lunara-Refresh-Sitzung. URLs mit eingebetteten Zugangsdaten gehören nicht in
+die App. Ein Partner-QR enthält nur den einmal verwendbaren Lunara-
+Einladungscode, niemals Server-, Lunara- oder Authentik-Passwörter.
 
 Optional kann der Gateway-Pfad schon vor dem DNS-Eintrag gegen die kanonische
 IPv4- oder IPv6-Adresse des erreichbaren Traefik-/Pangolin-HTTPS-Eingangs geprüft
@@ -229,7 +222,8 @@ Nachdem Container und Pangolin-Ressource gesund sind:
 1. In der DNS-Zone `3li361.de` einen CNAME `lunara` anlegen.
 2. Ziel: `3li361.de`.
 3. Zunächst „DNS only“ verwenden, entsprechend der bestehenden Hauptdomain.
-4. Nach DNS-Auflösung beide getrennten Gateway-Zugänge testen:
+4. Nach DNS-Auflösung die geschützte OpenAPI-Oberfläche und anschließend den
+   nativen Metaendpoint testen:
 
 ```bash
 sudo /docker/lunara/scripts/verify-gateway.sh /docker/lunara/gateway-a.url
@@ -238,34 +232,53 @@ sudo /docker/lunara/scripts/verify-gateway.sh /docker/lunara/gateway-b.url
 
 `verify-gateway.sh` liest die Datei nur lokal, verlangt HTTPS und restriktive
 Dateirechte und legt Zugangsdaten weder in Prozessargumente noch in die Ausgabe.
-Es prüft zuerst Basic-Authentifizierung und eine gültige Lunara-Metaantwort und
-verwendet danach den von Authentik gesetzten Sitzungscookie erneut. Nach dem
+Es prüft zuerst Authentik vor `/api-docs-json`, verwendet dessen Sitzung erneut
+und ruft anschließend `/api/v1/meta` ohne Authentik-Zugangsdaten auf. Nach dem
 Cloudflare-DNS-Eintrag muss die Prüfung ohne Resolve- oder TLS-Ausnahme
-erfolgreich sein.
+erfolgreich sein. Zusätzlich muss ein anonymer Aufruf eines nicht öffentlichen
+API-Endpunkts wie `/api/v1/me` mit Lunara-HTTP-401 statt mit Daten antworten.
 
 Passwörter gehören weder in Cloudflare-Regeln noch in DNS-Werte.
 
-## 6. Bootstrap und zweites Konto
+## 6. Bootstrap, Registrierung und Partnerkonto
 
-1. Android-App öffnen und die Serveradresse eingeben.
-2. `/api/v1/meta` muss `setupRequired: true` melden.
+1. Android-App öffnen; die Produktionsvariante verwendet standardmäßig
+   `https://lunara.3li361.de`. Die Adresse bleibt editierbar.
+2. Auf einer noch nie eingerichteten Instanz muss `/api/v1/meta`
+   `setupRequired: true` melden. Ein bereits eingerichteter Server meldet
+   dauerhaft `false`.
 3. Einmaligen `BOOTSTRAP_TOKEN` lokal aus `.env` verwenden und das erste Konto
-   mit Rolle `TRACKER` anlegen.
+   mit Rolle `TRACKER` anlegen. Es gibt kein sichtbares Haushaltsfeld.
 4. Erneut `/meta` prüfen: `setupRequired` muss nun `false` sein.
-5. Als Tracker eine ablaufende Einladung erzeugen.
-6. Partnerperson richtet mit eigenem Benutzernamen und eigenem Passwort das
-   `PARTNER`-Konto ein. Einladung und QR enthalten kein Passwort.
-7. Bootstrap-Token nach erfolgreichem Setup in der Live-Konfiguration durch einen
-   neuen Zufallswert ersetzen; serverseitig bleibt Bootstrap dennoch gesperrt.
+5. Für einen Server mit mehreren Paaren `REGISTRATION_ENABLED=true` setzen.
+   Danach können weitere Personen über „Neue Beziehung starten“ jeweils ein
+   isoliertes `TRACKER`-Konto anlegen. Ist der Wert `false`, bleiben nur Login
+   und Einladung möglich.
+6. Als Tracker eine permanente Partner-Einladung erzeugen. Sie läuft nicht
+   zeitlich ab, ist aber nur einmal verwendbar und jederzeit widerrufbar. Ein
+   neuer Code widerruft vorhandene offene Partnercodes derselben Beziehung.
+7. Die Partnerperson richtet mit eigenem Benutzernamen und eigenem Passwort das
+   `PARTNER`-Konto ein. Text und QR enthalten ausschließlich den Code.
+8. `BOOTSTRAP_TOKEN` nach erfolgreichem Setup aus der Live-Konfiguration
+   entfernen. Der persistente Serverstatus hält Bootstrap auch dann gesperrt,
+   wenn später sämtliche Konten und Beziehungen gelöscht werden.
 
-Der Bootstrap-Token ist ausschließlich der Besitznachweis für einen vollständig
-leeren Server. Er verhindert, dass eine fremde Person den ersten Haushalt
-anlegt. Sobald mindestens ein Konto existiert, ist Bootstrap serverseitig
-gesperrt; für Login, Einladung und normalen Betrieb wird der Token nicht mehr
-verwendet. Wird der gesamte Haushalt einschließlich aller Konten bewusst
-gelöscht, ist der Server wieder leer und Bootstrap öffnet sich absichtlich mit
-dem dann konfigurierten Token. Der Token darf deshalb nicht entfernt, in die
-APK eingebaut oder über Chat, QR-Code beziehungsweise GitHub verteilt werden.
+Der Bootstrap-Token ist ausschließlich der Besitznachweis für einen noch nie
+eingerichteten Server. Er verhindert, dass eine fremde Person die erste
+Beziehung anlegt. Nach dem ersten erfolgreichen Setup wird der Zustand dauerhaft
+in `ServerState` gespeichert; für Registrierung, Login, Einladung und normalen
+Betrieb wird der Token nicht mehr verwendet. Fehlt der Token bei einem frischen
+Server, bleibt Setup sicher gesperrt. Die intern weiterhin `Household` genannte
+UUID ist nur die unsichtbare Mandanten-/Autorisierungsgrenze. Pro solcher
+Beziehung sind genau ein `TRACKER` und ein `PARTNER` vorgesehen; Konten
+verschiedener Beziehungen können keine Daten voneinander abrufen.
+
+Auch wenn später die letzte Beziehung einschließlich aller Konten bewusst
+gelöscht wird, bleibt `setupRequired` wegen des persistenten Serverstatus
+`false`. Neue Tracker-Konten entstehen dann ausschließlich über die normale,
+bewusst aktivierte Registrierung. Der `BOOTSTRAP_TOKEN` darf daher nach dem
+ersten Setup aus `.env` entfernt werden; er gehört niemals in die APK, in einen
+QR-Code, in Chat oder GitHub.
 
 ## 7. Backup, Restore und Updates
 
@@ -303,6 +316,28 @@ API-/Migrator-Image, startet `docker compose run --rm migrate`, ersetzt nur die
 API und prüft deren Readiness. Produktive Migrationen müssen deshalb mit der bis
 zum API-Austausch noch laufenden Vorgängerversion kompatibel sein
 (Expand/Contract-Verfahren).
+
+Die Migration `20260813150000_persistent_server_state` legt genau einen
+`ServerState`-Datensatz an. Bestehende Installationen mit bereits vorhandenen
+Konten werden dabei als eingerichtet markiert; nur eine wirklich frische,
+leere Datenbank bleibt im Bootstrap-Zustand. Erst nachdem Migration, API-
+Readiness und `setupRequired: false` geprüft wurden, den `BOOTSTRAP_TOKEN` aus
+der Live-`.env` entfernen. Ein Datenbank-Restore muss den `ServerState`-
+Datensatz mit wiederherstellen.
+
+Die darauffolgende Migration
+`20260813160000_unique_active_period_start` schützt die fachliche Regel auch
+auf Datenbankebene: Pro Benutzer und lokalem Startdatum darf höchstens ein
+nicht gelöschter Periodenstart existieren. Vor dem Update prüft die Migration
+den vorhandenen Bestand und bricht bei widersprüchlichen aktiven Duplikaten
+ab, statt Daten stillschweigend zusammenzuführen oder zu löschen.
+
+Auf dem aktuellen Zielserver sind alle sechs Migrationen angewendet. Der
+persistente Status meldet `setupRequired: false`, die bewusst aktivierte
+Registrierung meldet `registrationEnabled: true`, und der `BOOTSTRAP_TOKEN`
+wurde anschließend aus der Live-`.env` entfernt. Eine serverlokale Sicherung
+der vorherigen Konfiguration besitzt Modus `0600`; sie darf nicht in Git,
+Backuparchive ohne Verschlüsselung oder Supportausgaben übernommen werden.
 
 Ein Schema-Rollback erfolgt nicht durch eine rückwärts laufende Migration,
 sondern durch geprüften Code-Rollback plus Restore des unmittelbar davor

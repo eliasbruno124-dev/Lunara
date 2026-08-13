@@ -46,7 +46,7 @@ data class InvitationResponse (
     val code: kotlin.String,
 
     @Json(name = "expiresAt")
-    val expiresAt: java.time.OffsetDateTime,
+    val expiresAt: java.time.OffsetDateTime?,
 
     @Json(name = "id")
     val id: java.util.UUID

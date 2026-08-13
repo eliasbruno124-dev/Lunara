@@ -8,6 +8,7 @@ import {
 import { AuditEventType, PeriodSource, Prisma, SyncOperation, UserRole } from '@prisma/client';
 import { createCipheriv, pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
+import { lockRelationship } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { EncryptionService } from '../common/security/encryption.service.js';
 import { DailyLogsService } from '../daily-logs/daily-logs.service.js';
@@ -166,13 +167,17 @@ export class DataManagementService {
     const valid = await argon2.verify(account.passwordHash, dto.password).catch(() => false);
     if (!valid) throw new UnauthorizedException('Password is incorrect');
     if (user.role === UserRole.TRACKER && !dto.deleteHousehold) {
-      throw new ConflictException('The TRACKER must delete the household or transfer the role first');
+      throw new ConflictException('The tracker must delete the relationship or transfer the role first');
     }
     if (dto.deleteHousehold && user.role !== UserRole.TRACKER) {
-      throw new ForbiddenException('Only the TRACKER can delete the household');
+      throw new ForbiddenException('Only the tracker can delete the relationship');
     }
     await this.prisma.$transaction(async (tx) => {
       if (dto.deleteHousehold) {
+        // Invitation claims and relationship deletion share this lock. Member
+        // IDs are re-read only after it, so a join that won the race is also
+        // deleted and a waiting join observes the removed invitation.
+        await lockRelationship(tx, user.householdId);
         const members = await tx.membership.findMany({
           where: { householdId: user.householdId },
           select: { userId: true },

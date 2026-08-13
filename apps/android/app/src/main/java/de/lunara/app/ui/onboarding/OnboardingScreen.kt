@@ -82,7 +82,6 @@ fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
         onUsername = viewModel::setUsername,
         onPassword = viewModel::setPassword,
         onDisplayName = viewModel::setDisplayName,
-        onHouseholdName = viewModel::setHouseholdName,
         onBootstrapToken = viewModel::setBootstrapToken,
         onInvitationCode = viewModel::setInvitationCode,
         onSubmit = viewModel::submitAuthentication,
@@ -105,7 +104,6 @@ fun OnboardingScreen(
     onUsername: (String) -> Unit,
     onPassword: (String) -> Unit,
     onDisplayName: (String) -> Unit,
-    onHouseholdName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
     onSubmit: () -> Unit,
@@ -128,7 +126,7 @@ fun OnboardingScreen(
                 OnboardingStage.SERVER -> ServerStep(state, onServerUrl, onScannedServerUrl, onAllowHttp, onTestConnection)
                 OnboardingStage.AUTH -> AuthStep(
                     state, onAuthMode, onUsername, onPassword, onDisplayName,
-                    onHouseholdName, onBootstrapToken, onInvitationCode, onSubmit,
+                    onBootstrapToken, onInvitationCode, onSubmit,
                 )
             }
         }
@@ -241,7 +239,6 @@ private fun AuthStep(
     onUsername: (String) -> Unit,
     onPassword: (String) -> Unit,
     onDisplayName: (String) -> Unit,
-    onHouseholdName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
     onSubmit: () -> Unit,
@@ -249,6 +246,7 @@ private fun AuthStep(
     val title = when (state.authMode) {
         AuthMode.LOGIN -> R.string.login_title
         AuthMode.SETUP -> R.string.setup_title
+        AuthMode.REGISTER -> R.string.register_title
         AuthMode.JOIN -> R.string.join_title
     }
     LunaraHeader(eyebrow = "3 / 3", title = stringResource(title))
@@ -268,10 +266,17 @@ private fun AuthStep(
             FilterChip(state.authMode == AuthMode.LOGIN, { onAuthMode(AuthMode.LOGIN) }, { Text(stringResource(R.string.use_login)) })
             FilterChip(state.authMode == AuthMode.JOIN, { onAuthMode(AuthMode.JOIN) }, { Text(stringResource(R.string.use_invitation)) })
         }
+        if (registrationAvailable(state)) {
+            FilterChip(
+                state.authMode == AuthMode.REGISTER,
+                { onAuthMode(AuthMode.REGISTER) },
+                { Text(stringResource(R.string.use_registration)) },
+            )
+        }
     }
 
     if (state.authMode != AuthMode.LOGIN) {
-        RoleCard(isTracker = state.authMode == AuthMode.SETUP)
+        RoleCard(isTracker = state.authMode == AuthMode.SETUP || state.authMode == AuthMode.REGISTER)
         OutlinedTextField(
             state.displayName,
             onDisplayName,
@@ -282,14 +287,6 @@ private fun AuthStep(
         )
     }
     if (state.authMode == AuthMode.SETUP) {
-        OutlinedTextField(
-            state.householdName,
-            onHouseholdName,
-            label = { Text(stringResource(R.string.household_name)) },
-            singleLine = true,
-            isError = state.error == OnboardingError.HOUSEHOLD_NAME,
-            modifier = Modifier.fillMaxWidth(),
-        )
         SecretField(
             state.bootstrapToken,
             onBootstrapToken,
@@ -332,7 +329,7 @@ private fun AuthStep(
         onUsername,
         label = { Text(stringResource(R.string.username)) },
         singleLine = true,
-        isError = state.error == OnboardingError.USERNAME,
+        isError = state.error == OnboardingError.USERNAME || state.error == OnboardingError.USERNAME_IN_USE,
         modifier = Modifier.fillMaxWidth(),
     )
     SecretField(
@@ -344,8 +341,9 @@ private fun AuthStep(
     ErrorText(state.error)
     val button = when (state.authMode) {
         AuthMode.LOGIN -> R.string.sign_in
-        AuthMode.SETUP -> R.string.create_household
-        AuthMode.JOIN -> R.string.join_household
+        AuthMode.SETUP -> R.string.finish_setup
+        AuthMode.REGISTER -> R.string.create_relationship
+        AuthMode.JOIN -> R.string.connect_with_invitation
     }
     Button(onSubmit, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
         if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
@@ -412,14 +410,18 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.GATEWAY_AUTH -> R.string.error_gateway_auth
         OnboardingError.API -> R.string.error_api
         OnboardingError.USERNAME -> R.string.error_username
+        OnboardingError.USERNAME_IN_USE -> R.string.error_username_in_use
         OnboardingError.PASSWORD -> R.string.error_password
         OnboardingError.DISPLAY_NAME -> R.string.error_display_name
-        OnboardingError.HOUSEHOLD_NAME -> R.string.error_household_name
         OnboardingError.BOOTSTRAP_TOKEN -> R.string.error_bootstrap_token
         OnboardingError.BOOTSTRAP_REJECTED -> R.string.error_bootstrap_rejected
         OnboardingError.SETUP_COMPLETE -> R.string.error_setup_complete
         OnboardingError.INVITATION_CODE -> R.string.error_invitation_code
+        OnboardingError.INVITATION_INVALID -> R.string.error_invitation_invalid
+        OnboardingError.INVITATION_UNAVAILABLE -> R.string.error_invitation_unavailable
+        OnboardingError.PARTNER_ALREADY_CONNECTED -> R.string.error_partner_already_connected
         OnboardingError.INVALID_CREDENTIALS -> R.string.error_invalid_credentials
+        OnboardingError.REGISTRATION_UNAVAILABLE -> R.string.error_registration_unavailable
         OnboardingError.GENERIC -> R.string.error_generic
         null -> return
     }
@@ -433,7 +435,7 @@ private fun IntroPreview() = LunaraTheme {
         state = OnboardingUiState(),
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},
-        onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {}, onHouseholdName = {},
+        onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
         onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
     )
 }
@@ -445,11 +447,11 @@ private fun LoginPreview() = LunaraTheme {
         OnboardingUiState(
             stage = OnboardingStage.AUTH,
             language = "en",
-            meta = MetaDto("Lunara", "1.0.2", "v1", false, false, "2026-08-12T12:00:00Z"),
+            meta = MetaDto("Lunara", "1.0.3", "v1", false, false, "2026-08-13T12:00:00Z"),
         ),
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},
-        onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {}, onHouseholdName = {},
+        onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
         onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
     )
 }

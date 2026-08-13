@@ -1,8 +1,8 @@
 {
   "name": "lunara",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
-  "description": "Private, self-hosted cycle tracking for two-person households",
+  "description": "Private, self-hosted cycle tracking for independent couples",
   "workspaces": [
     "services/*",
     "packages/*"

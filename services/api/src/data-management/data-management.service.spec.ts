@@ -1,4 +1,5 @@
 import { PreferredLanguage, UserRole } from '@prisma/client';
+import * as argon2 from 'argon2';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { DataManagementService } from './data-management.service.js';
 import { ExportFormatDto } from './data-management.dto.js';
@@ -50,6 +51,61 @@ describe('DataManagementService CSV export', () => {
     expect(csv).not.toContain(',+1+1');
     expect(csv).not.toContain(',-1+1');
     expect(csv).not.toContain(',@SUM(A1)');
+  });
+});
+
+describe('DataManagementService relationship deletion', () => {
+  it('takes the relationship advisory lock before re-reading every member id', async () => {
+    const password = 'A secure deletion password 2026!';
+    const passwordHash = await argon2.hash(password);
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([
+        { pg_advisory_xact_lock: null },
+      ]),
+      membership: {
+        findMany: jest.fn().mockResolvedValue([
+          { userId: tracker.userId },
+          { userId: 'partner-id' },
+        ]),
+      },
+      user: { deleteMany: jest.fn().mockResolvedValue({ count: 2 }) },
+      household: { delete: jest.fn().mockResolvedValue({}) },
+      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ passwordHash }),
+      },
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.deleteAccount(tracker, {
+      password,
+      deleteHousehold: true,
+    });
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledWith(
+      expect.anything(),
+      `lunara:relationship:${tracker.householdId}`,
+    );
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.membership.findMany.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(tx.membership.findMany).toHaveBeenCalledWith({
+      where: { householdId: tracker.householdId },
+      select: { userId: true },
+    });
+    expect(tx.user.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [tracker.userId, 'partner-id'] } },
+    });
   });
 });
 

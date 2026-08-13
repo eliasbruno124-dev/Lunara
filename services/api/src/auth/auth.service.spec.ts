@@ -1,5 +1,14 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { AuditEventType, PreferredLanguage, UserRole } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  AuditEventType,
+  PreferredLanguage,
+  UserRole,
+} from '@prisma/client';
 import * as argon2 from 'argon2';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { AuthService } from './auth.service.js';
@@ -225,6 +234,299 @@ describe('AuthService.changePassword', () => {
         actorUserId: authenticatedUser.userId,
         type: AuditEventType.PASSWORD_CHANGE_FAILED,
         metadata: {},
+      },
+    });
+  });
+});
+
+describe('AuthService.setup', () => {
+  it('fails generically without a configured bootstrap token', async () => {
+    const prisma = { $transaction: jest.fn() };
+    const service = createService(prisma);
+
+    const error: unknown = await service
+      .setup({
+        bootstrapToken: 'request-token-with-enough-length',
+        username: 'first-tracker',
+        password: 'A secure setup password!',
+        displayName: 'First tracker',
+        deviceName: 'Setup device',
+      })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect((error as Error).message).toBe(
+      'Setup token is invalid or setup is unavailable',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('also fails generically when the configured bootstrap token is too short', async () => {
+    const prisma = { $transaction: jest.fn() };
+    const config = {
+      get: jest.fn((key: string, defaultValue: unknown) =>
+        key === 'BOOTSTRAP_TOKEN' ? 'short' : defaultValue,
+      ),
+    };
+    const service = new AuthService(
+      prisma as never,
+      config as never,
+      {} as never,
+    );
+
+    const error: unknown = await service
+      .setup({
+        bootstrapToken: 'request-token-with-enough-length',
+        username: 'first-tracker',
+        password: 'A secure setup password!',
+        displayName: 'First tracker',
+        deviceName: 'Setup device',
+      })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect((error as Error).message).toBe(
+      'Setup token is invalid or setup is unavailable',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('creates the first account and marks bootstrap complete in one transaction', async () => {
+    const bootstrapToken = 'bootstrap-token-that-is-long-enough';
+    const householdId = '66666666-6666-4666-8666-666666666666';
+    const userId = '77777777-7777-4777-8777-777777777777';
+    const sessionId = '88888888-8888-4888-8888-888888888888';
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([
+        { pg_advisory_xact_lock: null },
+      ]),
+      serverState: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ bootstrappedAt: null }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      household: { create: jest.fn().mockResolvedValue({ id: householdId }) },
+      user: {
+        create: jest.fn().mockResolvedValue({
+          id: userId,
+          username: 'first-tracker',
+          displayName: 'First tracker',
+          preferredLanguage: PreferredLanguage.DE,
+        }),
+      },
+      membership: {
+        create: jest.fn().mockResolvedValue({
+          role: UserRole.TRACKER,
+          householdId,
+        }),
+      },
+      cycleProfile: { create: jest.fn().mockResolvedValue({}) },
+      carePreferences: { create: jest.fn().mockResolvedValue({}) },
+      sharingSettings: { create: jest.fn().mockResolvedValue({}) },
+      deviceSession: {
+        create: jest.fn().mockResolvedValue({ id: sessionId }),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const config = {
+      get: jest.fn((key: string, defaultValue: unknown) =>
+        key === 'BOOTSTRAP_TOKEN' ? bootstrapToken : defaultValue,
+      ),
+      getOrThrow: jest.fn().mockReturnValue('setup-test-refresh-pepper'),
+    };
+    const jwt = { signAsync: jest.fn().mockResolvedValue('access-token') };
+    const service = new AuthService(
+      prisma as never,
+      config as never,
+      jwt as never,
+    );
+
+    await service.setup({
+      bootstrapToken,
+      username: 'first-tracker',
+      password: 'A secure setup password!',
+      displayName: 'First tracker',
+      deviceName: 'Setup device',
+    });
+
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.serverState.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { bootstrappedAt: true },
+    });
+    expect(tx.serverState.updateMany).toHaveBeenCalledWith({
+      where: { id: 1, bootstrappedAt: null },
+      data: { bootstrappedAt: expect.any(Date) as Date },
+    });
+    expect(tx.auditEvent.create.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.serverState.updateMany.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AuthService.register', () => {
+  it('rejects registration before password hashing or database access when disabled', async () => {
+    const prisma = { $transaction: jest.fn() };
+    const service = createService(prisma);
+
+    await expect(
+      service.register({
+        username: 'new-tracker',
+        password: 'A secure registration password!',
+        displayName: 'New tracker',
+        deviceName: 'Registration device',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('requires the one-time bootstrap before open registration on an empty server', async () => {
+    const prisma = {
+      serverState: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ bootstrappedAt: null }),
+      },
+      $transaction: jest.fn(),
+    };
+    const config = {
+      get: jest.fn((key: string, defaultValue: unknown) =>
+        key === 'lunara.registrationEnabled' ? true : defaultValue,
+      ),
+    };
+    const service = new AuthService(
+      prisma as never,
+      config as never,
+      {} as never,
+    );
+
+    await expect(
+      service.register({
+        username: 'new-tracker',
+        password: 'A secure registration password!',
+        displayName: 'New tracker',
+        deviceName: 'Registration device',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('creates an isolated TRACKER relationship even when all earlier users were deleted after bootstrap', async () => {
+    const householdId = '66666666-6666-4666-8666-666666666666';
+    const userId = '77777777-7777-4777-8777-777777777777';
+    const sessionId = '88888888-8888-4888-8888-888888888888';
+    let storedPasswordHash = '';
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([
+        { pg_advisory_xact_lock: null },
+      ]),
+      serverState: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          bootstrappedAt: new Date('2026-08-13T12:00:00.000Z'),
+        }),
+      },
+      user: {
+        create: jest.fn((input: { data: { passwordHash: string } }) => {
+          storedPasswordHash = input.data.passwordHash;
+          return Promise.resolve({
+            id: userId,
+            username: 'new-tracker',
+            displayName: 'New tracker',
+            preferredLanguage: PreferredLanguage.DE,
+          });
+        }),
+      },
+      household: {
+        create: jest.fn().mockResolvedValue({ id: householdId }),
+      },
+      membership: {
+        create: jest.fn().mockResolvedValue({
+          role: UserRole.TRACKER,
+          householdId,
+        }),
+      },
+      cycleProfile: { create: jest.fn().mockResolvedValue({}) },
+      carePreferences: { create: jest.fn().mockResolvedValue({}) },
+      sharingSettings: { create: jest.fn().mockResolvedValue({}) },
+      deviceSession: {
+        create: jest.fn().mockResolvedValue({ id: sessionId }),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      // There are intentionally no User.count mocks: registration is governed
+      // by the persistent lifecycle marker, not current account cardinality.
+      serverState: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          bootstrappedAt: new Date('2026-08-13T12:00:00.000Z'),
+        }),
+      },
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const config = {
+      get: jest.fn((key: string, defaultValue: unknown) =>
+        key === 'lunara.registrationEnabled' ? true : defaultValue,
+      ),
+      getOrThrow: jest.fn().mockReturnValue('registration-test-pepper'),
+    };
+    const jwt = { signAsync: jest.fn().mockResolvedValue('access-token') };
+    const service = new AuthService(
+      prisma as never,
+      config as never,
+      jwt as never,
+    );
+
+    const result = await service.register({
+      username: ' New-Tracker ',
+      password: 'A secure registration password!',
+      displayName: ' New tracker ',
+      deviceName: 'Registration device',
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.serverState.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { bootstrappedAt: true },
+    });
+    expect(tx.household.create).toHaveBeenCalledWith({
+      data: { name: 'Private Beziehung' },
+    });
+    expect(tx.membership.create).toHaveBeenCalledWith({
+      data: { householdId, userId, role: UserRole.TRACKER },
+    });
+    expect(tx.cycleProfile.create).toHaveBeenCalledWith({ data: { userId } });
+    expect(tx.carePreferences.create).toHaveBeenCalledWith({
+      data: { userId },
+    });
+    expect(tx.sharingSettings.create).toHaveBeenCalledWith({
+      data: { ownerUserId: userId, householdId },
+    });
+    expect(storedPasswordHash).not.toContain('A secure registration password!');
+    await expect(
+      argon2.verify(storedPasswordHash, 'A secure registration password!'),
+    ).resolves.toBe(true);
+    expect(result.user).toEqual(
+      expect.objectContaining({
+        id: userId,
+        username: 'new-tracker',
+        role: UserRole.TRACKER,
+        householdId,
+      }),
+    );
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        householdId,
+        actorUserId: userId,
+        type: AuditEventType.NEW_DEVICE,
+        metadata: { sessionId },
       },
     });
   });

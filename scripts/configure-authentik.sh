@@ -133,6 +133,7 @@ GROUP_NAME = "Lunara Gateway"
 USER_PATH = "service-accounts/lunara"
 TOKEN_DESCRIPTION = f"Lunara native app header authentication [{OWNER}]"
 EXTERNAL_HOST = f"https://{PUBLIC_HOST}"
+API_SKIP_PATH_REGEX = r"^/api/v1(?:/|$)"
 
 def fail(message):
     raise RuntimeError(f"Lunara Authentik preflight failed: {message}")
@@ -237,7 +238,14 @@ def named_objects_state():
     }
 
 
-def verify_owned(objects, flows, outpost, expected_scopes, human_users):
+def verify_owned(
+    objects,
+    flows,
+    outpost,
+    expected_scopes,
+    human_users,
+    expected_skip_path_regex=API_SKIP_PATH_REGEX,
+):
     provider = objects["provider"]
     application = objects["application"]
     group = objects["group"]
@@ -251,7 +259,11 @@ def verify_owned(objects, flows, outpost, expected_scopes, human_users):
         "external_host": EXTERNAL_HOST,
         "internal_host_ssl_validation": True,
         "mode": ProxyMode.PROXY,
-        "skip_path_regex": "",
+        # Native clients authenticate at the Lunara API with short-lived
+        # access tokens. Authentik still proxies these paths but must not
+        # require a second human/browser session. Browser and OpenAPI paths
+        # remain protected by the exact application policy below.
+        "skip_path_regex": expected_skip_path_regex,
         "intercept_header_auth": True,
         "basic_auth_enabled": False,
         "basic_auth_user_attribute": "",
@@ -405,7 +417,7 @@ def create_owned(flows, outpost, human_users):
         external_host=EXTERNAL_HOST,
         internal_host_ssl_validation=True,
         mode=ProxyMode.PROXY,
-        skip_path_regex="",
+        skip_path_regex=API_SKIP_PATH_REGEX,
         intercept_header_auth=True,
         basic_auth_enabled=False,
         basic_auth_user_attribute="",
@@ -483,20 +495,64 @@ if ACTION == "check":
         lock_configuration_namespace()
         state, objects = named_objects_state()
         if state == "existing":
-            verify_owned(objects, flows, outpost, expected_scopes, human_users)
+            skip_path_regex = objects["provider"].skip_path_regex
+            if skip_path_regex == API_SKIP_PATH_REGEX:
+                verify_owned(objects, flows, outpost, expected_scopes, human_users)
+            elif skip_path_regex == "":
+                # v1.0.2 protected every path with an Authentik browser
+                # session. Accept that state only when every other owned field
+                # still matches its pinned contract exactly.
+                verify_owned(
+                    objects,
+                    flows,
+                    outpost,
+                    expected_scopes,
+                    human_users,
+                    expected_skip_path_regex="",
+                )
+                state = "legacy"
+            else:
+                fail("provider field skip_path_regex is neither the current nor the supported legacy value")
     print(f"LUNARA_AUTHENTIK_PREFLIGHT={state}")
 else:
-    if EXPECTED_STATE not in {"create", "existing"}:
+    if EXPECTED_STATE not in {"create", "existing", "legacy"}:
         fail("invalid expected state")
     with transaction.atomic():
         lock_configuration_namespace()
         state, objects = named_objects_state()
-        if state != EXPECTED_STATE:
-            fail("named object state changed after preflight")
-        if state == "create":
+        if EXPECTED_STATE == "create":
+            if state != "create":
+                fail("named object state changed after preflight")
             create_owned(flows, outpost, human_users)
             state, objects = named_objects_state()
-        credentials = verify_owned(objects, flows, outpost, expected_scopes, human_users)
+            if state != "existing":
+                fail("newly created named objects could not be resolved uniquely")
+            credentials = verify_owned(objects, flows, outpost, expected_scopes, human_users)
+        elif EXPECTED_STATE == "existing":
+            if state != "existing":
+                fail("named object state changed after preflight")
+            credentials = verify_owned(objects, flows, outpost, expected_scopes, human_users)
+        else:
+            if state != "existing":
+                fail("named object state changed after preflight")
+            # Revalidate the complete old contract while holding the same
+            # transaction-scoped advisory lock used for the write. No drift is
+            # adopted: the blank regex is the only permitted legacy value.
+            verify_owned(
+                objects,
+                flows,
+                outpost,
+                expected_scopes,
+                human_users,
+                expected_skip_path_regex="",
+            )
+            provider = objects["provider"]
+            provider.skip_path_regex = API_SKIP_PATH_REGEX
+            provider.save(update_fields=["skip_path_regex"])
+            state, objects = named_objects_state()
+            if state != "existing":
+                fail("named object state changed during the legacy migration")
+            credentials = verify_owned(objects, flows, outpost, expected_scopes, human_users)
     print("LUNARA_GATEWAY_JSON=" + json.dumps(credentials, separators=(",", ":")))
 PYTHON
 }
@@ -507,13 +563,16 @@ if ! preflight_output="$(run_authentik_model_check check none)"; then
 fi
 preflight_state="$(sed -n 's/^LUNARA_AUTHENTIK_PREFLIGHT=//p' <<< "${preflight_output}" | tail -n 1)"
 unset preflight_output
-if [[ "${preflight_state}" != "create" && "${preflight_state}" != "existing" ]]; then
+if [[ "${preflight_state}" != "create" && "${preflight_state}" != "existing" &&
+      "${preflight_state}" != "legacy" ]]; then
   echo "Authentik-Preflight lieferte keinen eindeutigen Zustand; keine Änderung vorgenommen." >&2
   exit 1
 fi
 if [[ "${check_only}" == "true" ]]; then
   if [[ "${preflight_state}" == "create" ]]; then
     echo "Authentik-Prüfung erfolgreich: alle Lunara-Namen sind frei; eine Neuanlage wäre zulässig."
+  elif [[ "${preflight_state}" == "legacy" ]]; then
+    echo "Authentik-Prüfung erfolgreich: exakter Lunara-v1.0.2-Altstand erkannt; Migration der API-Pfadfreigabe ausstehend (keine Änderung vorgenommen)."
   else
     echo "Authentik-Prüfung erfolgreich: alle vorhandenen Lunara-Objekte, Marker und Sicherheitswerte stimmen exakt."
   fi
@@ -566,7 +625,7 @@ for output_file in "${credentials_file}" "${gateway_a_file}" "${gateway_b_file}"
 done
 
 backup_path=""
-if [[ "${preflight_state}" == "create" ]]; then
+if [[ "${preflight_state}" == "create" || "${preflight_state}" == "legacy" ]]; then
   timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
   backup_path="$(mktemp --tmpdir="${backup_dir}" "authentik-before-lunara-${timestamp}.XXXXXX.dump")"
   if ! docker exec "${authentik_db_container}" sh -ceu \
@@ -613,11 +672,15 @@ trap on_postapply_error ERR
 temporary_log="${work_dir}/authentik-config.log"
 if ! apply_output="$(run_authentik_model_check apply "${preflight_state}" 2> "${temporary_log}")"; then
   install -m 0600 -- "${temporary_log}" "${config_log}"
-  echo "Authentik-Konfiguration fehlgeschlagen; Details stehen in ${config_log}." >&2
-  print_authentik_rollback 2
+  echo "Authentik-Konfiguration fehlgeschlagen; ein erfolgreicher Commit konnte nicht bestätigt werden. Details stehen in ${config_log}." >&2
+  if [[ -n "${backup_path}" ]]; then
+    echo "Modell- und Validierungsfehler werden transaktional zurückgerollt. Vor einer vollständigen Wiederherstellung zuerst den Authentik-Zustand prüfen." >&2
+    echo "Das vor der Änderung validierte Backup bleibt erhalten: ${backup_path}" >&2
+    print_authentik_rollback 2
+  fi
   exit 1
 fi
-if [[ "${preflight_state}" == "create" ]]; then
+if [[ "${preflight_state}" == "create" || "${preflight_state}" == "legacy" ]]; then
   configuration_committed=true
 fi
 gateway_json="$(sed -n 's/^LUNARA_GATEWAY_JSON=//p' <<< "${apply_output}" | tail -n 1)"
@@ -652,6 +715,10 @@ trap - ERR
 
 if [[ "${preflight_state}" == "create" ]]; then
   echo "Authentik-Lunara-Objekte wurden neu und eigentumsmarkiert eingerichtet."
+  echo "Konsistentes Backup vor der Änderung: ${backup_path}"
+  print_authentik_rollback 1
+elif [[ "${preflight_state}" == "legacy" ]]; then
+  echo "Der exakt erkannte Lunara-v1.0.2-Altstand wurde auf die API-Pfadfreigabe migriert."
   echo "Konsistentes Backup vor der Änderung: ${backup_path}"
   print_authentik_rollback 1
 else

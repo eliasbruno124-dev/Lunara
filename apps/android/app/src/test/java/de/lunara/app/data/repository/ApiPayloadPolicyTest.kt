@@ -1,18 +1,53 @@
 package de.lunara.app.data.repository
 
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import de.lunara.app.data.remote.dto.CreateInvitationRequest
+import de.lunara.app.data.remote.dto.InvitationDto
+import de.lunara.app.data.remote.dto.RegisterRequest
+import de.lunara.app.data.remote.dto.SetupRequest
+import de.lunara.app.data.remote.dto.SyncMutationDto
+import de.lunara.app.data.remote.dto.SyncRequest
+import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ApiPayloadPolicyTest {
     @Test
-    fun `uses server invitation lifetime policy`() {
+    fun `requests a non-expiring one-time invitation explicitly`() {
         val payload = Gson().toJson(CreateInvitationRequest())
 
+        assertTrue(payload.contains("\"neverExpires\":true"))
         assertFalse(payload.contains("expiresInMinutes"))
+    }
+
+    @Test
+    fun `registration payload has no household or bootstrap field`() {
+        val payload = Gson().toJson(
+            RegisterRequest("tracker", "Tracker", "a-secure-password", "DE", "Phone"),
+        )
+
+        assertFalse(payload.contains("household", ignoreCase = true))
+        assertFalse(payload.contains("bootstrap", ignoreCase = true))
+    }
+
+    @Test
+    fun `legacy setup payload uses a fixed neutral internal name`() {
+        val payload = Gson().toJson(
+            SetupRequest("b".repeat(32), "tracker", "Tracker", "a-secure-password", "DE", "Phone"),
+        )
+
+        assertTrue(payload.contains("\"householdName\":\"Lunara\""))
+    }
+
+    @Test
+    fun `invitation accepts a missing expiry`() {
+        val invitation = InvitationDto("id", "ABCDEFGH2345", "PARTNER", expiresAt = null)
+
+        assertNull(invitation.expiresAt)
     }
 
     @Test
@@ -26,5 +61,55 @@ class ApiPayloadPolicyTest {
         assertEquals(30, symptoms.size)
         assertEquals("cramps", symptoms.first())
         assertEquals(80, symptoms[1].length)
+    }
+
+    @Test
+    fun `daily log full record payload preserves explicit nulls`() {
+        val payload = DailyLogPayloadPolicy.serialize(
+            Gson(),
+            linkedMapOf(
+                "id" to "log-id",
+                "localDate" to "2026-08-13",
+                "flowLevel" to null,
+                "mood" to null,
+                "customSymptoms" to emptyList<String>(),
+                "version" to 2L,
+            ),
+        )
+
+        assertTrue(payload.contains("\"flowLevel\":null"))
+        assertTrue(payload.contains("\"mood\":null"))
+        assertTrue(payload.contains("\"customSymptoms\":[]"))
+        assertTrue(payload.contains("\"version\":2"))
+    }
+
+    @Test
+    fun `daily log explicit null survives the actual sync wire model`() {
+        val storedPayload = DailyLogPayloadPolicy.serialize(
+            Gson(),
+            linkedMapOf("id" to "log-id", "flowLevel" to null, "version" to 2L),
+        )
+        val request = SyncRequest(
+            cursor = "5",
+            mutations = listOf(
+                SyncMutationDto(
+                    clientMutationId = "mutation-id",
+                    entityType = "DAILY_LOG",
+                    operation = "UPSERT",
+                    payload = JsonParser.parseString(storedPayload).asJsonObject,
+                ),
+            ),
+        )
+
+        val wireJson = Gson().toJson(request)
+
+        assertTrue(wireJson.contains("\"flowLevel\":null"))
+    }
+
+    @Test
+    fun `default converter still omits nullable sharing fields`() {
+        val payload = Gson().toJson(UpdateSharingRequest(sharePrediction = false))
+
+        assertEquals("{\"sharePrediction\":false}", payload)
     }
 }

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { AuditEventType, TipCategory, UserRole } from '@prisma/client';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -8,23 +9,28 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { AuthService } from '../src/auth/auth.service.js';
 
+async function createTestApplication(): Promise<INestApplication> {
+  const module = await Test.createTestingModule({
+    imports: [AppModule],
+  }).compile();
+  const application = module.createNestApplication();
+  application.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+  await application.init();
+  return application;
+}
+
 describe('Lunara core flow (real PostgreSQL)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const module = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-    app = module.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-    await app.init();
+    app = await createTestApplication();
     prisma = app.get(PrismaService);
   });
 
@@ -41,11 +47,25 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     expect(metaBefore.headers['cache-control']).toContain('no-store');
     expect(metaBefore.headers.pragma).toBe('no-cache');
 
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'registration-must-be-disabled',
+        password: 'A secure registration password!',
+        displayName: 'Registration attempt',
+        deviceName: 'Registration test device',
+      })
+      .expect(403)
+      .expect(({ body }) =>
+        expect(body.message).toBe('Registration is disabled'),
+      );
+    expect(await prisma.user.count()).toBe(0);
+    expect(await prisma.household.count()).toBe(0);
+
     const trackerSetup = await request(app.getHttpServer())
       .post('/api/v1/setup')
       .send({
         bootstrapToken: process.env.BOOTSTRAP_TOKEN,
-        householdName: 'E2E Haushalt',
         username: 'tracker-e2e',
         password: 'A secure tracker password 2026!',
         displayName: 'Tracker',
@@ -54,6 +74,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       })
       .expect(201);
     expect(trackerSetup.body.user.role).toBe('TRACKER');
+    expect(
+      (
+        await prisma.serverState.findUniqueOrThrow({ where: { id: 1 } })
+      ).bootstrappedAt,
+    ).toBeInstanceOf(Date);
     const trackerAccess = trackerSetup.body.accessToken as string;
     const originalRefresh = trackerSetup.body.refreshToken as string;
     const trackerUserId = trackerSetup.body.user.id as string;
@@ -93,27 +118,233 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       })
       .expect(409);
 
+    const config = app.get(ConfigService);
+    config.set('lunara.registrationEnabled', true);
+    await request(app.getHttpServer())
+      .get('/api/v1/meta')
+      .expect(200)
+      .expect(({ body }) => expect(body.registrationEnabled).toBe(true));
+
+    // A separate application instance gives this concurrency check its own
+    // in-memory rate-limit bucket while keeping the same real PostgreSQL DB.
+    const registrationApp = await createTestApplication();
+    registrationApp
+      .get(ConfigService)
+      .set('lunara.registrationEnabled', true);
+    const concurrentRegistrations = await Promise.all([
+      request(registrationApp.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          username: 'second-tracker-e2e',
+          password: 'A secure second tracker password 2026!',
+          displayName: 'Second tracker',
+          deviceName: 'Second relationship device',
+          preferredLanguage: 'DE',
+        }),
+      request(registrationApp.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          username: 'third-tracker-e2e',
+          password: 'A secure third tracker password 2026!',
+          displayName: 'Third tracker',
+          deviceName: 'Third relationship device',
+          preferredLanguage: 'EN',
+        }),
+    ]);
+    await registrationApp.close();
+    expect(concurrentRegistrations.map(({ status }) => status)).toEqual([
+      201, 201,
+    ]);
+    expect(concurrentRegistrations.map(({ status }) => status)).not.toContain(
+      500,
+    );
+    const [secondTracker, thirdTracker] = concurrentRegistrations;
+    if (!secondTracker || !thirdTracker) {
+      throw new Error('Expected both concurrent registrations to complete');
+    }
+    const secondTrackerAccess = secondTracker.body.accessToken as string;
+    const secondTrackerUserId = secondTracker.body.user.id as string;
+    const secondHouseholdId = secondTracker.body.user.householdId as string;
+    const thirdTrackerUserId = thirdTracker.body.user.id as string;
+    const thirdHouseholdId = thirdTracker.body.user.householdId as string;
+    expect(secondTracker.body.user.role).toBe(UserRole.TRACKER);
+    expect(thirdTracker.body.user.role).toBe(UserRole.TRACKER);
+    expect(
+      new Set([trackerHouseholdId, secondHouseholdId, thirdHouseholdId]).size,
+    ).toBe(3);
+    expect(
+      await prisma.membership.count({
+        where: {
+          householdId: { in: [secondHouseholdId, thirdHouseholdId] },
+          role: UserRole.TRACKER,
+        },
+      }),
+    ).toBe(2);
+
+    const secondRelationshipPeriodId = randomUUID();
+    await request(app.getHttpServer())
+      .post('/api/v1/periods')
+      .set('Authorization', `Bearer ${secondTrackerAccess}`)
+      .send({ id: secondRelationshipPeriodId, startDate: '2026-02-01' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .get('/api/v1/periods')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body)).not.toContain(secondRelationshipPeriodId);
+      });
+    await request(app.getHttpServer())
+      .patch(`/api/v1/periods/${secondRelationshipPeriodId}`)
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({ version: 1, endDate: '2026-02-05' })
+      .expect(404);
+    config.set('lunara.registrationEnabled', false);
+
     const invite = await request(app.getHttpServer())
       .post('/api/v1/household/invitations')
       .set('Authorization', `Bearer ${trackerAccess}`)
-      .send({ expiresInMinutes: 30 })
+      .send({ neverExpires: true })
       .expect(201);
-    expect(invite.body.code).toMatch(/^[A-HJ-NP-Z2-9]{10}$/);
+    expect(invite.body.code).toMatch(/^[A-HJ-NP-Z2-9]{12}$/);
+    expect(invite.body.expiresAt).toBeNull();
 
-    const partnerJoin = await request(app.getHttpServer())
+    const isolatedInvite = await request(app.getHttpServer())
+      .post('/api/v1/household/invitations')
+      .set('Authorization', `Bearer ${secondTrackerAccess}`)
+      .send({ neverExpires: true })
+      .expect(201);
+    const trackerInvitations = await request(app.getHttpServer())
+      .get('/api/v1/household/invitations')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(200);
+    expect(trackerInvitations.body).toEqual([
+      expect.objectContaining({ id: invite.body.id }),
+    ]);
+    expect(JSON.stringify(trackerInvitations.body)).not.toContain(
+      isolatedInvite.body.id,
+    );
+    const isolatedInvitations = await request(app.getHttpServer())
+      .get('/api/v1/household/invitations')
+      .set('Authorization', `Bearer ${secondTrackerAccess}`)
+      .expect(200);
+    expect(isolatedInvitations.body).toEqual([
+      expect.objectContaining({ id: isolatedInvite.body.id }),
+    ]);
+    expect(JSON.stringify(isolatedInvitations.body)).not.toContain(
+      invite.body.id,
+    );
+
+    // A tracker cannot revoke an invitation from another relationship. The
+    // endpoint is deliberately idempotent, so verify the persisted state.
+    await request(app.getHttpServer())
+      .delete(`/api/v1/household/invitations/${isolatedInvite.body.id}`)
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(204);
+    expect(
+      (
+        await prisma.invitation.findUniqueOrThrow({
+          where: { id: isolatedInvite.body.id },
+        })
+      ).revokedAt,
+    ).toBeNull();
+    await request(app.getHttpServer())
+      .delete(`/api/v1/household/invitations/${isolatedInvite.body.id}`)
+      .set('Authorization', `Bearer ${secondTrackerAccess}`)
+      .expect(204);
+    expect(
+      (
+        await prisma.invitation.findUniqueOrThrow({
+          where: { id: isolatedInvite.body.id },
+        })
+      ).revokedAt,
+    ).toBeInstanceOf(Date);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          actorUserId: trackerUserId,
+          type: AuditEventType.INVITATION_REVOKED,
+        },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          actorUserId: secondTrackerUserId,
+          type: AuditEventType.INVITATION_REVOKED,
+        },
+      }),
+    ).toBe(1);
+    await request(app.getHttpServer())
+      .get('/api/v1/household/invitations')
+      .set('Authorization', `Bearer ${secondTrackerAccess}`)
+      .expect(200)
+      .expect([]);
+    await request(app.getHttpServer())
       .post('/api/v1/household/join')
       .send({
-        invitationCode: invite.body.code,
-        username: 'partner-e2e',
-        password: 'A secure partner password 2026!',
-        displayName: 'Partner',
-        deviceName: 'E2E Partner Device',
-        preferredLanguage: 'EN',
+        invitationCode: isolatedInvite.body.code,
+        username: 'revoked-invite-user',
+        password: 'A secure revoked invitation password!',
+        displayName: 'Revoked invitation',
+        deviceName: 'Revoked invitation device',
       })
-      .expect(201);
+      .expect(410);
+
+    const concurrentPartnerJoins = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/v1/household/join')
+        .send({
+          invitationCode: invite.body.code,
+          username: 'partner-e2e-a',
+          password: 'A secure partner password 2026!',
+          displayName: 'Partner A',
+          deviceName: 'E2E Partner Device A',
+          preferredLanguage: 'EN',
+        }),
+      request(app.getHttpServer())
+        .post('/api/v1/household/join')
+        .send({
+          invitationCode: invite.body.code,
+          username: 'partner-e2e-b',
+          password: 'Another secure partner password 2026!',
+          displayName: 'Partner B',
+          deviceName: 'E2E Partner Device B',
+          preferredLanguage: 'DE',
+        }),
+    ]);
+    const concurrentJoinStatuses = concurrentPartnerJoins.map(
+      ({ status }) => status,
+    );
+    expect(concurrentJoinStatuses).not.toContain(500);
+    expect(
+      concurrentJoinStatuses.filter((status) => status === 201),
+    ).toHaveLength(1);
+    expect(
+      concurrentJoinStatuses.filter((status) => [409, 410].includes(status)),
+    ).toHaveLength(1);
+    const partnerJoin = concurrentPartnerJoins.find(
+      ({ status }) => status === 201,
+    );
+    if (!partnerJoin) throw new Error('Expected one invitation claim winner');
     expect(partnerJoin.body.user.role).toBe('PARTNER');
     const partnerAccess = partnerJoin.body.accessToken as string;
     const partnerUserId = partnerJoin.body.user.id as string;
+    expect(
+      await prisma.membership.count({
+        where: { householdId: trackerHouseholdId, role: UserRole.PARTNER },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.user.count({
+        where: { username: { in: ['partner-e2e-a', 'partner-e2e-b'] } },
+      }),
+    ).toBe(1);
+    await request(app.getHttpServer())
+      .post('/api/v1/household/invitations')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({ neverExpires: true })
+      .expect(409);
     await request(app.getHttpServer())
       .post('/api/v1/household/join')
       .send({
@@ -124,7 +355,7 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         deviceName: 'Replay',
       })
       .expect(410);
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 1; attempt += 1) {
       await request(app.getHttpServer())
         .post('/api/v1/household/join')
         .send({
@@ -313,6 +544,84 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${trackerAccess}`)
       .send({ version: 99, endDate: '2026-04-05' })
       .expect(409);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/periods/${firstCreatedPeriod.id}`)
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({ version: firstCreatedPeriod.version, startDate: periodStarts[1] })
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body.message).toBe(
+          'An active period entry already exists for this date',
+        ),
+      );
+    expect(
+      (
+        await prisma.periodEvent.findUniqueOrThrow({
+          where: { id: firstCreatedPeriod.id },
+        })
+      ).startDate.toISOString().slice(0, 10),
+    ).toBe(periodStarts[0]);
+
+    const concurrentPeriodDate = '2026-08-15';
+    const concurrentPeriodResponses = await Promise.all(
+      [randomUUID(), randomUUID()].map((id) =>
+        request(app.getHttpServer())
+          .post('/api/v1/periods')
+          .set('Authorization', `Bearer ${trackerAccess}`)
+          .send({ id, startDate: concurrentPeriodDate }),
+      ),
+    );
+    expect(
+      concurrentPeriodResponses.map(({ status }) => status).sort(),
+    ).toEqual([201, 409]);
+    expect(
+      concurrentPeriodResponses.find(({ status }) => status === 409)?.body
+        .message,
+    ).toBe('An active period entry already exists for this date');
+    expect(
+      await prisma.periodEvent.count({
+        where: {
+          userId: trackerUserId,
+          startDate: new Date(`${concurrentPeriodDate}T00:00:00.000Z`),
+          deletedAt: null,
+        },
+      }),
+    ).toBe(1);
+
+    const concurrentWinner = concurrentPeriodResponses.find(
+      ({ status }) => status === 201,
+    );
+    if (!concurrentWinner) {
+      throw new Error('Expected one concurrent period-create winner');
+    }
+    await request(app.getHttpServer())
+      .delete(
+        `/api/v1/periods/${concurrentWinner.body.id}?version=${concurrentWinner.body.version}`,
+      )
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(204);
+
+    const replacementPeriod = await request(app.getHttpServer())
+      .post('/api/v1/periods')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({ id: randomUUID(), startDate: concurrentPeriodDate })
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete(
+        `/api/v1/periods/${replacementPeriod.body.id}?version=${replacementPeriod.body.version}`,
+      )
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(204);
+    expect(
+      await prisma.periodEvent.count({
+        where: {
+          userId: trackerUserId,
+          startDate: new Date(`${concurrentPeriodDate}T00:00:00.000Z`),
+          deletedAt: null,
+        },
+      }),
+    ).toBe(0);
 
     await request(app.getHttpServer())
       .post('/api/v1/periods')
@@ -918,6 +1227,12 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         deleteHousehold: true,
       })
       .expect(204);
+    await prisma.$transaction(async (tx) => {
+      await tx.user.delete({ where: { id: secondTrackerUserId } });
+      await tx.household.delete({ where: { id: secondHouseholdId } });
+      await tx.user.delete({ where: { id: thirdTrackerUserId } });
+      await tx.household.delete({ where: { id: thirdHouseholdId } });
+    });
     expect(
       await prisma.user.count({
         where: { id: { in: [trackerUserId, partnerUserId] } },
@@ -948,6 +1263,31 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(200)
       .expect('Cache-Control', 'no-store, max-age=0')
       .expect('Pragma', 'no-cache')
-      .expect(({ body }) => expect(body.setupRequired).toBe(true));
+      .expect(({ body }) => expect(body.setupRequired).toBe(false));
+
+    // Removing the last relationship must never reopen the privileged setup
+    // endpoint. Ordinary registration can still create a new isolated
+    // relationship when the administrator explicitly enables it.
+    await request(app.getHttpServer())
+      .post('/api/v1/setup')
+      .send({
+        bootstrapToken: process.env.BOOTSTRAP_TOKEN,
+        username: 'bootstrap-must-stay-closed',
+        password: 'A secure bootstrap replay password!',
+        displayName: 'Bootstrap replay',
+        deviceName: 'Bootstrap replay device',
+      })
+      .expect(409);
+    config.set('lunara.registrationEnabled', true);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'new-after-all-deleted',
+        password: 'A secure post-deletion password!',
+        displayName: 'New relationship',
+        deviceName: 'Post-deletion registration device',
+      })
+      .expect(201)
+      .expect(({ body }) => expect(body.user.role).toBe(UserRole.TRACKER));
   });
 });

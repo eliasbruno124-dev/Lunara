@@ -14,6 +14,7 @@ import de.lunara.app.data.remote.dto.JoinRequest
 import de.lunara.app.data.remote.dto.LoginRequest
 import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.data.remote.dto.RefreshRequest
+import de.lunara.app.data.remote.dto.RegisterRequest
 import de.lunara.app.data.remote.dto.SetupRequest
 import de.lunara.app.data.sync.SyncScheduler
 import kotlinx.coroutines.flow.first
@@ -44,7 +45,7 @@ class ConnectionRepository @Inject constructor(
         val switchingServer = ServerChangePolicy.requiresConfirmation(oldBase, address.baseUrl)
         if (switchingServer && !confirmServerChange) throw ServerChangeConfirmationRequired()
 
-        // Anonymous Authentik redirects can leave a proxy cookie even when URL and credentials
+        // Anonymous proxy redirects can leave a cookie even when URL and credentials
         // have not changed. Every explicit connection test starts clean so "try again" can never
         // reuse a rejected gateway session. The personal header credentials are still attached
         // to every request and are stored separately only after this test succeeds.
@@ -78,7 +79,6 @@ class ConnectionRepository @Inject constructor(
 
     suspend fun setup(
         bootstrapToken: String,
-        householdName: String,
         username: String,
         displayName: String,
         password: String,
@@ -88,7 +88,24 @@ class ConnectionRepository @Inject constructor(
             endpoint(base, "api/v1/setup"),
             SetupRequest(
                 bootstrapToken = bootstrapToken.trim(),
-                householdName = householdName.trim(),
+                username = username.trim(),
+                displayName = displayName.trim(),
+                password = password,
+                preferredLanguage = language.uppercase(Locale.ROOT),
+                deviceName = deviceName(),
+            ),
+        ).requireBody()
+    }
+
+    suspend fun register(
+        username: String,
+        displayName: String,
+        password: String,
+        language: String,
+    ): AppSession = authenticate { base, api ->
+        api.registerTracker(
+            endpoint(base, "api/v1/auth/register"),
+            RegisterRequest(
                 username = username.trim(),
                 displayName = displayName.trim(),
                 password = password,

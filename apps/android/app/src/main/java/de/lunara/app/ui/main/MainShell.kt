@@ -26,6 +26,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.AlertDialog
@@ -69,7 +71,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -80,6 +84,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.gson.JsonParser
 import de.lunara.app.BuildConfig
 import de.lunara.app.R
 import de.lunara.app.core.model.AppSession
@@ -95,6 +100,7 @@ import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.repository.ApiPayloadPolicy
+import de.lunara.app.data.repository.SyncEditPolicy
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.StatusPill
@@ -120,7 +126,11 @@ fun MainShell(
     val selected = backStack?.destination?.route ?: MainDestination.TODAY.route
     val snackbar = remember { SnackbarHostState() }
     val periodSavedMessage = stringResource(R.string.period_saved_offline)
+    val periodUpdatedMessage = stringResource(R.string.period_updated_offline)
+    val periodDeletedMessage = stringResource(R.string.period_deleted_offline)
+    val periodChangeFailedMessage = stringResource(R.string.period_change_failed)
     val dailyLogSavedMessage = stringResource(R.string.daily_log_saved_offline)
+    val dailyLogFailedMessage = stringResource(R.string.daily_log_change_failed)
     val passwordChangedMessage = stringResource(R.string.password_change_success)
 
     LaunchedEffect(Unit) {
@@ -128,7 +138,11 @@ fun MainShell(
             snackbar.showSnackbar(
                 when (event) {
                     MainEvent.PeriodSaved -> periodSavedMessage
+                    MainEvent.PeriodUpdated -> periodUpdatedMessage
+                    MainEvent.PeriodDeleted -> periodDeletedMessage
+                    MainEvent.PeriodChangeFailed -> periodChangeFailedMessage
                     MainEvent.DailyLogSaved -> dailyLogSavedMessage
+                    MainEvent.DailyLogFailed -> dailyLogFailedMessage
                     MainEvent.PasswordChanged -> passwordChangedMessage
                 },
             )
@@ -175,8 +189,11 @@ fun MainShell(
                         dailyLogs = state.dailyLogs,
                         prediction = state.trackerPrediction,
                         pendingMutations = state.pendingMutations,
+                        conflictMutations = state.conflictMutations,
                         lastSyncAt = state.lastSyncAt,
                         onPeriodStarted = { viewModel.startPeriod(session.userId) },
+                        onPeriodUpdated = { id, date -> viewModel.updatePeriodStart(session.userId, id, date) },
+                        onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
                         onDailyLog = { draft ->
                             viewModel.logToday(
                                 session.userId,
@@ -189,6 +206,7 @@ fun MainShell(
                             )
                         },
                         onSync = viewModel::syncNow,
+                        onDiscardConflicts = viewModel::discardConflictsAndReload,
                     )
                 } else {
                     PartnerDashboard(
@@ -210,7 +228,14 @@ fun MainShell(
                     state.partnerDashboard?.periodDates.orEmpty(),
                 )
             }
-            composable(MainDestination.HISTORY.route) { HistoryScreen(state.periods, state.trackerPrediction) }
+            composable(MainDestination.HISTORY.route) {
+                HistoryScreen(
+                    periods = state.periods,
+                    prediction = state.trackerPrediction,
+                    onPeriodUpdated = { id, date -> viewModel.updatePeriodStart(session.userId, id, date) },
+                    onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
+                )
+            }
             composable(MainDestination.SUPPORT.route) {
                 SupportScreen(
                     state.partnerDashboard,
@@ -233,10 +258,13 @@ fun MainShell(
                     onSync = viewModel::syncNow,
                     sharing = state.sharing,
                     invitation = state.invitation,
+                    partnerConnected = state.partnerConnected,
                     settingsBusy = state.settingsBusy,
                     settingsError = state.settingsError,
                     passwordChangeStatus = state.passwordChangeStatus,
                     onCreateInvitation = viewModel::createInvitation,
+                    onRefreshInvitation = viewModel::refreshInvitation,
+                    onRevokeInvitation = viewModel::revokeInvitation,
                     onUpdateSharing = viewModel::updateSharing,
                     onChangePassword = viewModel::changePassword,
                     onClearPasswordChangeStatus = viewModel::clearPasswordChangeStatus,
@@ -270,13 +298,22 @@ fun TrackerDashboard(
     dailyLogs: List<DailyLogEntity>,
     prediction: PredictionDto?,
     pendingMutations: Int,
+    conflictMutations: Int,
     lastSyncAt: String?,
     onPeriodStarted: () -> Unit,
+    onPeriodUpdated: (String, LocalDate) -> Unit,
+    onPeriodDeleted: (String) -> Unit,
     onDailyLog: (TodayLogDraft) -> Unit,
     onSync: () -> Unit,
+    onDiscardConflicts: () -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
     var showTodayLog by remember { mutableStateOf(false) }
+    var showDiscardConflicts by remember { mutableStateOf(false) }
+    val today = LocalDate.now().toString()
+    val todayLog = dailyLogs.firstOrNull { it.localDate == today }
+    val periodStartResolving = periods.any { it.startDate == today && it.syncState == "RESOLVING" }
+    val dailyLogResolving = dailyLogs.any { it.localDate == today && it.syncState == "RESOLVING" }
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -314,6 +351,7 @@ fun TrackerDashboard(
                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     onPeriodStarted()
                 },
+                enabled = !periodStartResolving,
                 modifier = Modifier.fillMaxWidth().height(60.dp).semantics { role = Role.Button }.testTag("period-start"),
             ) {
                 Icon(Icons.Rounded.AddCircle, contentDescription = null)
@@ -323,6 +361,7 @@ fun TrackerDashboard(
         item {
             OutlinedButton(
                 onClick = { showTodayLog = true },
+                enabled = !dailyLogResolving,
                 modifier = Modifier.fillMaxWidth().height(56.dp).testTag("today-log"),
             ) {
                 Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
@@ -336,28 +375,58 @@ fun TrackerDashboard(
             InsightCard(
                 Icons.Rounded.Refresh,
                 stringResource(R.string.sync_status),
-                syncDescription(pendingMutations, lastSyncAt),
+                syncDescription(pendingMutations, conflictMutations, lastSyncAt),
                 action = {
-                    TextButton(onClick = onSync) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = null)
-                        Text(stringResource(R.string.sync_now), Modifier.padding(start = 6.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        TextButton(onClick = onSync) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null)
+                            Text(stringResource(R.string.sync_now), Modifier.padding(start = 6.dp))
+                        }
+                        if (conflictMutations > 0) {
+                            TextButton(onClick = { showDiscardConflicts = true }) {
+                                Text(stringResource(R.string.resolve_sync_conflicts))
+                            }
+                        }
                     }
                 },
             )
         }
         if (periods.isNotEmpty()) {
             item { Text(stringResource(R.string.history), style = MaterialTheme.typography.titleLarge) }
-            items(periods.take(3), key = { it.id }) { period -> PeriodRow(period) }
+            items(periods.take(3), key = { it.id }) { period ->
+                EditablePeriodRow(period, onPeriodUpdated, onPeriodDeleted)
+            }
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
     if (showTodayLog) {
         TodayLogDialog(
+            initial = todayLog.toTodayLogDraft(),
             onDismiss = { showTodayLog = false },
             onSave = { draft ->
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                 onDailyLog(draft)
                 showTodayLog = false
+            },
+        )
+    }
+    if (showDiscardConflicts) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConflicts = false },
+            title = { Text(stringResource(R.string.resolve_sync_conflicts)) },
+            text = { Text(stringResource(R.string.resolve_sync_conflicts_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDiscardConflicts()
+                        showDiscardConflicts = false
+                    },
+                ) { Text(stringResource(R.string.use_server_version)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConflicts = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }
@@ -374,13 +443,17 @@ data class TodayLogDraft(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Unit) {
-    var flow by remember { mutableStateOf<String?>(null) }
-    var pain by remember { mutableStateOf(0f) }
-    var energy by remember { mutableStateOf(5f) }
-    var sleep by remember { mutableStateOf(5f) }
-    var mood by remember { mutableStateOf("") }
-    var symptoms by remember { mutableStateOf("") }
+private fun TodayLogDialog(
+    initial: TodayLogDraft,
+    onDismiss: () -> Unit,
+    onSave: (TodayLogDraft) -> Unit,
+) {
+    var flow by remember { mutableStateOf(initial.flowLevel) }
+    var pain by remember { mutableStateOf(initial.painLevel?.toFloat()) }
+    var energy by remember { mutableStateOf(initial.energy?.toFloat()) }
+    var sleep by remember { mutableStateOf(initial.sleepQuality?.toFloat()) }
+    var mood by remember { mutableStateOf(initial.mood.orEmpty()) }
+    var symptoms by remember { mutableStateOf(initial.symptoms.joinToString(", ")) }
     val flowOptions = listOf(
         "SPOTTING" to stringResource(R.string.flow_spotting),
         "LIGHT" to stringResource(R.string.flow_light),
@@ -405,9 +478,9 @@ private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Uni
                         )
                     }
                 }
-                MetricSlider(stringResource(R.string.pain_level), pain) { pain = it }
-                MetricSlider(stringResource(R.string.energy_level), energy) { energy = it }
-                MetricSlider(stringResource(R.string.sleep_quality), sleep) { sleep = it }
+                OptionalMetricSlider(stringResource(R.string.pain_level), pain, 0f) { pain = it }
+                OptionalMetricSlider(stringResource(R.string.energy_level), energy, 5f) { energy = it }
+                OptionalMetricSlider(stringResource(R.string.sleep_quality), sleep, 5f) { sleep = it }
                 OutlinedTextField(
                     value = mood,
                     onValueChange = { mood = it.take(ApiPayloadPolicy.MAX_MOOD_LENGTH) },
@@ -431,10 +504,10 @@ private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Uni
                     onSave(
                         TodayLogDraft(
                             flowLevel = flow,
-                            painLevel = pain.toInt(),
+                            painLevel = pain?.toInt(),
                             mood = mood.trim().ifBlank { null },
-                            energy = energy.toInt(),
-                            sleepQuality = sleep.toInt(),
+                            energy = energy?.toInt(),
+                            sleepQuality = sleep?.toInt(),
                             symptoms = ApiPayloadPolicy.sanitizeSymptoms(symptoms.split(',')),
                         ),
                     )
@@ -446,17 +519,53 @@ private fun TodayLogDialog(onDismiss: () -> Unit, onSave: (TodayLogDraft) -> Uni
 }
 
 @Composable
-private fun MetricSlider(label: String, value: Float, onValueChange: (Float) -> Unit) {
+private fun OptionalMetricSlider(
+    label: String,
+    value: Float?,
+    suggestedValue: Float,
+    onValueChange: (Float?) -> Unit,
+) {
     Column {
-        Text(stringResource(R.string.metric_value, label, value.toInt()), fontWeight = FontWeight.SemiBold)
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = 0f..10f,
-            steps = 9,
-            modifier = Modifier.semantics { contentDescription = label },
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                value?.let { stringResource(R.string.metric_value, label, it.toInt()) } ?: label,
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(onClick = { onValueChange(if (value == null) suggestedValue else null) }) {
+                Text(stringResource(if (value == null) R.string.add_metric else R.string.remove_metric))
+            }
+        }
+        value?.let { selected ->
+            Slider(
+                value = selected,
+                onValueChange = { onValueChange(it) },
+                valueRange = 0f..10f,
+                steps = 9,
+                modifier = Modifier.semantics { contentDescription = label },
+            )
+        }
     }
+}
+
+internal fun DailyLogEntity?.toTodayLogDraft(): TodayLogDraft {
+    if (this == null) return TodayLogDraft(null, null, null, null, null, emptyList())
+    val symptoms = runCatching {
+        JsonParser.parseString(symptomsJson).asJsonArray.mapNotNull { value ->
+            value.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
+        }
+    }.getOrDefault(emptyList())
+    return TodayLogDraft(
+        flowLevel = flowLevel,
+        painLevel = painLevel,
+        mood = mood,
+        energy = energy,
+        sleepQuality = sleepQuality,
+        symptoms = symptoms,
+    )
 }
 
 @Composable
@@ -470,7 +579,16 @@ private fun DailyLogRow(log: DailyLogEntity) {
         Icons.AutoMirrored.Rounded.List,
         stringResource(R.string.daily_log_date, formatDate(log.localDate)),
         details,
-        action = { StatusPill(if (log.syncState == "SYNCED") stringResource(R.string.synced) else stringResource(R.string.pending)) },
+        action = {
+            StatusPill(
+                when (log.syncState) {
+                    "SYNCED" -> stringResource(R.string.synced)
+                    "CONFLICT" -> stringResource(R.string.sync_conflict)
+                    "RESOLVING" -> stringResource(R.string.sync_resolving)
+                    else -> stringResource(R.string.pending)
+                },
+            )
+        },
     )
 }
 
@@ -647,7 +765,12 @@ private fun DayCell(date: LocalDate, actual: Boolean, predicted: Boolean, modifi
 }
 
 @Composable
-private fun HistoryScreen(periods: List<PeriodEntity>, prediction: PredictionDto?) {
+private fun HistoryScreen(
+    periods: List<PeriodEntity>,
+    prediction: PredictionDto?,
+    onPeriodUpdated: (String, LocalDate) -> Unit,
+    onPeriodDeleted: (String) -> Unit,
+) {
     val starts = periods.mapNotNull { runCatching { LocalDate.parse(it.startDate) }.getOrNull() }.distinct().sorted()
     val lengths = starts.zipWithNext { first, second -> java.time.temporal.ChronoUnit.DAYS.between(first, second).toInt() }
     val average = lengths.takeIf { it.isNotEmpty() }?.average()?.toInt()
@@ -683,7 +806,9 @@ private fun HistoryScreen(periods: List<PeriodEntity>, prediction: PredictionDto
                 )
             }
         }
-        items(periods, key = { it.id }) { PeriodRow(it) }
+        items(periods, key = { it.id }) { period ->
+            EditablePeriodRow(period, onPeriodUpdated, onPeriodDeleted)
+        }
     }
 }
 
@@ -736,16 +861,120 @@ private fun SupportScreen(
 }
 
 @Composable
-private fun PeriodRow(period: PeriodEntity) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+private fun EditablePeriodRow(
+    period: PeriodEntity,
+    onUpdate: (String, LocalDate) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    var showEditor by remember(period.id) { mutableStateOf(false) }
+    val editable = !SyncEditPolicy.isBlocked(period.syncState)
+    Card(
+        onClick = { showEditor = true },
+        enabled = editable,
+        modifier = Modifier.testTag("period-manage-${period.id}"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Text(formatDate(period.startDate), fontWeight = FontWeight.SemiBold)
-                Text(period.syncState.lowercase().replaceFirstChar(Char::uppercase), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    when (period.syncState) {
+                        "SYNCED" -> stringResource(R.string.synced)
+                        "CONFLICT" -> stringResource(R.string.sync_conflict)
+                        "RESOLVING" -> stringResource(R.string.sync_resolving)
+                        else -> stringResource(R.string.pending)
+                    },
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+            Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.edit_period_start))
         }
     }
+    if (showEditor) {
+        PeriodEditorDialog(
+            period = period,
+            onUpdate = { date ->
+                onUpdate(period.id, date)
+                showEditor = false
+            },
+            onDelete = {
+                onDelete(period.id)
+                showEditor = false
+            },
+            onDismiss = { showEditor = false },
+        )
+    }
+}
+
+@Composable
+internal fun PeriodEditorDialog(
+    period: PeriodEntity,
+    onUpdate: (LocalDate) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var rawDate by remember(period.id, period.startDate) { mutableStateOf(period.startDate) }
+    var confirmDelete by remember(period.id) { mutableStateOf(false) }
+    val parsedDate = remember(rawDate) { PeriodEditValidation.parseAllowedStartDate(rawDate) }
+    val invalid = rawDate.isNotBlank() && parsedDate == null
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_period_start)) },
+            text = { Text(stringResource(R.string.delete_period_confirmation, formatDate(period.startDate))) },
+            confirmButton = {
+                TextButton(onClick = onDelete, modifier = Modifier.testTag("period-delete-confirm")) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                    Text(stringResource(R.string.delete), Modifier.padding(start = 6.dp))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.edit_period_start)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.period_date_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = rawDate,
+                    onValueChange = { rawDate = PeriodEditValidation.sanitizeDateInput(it) },
+                    label = { Text(stringResource(R.string.period_start_date)) },
+                    placeholder = { Text("2026-08-13") },
+                    supportingText = {
+                        if (invalid) Text(stringResource(R.string.period_date_invalid))
+                        else Text(stringResource(R.string.period_date_format))
+                    },
+                    isError = invalid,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth().testTag("period-date-input"),
+                )
+                TextButton(
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier.align(Alignment.End).testTag("period-delete"),
+                ) {
+                    Icon(Icons.Rounded.Delete, contentDescription = null)
+                    Text(stringResource(R.string.delete_period_start), Modifier.padding(start = 6.dp))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { parsedDate?.let(onUpdate) },
+                enabled = parsedDate != null && parsedDate.toString() != period.startDate,
+                modifier = Modifier.testTag("period-update-confirm"),
+            ) { Text(stringResource(R.string.save)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable
@@ -758,10 +987,13 @@ private fun SettingsScreen(
     onSync: () -> Unit,
     sharing: SharingSettingsDto?,
     invitation: de.lunara.app.data.remote.dto.InvitationDto?,
+    partnerConnected: Boolean,
     settingsBusy: Boolean,
     settingsError: Boolean,
     passwordChangeStatus: PasswordChangeStatus,
     onCreateInvitation: () -> Unit,
+    onRefreshInvitation: () -> Unit,
+    onRevokeInvitation: () -> Unit,
     onUpdateSharing: (UpdateSharingRequest) -> Unit,
     onChangePassword: (String, String, String) -> Unit,
     onClearPasswordChangeStatus: () -> Unit,
@@ -769,6 +1001,9 @@ private fun SettingsScreen(
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(session.userId) {
+        if (session.role == UserRole.TRACKER) onRefreshInvitation()
+    }
     LaunchedEffect(passwordChangeStatus) {
         if (passwordChangeStatus == PasswordChangeStatus.SUCCESS) {
             showPasswordDialog = false
@@ -814,13 +1049,42 @@ private fun SettingsScreen(
                     stringResource(R.string.partner_connect_summary),
                     action = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            invitation?.let {
-                                Text(stringResource(R.string.invitation_code_value, it.code), fontWeight = FontWeight.Bold)
-                                Text(stringResource(R.string.invitation_expiry, it.expiresAt.take(16).replace('T', ' ')))
-                                QrCode(it.code, stringResource(R.string.invitation_qr_description, it.code))
+                            if (partnerConnected) {
+                                Text(
+                                    stringResource(R.string.partner_connected),
+                                    fontWeight = FontWeight.Bold,
+                                )
                             }
-                            Button(onClick = onCreateInvitation, enabled = !settingsBusy && invitation == null) {
+                            invitation?.let {
+                                it.code?.let { code ->
+                                    SelectionContainer {
+                                        Text(stringResource(R.string.invitation_code_value, code), fontWeight = FontWeight.Bold)
+                                    }
+                                } ?: Text(stringResource(R.string.invitation_active_after_restart), fontWeight = FontWeight.Bold)
+                                Text(
+                                    it.expiresAt?.let { expiry ->
+                                        stringResource(R.string.invitation_expiry, expiry.take(16).replace('T', ' '))
+                                    } ?: stringResource(R.string.invitation_no_expiry),
+                                )
+                                it.code?.let { code ->
+                                    QrCode(code, stringResource(R.string.invitation_qr_description, code))
+                                }
+                                TextButton(
+                                    onClick = onRevokeInvitation,
+                                    enabled = !settingsBusy,
+                                    modifier = Modifier.align(Alignment.End),
+                                ) {
+                                    Text(stringResource(R.string.revoke_invitation))
+                                }
+                            }
+                            Button(
+                                onClick = onCreateInvitation,
+                                enabled = !settingsBusy && invitation == null && !partnerConnected,
+                            ) {
                                 Text(stringResource(R.string.create_invitation))
+                            }
+                            TextButton(onClick = onRefreshInvitation, enabled = !settingsBusy) {
+                                Text(stringResource(R.string.refresh_invitation))
                             }
                         }
                     },
@@ -1011,7 +1275,8 @@ private fun SettingSwitch(
 }
 
 @Composable
-private fun syncDescription(pending: Int, lastSync: String?): String = when {
+private fun syncDescription(pending: Int, conflicts: Int, lastSync: String?): String = when {
+    conflicts > 0 -> stringResource(R.string.sync_conflicts, conflicts)
     pending > 0 -> stringResource(R.string.sync_pending, pending)
     lastSync == null -> stringResource(R.string.last_sync_never)
     else -> stringResource(R.string.last_sync_value, lastSync.take(16).replace('T', ' '))
@@ -1043,10 +1308,14 @@ private fun TrackerPreview() = LunaraTheme {
         emptyList(),
         null,
         1,
+        0,
         null,
-        {},
-        {},
-        {},
+        onPeriodStarted = {},
+        onPeriodUpdated = { _, _ -> },
+        onPeriodDeleted = {},
+        onDailyLog = {},
+        onSync = {},
+        onDiscardConflicts = {},
     )
 }
 

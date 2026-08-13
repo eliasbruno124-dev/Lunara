@@ -100,6 +100,12 @@ enum CheckInStatus {
   DISMISSED
 }
 
+model ServerState {
+  id             Int       @id @default(1)
+  bootstrappedAt DateTime?
+  updatedAt      DateTime  @updatedAt
+}
+
 model User {
   id                String            @id @default(uuid()) @db.Uuid
   username          String            @unique @db.VarChar(64)
@@ -151,7 +157,7 @@ model Household {
 model Membership {
   id              String    @id @default(uuid()) @db.Uuid
   householdId     String    @db.Uuid
-  userId          String    @db.Uuid
+  userId          String    @unique @db.Uuid
   role            UserRole
   customRoleLabel String?   @db.VarChar(80)
   permissions     Json      @default("{}")
@@ -163,7 +169,6 @@ model Membership {
 
   @@unique([householdId, userId])
   @@unique([householdId, role])
-  @@index([userId])
 }
 
 model DeviceSession {
@@ -216,6 +221,8 @@ model PeriodEvent {
   user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, id])
+  // A partial unique index in migration 20260813160000 ensures one active
+  // event per user/startDate while allowing the date after a soft delete.
   @@index([userId, startDate])
   @@index([userId, updatedAt])
 }
@@ -363,7 +370,7 @@ model Invitation {
   householdId       String     @db.Uuid
   tokenHash          String     @unique @db.Char(64)
   assignedRole       UserRole
-  expiresAt          DateTime
+  expiresAt          DateTime?
   usedAt             DateTime?
   revokedAt          DateTime?
   createdByUserId    String     @db.Uuid
