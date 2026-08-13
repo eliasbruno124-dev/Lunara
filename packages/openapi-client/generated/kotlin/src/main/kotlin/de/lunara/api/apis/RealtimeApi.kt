@@ -10,8 +10,8 @@ import com.squareup.moshi.Json
 interface RealtimeApi {
     /**
      * GET api/v1/events
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *

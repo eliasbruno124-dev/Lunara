@@ -28,15 +28,15 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param createdAt 
- * @param current 
- * @param deviceName 
- * @param expiresAt 
- * @param id 
- * @param lastUsedAt 
- * @param revokedAt 
+ *
+ * @param createdAt
+ * @param current
+ * @param deviceName
+ * @param expiresAt
+ * @param id
+ * @param lastUsedAt
+ * @param revokedAt
  */
 
 
@@ -67,4 +67,3 @@ data class SessionResponse (
 
 
 }
-

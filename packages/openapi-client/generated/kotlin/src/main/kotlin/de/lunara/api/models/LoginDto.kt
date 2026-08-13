@@ -28,11 +28,11 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param deviceName 
- * @param password 
- * @param username 
+ *
+ * @param deviceName
+ * @param password
+ * @param username
  */
 
 
@@ -51,4 +51,3 @@ data class LoginDto (
 
 
 }
-

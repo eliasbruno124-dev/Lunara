@@ -4,6 +4,7 @@ import de.lunara.app.core.network.GatewayCredentials
 import de.lunara.app.core.security.SecureCookieJar
 import okhttp3.Authenticator
 import okhttp3.Credentials
+import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -110,14 +111,17 @@ private class AppTokenInterceptor(
 class ApiClientFactory @Inject constructor(
     private val cookieJar: SecureCookieJar,
 ) {
+    private val dispatcher = Dispatcher()
+
     fun create(baseUrl: String, gateway: GatewayCredentials?, accessToken: String?): LunaraApi {
         val gatewayOrigin = GatewayOrigin.fromBaseUrl(baseUrl)
         val client = OkHttpClient.Builder()
+            .dispatcher(dispatcher)
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)
-            .cookieJar(cookieJar)
+            .cookieJar(cookieJar.scoped())
             .authenticator(GatewayAuthenticator(gateway, gatewayOrigin))
             .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, gatewayOrigin))
             .addInterceptor(AppTokenInterceptor(accessToken, gateway != null))
@@ -133,5 +137,9 @@ class ApiClientFactory @Inject constructor(
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(LunaraApi::class.java)
+    }
+
+    fun cancelAll() {
+        dispatcher.cancelAll()
     }
 }

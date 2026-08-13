@@ -24,7 +24,17 @@ import de.lunara.app.data.repository.SessionSecrets
 import de.lunara.app.data.repository.endpoint
 import de.lunara.app.data.repository.requireBody
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
+
+/** A single gate shared by every one-shot and periodic worker in this app process. */
+internal object ProcessSyncGate {
+    private val mutex = Mutex()
+
+    suspend fun <T> serialized(block: suspend () -> T): T = mutex.withLock { block() }
+}
 
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
@@ -37,12 +47,29 @@ class SyncWorker @AssistedInject constructor(
     private val connectionRepository: ConnectionRepository,
     private val gson: Gson,
 ) : CoroutineWorker(context, params) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = ProcessSyncGate.serialized {
+        runCatching { doSerializedWork() }.getOrElse { throwable ->
+            if (throwable is CancellationException) throw throwable
+            if (runAttemptCount >= MutationQueuePolicy.MAX_ATTEMPTS) Result.failure() else Result.retry()
+        }
+    }
+
+    private suspend fun doSerializedWork(): Result {
+        val state = preferences.state.first()
+        val base = state.baseUrl ?: return Result.success()
+        // Never issue /sync without a Lunara access token. A refresh token may restore the
+        // authenticated session first; without either credential there is nothing safe to send.
+        when (SyncAuthenticationPolicy.decide(state.session != null, secrets.accessToken, secrets.refreshToken)) {
+            SyncAuthenticationAction.SKIP -> return Result.success()
+            SyncAuthenticationAction.REFRESH -> if (!connectionRepository.refresh()) {
+                return if (runAttemptCount >= MutationQueuePolicy.MAX_ATTEMPTS) Result.failure() else Result.retry()
+            }
+            SyncAuthenticationAction.SYNC -> Unit
+        }
+
         database.mutationDao().releaseInterrupted()
         val now = Instant.now()
         val pending = MutationQueuePolicy.stableOrder(database.mutationDao().ready(now.toString()))
-        val state = preferences.state.first()
-        val base = state.baseUrl ?: return Result.success()
         val ids = pending.map { it.id }
         if (ids.isNotEmpty()) database.mutationDao().claim(ids)
 
@@ -61,7 +88,7 @@ class SyncWorker @AssistedInject constructor(
                 },
             )
 
-            val body = if (pending.isNotEmpty()) {
+            var body = if (pending.isNotEmpty()) {
                 var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                     .sync(endpoint(base, "api/v1/sync"), request)
                 if (response.code() == 401 && connectionRepository.refresh()) {
@@ -84,31 +111,65 @@ class SyncWorker @AssistedInject constructor(
                     partnerDashboard = pull.partnerDashboard,
                 )
             }
-            val acknowledged = body.results.map { it.clientMutationId }
-            val completedAt = Instant.now().toString()
-            database.withTransaction {
-                database.mutationDao().acknowledge(acknowledged)
-                body.results.forEach { result ->
-                    val local = pending.firstOrNull { it.clientMutationId == result.clientMutationId }
-                    val version = (result.entity?.get("version") as? Number)?.toLong() ?: 1L
-                    if (local?.entityType == "PERIOD") {
-                        database.periodDao().markSynced(local.entityId, "SYNCED", version)
-                    } else if (local?.entityType == "DAILY_LOG") {
-                        database.dailyLogDao().markSynced(local.entityId, "SYNCED", version)
+            var pagePending = pending
+            var previousCursor = storedCursor
+            var pageCount = 1
+            while (true) {
+                val acknowledged = body.results.map { it.clientMutationId }
+                val completedAt = Instant.now().toString()
+                val cachedTip = database.partnerDashboardDao().current()?.let { cached ->
+                    runCatching {
+                        gson.fromJson(
+                            cached.payloadJson,
+                            de.lunara.app.data.remote.dto.PartnerDashboardDto::class.java,
+                        ).tip
+                    }.getOrNull()
+                }
+                database.withTransaction {
+                    database.mutationDao().acknowledge(acknowledged)
+                    body.results.forEach { result ->
+                        val local = pagePending.firstOrNull { it.clientMutationId == result.clientMutationId }
+                        val version = (result.entity?.get("version") as? Number)?.toLong() ?: 1L
+                        if (local?.entityType == "PERIOD") {
+                            database.periodDao().markSynced(local.entityId, "SYNCED", version)
+                        } else if (local?.entityType == "DAILY_LOG") {
+                            database.dailyLogDao().markSynced(local.entityId, "SYNCED", version)
+                        }
                     }
+                    applyChanges(body.changes, state.session?.userId.orEmpty())
+                    body.partnerDashboard?.let {
+                        database.partnerDashboardDao().save(
+                            PartnerDashboardEntity(
+                                payloadJson = gson.toJson(it.copy(tip = it.tip ?: cachedTip)),
+                                updatedAt = completedAt,
+                            ),
+                        )
+                    }
+                    database.syncMetadataDao().save(SyncMetadataEntity(cursor = body.cursor, lastSuccessAt = completedAt))
                 }
-                applyChanges(body.changes, state.session?.userId.orEmpty())
-                body.partnerDashboard?.let {
-                    database.partnerDashboardDao().save(
-                        PartnerDashboardEntity(payloadJson = gson.toJson(it), updatedAt = completedAt),
-                    )
+                preferences.setLastSync(completedAt)
+                if (!body.hasMore) break
+                check(body.cursor != previousCursor) { "Sync cursor did not advance" }
+                previousCursor = body.cursor
+                pagePending = emptyList()
+                check(pageCount < MAX_PAGES_PER_RUN) { "Sync page limit exceeded" }
+                pageCount += 1
+
+                var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                    .pullSync(endpoint(base, "api/v1/sync"), body.cursor)
+                if (response.code() == 401 && connectionRepository.refresh()) {
+                    response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                        .pullSync(endpoint(base, "api/v1/sync"), body.cursor)
                 }
-                database.syncMetadataDao().save(SyncMetadataEntity(cursor = body.cursor, lastSuccessAt = completedAt))
+                val pull = response.requireBody()
+                body = de.lunara.app.data.remote.dto.SyncResponseDto(
+                    cursor = pull.cursor,
+                    hasMore = pull.hasMore,
+                    changes = pull.changes,
+                    partnerDashboard = pull.partnerDashboard,
+                )
             }
-            preferences.setLastSync(completedAt)
-            if (body.hasMore && runAttemptCount < MutationQueuePolicy.MAX_ATTEMPTS) Result.retry()
-            else if (body.hasMore) Result.failure()
-            else Result.success()
+            Result.success()
         }.getOrElse { throwable ->
             if (throwable is ApiException && throwable.status == 409 && pending.isNotEmpty()) {
                 database.mutationDao().markConflicted(pending.map { it.clientMutationId })
@@ -116,8 +177,13 @@ class SyncWorker @AssistedInject constructor(
             }
             val attempt = pending.maxOfOrNull { it.attemptCount } ?: runAttemptCount
             val next = now.plusMillis(MutationQueuePolicy.nextDelayMillis(attempt)).toString()
-            if (ids.isNotEmpty()) database.mutationDao().retry(ids, next, throwable.javaClass.simpleName.take(64))
-            if (attempt >= MutationQueuePolicy.MAX_ATTEMPTS) Result.failure() else Result.retry()
+            val errorCode = throwable.javaClass.simpleName.take(64)
+            val terminal = MutationQueuePolicy.isTerminalAfterNextFailure(attempt)
+            if (ids.isNotEmpty()) {
+                if (terminal) database.mutationDao().markFailed(ids, errorCode)
+                else database.mutationDao().retry(ids, next, errorCode)
+            }
+            if (terminal) Result.failure() else Result.retry()
         }
     }
 
@@ -206,4 +272,10 @@ class SyncWorker @AssistedInject constructor(
     private fun Map<String, Any?>.string(key: String): String? = this[key] as? String
     private fun Map<String, Any?>.long(key: String): Long? = (this[key] as? Number)?.toLong()
     private fun Map<String, Any?>.int(key: String): Int? = (this[key] as? Number)?.toInt()
+
+    private companion object {
+        // Each page contains at most 500 changes. The hard stop protects against
+        // a broken server cursor without treating normal pagination as a retry.
+        const val MAX_PAGES_PER_RUN = 100
+    }
 }

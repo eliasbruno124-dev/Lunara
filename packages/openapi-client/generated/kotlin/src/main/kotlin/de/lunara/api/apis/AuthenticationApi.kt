@@ -7,6 +7,7 @@ import okhttp3.RequestBody
 import com.squareup.moshi.Json
 
 import de.lunara.api.models.AuthResponse
+import de.lunara.api.models.ChangePasswordDto
 import de.lunara.api.models.LoginDto
 import de.lunara.api.models.LogoutDto
 import de.lunara.api.models.RefreshDto
@@ -15,13 +16,26 @@ import de.lunara.api.models.SetupDto
 
 interface AuthenticationApi {
     /**
+     * POST api/v1/auth/change-password
+     *
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param changePasswordDto
+     * @return [Unit]
+     */
+    @POST("api/v1/auth/change-password")
+    suspend fun authChangePassword(@Body changePasswordDto: ChangePasswordDto): Response<Unit>
+
+    /**
      * POST api/v1/auth/login
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param loginDto 
+     * @param loginDto
      * @return [AuthResponse]
      */
     @POST("api/v1/auth/login")
@@ -29,12 +43,12 @@ interface AuthenticationApi {
 
     /**
      * POST api/v1/auth/logout
-     * 
-     * 
-     * Responses:
-     *  - 204: 
      *
-     * @param logoutDto 
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param logoutDto
      * @return [Unit]
      */
     @POST("api/v1/auth/logout")
@@ -42,12 +56,12 @@ interface AuthenticationApi {
 
     /**
      * POST api/v1/auth/refresh
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param refreshDto 
+     * @param refreshDto
      * @return [AuthResponse]
      */
     @POST("api/v1/auth/refresh")
@@ -55,12 +69,12 @@ interface AuthenticationApi {
 
     /**
      * DELETE api/v1/auth/sessions/{id}
-     * 
-     * 
-     * Responses:
-     *  - 204: 
      *
-     * @param id 
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param id
      * @return [Unit]
      */
     @DELETE("api/v1/auth/sessions/{id}")
@@ -68,8 +82,8 @@ interface AuthenticationApi {
 
     /**
      * GET api/v1/auth/sessions
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -81,11 +95,11 @@ interface AuthenticationApi {
     /**
      * POST api/v1/setup
      * Create the first household and TRACKER account
-     * 
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param setupDto 
+     * @param setupDto
      * @return [AuthResponse]
      */
     @POST("api/v1/setup")

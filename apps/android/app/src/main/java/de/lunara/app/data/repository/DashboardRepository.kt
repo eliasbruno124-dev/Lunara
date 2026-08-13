@@ -10,6 +10,9 @@ import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.data.local.PartnerDashboardEntity
 import com.google.gson.Gson
 import java.time.Instant
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import de.lunara.app.data.sync.ProcessSyncGate
 
 @Singleton
 class DashboardRepository @Inject constructor(
@@ -20,7 +23,7 @@ class DashboardRepository @Inject constructor(
     private val database: LunaraDatabase,
     private val gson: Gson,
 ) {
-    suspend fun partnerDashboard(): PartnerDashboardDto {
+    suspend fun partnerDashboard(expectedUserId: String): PartnerDashboardDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
         var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
@@ -35,14 +38,27 @@ class DashboardRepository @Inject constructor(
             tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .todayTip(endpoint(base, "api/v1/tips/today"))
         }
-        return dashboard.copy(tip = tipResponse.body()?.tip).also {
-            database.partnerDashboardDao().save(PartnerDashboardEntity(payloadJson = gson.toJson(it), updatedAt = Instant.now().toString()))
+        val completeDashboard = dashboard.copy(tip = tipResponse.body()?.tip)
+        ProcessSyncGate.serialized {
+            if (preferences.state.first().session?.userId != expectedUserId) throw SessionChangedException()
+            database.partnerDashboardDao().save(
+                PartnerDashboardEntity(
+                    payloadJson = gson.toJson(completeDashboard),
+                    updatedAt = Instant.now().toString(),
+                ),
+            )
         }
+        return completeDashboard
     }
 
     suspend fun cachedPartnerDashboard(): PartnerDashboardDto? = database.partnerDashboardDao().current()?.let {
         runCatching { gson.fromJson(it.payloadJson, PartnerDashboardDto::class.java) }.getOrNull()
     }
+
+    fun observeCachedPartnerDashboard(): Flow<PartnerDashboardDto?> =
+        database.partnerDashboardDao().observeCurrent().map { cached ->
+            cached?.let { runCatching { gson.fromJson(it.payloadJson, PartnerDashboardDto::class.java) }.getOrNull() }
+        }
 
     suspend fun trackerPrediction(): de.lunara.app.data.remote.dto.PredictionDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)

@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param dismissed 
- * @param helpful 
+ *
+ * @param dismissed
+ * @param helpful
  */
 
 
@@ -47,4 +47,3 @@ data class TipFeedbackDto (
 
 
 }
-

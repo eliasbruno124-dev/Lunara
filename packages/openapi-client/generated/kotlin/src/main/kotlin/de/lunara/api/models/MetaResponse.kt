@@ -28,15 +28,15 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param apiVersion 
- * @param gatewayHeaderName 
- * @param name 
- * @param registrationEnabled 
- * @param serverTime 
- * @param setupRequired 
- * @param version 
+ *
+ * @param apiVersion
+ * @param gatewayHeaderName
+ * @param name
+ * @param registrationEnabled
+ * @param serverTime
+ * @param setupRequired
+ * @param version
  */
 
 
@@ -66,7 +66,7 @@ data class MetaResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: V1
      */
@@ -75,7 +75,7 @@ data class MetaResponse (
         @Json(name = "v1") V1("v1");
     }
     /**
-     * 
+     *
      *
      * Values: X_LUNARA_AUTHORIZATION
      */
@@ -85,4 +85,3 @@ data class MetaResponse (
     }
 
 }
-

@@ -11,7 +11,7 @@ interface HealthApi {
     /**
      * GET health
      * Liveness check
-     * 
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -23,7 +23,7 @@ interface HealthApi {
     /**
      * GET ready
      * Readiness check including PostgreSQL
-     * 
+     *
      * Responses:
      *  - 200: Successful response
      *

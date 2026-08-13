@@ -28,25 +28,25 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param allowSymptomBasedTips 
- * @param checkInsEnabled 
- * @param disabledTipCategories 
- * @param privateDate 
- * @param shareEnergy 
- * @param shareFertileWindow 
- * @param shareFlow 
- * @param shareMood 
- * @param shareNotes 
- * @param sharePain 
- * @param sharePeriodDates 
- * @param sharePhase 
- * @param sharePrediction 
- * @param shareSleep 
- * @param shareSymptoms 
- * @param sharingPaused 
- * @param tipsEnabled 
+ *
+ * @param allowSymptomBasedTips
+ * @param checkInsEnabled
+ * @param disabledTipCategories
+ * @param privateDate
+ * @param shareEnergy
+ * @param shareFertileWindow
+ * @param shareFlow
+ * @param shareMood
+ * @param shareNotes
+ * @param sharePain
+ * @param sharePeriodDates
+ * @param sharePhase
+ * @param sharePrediction
+ * @param shareSleep
+ * @param shareSymptoms
+ * @param sharingPaused
+ * @param tipsEnabled
  */
 
 
@@ -106,7 +106,7 @@ data class UpdateSharingDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: COMMUNICATION,PRACTICAL_HELP,COMFORT,SPACE,FOOD_AND_DRINK,EMOTIONAL_SUPPORT,PERIOD_DAYS,PREMENSTRUAL_ESTIMATE,GENERAL,USER_DEFINED
      */
@@ -125,4 +125,3 @@ data class UpdateSharingDto (
     }
 
 }
-

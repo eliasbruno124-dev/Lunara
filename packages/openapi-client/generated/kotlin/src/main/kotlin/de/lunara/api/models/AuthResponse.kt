@@ -29,14 +29,14 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param accessToken 
- * @param expiresInSeconds 
- * @param refreshToken 
- * @param sessionId 
- * @param tokenType 
- * @param user 
+ *
+ * @param accessToken
+ * @param expiresInSeconds
+ * @param refreshToken
+ * @param sessionId
+ * @param tokenType
+ * @param user
  */
 
 
@@ -63,7 +63,7 @@ data class AuthResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: BEARER
      */
@@ -73,4 +73,3 @@ data class AuthResponse (
     }
 
 }
-

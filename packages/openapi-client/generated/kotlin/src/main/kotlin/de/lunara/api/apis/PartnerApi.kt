@@ -11,8 +11,8 @@ import de.lunara.api.models.PartnerDashboardResponse
 interface PartnerApi {
     /**
      * GET api/v1/partner/dashboard
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *

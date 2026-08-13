@@ -78,6 +78,27 @@
         ],
         "type": "object"
       },
+      "ChangePasswordDto": {
+        "properties": {
+          "currentPassword": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "newPassword": {
+            "maxLength": 128,
+            "minLength": 12,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object"
+      },
       "CheckInResponse": {
         "properties": {
           "answeredAt": {
@@ -1662,7 +1683,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },
@@ -1694,6 +1715,35 @@
         ],
         "tags": [
           "data management"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "Auth_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "authentication"
         ]
       }
     },

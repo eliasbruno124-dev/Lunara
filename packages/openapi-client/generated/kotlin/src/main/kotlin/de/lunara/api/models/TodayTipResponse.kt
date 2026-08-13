@@ -29,10 +29,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param tip 
- * @param date 
+ *
+ * @param tip
+ * @param date
  */
 
 
@@ -48,4 +48,3 @@ data class TodayTipResponse (
 
 
 }
-

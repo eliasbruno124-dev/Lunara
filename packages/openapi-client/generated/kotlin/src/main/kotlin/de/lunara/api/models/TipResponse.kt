@@ -28,14 +28,14 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param applicablePhase 
- * @param body 
- * @param callToAction 
- * @param category 
- * @param id 
- * @param title 
+ *
+ * @param applicablePhase
+ * @param body
+ * @param callToAction
+ * @param category
+ * @param id
+ * @param title
  */
 
 
@@ -63,4 +63,3 @@ data class TipResponse (
 
 
 }
-

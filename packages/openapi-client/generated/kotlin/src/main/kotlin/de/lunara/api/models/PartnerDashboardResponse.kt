@@ -31,13 +31,13 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param sharingPaused 
- * @param periodDates 
- * @param phase 
- * @param prediction 
- * @param todayLog 
+ *
+ * @param sharingPaused
+ * @param periodDates
+ * @param phase
+ * @param prediction
+ * @param todayLog
  */
 
 
@@ -62,4 +62,3 @@ data class PartnerDashboardResponse (
 
 
 }
-

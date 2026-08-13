@@ -39,6 +39,7 @@ src/main/kotlin/de/lunara/api/infrastructure/URIAdapter.kt
 src/main/kotlin/de/lunara/api/infrastructure/UUIDAdapter.kt
 src/main/kotlin/de/lunara/api/models/AuthResponse.kt
 src/main/kotlin/de/lunara/api/models/AuthUserResponse.kt
+src/main/kotlin/de/lunara/api/models/ChangePasswordDto.kt
 src/main/kotlin/de/lunara/api/models/CheckInResponse.kt
 src/main/kotlin/de/lunara/api/models/CreateCheckInDto.kt
 src/main/kotlin/de/lunara/api/models/CreateCustomSymptomDto.kt

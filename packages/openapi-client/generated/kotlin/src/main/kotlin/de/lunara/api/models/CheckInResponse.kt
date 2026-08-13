@@ -28,18 +28,18 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param answeredAt 
- * @param createdAt 
- * @param expiresAt 
- * @param householdId 
- * @param id 
- * @param prompt 
- * @param recipientUserId 
- * @param response 
- * @param senderUserId 
- * @param status 
+ *
+ * @param answeredAt
+ * @param createdAt
+ * @param expiresAt
+ * @param householdId
+ * @param id
+ * @param prompt
+ * @param recipientUserId
+ * @param response
+ * @param senderUserId
+ * @param status
  */
 
 
@@ -78,7 +78,7 @@ data class CheckInResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: PENDING,ANSWERED,EXPIRED,DISMISSED
      */
@@ -91,4 +91,3 @@ data class CheckInResponse (
     }
 
 }
-

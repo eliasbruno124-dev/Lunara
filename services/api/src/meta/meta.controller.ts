@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Header } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator.js';
@@ -24,15 +24,20 @@ export class MetaController {
 
   @Public()
   @Get()
+  @Header('Cache-Control', 'no-store, max-age=0')
+  @Header('Pragma', 'no-cache')
   @ApiOperation({ summary: 'Server identity, compatibility and setup state' })
   async getMeta(): Promise<MetaResponse> {
     const users = await this.prisma.user.count();
     return {
       name: this.config.get<string>('lunara.appName', 'Lunara'),
-      version: this.config.get<string>('lunara.appVersion', '1.0.0'),
+      version: this.config.get<string>('lunara.appVersion', '1.0.2'),
       apiVersion: 'v1',
       setupRequired: users === 0,
-      registrationEnabled: this.config.get<boolean>('lunara.registrationEnabled', false),
+      registrationEnabled: this.config.get<boolean>(
+        'lunara.registrationEnabled',
+        false,
+      ),
       serverTime: new Date().toISOString(),
       gatewayHeaderName: 'X-Lunara-Authorization',
     };

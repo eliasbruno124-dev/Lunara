@@ -28,19 +28,19 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param applicablePhase 
- * @param applicableSymptoms 
- * @param bodyDe 
- * @param bodyEn 
- * @param callToActionDe 
- * @param callToActionEn 
- * @param enabled 
- * @param priority 
- * @param requiredSharedFields 
- * @param titleDe 
- * @param titleEn 
+ *
+ * @param applicablePhase
+ * @param applicableSymptoms
+ * @param bodyDe
+ * @param bodyEn
+ * @param callToActionDe
+ * @param callToActionEn
+ * @param enabled
+ * @param priority
+ * @param requiredSharedFields
+ * @param titleDe
+ * @param titleEn
  */
 
 
@@ -82,7 +82,7 @@ data class UpdateUserDefinedTipDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: MENSTRUATION,FOLLICULAR_ESTIMATE,OVULATION_ESTIMATE,LUTEAL_ESTIMATE,PREMENSTRUAL_ESTIMATE,UNKNOWN
      */
@@ -96,7 +96,7 @@ data class UpdateUserDefinedTipDto (
         @Json(name = "UNKNOWN") UNKNOWN("UNKNOWN");
     }
     /**
-     * 
+     *
      *
      * Values: SHARE_PREDICTION,SHARE_PERIOD_DATES,SHARE_PHASE,SHARE_FLOW,SHARE_PAIN,SHARE_MOOD,SHARE_ENERGY,SHARE_SLEEP,SHARE_SYMPTOMS,SHARE_NOTES,SHARE_FERTILE_WINDOW
      */
@@ -116,4 +116,3 @@ data class UpdateUserDefinedTipDto (
     }
 
 }
-

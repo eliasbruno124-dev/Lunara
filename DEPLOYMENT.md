@@ -64,8 +64,9 @@ kein Schema. `/health` prüft den Prozess; `/ready` prüft zusätzlich PostgreSQ
 Ein normaler Start darf keine offene Registrierung einschalten. Ein beendeter
 `migrate`-Container mit Exitcode 0 ist erwarteter Zustand und kein Fehler.
 
-Auf dem aktuellen Server wird Lunara als eigener Compose-/Portainer-Stack
-betrieben. Kein Befehl in dieser Anleitung richtet sich gegen Stack 20.
+Auf dem aktuellen Server wird Lunara als eigenständiges Compose-Projekt ohne
+Portainer-Ownership betrieben. Kein Befehl in dieser Anleitung richtet sich
+gegen den Portainer-Hauptstack 20.
 
 ## 4. Authentik Proxy Provider und Pangolin-Ressource
 
@@ -128,10 +129,12 @@ Das Ergebnis entspricht folgender Provider-Konfiguration:
 
 Für Browser-Anmeldung und Header-Auth wird dieselbe Domain verwendet:
 `https://lunara.3li361.de`. Es gibt absichtlich keine ungeschützte zweite
-Subdomain. Auf dem Zielserver liegen die beiden vollständigen, geheimen
-Header-Auth-URLs getrennt als `/docker/lunara/dunja-headerauth.url` und
-`/docker/lunara/elias-headerauth.url` mit Modus `0600`; ihr Inhalt darf weder in
-Git noch in Dokumentation, Chat oder QR-Codes übernommen werden.
+Subdomain. Das Skript erzeugt standardmäßig `gateway-a.url` und `gateway-b.url`.
+Auf dem aktuellen Zielserver existieren zusätzlich die eindeutig zugeordneten
+lokalen Aliasdateien `/docker/lunara/dunja-headerauth.url` und
+`/docker/lunara/elias-headerauth.url`. Alle Dateien haben Modus `0600`; ihr
+Inhalt darf weder in Git noch in Dokumentation, Chat oder QR-Codes übernommen
+werden.
 
 Lege anschließend genau die Lunara-Ressource in Pangolin an. Das Skript prüft
 verifizierte Domain und aktive Site, verweigert das Überschreiben einer
@@ -255,12 +258,14 @@ Passwörter gehören weder in Cloudflare-Regeln noch in DNS-Werte.
 7. Bootstrap-Token nach erfolgreichem Setup in der Live-Konfiguration durch einen
    neuen Zufallswert ersetzen; serverseitig bleibt Bootstrap dennoch gesperrt.
 
-Der Bootstrap-Token ist ausschließlich der einmalige Besitznachweis für einen
-noch leeren Server. Er verhindert, dass eine fremde Person den ersten Haushalt
-anlegt. Nach dem ersten erfolgreichen Setup setzt der Server den Bootstrap-
-Status dauerhaft auf abgeschlossen; für Login, Einladung und normalen Betrieb
-wird der Token nicht mehr verwendet. Er darf nicht entfernt, in die APK
-eingebaut oder über Chat, QR-Code beziehungsweise GitHub verteilt werden.
+Der Bootstrap-Token ist ausschließlich der Besitznachweis für einen vollständig
+leeren Server. Er verhindert, dass eine fremde Person den ersten Haushalt
+anlegt. Sobald mindestens ein Konto existiert, ist Bootstrap serverseitig
+gesperrt; für Login, Einladung und normalen Betrieb wird der Token nicht mehr
+verwendet. Wird der gesamte Haushalt einschließlich aller Konten bewusst
+gelöscht, ist der Server wieder leer und Bootstrap öffnet sich absichtlich mit
+dem dann konfigurierten Token. Der Token darf deshalb nicht entfernt, in die
+APK eingebaut oder über Chat, QR-Code beziehungsweise GitHub verteilt werden.
 
 ## 7. Backup, Restore und Updates
 

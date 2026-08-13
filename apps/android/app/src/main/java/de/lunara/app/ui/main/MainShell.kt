@@ -67,6 +67,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -118,6 +121,7 @@ fun MainShell(
     val snackbar = remember { SnackbarHostState() }
     val periodSavedMessage = stringResource(R.string.period_saved_offline)
     val dailyLogSavedMessage = stringResource(R.string.daily_log_saved_offline)
+    val passwordChangedMessage = stringResource(R.string.password_change_success)
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -125,6 +129,7 @@ fun MainShell(
                 when (event) {
                     MainEvent.PeriodSaved -> periodSavedMessage
                     MainEvent.DailyLogSaved -> dailyLogSavedMessage
+                    MainEvent.PasswordChanged -> passwordChangedMessage
                 },
             )
         }
@@ -230,8 +235,11 @@ fun MainShell(
                     invitation = state.invitation,
                     settingsBusy = state.settingsBusy,
                     settingsError = state.settingsError,
+                    passwordChangeStatus = state.passwordChangeStatus,
                     onCreateInvitation = viewModel::createInvitation,
                     onUpdateSharing = viewModel::updateSharing,
+                    onChangePassword = viewModel::changePassword,
+                    onClearPasswordChangeStatus = viewModel::clearPasswordChangeStatus,
                     onLogout = onLogout,
                 )
             }
@@ -752,15 +760,36 @@ private fun SettingsScreen(
     invitation: de.lunara.app.data.remote.dto.InvitationDto?,
     settingsBusy: Boolean,
     settingsError: Boolean,
+    passwordChangeStatus: PasswordChangeStatus,
     onCreateInvitation: () -> Unit,
     onUpdateSharing: (UpdateSharingRequest) -> Unit,
+    onChangePassword: (String, String, String) -> Unit,
+    onClearPasswordChangeStatus: () -> Unit,
     onLogout: () -> Unit,
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(passwordChangeStatus) {
+        if (passwordChangeStatus == PasswordChangeStatus.SUCCESS) {
+            showPasswordDialog = false
+            onClearPasswordChangeStatus()
+        }
+    }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item { LunaraHeader(title = stringResource(R.string.settings), modifier = Modifier.padding(vertical = 18.dp)) }
         item { SettingHeader(stringResource(R.string.server_information)) }
         item { SettingText(Icons.Rounded.Info, session.serverName, "${session.serverVersion} · ${BuildConfig.VERSION_NAME}") }
+        item { SettingHeader(stringResource(R.string.account_security)) }
+        item {
+            SettingText(
+                Icons.Rounded.Lock,
+                stringResource(R.string.change_password),
+                stringResource(R.string.change_password_summary),
+            ) {
+                onClearPasswordChangeStatus()
+                showPasswordDialog = true
+            }
+        }
         item { SettingHeader(stringResource(R.string.appearance)) }
         item { SettingSwitch(Icons.Rounded.Settings, stringResource(R.string.system_theme), null, preferences.useSystemTheme, onUseSystemTheme) }
         item { SettingSwitch(Icons.Rounded.Settings, stringResource(R.string.dark_mode), null, preferences.darkMode, onDarkMode, !preferences.useSystemTheme) }
@@ -817,6 +846,110 @@ private fun SettingsScreen(
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text(stringResource(R.string.back_label)) } },
         )
     }
+    if (showPasswordDialog) {
+        PasswordChangeDialog(
+            status = passwordChangeStatus,
+            onSubmit = onChangePassword,
+            onInputChanged = onClearPasswordChangeStatus,
+            onDismiss = {
+                if (passwordChangeStatus != PasswordChangeStatus.BUSY) {
+                    showPasswordDialog = false
+                    onClearPasswordChangeStatus()
+                }
+            },
+        )
+    }
+}
+
+@Composable
+internal fun PasswordChangeDialog(
+    status: PasswordChangeStatus,
+    onSubmit: (String, String, String) -> Unit,
+    onInputChanged: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    val busy = status == PasswordChangeStatus.BUSY
+    val error = when (status) {
+        PasswordChangeStatus.CURRENT_REQUIRED -> R.string.password_current_required
+        PasswordChangeStatus.NEW_LENGTH -> R.string.password_new_length
+        PasswordChangeStatus.SAME_PASSWORD -> R.string.password_must_differ
+        PasswordChangeStatus.CONFIRMATION_MISMATCH -> R.string.password_confirmation_mismatch
+        PasswordChangeStatus.CURRENT_REJECTED -> R.string.password_current_rejected
+        PasswordChangeStatus.FAILED -> R.string.password_change_failed
+        else -> null
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.change_password)) },
+        text = {
+            Column(
+                Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(stringResource(R.string.change_password_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = {
+                        currentPassword = it.take(128)
+                        onInputChanged()
+                    },
+                    label = { Text(stringResource(R.string.current_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    enabled = !busy,
+                    isError = status == PasswordChangeStatus.CURRENT_REQUIRED || status == PasswordChangeStatus.CURRENT_REJECTED,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = {
+                        newPassword = it.take(128)
+                        onInputChanged()
+                    },
+                    label = { Text(stringResource(R.string.new_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    enabled = !busy,
+                    isError = status == PasswordChangeStatus.NEW_LENGTH || status == PasswordChangeStatus.SAME_PASSWORD,
+                    supportingText = { Text(stringResource(R.string.password_length_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = confirmation,
+                    onValueChange = {
+                        confirmation = it.take(128)
+                        onInputChanged()
+                    },
+                    label = { Text(stringResource(R.string.confirm_new_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    enabled = !busy,
+                    isError = status == PasswordChangeStatus.CONFIRMATION_MISMATCH,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSubmit(currentPassword, newPassword, confirmation) },
+                enabled = !busy,
+                modifier = Modifier.testTag("password-change-submit"),
+            ) {
+                Text(stringResource(if (busy) R.string.password_changing else R.string.change_password))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
 
 @Composable

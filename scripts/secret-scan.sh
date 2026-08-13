@@ -21,8 +21,17 @@ trap 'rm -f -- "${pattern_report}" "${entropy_report}"' EXIT
 
 git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn "${patterns}" \
-  | grep -vE '^(scripts/(generate-secrets|secret-scan|configure-authentik|verify-gateway|e2e)\.sh:|DEPLOYMENT\.md:|apps/android/app/src/(main/res/values(-en)?/strings\.xml|main/java/de/lunara/app/data/repository/SessionSecrets\.kt|test/java/de/lunara/app/core/network/ServerAddressParserTest\.kt):)' \
+  | grep -vE '^(scripts/(generate-secrets|secret-scan|configure-authentik|verify-gateway|e2e)\.sh:|apps/android/app/src/(main/java/de/lunara/app/data/repository/SessionSecrets\.kt|test/java/de/lunara/app/core/network/ServerAddressParserTest\.kt):)' \
   | grep -vE '^README\.md:[0-9]+:https://\{BENUTZERNAME\}:\{AUTHENTIK-APP-PASSWORT\}@lunara\.3li361\.de$' \
+  | grep -vE '^DEPLOYMENT\.md:[0-9]+:.*https://gateway-user:gateway-pass@lunara\.3li361\.de.*$' \
+  | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.de</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.com</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="gateway_hint">Gib deine vollständige persönliche Header-Auth-URL ein: https://BENUTZER:APP-PASSWORT@lunara\.3li361\.de – ohne /api/v1/meta\. Die Zugangsdaten werden sicher getrennt gespeichert und dürfen nicht im QR-Code stehen\.</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="gateway_hint">Enter your complete personal header-auth URL: https://USER:APP-PASSWORD@lunara\.3li361\.de without /api/v1/meta\. Credentials are stored separately and securely and must not be placed in a QR code\.</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="error_bootstrap_token">Der Bootstrap-Token muss 20–256 Zeichen lang sein\. Kopiere nur den Wert, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen\.</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="error_bootstrap_rejected">Der Server hat den Bootstrap-Token nicht akzeptiert\. Kopiere nur den Wert aus der lokalen Serverdatei, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen\.</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="error_bootstrap_token">The bootstrap token must be 20–256 characters long\. Copy only its value, without “BOOTSTRAP_TOKEN=” or quotation marks\.</string>$' \
+  | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="error_bootstrap_rejected">The server did not accept the bootstrap token\. Copy only its value from the local server file, without “BOOTSTRAP_TOKEN=” or quotation marks\.</string>$' \
   > "${pattern_report}" || true
 
 if [[ -s "${pattern_report}" ]]; then
@@ -33,10 +42,12 @@ fi
 
 # High-entropy candidates are counted without echoing their values.
 git ls-files -co --exclude-standard -z \
-  | xargs -0 -r grep -IEno '[A-Za-z0-9+/=_-]{48,}' \
+  | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
   | grep -Ev '(package-lock\.json|gradle-wrapper\.properties|sha256|integrity|distributionUrl|docs/partner-tips\.seed\.json|@sha256:|^[^:]*Dockerfile:[0-9]+:[a-f0-9]{64}$|^docker-compose\.yml:[0-9]+:[a-f0-9]{64}$)' \
-  | grep -Ev '(^\.env\.example:|^infra/docker/docker-compose\.test\.yml:|^scripts/(build-android|secret-scan|e2e)\.sh:|^packages/openapi-client/scripts/(export-openapi\.mjs|generate-kotlin\.sh):|^(DEPLOYMENT|IMPLEMENTATION_PLAN|PROGRESS)\.md:)' \
-  | grep -Ev '(^FINAL_REPORT\.md:[0-9]+:(9868fb2f45fa2f3ed76e9f9acfa726b16591872f7e16b77a42444c6a760bfb7d|8ec7dab3fee58a65452393887c60e82c61ac27a2d49e0c7966d810d832d19533|10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8)$|^packages/openapi-client/openapi/lunara-v1\.openapi\.json:1009:.*/components/schemas/PredefinedSymptomResponseDto$|^scripts/configure-pangolin\.sh:(43|44|45|46):[a-f0-9]{64}$)' \
+  | grep -Ev '(^\.env\.example:|^infra/docker/docker-compose\.test\.yml:|^scripts/(build-android|secret-scan|e2e)\.sh:|^packages/openapi-client/scripts/(export-openapi\.mjs|generate-kotlin\.sh):)' \
+  | grep -Ev '(^FINAL_REPORT\.md:[0-9]+:(OpenAPI-Spezifikation SHA-256: `|- SHA-256: `|  Zertifikat SHA-256: `)[a-f0-9]{64}`[.;]?$|^PROGRESS\.md:[0-9]+:  SHA-256 \(v1\.0\.[12]\): `[a-f0-9]{64}`\.$)' \
+  | grep -Ev '(^README\.md:[0-9]+:als \[direkter APK-Download\]\(https://github\.com/eliasbruno124-dev/Lunara/releases/download/v1\.0\.2/lunara-debug\.apk\)$|^DEPLOYMENT\.md:[0-9]+:https://docs\.goauthentik\.io/add-secure-apps/providers/proxy/header_authentication$|^IMPLEMENTATION_PLAN\.md:[0-9]+:- Android: JVM-Tests für URL/Auth/Prediction-Sichtmodelle/Queue/Navigation und$|^PROGRESS\.md:[0-9]+:- \[x\] Docker-/CI-/Backup-/Restore-/Update-/Gateway-Skripte und Dokumentation$)' \
+  | grep -Ev '(^packages/openapi-client/openapi/lunara-v1\.openapi\.json:[0-9]+:.*?/components/schemas/PredefinedSymptomResponseDto.*$|^scripts/configure-pangolin\.sh:[0-9]+:expected_(resources|targets|domains|sites)_schema="[a-f0-9]{64}"$)' \
   | grep -Ev '(^\.github/workflows/|^apps/android/gradlew:|^artifacts/SHA256SUMS:|^services/api/prisma/migrations/[^/]+/migration\.sql:|^packages/openapi-client/generated/kotlin/(gradlew|\.lunara-generation\.json|\.openapi-generator/FILES):)' \
   > "${entropy_report}" || true
 

@@ -29,7 +29,7 @@ const configuration = new DocumentBuilder()
     'Versioned API for the self-hosted Lunara Android application. ' +
       'Health information is returned according to server-side role and sharing checks.',
   )
-  .setVersion('1.0.0')
+  .setVersion('1.0.2')
   .addServer('https://lunara.example.com', 'Configured self-hosted server')
   .addBearerAuth(
     {

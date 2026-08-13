@@ -48,6 +48,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -270,14 +272,45 @@ private fun AuthStep(
 
     if (state.authMode != AuthMode.LOGIN) {
         RoleCard(isTracker = state.authMode == AuthMode.SETUP)
-        OutlinedTextField(state.displayName, onDisplayName, label = { Text(stringResource(R.string.display_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            state.displayName,
+            onDisplayName,
+            label = { Text(stringResource(R.string.display_name)) },
+            singleLine = true,
+            isError = state.error == OnboardingError.DISPLAY_NAME,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
     if (state.authMode == AuthMode.SETUP) {
-        OutlinedTextField(state.householdName, onHouseholdName, label = { Text(stringResource(R.string.household_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        SecretField(state.bootstrapToken, onBootstrapToken, stringResource(R.string.bootstrap_token))
+        OutlinedTextField(
+            state.householdName,
+            onHouseholdName,
+            label = { Text(stringResource(R.string.household_name)) },
+            singleLine = true,
+            isError = state.error == OnboardingError.HOUSEHOLD_NAME,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        SecretField(
+            state.bootstrapToken,
+            onBootstrapToken,
+            stringResource(R.string.bootstrap_token),
+            state.error == OnboardingError.BOOTSTRAP_TOKEN || state.error == OnboardingError.BOOTSTRAP_REJECTED,
+        )
+        Text(
+            stringResource(R.string.bootstrap_explanation),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
     if (state.authMode == AuthMode.JOIN) {
-        OutlinedTextField(state.invitationCode, onInvitationCode, label = { Text(stringResource(R.string.invitation_code)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            state.invitationCode,
+            onInvitationCode,
+            label = { Text(stringResource(R.string.invitation_code)) },
+            singleLine = true,
+            isError = state.error == OnboardingError.INVITATION_CODE,
+            modifier = Modifier.fillMaxWidth(),
+        )
         val invitationScanner = rememberLauncherForActivityResult(ScanContract()) { result ->
             result.contents?.trim()?.takeIf { it.matches(Regex("^[A-HJ-NP-Z2-9]{8,12}$", RegexOption.IGNORE_CASE)) }
                 ?.let(onInvitationCode)
@@ -294,8 +327,20 @@ private fun AuthStep(
             Text(stringResource(R.string.scan_invitation_qr), Modifier.padding(start = 8.dp))
         }
     }
-    OutlinedTextField(state.username, onUsername, label = { Text(stringResource(R.string.username)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-    SecretField(state.password, onPassword, stringResource(R.string.password))
+    OutlinedTextField(
+        state.username,
+        onUsername,
+        label = { Text(stringResource(R.string.username)) },
+        singleLine = true,
+        isError = state.error == OnboardingError.USERNAME,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    SecretField(
+        state.password,
+        onPassword,
+        stringResource(R.string.password),
+        state.error == OnboardingError.PASSWORD,
+    )
     ErrorText(state.error)
     val button = when (state.authMode) {
         AuthMode.LOGIN -> R.string.sign_in
@@ -310,14 +355,16 @@ private fun AuthStep(
 }
 
 @Composable
-private fun SecretField(value: String, onValue: (String) -> Unit, label: String) {
+private fun SecretField(value: String, onValue: (String) -> Unit, label: String, isError: Boolean = false) {
     var visible by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValue,
         label = { Text(label) },
         singleLine = true,
+        isError = isError,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
                 Icon(
@@ -364,7 +411,16 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.TIMEOUT -> R.string.error_timeout
         OnboardingError.GATEWAY_AUTH -> R.string.error_gateway_auth
         OnboardingError.API -> R.string.error_api
-        OnboardingError.FORM, OnboardingError.GENERIC -> R.string.error_generic
+        OnboardingError.USERNAME -> R.string.error_username
+        OnboardingError.PASSWORD -> R.string.error_password
+        OnboardingError.DISPLAY_NAME -> R.string.error_display_name
+        OnboardingError.HOUSEHOLD_NAME -> R.string.error_household_name
+        OnboardingError.BOOTSTRAP_TOKEN -> R.string.error_bootstrap_token
+        OnboardingError.BOOTSTRAP_REJECTED -> R.string.error_bootstrap_rejected
+        OnboardingError.SETUP_COMPLETE -> R.string.error_setup_complete
+        OnboardingError.INVITATION_CODE -> R.string.error_invitation_code
+        OnboardingError.INVALID_CREDENTIALS -> R.string.error_invalid_credentials
+        OnboardingError.GENERIC -> R.string.error_generic
         null -> return
     }
     Text(stringResource(id), color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { contentDescription = "Error" })
@@ -389,7 +445,7 @@ private fun LoginPreview() = LunaraTheme {
         OnboardingUiState(
             stage = OnboardingStage.AUTH,
             language = "en",
-            meta = MetaDto("Lunara", "1.0.0", "v1", false, false, "2026-08-12T12:00:00Z"),
+            meta = MetaDto("Lunara", "1.0.2", "v1", false, false, "2026-08-12T12:00:00Z"),
         ),
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},

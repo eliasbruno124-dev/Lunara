@@ -28,22 +28,22 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param algorithmVersion 
- * @param available 
- * @param confidence 
- * @param basedOnCycleCount 
- * @param fertileWindowFrom 
- * @param fertileWindowTo 
- * @param predictedEndFrom 
- * @param predictedEndTo 
- * @param predictedStartFrom 
- * @param predictedStartTo 
- * @param reason 
- * @param typicalCycleLength 
- * @param typicalPeriodLength 
- * @param variationDays 
+ *
+ * @param algorithmVersion
+ * @param available
+ * @param confidence
+ * @param basedOnCycleCount
+ * @param fertileWindowFrom
+ * @param fertileWindowTo
+ * @param predictedEndFrom
+ * @param predictedEndTo
+ * @param predictedStartFrom
+ * @param predictedStartTo
+ * @param reason
+ * @param typicalCycleLength
+ * @param typicalPeriodLength
+ * @param variationDays
  */
 
 
@@ -94,7 +94,7 @@ data class PredictionResponse (
 ) : kotlin.collections.HashMap<String, kotlin.Any>() {
 
     /**
-     * 
+     *
      *
      * Values: LOW,MEDIUM,HIGH,UNAVAILABLE
      */
@@ -107,4 +107,3 @@ data class PredictionResponse (
     }
 
 }
-

@@ -14,12 +14,12 @@ import de.lunara.api.models.UpdateCustomSymptomDto
 interface SymptomsApi {
     /**
      * DELETE api/v1/symptoms/{id}
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 204: Custom symptom archived
      *
-     * @param id 
+     * @param id
      * @return [Unit]
      */
     @DELETE("api/v1/symptoms/{id}")
@@ -27,12 +27,12 @@ interface SymptomsApi {
 
     /**
      * POST api/v1/symptoms
-     * 
-     * 
-     * Responses:
-     *  - 201: 
      *
-     * @param createCustomSymptomDto 
+     *
+     * Responses:
+     *  - 201:
+     *
+     * @param createCustomSymptomDto
      * @return [CustomSymptomResponseDto]
      */
     @POST("api/v1/symptoms")
@@ -40,10 +40,10 @@ interface SymptomsApi {
 
     /**
      * GET api/v1/symptoms
-     * 
-     * 
+     *
+     *
      * Responses:
-     *  - 200: 
+     *  - 200:
      *
      * @param includeArchived  (optional)
      * @return [SymptomCatalogResponseDto]
@@ -53,13 +53,13 @@ interface SymptomsApi {
 
     /**
      * PATCH api/v1/symptoms/{id}
-     * 
-     * 
-     * Responses:
-     *  - 200: 
      *
-     * @param id 
-     * @param updateCustomSymptomDto 
+     *
+     * Responses:
+     *  - 200:
+     *
+     * @param id
+     * @param updateCustomSymptomDto
      * @return [CustomSymptomResponseDto]
      */
     @PATCH("api/v1/symptoms/{id}")

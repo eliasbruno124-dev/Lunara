@@ -11,8 +11,8 @@ import de.lunara.api.models.UpdateCarePreferencesDto
 interface CarePreferencesApi {
     /**
      * GET api/v1/care-preferences
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -23,12 +23,12 @@ interface CarePreferencesApi {
 
     /**
      * PATCH api/v1/care-preferences
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param updateCarePreferencesDto 
+     * @param updateCarePreferencesDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @PATCH("api/v1/care-preferences")

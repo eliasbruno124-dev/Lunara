@@ -30,10 +30,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param custom 
- * @param predefined 
+ *
+ * @param custom
+ * @param predefined
  */
 
 
@@ -49,4 +49,3 @@ data class SymptomCatalogResponseDto (
 
 
 }
-

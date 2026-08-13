@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param `data` Object previously returned by the JSON export
- * @param preview 
+ * @param preview
  */
 
 
@@ -48,4 +48,3 @@ data class ImportDto (
 
 
 }
-

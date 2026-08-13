@@ -14,7 +14,13 @@ import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
-import { LoginDto, LogoutDto, RefreshDto, SetupDto } from './auth.dto.js';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  LogoutDto,
+  RefreshDto,
+  SetupDto,
+} from './auth.dto.js';
 import { AuthResponse, AuthService } from './auth.service.js';
 
 @ApiTags('authentication')
@@ -52,6 +58,17 @@ export class AuthController {
     @Body() dto: LogoutDto,
   ): Promise<void> {
     await this.auth.logout(user, dto.refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('auth/change-password')
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    await this.auth.changePassword(user, dto);
   }
 
   @ApiBearerAuth()

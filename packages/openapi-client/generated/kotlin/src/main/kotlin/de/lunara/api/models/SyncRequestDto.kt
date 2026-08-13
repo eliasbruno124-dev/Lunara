@@ -29,10 +29,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param mutations 
- * @param cursor 
+ *
+ * @param mutations
+ * @param cursor
  */
 
 
@@ -48,4 +48,3 @@ data class SyncRequestDto (
 
 
 }
-

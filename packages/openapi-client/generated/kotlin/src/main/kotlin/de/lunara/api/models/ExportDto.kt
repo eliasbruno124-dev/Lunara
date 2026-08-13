@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param format 
- * @param password 
+ *
+ * @param format
+ * @param password
  */
 
 
@@ -46,7 +46,7 @@ data class ExportDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: JSON,PERIODS_CSV,DAILY_LOGS_CSV,ENCRYPTED_JSON
      */
@@ -59,4 +59,3 @@ data class ExportDto (
     }
 
 }
-

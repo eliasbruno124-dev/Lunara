@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,10 +14,15 @@ import {
   UserRole,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import {
+  createHmac,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { LoginDto, SetupDto } from './auth.dto.js';
+import { ChangePasswordDto, LoginDto, SetupDto } from './auth.dto.js';
 
 const PASSWORD_OPTIONS = {
   type: argon2.argon2id,
@@ -29,6 +36,11 @@ const PASSWORD_OPTIONS = {
 // never authenticates a real account and contains no secret.
 const DUMMY_PASSWORD_HASH =
   '$argon2id$v=19$m=65536,p=1,t=3$THVuYXJhRHVtbXlTYWx0IQ$eE4mWDzU9Ua7tfNx1fLLJESOaLNI34PxYLIuNYOIFxQ';
+
+const PASSWORD_CHANGE_FORBIDDEN_MESSAGE =
+  'Password change could not be authorized';
+
+class PasswordChangeRaceError extends Error {}
 
 type DatabaseClient = PrismaService | Prisma.TransactionClient;
 
@@ -66,8 +78,15 @@ export class AuthService {
   ) {}
 
   async setup(dto: SetupDto): Promise<AuthResponse> {
-    if (!this.constantTimeEqual(dto.bootstrapToken, this.config.getOrThrow('BOOTSTRAP_TOKEN'))) {
-      throw new UnauthorizedException('Setup token is invalid or setup is unavailable');
+    if (
+      !this.constantTimeEqual(
+        dto.bootstrapToken,
+        this.config.getOrThrow('BOOTSTRAP_TOKEN'),
+      )
+    ) {
+      throw new UnauthorizedException(
+        'Setup token is invalid or setup is unavailable',
+      );
     }
     const username = this.normalizeUsername(dto.username);
     const passwordHash = await argon2.hash(dto.password, PASSWORD_OPTIONS);
@@ -78,7 +97,9 @@ export class AuthService {
       result = await this.prisma.$transaction(
         async (tx) => {
           if ((await tx.user.count()) !== 0) {
-            throw new ConflictException('Server setup has already been completed');
+            throw new ConflictException(
+              'Server setup has already been completed',
+            );
           }
           const household = await tx.household.create({
             data: { name: dto.householdName.trim() },
@@ -105,7 +126,12 @@ export class AuthService {
               data: { ownerUserId: user.id, householdId: household.id },
             }),
           ]);
-          const session = await this.persistSession(tx, user.id, dto.deviceName, refreshToken);
+          const session = await this.persistSession(
+            tx,
+            user.id,
+            dto.deviceName,
+            refreshToken,
+          );
           await tx.auditEvent.create({
             data: {
               householdId: household.id,
@@ -130,12 +156,19 @@ export class AuthService {
       );
     } catch (error) {
       if (error instanceof ConflictException) throw error;
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException('Server setup has already been completed');
       }
       throw error;
     }
-    return this.buildAuthResponse(result.identity, result.sessionId, refreshToken);
+    return this.buildAuthResponse(
+      result.identity,
+      result.sessionId,
+      refreshToken,
+    );
   }
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -144,8 +177,11 @@ export class AuthService {
       where: { username },
       include: { memberships: { take: 1, orderBy: { createdAt: 'asc' } } },
     });
-    const candidateHash = user && !user.disabledAt ? user.passwordHash : DUMMY_PASSWORD_HASH;
-    const passwordMatches = await argon2.verify(candidateHash, dto.password).catch(() => false);
+    const candidateHash =
+      user && !user.disabledAt ? user.passwordHash : DUMMY_PASSWORD_HASH;
+    const passwordMatches = await argon2
+      .verify(candidateHash, dto.password)
+      .catch(() => false);
     const valid = Boolean(user && !user.disabledAt && passwordMatches);
     if (!valid || !user || !user.memberships[0]) {
       await this.prisma.auditEvent.create({
@@ -154,31 +190,62 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
-    const membership = user.memberships[0];
     const refreshToken = this.createOpaqueToken();
-    const session = await this.persistSession(this.prisma, user.id, dto.deviceName, refreshToken);
-    await this.prisma.auditEvent.createMany({
-      data: [
-        {
-          householdId: membership.householdId,
-          actorUserId: user.id,
-          type: AuditEventType.LOGIN_SUCCEEDED,
-          metadata: { sessionId: session.id },
-        },
-        {
-          householdId: membership.householdId,
-          actorUserId: user.id,
-          type: AuditEventType.NEW_DEVICE,
-          metadata: { sessionId: session.id },
-        },
-      ],
+    const result = await this.prisma.$transaction(async (tx) => {
+      await this.lockUserAuthentication(tx, user.id);
+      // Password verification is intentionally done before taking the database
+      // lock. Rechecking the exact Argon2 hash under the lock prevents a login
+      // that verified the old password from creating a session after a password
+      // change committed.
+      const current = await tx.user.findUnique({
+        where: { id: user.id },
+        include: { memberships: { take: 1, orderBy: { createdAt: 'asc' } } },
+      });
+      const membership = current?.memberships[0];
+      if (
+        !current ||
+        current.disabledAt ||
+        !membership ||
+        current.passwordHash !== user.passwordHash
+      ) {
+        await tx.auditEvent.create({
+          data: { type: AuditEventType.LOGIN_FAILED, metadata: {} },
+        });
+        return null;
+      }
+      const session = await this.persistSession(
+        tx,
+        current.id,
+        dto.deviceName,
+        refreshToken,
+      );
+      await tx.auditEvent.createMany({
+        data: [
+          {
+            householdId: membership.householdId,
+            actorUserId: current.id,
+            type: AuditEventType.LOGIN_SUCCEEDED,
+            metadata: { sessionId: session.id },
+          },
+          {
+            householdId: membership.householdId,
+            actorUserId: current.id,
+            type: AuditEventType.NEW_DEVICE,
+            metadata: { sessionId: session.id },
+          },
+        ],
+      });
+      return { current, membership, session };
     });
+    if (!result)
+      throw new UnauthorizedException('Invalid username or password');
+    const { current, membership, session } = result;
     return this.buildAuthResponse(
       {
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        preferredLanguage: user.preferredLanguage,
+        id: current.id,
+        username: current.username,
+        displayName: current.displayName,
+        preferredLanguage: current.preferredLanguage,
         role: membership.role,
         householdId: membership.householdId,
       },
@@ -191,13 +258,22 @@ export class AuthService {
     const tokenHash = this.hashToken(rawToken);
     const replacementToken = this.createOpaqueToken();
     const result = await this.prisma.$transaction(async (tx) => {
-      const tokenRecord = await tx.deviceSession.findUnique({
+      const initialTokenRecord = await tx.deviceSession.findUnique({
         where: { refreshTokenHash: tokenHash },
-        select: { id: true, tokenFamilyId: true, revokedAt: true },
+        select: { id: true, userId: true },
       });
-      if (!tokenRecord) {
+      if (!initialTokenRecord) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
+      await this.lockUserAuthentication(tx, initialTokenRecord.userId);
+      // Re-read after acquiring the per-user lock. A password change or another
+      // refresh may have revoked this record while this transaction waited.
+      const tokenRecord = await tx.deviceSession.findUnique({
+        where: { id: initialTokenRecord.id },
+        select: { id: true, tokenFamilyId: true, revokedAt: true },
+      });
+      if (!tokenRecord)
+        throw new UnauthorizedException('Invalid or expired refresh token');
       if (tokenRecord.revokedAt) {
         await tx.deviceSession.updateMany({
           where: { tokenFamilyId: tokenRecord.tokenFamilyId, revokedAt: null },
@@ -209,11 +285,20 @@ export class AuthService {
       const old = await tx.deviceSession.findUnique({
         where: { id: tokenRecord.id },
         include: {
-          user: { include: { memberships: { take: 1, orderBy: { createdAt: 'asc' } } } },
+          user: {
+            include: {
+              memberships: { take: 1, orderBy: { createdAt: 'asc' } },
+            },
+          },
         },
       });
       const membership = old?.user.memberships[0];
-      if (!old || !membership || old.expiresAt <= new Date() || old.user.disabledAt) {
+      if (
+        !old ||
+        !membership ||
+        old.expiresAt <= new Date() ||
+        old.user.disabledAt
+      ) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
       const revoked = await tx.deviceSession.updateMany({
@@ -252,9 +337,15 @@ export class AuthService {
       };
     });
     if (result.reuseDetected) {
-      throw new UnauthorizedException('Refresh token reuse detected; token family revoked');
+      throw new UnauthorizedException(
+        'Refresh token reuse detected; token family revoked',
+      );
     }
-    return this.buildAuthResponse(result.identity, result.sessionId, replacementToken);
+    return this.buildAuthResponse(
+      result.identity,
+      result.sessionId,
+      replacementToken,
+    );
   }
 
   async logout(user: AuthenticatedUser, rawToken?: string): Promise<void> {
@@ -277,6 +368,87 @@ export class AuthService {
     }
   }
 
+  async changePassword(
+    user: AuthenticatedUser,
+    dto: ChangePasswordDto,
+  ): Promise<void> {
+    const account = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { passwordHash: true, disabledAt: true },
+    });
+    const currentHash =
+      account && !account.disabledAt
+        ? account.passwordHash
+        : DUMMY_PASSWORD_HASH;
+    const currentPasswordMatches = await argon2
+      .verify(currentHash, dto.currentPassword)
+      .catch(() => false);
+    if (!account || account.disabledAt || !currentPasswordMatches) {
+      await this.recordPasswordChangeFailure(user);
+      throw new ForbiddenException(PASSWORD_CHANGE_FORBIDDEN_MESSAGE);
+    }
+    if (dto.currentPassword === dto.newPassword) {
+      await this.recordPasswordChangeFailure(user);
+      throw new BadRequestException(
+        'New password must differ from current password',
+      );
+    }
+
+    const replacementHash = await argon2.hash(
+      dto.newPassword,
+      PASSWORD_OPTIONS,
+    );
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await this.lockUserAuthentication(tx, user.userId);
+        // The access-token guard may have authenticated the request immediately
+        // before this device rotated its refresh token. Preserve the complete
+        // token family, not only the session id embedded in that access token.
+        const currentSession = await tx.deviceSession.findUnique({
+          where: { id: user.sessionId },
+          select: { userId: true, tokenFamilyId: true },
+        });
+        if (!currentSession || currentSession.userId !== user.userId) {
+          throw new PasswordChangeRaceError();
+        }
+
+        const changed = await tx.user.updateMany({
+          where: {
+            id: user.userId,
+            passwordHash: account.passwordHash,
+            disabledAt: null,
+          },
+          data: { passwordHash: replacementHash },
+        });
+        if (changed.count !== 1) throw new PasswordChangeRaceError();
+
+        const revoked = await tx.deviceSession.updateMany({
+          where: {
+            userId: user.userId,
+            tokenFamilyId: { not: currentSession.tokenFamilyId },
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+          data: { revokedAt: new Date() },
+        });
+        await tx.auditEvent.create({
+          data: {
+            householdId: user.householdId,
+            actorUserId: user.userId,
+            type: AuditEventType.PASSWORD_CHANGED,
+            metadata: { revokedSessionCount: revoked.count },
+          },
+        });
+      });
+    } catch (error) {
+      if (!(error instanceof PasswordChangeRaceError)) throw error;
+      // This audit deliberately runs after the failed transaction so its
+      // rollback cannot erase the security-relevant failure event.
+      await this.recordPasswordChangeFailure(user);
+      throw new ForbiddenException(PASSWORD_CHANGE_FORBIDDEN_MESSAGE);
+    }
+  }
+
   async listSessions(userId: string, currentSessionId: string) {
     const sessions = await this.prisma.deviceSession.findMany({
       where: { userId },
@@ -290,10 +462,16 @@ export class AuthService {
         revokedAt: true,
       },
     });
-    return sessions.map((session) => ({ ...session, current: session.id === currentSessionId }));
+    return sessions.map((session) => ({
+      ...session,
+      current: session.id === currentSessionId,
+    }));
   }
 
-  async revokeSession(user: AuthenticatedUser, sessionId: string): Promise<void> {
+  async revokeSession(
+    user: AuthenticatedUser,
+    sessionId: string,
+  ): Promise<void> {
     const result = await this.prisma.deviceSession.updateMany({
       where: { id: sessionId, userId: user.userId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -333,13 +511,39 @@ export class AuthService {
   }
 
   hashToken(rawToken: string): string {
-    return createHmac('sha256', this.config.getOrThrow<string>('REFRESH_TOKEN_PEPPER'))
+    return createHmac(
+      'sha256',
+      this.config.getOrThrow<string>('REFRESH_TOKEN_PEPPER'),
+    )
       .update(rawToken, 'utf8')
       .digest('hex');
   }
 
   normalizeUsername(username: string): string {
     return username.trim().normalize('NFKC').toLocaleLowerCase('en-US');
+  }
+
+  private async recordPasswordChangeFailure(
+    user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.prisma.auditEvent.create({
+      data: {
+        householdId: user.householdId,
+        actorUserId: user.userId,
+        type: AuditEventType.PASSWORD_CHANGE_FAILED,
+        metadata: {},
+      },
+    });
+  }
+
+  private async lockUserAuthentication(
+    database: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<void> {
+    // This transaction-scoped PostgreSQL lock serializes session creation,
+    // refresh rotation and password replacement for one user. The query text is
+    // constant and the UUID is passed as a parameter by Prisma.
+    await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
   }
 
   private async persistSession(
@@ -368,7 +572,10 @@ export class AuthService {
     sessionId: string,
     refreshToken: string,
   ): Promise<AuthResponse> {
-    const expiresInSeconds = this.config.get<number>('lunara.accessTokenTtlSeconds', 900);
+    const expiresInSeconds = this.config.get<number>(
+      'lunara.accessTokenTtlSeconds',
+      900,
+    );
     const accessToken = await this.jwt.signAsync(
       { sub: identity.id, sid: sessionId, typ: 'access' },
       { expiresIn: expiresInSeconds },
@@ -393,6 +600,9 @@ export class AuthService {
   private constantTimeEqual(left: string, right: string): boolean {
     const leftBuffer = Buffer.from(left);
     const rightBuffer = Buffer.from(right);
-    return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+    return (
+      leftBuffer.length === rightBuffer.length &&
+      timingSafeEqual(leftBuffer, rightBuffer)
+    );
   }
 }

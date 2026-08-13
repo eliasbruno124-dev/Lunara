@@ -28,7 +28,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param expiresInMinutes Cannot exceed the server policy
  */
@@ -44,4 +44,3 @@ data class CreateInvitationDto (
 
 
 }
-

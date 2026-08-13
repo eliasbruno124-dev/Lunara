@@ -13,12 +13,12 @@ import de.lunara.api.models.UpdatePeriodDto
 interface PeriodsApi {
     /**
      * POST api/v1/periods
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param createPeriodDto 
+     * @param createPeriodDto
      * @return [PeriodResponse]
      */
     @POST("api/v1/periods")
@@ -26,8 +26,8 @@ interface PeriodsApi {
 
     /**
      * GET api/v1/periods
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -38,13 +38,13 @@ interface PeriodsApi {
 
     /**
      * DELETE api/v1/periods/{id}
-     * 
-     * 
-     * Responses:
-     *  - 204: 
      *
-     * @param id 
-     * @param version 
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param id
+     * @param version
      * @return [Unit]
      */
     @DELETE("api/v1/periods/{id}")
@@ -52,13 +52,13 @@ interface PeriodsApi {
 
     /**
      * PATCH api/v1/periods/{id}
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param id 
-     * @param updatePeriodDto 
+     * @param id
+     * @param updatePeriodDto
      * @return [PeriodResponse]
      */
     @PATCH("api/v1/periods/{id}")

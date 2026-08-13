@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param id Client-generated idempotent identifier
- * @param label 
+ * @param label
  */
 
 
@@ -48,4 +48,3 @@ data class CreateCustomSymptomDto (
 
 
 }
-

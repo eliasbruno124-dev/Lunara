@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param archived Set false to restore an archived custom symptom.
- * @param label 
+ * @param label
  */
 
 
@@ -48,4 +48,3 @@ data class UpdateCustomSymptomDto (
 
 
 }
-

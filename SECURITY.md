@@ -36,6 +36,20 @@ oder über die Admin-CLI vollständig widerrufen. Die API stellt die
 Gerätesitzungen bereit; eine vollständige Geräteverwaltung ist in der
 Android-Oberfläche noch nicht umgesetzt.
 
+Der Passwortwechsel in den Android-Einstellungen verlangt das aktuelle
+Lunara-Passwort, ist separat rate-limitiert und hasht das neue Passwort mit
+Argon2id. Die aktuelle Gerätesitzung bleibt bestehen; alle anderen Lunara-
+Serversitzungen werden atomar widerrufen. Bereits synchronisierte oder offline
+gespeicherte Daten auf diesen Geräten können dadurch nicht aus der Ferne
+gelöscht werden; bei Geräteverlust ist zusätzlich der Remote-Wipe des
+Betriebssystems zu verwenden. Login, Refresh-Rotation und Passwortwechsel
+werden pro Benutzer durch eine transaktionsgebundene PostgreSQL-Sperre
+serialisiert; dadurch kann kein bereits mit dem alten Passwort geprüfter Login
+nachträglich eine neue Sitzung anlegen. Erfolg sowie abgelehnte Autorisierungs-,
+Gleichheits- und Race-Versuche werden ohne Passwort- oder Gesundheitsdaten
+auditiert; reine DTO-Formatfehler erreichen den Auth-Service nicht. Das
+getrennte Authentik-App-Passwort wird dabei nicht verändert.
+
 Mutierende Offline-Sync-Aufrufe verwenden dauerhafte
 `clientMutationId`-Werte, clientseitige UUIDs und serverseitige
 Idempotenzspeicherung. Create-Endpunkte für Perioden, Tageslogs, eigene
@@ -109,7 +123,9 @@ in einer isolierten Instanz testen.
 - App-Sperre per Biometrie, Benachrichtigungen/ntfy und Zertifikat-Pinning sind
   nicht implementiert. Screenshot-Schutz via `FLAG_SECURE` ist vorhanden.
 - Server-Sent Events existieren serverseitig, werden von Android Version 1 aber
-  noch nicht konsumiert; WorkManager und manueller Sync sorgen für Aktualität.
+  noch nicht konsumiert. Die App synchronisiert nach Anmeldung und Änderungen,
+  beim Öffnen, im Vordergrund höchstens einmal pro Minute sowie sparsam per
+  WorkManager im Hintergrund; der manuelle Knopf bleibt als Zusatz vorhanden.
 - Check-in-Prompt und -Antwort sind in Version 1 in PostgreSQL nicht zusätzlich
   anwendungsseitig verschlüsselt. Sie unterliegen Datenbank-/Backup-Schutz und
   strikter Haushalt-Autorisierung, sollten aber nicht für ausführliche sensible

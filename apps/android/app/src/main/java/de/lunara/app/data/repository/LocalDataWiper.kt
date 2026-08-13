@@ -6,7 +6,9 @@ import de.lunara.app.core.security.SecureCookieJar
 import de.lunara.app.core.security.SecureWipeCoordinator
 import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.remote.ApiClientFactory
 import de.lunara.app.data.sync.SyncScheduler
+import de.lunara.app.data.sync.ProcessSyncGate
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -21,18 +23,35 @@ class LocalDataWiper @Inject constructor(
     private val cookieJar: SecureCookieJar,
     private val secretStore: SecretStore,
     private val syncScheduler: SyncScheduler,
+    private val apiFactory: ApiClientFactory,
+    private val credentialGate: SessionCredentialGate,
+    private val sessionSecrets: SessionSecrets,
 ) {
     suspend fun wipe() = withContext(Dispatchers.IO) {
-        SecureWipeCoordinator.execute(
-            localSteps = listOf(
-                { syncScheduler.cancelImmediateAndWait() },
-                { clearEncryptedDatabase() },
-                { cookieJar.clear() },
-                { rotateDatabaseKeyAndDestroyAllOldSecrets() },
-                // Clear DataStore last so the UI cannot expose onboarding before the wipe finished.
-                { preferences.clearAll() },
-            ),
-        )
+        credentialGate.invalidate()
+        apiFactory.cancelAll()
+        // Request cancellation before waiting for an active worker to leave the process-wide
+        // gate. The second cancellation is tracked as a secure-wipe step if the first failed.
+        runCatching { syncScheduler.cancelAllAndWait() }
+        ProcessSyncGate.serialized {
+            credentialGate.exclusive {
+                SecureWipeCoordinator.execute(
+                    localSteps = listOf(
+                        { syncScheduler.cancelAllAndWait() },
+                        { clearEncryptedDatabase() },
+                        { cookieJar.clear() },
+                        // Tokens and gateway credentials must be removed even if SQLCipher
+                        // cannot rekey the already-cleared database afterwards.
+                        { sessionSecrets.clearAccountSecrets() },
+                        { rotateDatabaseKeyAndDestroyAllOldSecrets() },
+                        // Clear DataStore last so the UI cannot expose onboarding before the wipe finished.
+                        { preferences.clearAll() },
+                        // Remove a trigger that may have been enqueued while the local wipe ran.
+                        { syncScheduler.cancelAllAndWait() },
+                    ),
+                )
+            }
+        }
     }
 
     private fun clearEncryptedDatabase() {

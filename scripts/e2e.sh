@@ -26,6 +26,9 @@ for attempt in {1..30}; do
 done
 
 docker run --rm --network "${test_network}" \
+  --cpus "${LUNARA_E2E_CPUS:-0.75}" \
+  --memory "${LUNARA_E2E_MEMORY:-768m}" \
+  --memory-swap "${LUNARA_E2E_MEMORY_SWAP:-1g}" \
   -e NODE_ENV=test \
   -e DATABASE_URL="postgresql://lunara_test:integration-only-password@postgres-test:5432/lunara_test?schema=public" \
   -e PUBLIC_BASE_URL="http://api-test:3000" \

@@ -28,15 +28,15 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param fertilityPredictionEnabled 
- * @param lutealLengthOptional 
- * @param predictionPaused 
- * @param specialMode 
- * @param timezone 
- * @param typicalCycleLengthOptional 
- * @param typicalPeriodLengthOptional 
+ *
+ * @param fertilityPredictionEnabled
+ * @param lutealLengthOptional
+ * @param predictionPaused
+ * @param specialMode
+ * @param timezone
+ * @param typicalCycleLengthOptional
+ * @param typicalPeriodLengthOptional
  */
 
 
@@ -66,7 +66,7 @@ data class UpdateCycleProfileDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: NONE,HORMONAL_CONTRACEPTION,PREGNANCY,POSTPARTUM,MENOPAUSE_TRANSITION,PAUSED
      */
@@ -81,4 +81,3 @@ data class UpdateCycleProfileDto (
     }
 
 }
-

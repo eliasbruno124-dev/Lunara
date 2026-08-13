@@ -13,12 +13,12 @@ import de.lunara.api.models.ImportDto
 interface DataManagementApi {
     /**
      * DELETE api/v1/account
-     * 
-     * 
-     * Responses:
-     *  - 204: 
      *
-     * @param deleteAccountDto 
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param deleteAccountDto
      * @return [Unit]
      */
     @DELETE("api/v1/account")
@@ -26,12 +26,12 @@ interface DataManagementApi {
 
     /**
      * POST api/v1/export
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param exportDto 
+     * @param exportDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @POST("api/v1/export")
@@ -39,12 +39,12 @@ interface DataManagementApi {
 
     /**
      * POST api/v1/import
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param importDto 
+     * @param importDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @POST("api/v1/import")

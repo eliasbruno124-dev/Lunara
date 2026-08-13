@@ -33,7 +33,8 @@ beide getrennten Gateway-Konten wurden vollständig geprüft.
 - native Compose-App mit deutschem/englischem Onboarding,
   Authentik-Header-Login, SQLCipher/Keystore, Room, WorkManager,
   rollenabhängigen Ansichten, Basis-Tageslog, Kalender, Verlauf, Freigaben und
-  `FLAG_SECURE`
+  `FLAG_SECURE`; automatische Vordergrund-/Hintergrundsynchronisierung und
+  persönlicher Lunara-Passwortwechsel sind integriert
 - gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
   Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
 - versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
@@ -44,7 +45,7 @@ Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
 
 ## Verifizierter Live-Stand
 
-- API und PostgreSQL laufen gesund unter `/docker/lunara`; zwei Migrationen
+- API und PostgreSQL laufen gesund unter `/docker/lunara`; drei Migrationen
   sind angewendet.
 - Weder API noch Datenbank veröffentlichen einen Host-Port. Die API läuft als
   UID/GID `10001:10001` mit read-only Root-Dateisystem und ohne Linux-
@@ -74,11 +75,13 @@ artifacts/lunara-debug.apk
 ```
 
 Für berechtigte GitHub-Benutzer steht sie außerdem im privaten
-[`v1.0.1-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.1)
-als direkter Download bereit.
+[`v1.0.2-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.2)
+als [direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.2/lunara-debug.apk)
+bereit.
 
-Sie erzwingt HTTPS und verwendet standardmäßig
-`https://lunara.3li361.de/`. Vor der Installation den Hash prüfen:
+Sie erzwingt HTTPS. Ab Version 1.0.2 ist bewusst keine Domain mehr
+vorausgefüllt; die persönliche Header-Auth-URL wird beim ersten Start
+eingegeben. Vor der Installation den Hash prüfen:
 
 ```bash
 cd artifacts
@@ -86,10 +89,10 @@ sha256sum -c SHA256SUMS
 ```
 
 Die APK ist mit einem lokal dauerhaft abgelegten Android-Debugschlüssel
-signiert, der von Git ausgeschlossen ist. Die frühere 1.0.0-Test-APK verwendete
-noch einen anderen flüchtigen Schlüssel und muss vor der Installation von
-1.0.1 einmal deinstalliert werden. Ab 1.0.1 lassen sich Builds von diesem Host
-mit demselben Debug-Schlüssel aktualisieren. Ein eigener Release-Build ist in
+signiert, der von Git ausgeschlossen ist. Nur die frühe 1.0.0-Test-APK
+verwendete noch einen anderen flüchtigen Schlüssel und muss vor jeder Version
+ab 1.0.1 einmal deinstalliert werden. Eine installierte 1.0.1 lässt sich direkt
+auf 1.0.2 aktualisieren. Ein eigener Release-Build ist in
 [`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md) beschrieben; private
 Signierschlüssel liegen absichtlich nicht im Repository.
 
@@ -113,10 +116,12 @@ werden. URLs mit Zugangsdaten gehören nicht in QR-Codes, Chats oder
 Cloudflare-DNS-Einträge und können vor dem Einfügen in Zwischenablage- oder
 Tastaturverläufen sichtbar sein.
 
-Version 1.0.1 sendet die Gateway-Anmeldung auch nach einem vorherigen anonymen
-Verbindungsversuch zuverlässig und ausschließlich an den konfigurierten
-Server-Ursprung. Ein versehentlich eingefügter `/api/v1/meta`-Testpfad wird auf
-die Serverbasis normalisiert.
+Version 1.0.2 startet jeden ausdrücklichen Verbindungstest ohne alte
+Authentik-Cookies und sendet die Gateway-Anmeldung ausschließlich an den
+konfigurierten Server-Ursprung. Ein versehentlich eingefügter
+`/api/v1/meta`-Testpfad wird auf die Serverbasis normalisiert. Ein bereits
+eingerichteter Server zeigt nach einer frischen Prüfung nur noch Anmeldung oder
+Einladung; Bootstrap ist ausschließlich für das erste Tracker-Konto bestimmt.
 
 ## Entwicklung und Prüfung
 
@@ -140,6 +145,7 @@ npm run openapi:check
 cd apps/android
 ./gradlew testLocalDebugUnitTest
 ./gradlew lintLocalDebug lintProductionDebug
+./gradlew compileProductionDebugAndroidTestKotlin
 ./gradlew assembleProductionDebug
 ```
 

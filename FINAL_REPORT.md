@@ -1,6 +1,6 @@
 # Lunara – Abschlussbericht
 
-Stand: 12. August 2026
+Stand: 13. August 2026
 
 Dieser Bericht enthält die Ergebnisse der finalen Prüfkette und des
 Live-Deployments. Aussagen mit „erfolgreich“ beruhen ausschließlich auf wirklich
@@ -38,11 +38,21 @@ gleichzeitiger Refresh-Wiederverwendung und teures Argon2-Hashing vor der
 Prüfung eines öffentlichen Einladungscodes. Alle drei besitzen
 Regressionstests.
 
+Für Version 1.0.2 wurden zusätzlich Login, Refresh-Rotation und
+Passwortwechsel pro Benutzer transaktionsgebunden serialisiert. Dadurch kann
+kein bereits mit dem alten Passwort geprüfter Login nach einem Passwortwechsel
+noch eine Sitzung anlegen. Android schützt Anmeldung, Refresh, Logout,
+Serverwechsel und lokale Sync-Worker über gemeinsame Credential-/Sync-Gates;
+alte Netzwerkantworten können weder Secrets noch Authentik-Cookies nach einem
+Wipe wiederherstellen.
+
 Android implementiert Onboarding und Serverprüfung, Authentik-URL-Header-Auth,
 Setup/Login/Einladung, rollenabhängige Hauptnavigation, Periodenstart,
 Basis-Tageslog für Blutung, Schmerz, Stimmung, Energie, Schlaf und Symptome,
-Offline-Queue, Sync, Partner-Dashboard, Check-in-Anfrage, Kalender, Verlauf,
-Einladung/Freigaben, Theme und Screenshot-Schutz. Logout und bestätigter
+Offline-Queue, automatische Vordergrund-/WorkManager-Synchronisierung,
+Partner-Dashboard, Check-in-Anfrage, Kalender, Verlauf, Einladung/Freigaben,
+Theme, Screenshot-Schutz und persönlichen Lunara-Passwortwechsel in den
+Einstellungen. Logout und bestätigter
 Serverwechsel löschen lokale Gesundheitsdaten und Secrets auch bei fehlender
 Serververbindung.
 
@@ -51,12 +61,13 @@ Serververbindung.
 ### Backend
 
 - ESLint: erfolgreich
-- Jest Unit: 12 Suites, 35 Tests, erfolgreich nach dem finalen Security-Hardening
+- Jest Unit: 13 Suites, 38 Tests, erfolgreich nach dem finalen Security-Hardening
 - TypeScript-/Nest-Build: erfolgreich
 - Prisma-Schema: erfolgreich validiert
 - echter PostgreSQL-18-E2E-Kernablauf: 1 Suite/1 zusammenhängender Test,
   erfolgreich; enthält parallelen Refresh, vollständige Haushaltslöschung und
-  erneuten Setup-Status
+  erneuten Setup-Status sowie Passwortwechsel, Audit und den Erhalt der
+  aktuellen Tokenfamilie
 - `npm audit --omit=dev`: 0 bekannte Meldungen
 - vollständiger Abhängigkeitsbaum: eine moderate transitive `ajv`-Meldung nur
   über Entwicklungs-/Lint-/CLI-Abhängigkeiten
@@ -66,9 +77,8 @@ Serververbindung.
 Gezielte Unit-/E2E-Regressionen prüfen strikte Sync-Payloadvalidierung, die kurze
 In-Progress-Idempotenz-Lease mit Recovery, Haushaltsisolation im Pull-/Push-Sync,
 Create-Payload-Konflikte, Einladungslaufzeit-Policy, CSV-Formelschutz, den
-gültigen Einsatz der Tracker-IANA-Zeitzone und die fail-closed Partnerphase. Der
-finale OpenAPI-Spec-Hash lautet
-`9868fb2f45fa2f3ed76e9f9acfa726b16591872f7e16b77a42444c6a760bfb7d`.
+gültigen Einsatz der Tracker-IANA-Zeitzone und die fail-closed Partnerphase.
+OpenAPI-Spezifikation SHA-256: `74d69a46297d954fa46b42b3a9c4d20911486af3205090c4c1a5afab48d1e5bc`.
 
 Backend-Lint, Unit-Tests, Build, Prisma-Validierung, OpenAPI-Hashprüfung und E2E
 wurden nach diesen Änderungen erneut erfolgreich ausgeführt. Prisma meldete im
@@ -77,7 +87,7 @@ Validierung und E2E waren erfolgreich.
 
 ### Android
 
-- `testLocalDebugUnitTest`: 18/18 JVM-Tests erfolgreich
+- `testLocalDebugUnitTest`: 35/35 JVM-Tests erfolgreich
 - `lintLocalDebug`: erfolgreich
 - `lintProductionDebug`: erfolgreich
 - `assembleProductionDebug`: erfolgreich
@@ -91,29 +101,41 @@ Erzeugtes installierbares Artefakt:
 ```
 
 - Variante: Production-Debug
-- App-Version: `1.0.1` (`versionCode` 2)
-- Standardserver: `https://lunara.3li361.de/`
+- App-Version: `1.0.2` (`versionCode` 3)
+- Standardserver: leer; die persönliche Header-Auth-URL wird bewusst beim
+  ersten Start eingegeben
 - Klartext-HTTP: deaktiviert
-- Größe: 24.219.939 Bytes
-- SHA-256: `10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8`
+- Größe: 24.455.313 Bytes
+- SHA-256: `1f07d1d58b97dca2b78d12959a287b91003299418bdb5f64386ff3ea04ee7604`
 - `sha256sum -c artifacts/SHA256SUMS`: erfolgreich
 - APK-ZIP-Struktur und APK-Signature-Scheme-v2-Signatur: erfolgreich geprüft
 - Der lokale Debug-Schlüssel liegt mit Modus `0600` unter dem Git-ignorierten
   Buildzustand; APK- und Keystore-Fingerabdruck wurden identisch geprüft. Die
   frühere 1.0.0-Test-APK hatte noch eine flüchtige andere Debug-Signatur und
-  muss deshalb einmal deinstalliert werden, bevor 1.0.1 installiert wird.
+  muss deshalb einmal deinstalliert werden. Eine installierte 1.0.1 kann wegen
+  des identischen Zertifikats direkt auf 1.0.2 aktualisiert werden.
+  Zertifikat SHA-256: `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`.
+- Ein zusätzlicher Scan der dekomprimierten APK bestätigte, dass keine der
+  beiden echten Header-Auth-URLs und keine Secret-Zuweisung eingebettet ist.
 
-Ein unsigned Production-Release-Build wurde versucht, konnte auf dem Host wegen
-wiederholter Gradle-Daemon-/Speicherabbrüche aber nicht erfolgreich beendet
-werden. Es existiert deshalb kein `lunara-release-unsigned.apk`. Die
+Ein unsigned Production-Release-Build war zuvor versucht worden, konnte auf dem
+Host wegen wiederholter Gradle-Daemon-/Speicherabbrüche aber nicht erfolgreich
+beendet werden. Während der finalen 1.0.2-Bereitstellung lief eine aktive
+Emby-Transkodierung und der freie Hostspeicher lag unter der neu eingeführten
+4-GiB-Sicherheitsgrenze; deshalb wurde kein weiterer schwerer Android-Build
+parallel erzwungen. Es existiert kein `lunara-release-unsigned.apk`. Die
 Production-Debug-APK ist tatsächlich installierbar, besitzt aber den Android-
 Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 
 ### Container und Live-Deployment
 
 - Der eigene Stack läuft unter `/docker/lunara`; API und PostgreSQL sind gesund.
-- Zwei Prisma-Migrationen wurden erfolgreich angewendet. Der abgeschlossene
-  Migrator mit Exitcode 0 ist der erwartete Zustand.
+- Das ressourcenbegrenzte API-Image `lunara-api:1.0.2` wurde erfolgreich gebaut,
+  drei Prisma-Migrationen wurden angewendet und ausschließlich der API-Container
+  neu erstellt. Health und Readiness antworteten danach mit HTTP 200.
+- Die Metaantwort meldete Version 1.0.2 und `setupRequired: false`, setzte
+  `Cache-Control: no-store, max-age=0` sowie `Pragma: no-cache`; der neue
+  Passwort-Endpunkt antwortete ohne Lunara-Sitzung erwartungsgemäß mit HTTP 401.
 - API und PostgreSQL veröffentlichen keine Host-Ports. Die API läuft als
   UID/GID `10001:10001`, mit read-only Root-Dateisystem,
   `no-new-privileges` und vollständigem Capability-Drop.
@@ -152,10 +174,13 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 ### Privates GitHub-Repository
 
 Das Repository `https://github.com/eliasbruno124-dev/Lunara` wurde vor dem
-ersten Push als privat geprüft. Das private Release `v1.0.1` enthält die
-korrigierte `lunara-debug.apk` mit 24.219.939 Bytes. Echte `.env`, Gateway-
-Zugangsdaten, Tokens, Datenbankdumps und Infrastruktur-Backups wurden nicht
-hochgeladen.
+Push als privat geprüft. Das private Release `v1.0.2` enthält die geprüfte
+`lunara-debug.apk` mit 24.455.313 Bytes.
+
+- SHA-256: `1f07d1d58b97dca2b78d12959a287b91003299418bdb5f64386ff3ea04ee7604`.
+
+Echte `.env`, Gateway-Zugangsdaten, Tokens, Datenbankdumps und
+Infrastruktur-Backups wurden nicht hochgeladen.
 
 ## Bekannte Funktionsgrenzen
 
@@ -170,7 +195,10 @@ hochgeladen.
   noch nicht als vollständige UI vorhanden
 - Keine lokalen Benachrichtigungen, ntfy, Biometrie, Widget, Demo-Modus oder
   reduzierte-Bewegungs-Einstellung
-- Android konsumiert SSE noch nicht und nutzt WorkManager/manuellen Sync
+- Android konsumiert SSE noch nicht. Es synchronisiert automatisch nach
+  Anmeldung und lokalen Änderungen, beim Öffnen, einmal pro Minute im
+  Vordergrund sowie alle sechs Stunden über WorkManager; der manuelle Knopf
+  bleibt als ausdrücklicher Neuversuch nach terminalen Fehlern erhalten.
 - Der JSON-Export deckt Tracker-Kerndaten, aber nicht sämtliche Haushalts-,
   Sitzungs-, Audit-, Tipp- und Check-in-Datensätze ab
 - Der Import verarbeitet Perioden/Tageslogs aus JSON und erkennt Duplikate
@@ -203,11 +231,16 @@ Keystore-/SQLCipher-Wipe-Integration.
 
 ## Verbleibende Schritte zum ersten produktiven App-Start
 
-1. Eine der lokalen `gateway-a.url`/`gateway-b.url`-Dateien ausschließlich auf
-   dem Server öffnen und in Android eingeben; niemals teilen oder in QR kodieren.
-2. Den `BOOTSTRAP_TOKEN` lokal aus `/docker/lunara/.env` verwenden und das erste
-   Tracker-Konto anlegen.
-3. Über die App einen Einmalcode erzeugen und das Partnerkonto mit eigenen
-   Zugangsdaten anlegen.
-4. Gateway- und Lunara-Passwörter getrennt sichern, `APP_MASTER_KEY` separat
+1. Die eigene lokale Datei `/docker/lunara/dunja-headerauth.url` oder
+   `/docker/lunara/elias-headerauth.url` ausschließlich auf dem Server öffnen
+   und in Android eingeben; niemals teilen oder in einen QR-Code aufnehmen.
+2. Der Live-Server ist bereits eingerichtet (`setupRequired: false`). Mit dem
+   persönlichen Lunara-Konto anmelden; der Bootstrap-Token wird hier nicht
+   mehr benötigt.
+3. Falls das zweite Lunara-Konto noch fehlt, über das Tracker-Konto einen
+   Einmalcode erzeugen und mit eigenem Benutzernamen sowie eigenem Passwort
+   beitreten.
+4. Nur auf einer absichtlich vollständig leeren Neuinstallation wird einmalig
+   der lokale `BOOTSTRAP_TOKEN` zur Anlage des ersten Tracker-Kontos benötigt.
+5. Gateway- und Lunara-Passwörter getrennt sichern, `APP_MASTER_KEY` separat
    verschlüsselt offline verwahren und das erste Backup prüfen.

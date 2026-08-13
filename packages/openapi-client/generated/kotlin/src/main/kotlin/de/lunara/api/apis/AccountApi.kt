@@ -11,8 +11,8 @@ import de.lunara.api.models.UpdateMeDto
 interface AccountApi {
     /**
      * GET api/v1/me
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -23,12 +23,12 @@ interface AccountApi {
 
     /**
      * PATCH api/v1/me
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param updateMeDto 
+     * @param updateMeDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @PATCH("api/v1/me")

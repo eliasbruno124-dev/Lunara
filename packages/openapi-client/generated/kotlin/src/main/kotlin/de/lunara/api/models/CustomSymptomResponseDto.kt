@@ -28,13 +28,13 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param archivedAt 
- * @param createdAt 
- * @param id 
- * @param label 
- * @param updatedAt 
+ *
+ * @param archivedAt
+ * @param createdAt
+ * @param id
+ * @param label
+ * @param updatedAt
  */
 
 
@@ -59,4 +59,3 @@ data class CustomSymptomResponseDto (
 
 
 }
-

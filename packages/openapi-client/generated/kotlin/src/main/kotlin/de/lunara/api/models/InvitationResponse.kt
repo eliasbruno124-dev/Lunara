@@ -28,12 +28,12 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param assignedRole 
- * @param code 
- * @param expiresAt 
- * @param id 
+ *
+ * @param assignedRole
+ * @param code
+ * @param expiresAt
+ * @param id
  */
 
 
@@ -54,7 +54,7 @@ data class InvitationResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: PARTNER
      */
@@ -64,4 +64,3 @@ data class InvitationResponse (
     }
 
 }
-

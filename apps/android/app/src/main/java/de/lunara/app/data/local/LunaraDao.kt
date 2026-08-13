@@ -75,6 +75,12 @@ interface MutationDao {
     @Query("UPDATE mutation_queue SET state = 'PENDING', attemptCount = attemptCount + 1, nextAttemptAt = :nextAttemptAt, lastErrorCode = :errorCode WHERE id IN (:ids)")
     suspend fun retry(ids: List<String>, nextAttemptAt: String, errorCode: String)
 
+    @Query("UPDATE mutation_queue SET state = 'FAILED', attemptCount = attemptCount + 1, lastErrorCode = :errorCode WHERE id IN (:ids)")
+    suspend fun markFailed(ids: List<String>, errorCode: String)
+
+    @Query("UPDATE mutation_queue SET state = 'PENDING', attemptCount = 0, nextAttemptAt = :now, lastErrorCode = NULL WHERE state = 'FAILED'")
+    suspend fun resetFailed(now: String): Int
+
     @Query("UPDATE mutation_queue SET state = 'CONFLICT', lastErrorCode = :reason WHERE clientMutationId IN (:clientMutationIds)")
     suspend fun markConflicted(clientMutationIds: List<String>, reason: String = "VERSION_CONFLICT")
 
@@ -90,7 +96,7 @@ interface MutationDao {
     @Query("UPDATE mutation_queue SET state = 'PENDING' WHERE state = 'IN_FLIGHT'")
     suspend fun releaseInterrupted()
 
-    @Query("SELECT COUNT(*) FROM mutation_queue")
+    @Query("SELECT COUNT(*) FROM mutation_queue WHERE state IN ('PENDING', 'IN_FLIGHT', 'FAILED')")
     fun observeCount(): Flow<Int>
 
     @Query("DELETE FROM mutation_queue")
@@ -113,6 +119,9 @@ interface SyncMetadataDao {
 interface PartnerDashboardDao {
     @Query("SELECT * FROM partner_dashboard_cache WHERE cacheKey = 'current'")
     suspend fun current(): PartnerDashboardEntity?
+
+    @Query("SELECT * FROM partner_dashboard_cache WHERE cacheKey = 'current'")
+    fun observeCurrent(): Flow<PartnerDashboardEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(value: PartnerDashboardEntity)

@@ -12,8 +12,8 @@ import de.lunara.api.models.SyncResponse
 interface SyncApi {
     /**
      * GET api/v1/sync
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -25,12 +25,12 @@ interface SyncApi {
 
     /**
      * POST api/v1/sync
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param syncRequestDto 
+     * @param syncRequestDto
      * @return [SyncResponse]
      */
     @POST("api/v1/sync")

@@ -28,12 +28,12 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param clientMutationId 
- * @param entityType 
- * @param operation 
- * @param payload 
+ *
+ * @param clientMutationId
+ * @param entityType
+ * @param operation
+ * @param payload
  */
 
 
@@ -54,7 +54,7 @@ data class SyncMutationDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: PERIOD,DAILY_LOG
      */
@@ -64,7 +64,7 @@ data class SyncMutationDto (
         @Json(name = "DAILY_LOG") DAILY_LOG("DAILY_LOG");
     }
     /**
-     * 
+     *
      *
      * Values: UPSERT,DELETE
      */
@@ -75,4 +75,3 @@ data class SyncMutationDto (
     }
 
 }
-

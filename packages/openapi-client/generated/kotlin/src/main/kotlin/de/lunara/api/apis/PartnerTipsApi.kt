@@ -15,13 +15,13 @@ import de.lunara.api.models.UserDefinedTipResponseDto
 interface PartnerTipsApi {
     /**
      * POST api/v1/tips/{id}/feedback
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param id 
-     * @param tipFeedbackDto 
+     * @param id
+     * @param tipFeedbackDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @POST("api/v1/tips/{id}/feedback")
@@ -29,8 +29,8 @@ interface PartnerTipsApi {
 
     /**
      * GET api/v1/tips/today
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -41,12 +41,12 @@ interface PartnerTipsApi {
 
     /**
      * POST api/v1/tips/custom
-     * 
-     * 
-     * Responses:
-     *  - 201: 
      *
-     * @param createUserDefinedTipDto 
+     *
+     * Responses:
+     *  - 201:
+     *
+     * @param createUserDefinedTipDto
      * @return [UserDefinedTipResponseDto]
      */
     @POST("api/v1/tips/custom")
@@ -54,12 +54,12 @@ interface PartnerTipsApi {
 
     /**
      * DELETE api/v1/tips/custom/{id}
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 204: User-defined tip disabled
      *
-     * @param id 
+     * @param id
      * @return [Unit]
      */
     @DELETE("api/v1/tips/custom/{id}")
@@ -67,10 +67,10 @@ interface PartnerTipsApi {
 
     /**
      * GET api/v1/tips/custom
-     * 
-     * 
+     *
+     *
      * Responses:
-     *  - 200: 
+     *  - 200:
      *
      * @param includeDisabled  (optional)
      * @return [kotlin.collections.List<UserDefinedTipResponseDto>]
@@ -80,13 +80,13 @@ interface PartnerTipsApi {
 
     /**
      * PATCH api/v1/tips/custom/{id}
-     * 
-     * 
-     * Responses:
-     *  - 200: 
      *
-     * @param id 
-     * @param updateUserDefinedTipDto 
+     *
+     * Responses:
+     *  - 200:
+     *
+     * @param id
+     * @param updateUserDefinedTipDto
      * @return [UserDefinedTipResponseDto]
      */
     @PATCH("api/v1/tips/custom/{id}")

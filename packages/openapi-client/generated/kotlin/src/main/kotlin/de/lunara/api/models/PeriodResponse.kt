@@ -28,16 +28,16 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param createdAt 
- * @param deletedAt 
- * @param endDate 
- * @param id 
- * @param source 
- * @param startDate 
- * @param updatedAt 
- * @param version 
+ *
+ * @param createdAt
+ * @param deletedAt
+ * @param endDate
+ * @param id
+ * @param source
+ * @param startDate
+ * @param updatedAt
+ * @param version
  */
 
 
@@ -70,7 +70,7 @@ data class PeriodResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: MANUAL,IMPORT,SYNC
      */
@@ -82,4 +82,3 @@ data class PeriodResponse (
     }
 
 }
-

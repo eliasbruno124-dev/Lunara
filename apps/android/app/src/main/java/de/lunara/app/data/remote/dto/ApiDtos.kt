@@ -41,6 +41,11 @@ data class RefreshRequest(val refreshToken: String)
 
 data class LogoutRequest(val refreshToken: String)
 
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String,
+)
+
 data class MembershipDto(
     val id: String? = null,
     val role: String,

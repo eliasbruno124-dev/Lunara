@@ -28,12 +28,12 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param id Client-generated idempotent identifier
- * @param startDate 
- * @param endDate 
- * @param source 
+ * @param startDate
+ * @param endDate
+ * @param source
  */
 
 
@@ -55,7 +55,7 @@ data class CreatePeriodDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: MANUAL,IMPORT,SYNC
      */
@@ -67,4 +67,3 @@ data class CreatePeriodDto (
     }
 
 }
-

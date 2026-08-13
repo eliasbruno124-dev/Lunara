@@ -14,8 +14,13 @@ class AccountRepository @Inject constructor(
     private val secrets: SessionSecrets,
     private val apiFactory: ApiClientFactory,
     private val localDataWiper: LocalDataWiper,
+    private val credentialGate: SessionCredentialGate,
 ) {
     suspend fun eraseLocalAccount() {
+        // Reject any login/refresh response that was already in flight before
+        // logout began. Stored credentials remain available for the one
+        // best-effort server-side revocation below.
+        credentialGate.invalidate()
         // Server revocation is best-effort: a lost connection must never prevent
         // the promised local health-data and token wipe.
         val state = preferences.state.first()

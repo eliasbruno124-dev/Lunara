@@ -28,14 +28,14 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param deviceName 
- * @param displayName 
- * @param invitationCode 
- * @param password 
- * @param username 
- * @param preferredLanguage 
+ *
+ * @param deviceName
+ * @param displayName
+ * @param invitationCode
+ * @param password
+ * @param username
+ * @param preferredLanguage
  */
 
 
@@ -62,7 +62,7 @@ data class JoinHouseholdDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: DE,EN
      */
@@ -73,4 +73,3 @@ data class JoinHouseholdDto (
     }
 
 }
-

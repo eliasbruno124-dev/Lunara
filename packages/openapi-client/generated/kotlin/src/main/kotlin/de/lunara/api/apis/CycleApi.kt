@@ -12,8 +12,8 @@ import de.lunara.api.models.UpdateCycleProfileDto
 interface CycleApi {
     /**
      * GET api/v1/predictions
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -24,8 +24,8 @@ interface CycleApi {
 
     /**
      * GET api/v1/cycle/profile
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -36,12 +36,12 @@ interface CycleApi {
 
     /**
      * PATCH api/v1/cycle/profile
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param updateCycleProfileDto 
+     * @param updateCycleProfileDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @PATCH("api/v1/cycle/profile")

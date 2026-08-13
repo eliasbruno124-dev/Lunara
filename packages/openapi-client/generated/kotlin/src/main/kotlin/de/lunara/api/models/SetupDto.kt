@@ -28,15 +28,15 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param bootstrapToken 
- * @param deviceName 
- * @param displayName 
- * @param householdName 
- * @param password 
- * @param username 
- * @param preferredLanguage 
+ *
+ * @param bootstrapToken
+ * @param deviceName
+ * @param displayName
+ * @param householdName
+ * @param password
+ * @param username
+ * @param preferredLanguage
  */
 
 
@@ -66,7 +66,7 @@ data class SetupDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: DE,EN
      */
@@ -77,4 +77,3 @@ data class SetupDto (
     }
 
 }
-

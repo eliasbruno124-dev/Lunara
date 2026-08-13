@@ -28,9 +28,9 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param response 
+ *
+ * @param response
  */
 
 
@@ -43,4 +43,3 @@ data class RespondCheckInDto (
 
 
 }
-

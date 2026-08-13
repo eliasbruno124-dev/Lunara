@@ -18,12 +18,13 @@ import de.lunara.app.ui.theme.LunaraTheme
 @Composable
 fun LunaraApp(viewModel: RootViewModel = hiltViewModel()) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
+    val loggingOut by viewModel.loggingOut.collectAsStateWithLifecycle()
     val dark = preferences?.let { if (it.useSystemTheme) isSystemInDarkTheme() else it.darkMode } ?: isSystemInDarkTheme()
 
     LunaraTheme(darkTheme = dark) {
         Surface(Modifier.fillMaxSize()) {
             when {
-                preferences == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                preferences == null || loggingOut -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 preferences?.session == null -> OnboardingRoute()
                 else -> MainShell(
                     session = requireNotNull(preferences?.session),

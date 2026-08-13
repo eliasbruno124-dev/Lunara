@@ -24,6 +24,21 @@ class MutationQueuePolicyTest {
         assertEquals(3_840_000L, MutationQueuePolicy.nextDelayMillis(20))
     }
 
+    @Test
+    fun `eighth failed mutation attempt becomes terminal`() {
+        assertTrue(!MutationQueuePolicy.isTerminalAfterNextFailure(6))
+        assertTrue(MutationQueuePolicy.isTerminalAfterNextFailure(7))
+        assertTrue(MutationQueuePolicy.isTerminalAfterNextFailure(20))
+    }
+
+    @Test
+    fun `sync authentication never permits an unauthenticated request`() {
+        assertEquals(SyncAuthenticationAction.SKIP, SyncAuthenticationPolicy.decide(false, "access", "refresh"))
+        assertEquals(SyncAuthenticationAction.SKIP, SyncAuthenticationPolicy.decide(true, null, null))
+        assertEquals(SyncAuthenticationAction.REFRESH, SyncAuthenticationPolicy.decide(true, null, "refresh"))
+        assertEquals(SyncAuthenticationAction.SYNC, SyncAuthenticationPolicy.decide(true, "access", null))
+    }
+
     private fun mutation(clientId: String, created: String, id: String) = MutationEntity(
         id = id,
         clientMutationId = clientId,

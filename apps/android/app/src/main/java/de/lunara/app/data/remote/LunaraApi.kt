@@ -2,6 +2,7 @@ package de.lunara.app.data.remote
 
 import de.lunara.app.data.remote.dto.AuthResponseDto
 import de.lunara.app.data.remote.dto.CheckInDto
+import de.lunara.app.data.remote.dto.ChangePasswordRequest
 import de.lunara.app.data.remote.dto.CreateCheckInRequest
 import de.lunara.app.data.remote.dto.CreateInvitationRequest
 import de.lunara.app.data.remote.dto.InvitationDto
@@ -35,6 +36,7 @@ interface LunaraApi {
     @POST suspend fun join(@Url url: String, @Body request: JoinRequest): Response<AuthResponseDto>
     @POST suspend fun refresh(@Url url: String, @Body request: RefreshRequest): Response<AuthResponseDto>
     @POST suspend fun logout(@Url url: String, @Body request: LogoutRequest): Response<Unit>
+    @POST suspend fun changePassword(@Url url: String, @Body request: ChangePasswordRequest): Response<Unit>
     @POST suspend fun sync(@Url url: String, @Body request: SyncRequest): Response<SyncResponseDto>
     @GET suspend fun pullSync(@Url url: String, @Query("cursor") cursor: String): Response<SyncPullDto>
     @GET suspend fun partnerDashboard(@Url url: String): Response<PartnerDashboardDto>

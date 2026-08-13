@@ -28,11 +28,11 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param customRoleLabel 
- * @param displayName 
- * @param preferredLanguage 
+ *
+ * @param customRoleLabel
+ * @param displayName
+ * @param preferredLanguage
  */
 
 
@@ -50,7 +50,7 @@ data class UpdateMeDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: DE,EN
      */
@@ -61,4 +61,3 @@ data class UpdateMeDto (
     }
 
 }
-

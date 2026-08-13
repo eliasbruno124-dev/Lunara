@@ -28,20 +28,20 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param id 
- * @param localDate 
- * @param version 
- * @param bodyTemperature 
- * @param customSymptoms 
- * @param energy 
- * @param flowLevel 
- * @param mood 
- * @param note 
- * @param ovulationTestResult 
- * @param painLevel 
- * @param sleepQuality 
+ *
+ * @param id
+ * @param localDate
+ * @param version
+ * @param bodyTemperature
+ * @param customSymptoms
+ * @param energy
+ * @param flowLevel
+ * @param mood
+ * @param note
+ * @param ovulationTestResult
+ * @param painLevel
+ * @param sleepQuality
  */
 
 
@@ -86,7 +86,7 @@ data class UpdateDailyLogDto (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: SPOTTING,LIGHT,MEDIUM,HEAVY
      */
@@ -98,7 +98,7 @@ data class UpdateDailyLogDto (
         @Json(name = "HEAVY") HEAVY("HEAVY");
     }
     /**
-     * 
+     *
      *
      * Values: NEGATIVE,POSITIVE,UNCLEAR
      */
@@ -110,4 +110,3 @@ data class UpdateDailyLogDto (
     }
 
 }
-

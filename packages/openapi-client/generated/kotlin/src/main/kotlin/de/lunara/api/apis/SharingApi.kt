@@ -11,8 +11,8 @@ import de.lunara.api.models.UpdateSharingDto
 interface SharingApi {
     /**
      * GET api/v1/sharing
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -23,12 +23,12 @@ interface SharingApi {
 
     /**
      * PATCH api/v1/sharing
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param updateSharingDto 
+     * @param updateSharingDto
      * @return [kotlin.collections.Map<kotlin.String, kotlin.Any>]
      */
     @PATCH("api/v1/sharing")

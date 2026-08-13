@@ -28,11 +28,11 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param key 
- * @param labelDe 
- * @param labelEn 
+ *
+ * @param key
+ * @param labelDe
+ * @param labelEn
  */
 
 
@@ -51,4 +51,3 @@ data class PredefinedSymptomResponseDto (
 
 
 }
-

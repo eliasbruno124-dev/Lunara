@@ -7,6 +7,9 @@ package_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 spec="${package_dir}/openapi/lunara-v1.openapi.json"
 output="${package_dir}/generated/kotlin"
 generator_image="openapitools/openapi-generator-cli:v7.24.0@sha256:5bf3dc75f764c584da8e3344c51b2f3f1e74703461d46a035b5ac1d31515cc88"
+generator_cpus="${OPENAPI_GENERATOR_CPUS:-0.5}"
+generator_memory="${OPENAPI_GENERATOR_MEMORY:-1g}"
+generator_memory_swap="${OPENAPI_GENERATOR_MEMORY_SWAP:-1536m}"
 
 if [[ ! -f "${spec}" ]]; then
   echo "OpenAPI-Spezifikation fehlt: ${spec}. Zuerst npm run export ausführen." >&2
@@ -32,6 +35,9 @@ if [[ -d "${output}" ]]; then
 fi
 mkdir -p -- "${output}"
 docker run --rm \
+  --cpus "${generator_cpus}" \
+  --memory "${generator_memory}" \
+  --memory-swap "${generator_memory_swap}" \
   --user "$(id -u):$(id -g)" \
   --mount "type=bind,src=${package_dir},dst=/work" \
   "${generator_image}" generate \
@@ -42,9 +48,20 @@ docker run --rm \
   --global-property apiDocs=false,modelDocs=false,apiTests=false,modelTests=false \
   --skip-operation-example
 
+# OpenAPI Generator 7.24.0 emits spaces on otherwise empty KDoc lines.
+# Normalize generated text before hashing so `git diff --check` remains clean
+# and regeneration stays reproducible across developer machines and CI.
+find "${output}" -type f \( -name '*.kt' -o -name '*.md' -o -name '*.gradle' -o -name '*.properties' \) \
+  -exec sed -i 's/[[:space:]]\+$//' {} +
+find "${output}" -type f \( -name '*.kt' -o -name '*.md' -o -name '*.gradle' -o -name '*.properties' \) \
+  -exec perl -0pi -e 's/\n(?:[ \t]*\n)+\z/\n/' {} +
+
 chmod 0755 -- "${output}/gradlew"
 
 docker run --rm \
+  --cpus 0.5 \
+  --memory 256m \
+  --memory-swap 384m \
   --user "$(id -u):$(id -g)" \
   --mount "type=bind,src=${package_dir},dst=/work" \
   --workdir /work \

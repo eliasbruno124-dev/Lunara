@@ -35,7 +35,9 @@ class KeystoreSecretStore @Inject constructor(
     @Synchronized
     override fun putBytes(key: String, value: ByteArray?) {
         if (value == null) {
-            prefs.edit().remove(key).apply()
+            check(prefs.edit().remove(key).commit()) {
+                "Encrypted secret could not be removed"
+            }
             return
         }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -43,8 +45,13 @@ class KeystoreSecretStore @Inject constructor(
         cipher.updateAAD(key.encodeToByteArray())
         val encrypted = cipher.doFinal(value)
         val payload = Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP)
-        prefs.edit().putString(key, payload).apply()
-        value.fill(0)
+        try {
+            check(prefs.edit().putString(key, payload).commit()) {
+                "Encrypted secret could not be persisted"
+            }
+        } finally {
+            value.fill(0)
+        }
     }
 
     @Synchronized
@@ -64,6 +71,7 @@ class KeystoreSecretStore @Inject constructor(
         }.getOrNull()
     }
 
+    @Synchronized
     override fun clear() {
         check(prefs.edit().clear().commit()) { "Encrypted secret storage could not be cleared" }
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

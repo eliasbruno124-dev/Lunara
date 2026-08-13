@@ -1,6 +1,6 @@
 # Lunara – Fortschritt
 
-Stand: 12. August 2026
+Stand: 13. August 2026
 
 ## Erledigt
 
@@ -25,22 +25,22 @@ Stand: 12. August 2026
 - [x] Android-JVM-Tests, Local-/Production-Lint, Instrumentation-Kompilierung
   und Production-Debug-APK-Build erfolgreich ausgeführt.
 - [x] Android-/API-Verträge für Einladungslaufzeit, Tageslog-Textgrenzen und
-  sprachabhängigen Check-in abgeglichen; 17 JVM-Tests und beide Lintvarianten
-  danach erneut erfolgreich ausgeführt.
+  sprachabhängigen Check-in abgeglichen; die abschließende Version 1.0.2
+  bestand 35 JVM-Tests und beide Lintvarianten.
 - [x] Produktions-Debug-APK unter `artifacts/lunara-debug.apk` abgelegt und
   SHA-256-Prüfung ausgeführt.
 - [x] Produktions-API-Image als nicht privilegierter Benutzer gebaut und
   Produktionsabhängigkeiten ohne bekannte npm-Audit-Meldung geprüft.
 - [x] Drei hohe Auditbefunde zu Haushaltslöschung, parallelem Refresh und
-  Einladungscode-DoS behoben; Regressionen mit 35 Unit-Tests und echtem
-  PostgreSQL-E2E erneut erfolgreich geprüft.
+  Einladungscode-DoS behoben; die erweiterte Regression bestand abschließend
+  13 Backend-Suites mit 38 Tests und den echten PostgreSQL-E2E-Ablauf.
 - [x] Sync-Payloadvalidierung/Lease-Recovery, Create-Payload-Idempotenz,
   Einladungslaufzeit, CSV-Formelschutz, IANA-Zeitzone und fail-closed
   Partnerphase nachgehärtet.
 - [x] Finales Security-Review eingearbeitet und komplette Backend-Prüfkette
   erneut ausgeführt.
 - [x] Eigenen Live-Stack unter `/docker/lunara` gestartet: API/PostgreSQL gesund,
-  zwei Migrationen angewendet, keine Hostports, API als UID/GID `10001:10001`
+  drei Migrationen angewendet, keine Hostports, API als UID/GID `10001:10001`
   mit read-only Root-Dateisystem und Capability-Drop verifiziert.
 - [x] Authentik-Provider und Pangolin-Ressource additiv angelegt und beide
   getrennten Gateway-Konten lokal vor DNS erfolgreich geprüft; ohne Anmeldung
@@ -77,12 +77,34 @@ Stand: 12. August 2026
   verfolgt. Eingefügtes `/api/v1/meta` wird auf die Serverbasis normalisiert.
 - [x] Version 1.0.1 mit vorausgefüllter Produktionsdomain gebaut; Unit-Tests,
   Local-/Production-Lint, APK-ZIP- und v2-Signaturprüfung erfolgreich. Größe:
-  24.219.939 Bytes, SHA-256:
-  `10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8`.
+  24.219.939 Bytes.
+  SHA-256 (v1.0.1): `10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8`.
 - [x] Lokalen Debug-Signierschlüssel dauerhaft, mit Modus `0600` und außerhalb
   der Git-Erfassung abgelegt. APK- und Keystore-Fingerabdruck stimmen überein,
   sodass nach der einmaligen Ablösung der 1.0.0-Testsignatur weitere lokale
   Debug-Updates denselben Schlüssel verwenden.
+- [x] Produktions-Onboarding 1.0.2 ohne vorausgefüllte Domain umgesetzt;
+  veraltete Authentik-Cookies und Bootstrap-Metadaten werden fail-closed
+  verworfen, ein autoritatives Setup-`409` wechselt direkt zur Anmeldung.
+- [x] Automatische Synchronisierung nach Anmeldung/Mutation, beim Öffnen,
+  minütlich im Vordergrund und sparsam per WorkManager ergänzt; Worker,
+  Credential-Rotation und lokale Wipes gegen Parallelzugriffe gehärtet.
+- [x] Persönlichen Lunara-Passwortwechsel in beiden rollenabhängigen
+  Einstellungen implementiert: aktuelles Passwort, Argon2id, Rate-Limit,
+  Audit und Widerruf aller anderen Lunara-Tokenfamilien.
+- [x] Version 1.0.2 mit leerer Standardserveradresse gebaut; 35/35 JVM-Tests,
+  beide Lints, Instrumentierungstest-Kompilierung, APK-ZIP/v2-Signatur und
+  Secret-Scan erfolgreich. Größe: 24.455.313 Bytes.
+  SHA-256 (v1.0.2): `1f07d1d58b97dca2b78d12959a287b91003299418bdb5f64386ff3ea04ee7604`.
+- [x] Vor dem Live-Update einen geprüften PostgreSQL-Custom-Dump und die
+  eng benannten Quell-/Konfigurationssicherungen angelegt, das API-Image mit
+  1 GiB RAM und einer halben CPU gebaut, die dritte Migration angewendet und
+  ausschließlich den Lunara-API-Container auf Version 1.0.2 aktualisiert.
+- [x] Live-Prüfung von Health, Readiness, No-Store-Metaantwort,
+  Passwort-Authentifizierung, beiden persönlichen Authentik-Zugängen und drei
+  Migrationen bestanden. Emby lief währenddessen ohne Neustart weiter.
+- [x] Geprüften Quellstand und die APK als privates GitHub-Release `v1.0.2`
+  veröffentlicht.
 
 ## In Arbeit
 

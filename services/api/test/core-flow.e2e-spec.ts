@@ -2,20 +2,27 @@ import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { TipCategory, UserRole } from '@prisma/client';
+import { AuditEventType, TipCategory, UserRole } from '@prisma/client';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
+import { AuthService } from '../src/auth/auth.service.js';
 
 describe('Lunara core flow (real PostgreSQL)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const module = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = module.createNestApplication();
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     await app.init();
     prisma = app.get(PrismaService);
@@ -26,9 +33,13 @@ describe('Lunara core flow (real PostgreSQL)', () => {
   });
 
   it('setup -> invite -> partner -> prediction -> sharing -> sync', async () => {
-    const metaBefore = await request(app.getHttpServer()).get('/api/v1/meta').expect(200);
+    const metaBefore = await request(app.getHttpServer())
+      .get('/api/v1/meta')
+      .expect(200);
     expect(metaBefore.body.setupRequired).toBe(true);
     expect(metaBefore.body.gatewayHeaderName).toBe('X-Lunara-Authorization');
+    expect(metaBefore.headers['cache-control']).toContain('no-store');
+    expect(metaBefore.headers.pragma).toBe('no-cache');
 
     const trackerSetup = await request(app.getHttpServer())
       .post('/api/v1/setup')
@@ -51,14 +62,16 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     const unknownLogin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
-        username: 'does-not-exist', password: 'An intentionally wrong password!',
+        username: 'does-not-exist',
+        password: 'An intentionally wrong password!',
         deviceName: 'Unknown device',
       })
       .expect(401);
     const wrongPasswordLogin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
-        username: 'tracker-e2e', password: 'An intentionally wrong password!',
+        username: 'tracker-e2e',
+        password: 'An intentionally wrong password!',
         deviceName: 'Wrong password device',
       })
       .expect(401);
@@ -72,8 +85,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .post('/api/v1/setup')
       .send({
         bootstrapToken: process.env.BOOTSTRAP_TOKEN,
-        householdName: 'Should fail', username: 'other-user',
-        password: 'A secure other password!', displayName: 'Other', deviceName: 'Other',
+        householdName: 'Should fail',
+        username: 'other-user',
+        password: 'A secure other password!',
+        displayName: 'Other',
+        deviceName: 'Other',
       })
       .expect(409);
 
@@ -101,8 +117,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     await request(app.getHttpServer())
       .post('/api/v1/household/join')
       .send({
-        invitationCode: invite.body.code, username: 'replay-user',
-        password: 'A secure replay password!', displayName: 'Replay', deviceName: 'Replay',
+        invitationCode: invite.body.code,
+        username: 'replay-user',
+        password: 'A secure replay password!',
+        displayName: 'Replay',
+        deviceName: 'Replay',
       })
       .expect(410);
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -135,7 +154,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     expect(symptomCatalog.body.predefined).toHaveLength(12);
     expect(symptomCatalog.body.predefined).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ key: 'CRAMPS', labelDe: 'Krämpfe', labelEn: 'Cramps' }),
+        expect.objectContaining({
+          key: 'CRAMPS',
+          labelDe: 'Krämpfe',
+          labelEn: 'Cramps',
+        }),
       ]),
     );
     await request(app.getHttpServer())
@@ -174,7 +197,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body.custom).toEqual(
-          expect.arrayContaining([expect.objectContaining({ id: customSymptomId })]),
+          expect.arrayContaining([
+            expect.objectContaining({ id: customSymptomId }),
+          ]),
         );
       });
 
@@ -216,7 +241,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     });
     const foreignSymptomId = randomUUID();
     await prisma.customSymptom.create({
-      data: { id: foreignSymptomId, userId: foreignUserId, label: 'Fremdes Symptom' },
+      data: {
+        id: foreignSymptomId,
+        userId: foreignUserId,
+        label: 'Fremdes Symptom',
+      },
     });
     await request(app.getHttpServer())
       .patch(`/api/v1/symptoms/${foreignSymptomId}`)
@@ -238,7 +267,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${trackerAccess}`)
       .expect(404);
     expect(
-      await prisma.periodEvent.count({ where: { id: foreignPeriodId, deletedAt: null } }),
+      await prisma.periodEvent.count({
+        where: { id: foreignPeriodId, deletedAt: null },
+      }),
     ).toBe(1);
 
     const isolatedSyncPull = await request(app.getHttpServer())
@@ -246,11 +277,20 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${trackerAccess}`)
       .expect(200);
     expect(isolatedSyncPull.body.changes).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ entityId: foreignPeriodId })]),
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: foreignPeriodId }),
+      ]),
     );
-    expect(JSON.stringify(isolatedSyncPull.body)).not.toContain(foreignPeriodId);
+    expect(JSON.stringify(isolatedSyncPull.body)).not.toContain(
+      foreignPeriodId,
+    );
 
-    const periodStarts = ['2026-04-01', '2026-05-01', '2026-05-31', '2026-06-30'];
+    const periodStarts = [
+      '2026-04-01',
+      '2026-05-01',
+      '2026-05-31',
+      '2026-06-30',
+    ];
     const createdPeriods = [] as Array<{ id: string; version: number }>;
     for (const startDate of periodStarts) {
       const created = await request(app.getHttpServer())
@@ -259,10 +299,14 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         .set('Authorization', 'Basic Z2F0ZXdheTpwYXNzd29yZA==')
         .send({ id: randomUUID(), startDate })
         .expect(201);
-      createdPeriods.push({ id: created.body.id as string, version: created.body.version as number });
+      createdPeriods.push({
+        id: created.body.id as string,
+        version: created.body.version as number,
+      });
     }
     const firstCreatedPeriod = createdPeriods[0];
-    if (!firstCreatedPeriod) throw new Error('Expected at least one E2E period');
+    if (!firstCreatedPeriod)
+      throw new Error('Expected at least one E2E period');
 
     await request(app.getHttpServer())
       .patch(`/api/v1/periods/${firstCreatedPeriod.id}`)
@@ -305,8 +349,12 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         note: 'Diese Notiz bleibt privat',
       })
       .expect(201);
-    const encryptedAtRest = await prisma.dailyLog.findUniqueOrThrow({ where: { id: logId } });
-    expect(encryptedAtRest.encryptedNote).not.toContain('Diese Notiz bleibt privat');
+    const encryptedAtRest = await prisma.dailyLog.findUniqueOrThrow({
+      where: { id: logId },
+    });
+    expect(encryptedAtRest.encryptedNote).not.toContain(
+      'Diese Notiz bleibt privat',
+    );
 
     const dashboard = await request(app.getHttpServer())
       .get('/api/v1/partner/dashboard')
@@ -314,7 +362,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(200);
     expect(dashboard.body.prediction.predictedStartFrom).toBeDefined();
     expect(JSON.stringify(dashboard.body)).not.toContain('Krämpfe');
-    expect(JSON.stringify(dashboard.body)).not.toContain('Diese Notiz bleibt privat');
+    expect(JSON.stringify(dashboard.body)).not.toContain(
+      'Diese Notiz bleibt privat',
+    );
     expect(JSON.stringify(dashboard.body)).not.toContain('painLevel');
 
     const dailyTip = await request(app.getHttpServer())
@@ -334,10 +384,12 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         id: foreignTipId,
         category: TipCategory.USER_DEFINED,
         createdByUserId: foreignUserId,
-        householdId: (await prisma.membership.findFirstOrThrow({
-          where: { userId: foreignUserId },
-          select: { householdId: true },
-        })).householdId,
+        householdId: (
+          await prisma.membership.findFirstOrThrow({
+            where: { userId: foreignUserId },
+            select: { householdId: true },
+          })
+        ).householdId,
         titleDe: 'Fremder Hinweis',
         bodyDe: 'Dieser Text gehört in einen anderen Haushalt.',
         callToActionDe: 'Nicht anzeigen',
@@ -387,7 +439,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${trackerAccess}`)
       .send(ownTipBody)
       .expect(201)
-      .expect(({ body }) => expect(body.category).toBe(TipCategory.USER_DEFINED));
+      .expect(({ body }) =>
+        expect(body.category).toBe(TipCategory.USER_DEFINED),
+      );
     await request(app.getHttpServer())
       .patch(`/api/v1/tips/custom/${foreignTipId}`)
       .set('Authorization', `Bearer ${trackerAccess}`)
@@ -492,7 +546,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .send({ format: 'JSON' })
       .expect(201);
     expect(exported.body.data.format).toBe('lunara-backup');
-    expect(exported.body.data.dailyLogs[0].note).toBe('Diese Notiz bleibt privat');
+    expect(exported.body.data.dailyLogs[0].note).toBe(
+      'Diese Notiz bleibt privat',
+    );
     await request(app.getHttpServer())
       .post('/api/v1/import')
       .set('Authorization', `Bearer ${trackerAccess}`)
@@ -541,7 +597,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .send(syncBody)
       .expect(201);
     expect(initialSyncPush.body.changes).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ entityId: foreignPeriodId })]),
+      expect.arrayContaining([
+        expect.objectContaining({ entityId: foreignPeriodId }),
+      ]),
     );
     expect(JSON.stringify(initialSyncPush.body)).not.toContain(foreignPeriodId);
     await request(app.getHttpServer())
@@ -574,17 +632,19 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     const concurrentId = randomUUID();
     const concurrentMutation = {
       cursor: '0',
-      mutations: [{
-        clientMutationId: randomUUID(),
-        entityType: 'DAILY_LOG',
-        operation: 'UPSERT',
-        payload: {
-          id: concurrentId,
-          localDate: '2026-08-10',
-          energy: 5,
-          customSymptoms: [],
+      mutations: [
+        {
+          clientMutationId: randomUUID(),
+          entityType: 'DAILY_LOG',
+          operation: 'UPSERT',
+          payload: {
+            id: concurrentId,
+            localDate: '2026-08-10',
+            energy: 5,
+            customSymptoms: [],
+          },
         },
-      }],
+      ],
     };
     const concurrentResponses = await Promise.all([
       request(app.getHttpServer())
@@ -596,12 +656,22 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         .set('Authorization', `Bearer ${trackerAccess}`)
         .send(concurrentMutation),
     ]);
-    expect(concurrentResponses.some((response) => response.status === 201)).toBe(true);
-    expect(concurrentResponses.every((response) => [201, 409].includes(response.status))).toBe(true);
-    expect(await prisma.dailyLog.count({ where: { id: concurrentId } })).toBe(1);
+    expect(
+      concurrentResponses.some((response) => response.status === 201),
+    ).toBe(true);
+    expect(
+      concurrentResponses.every((response) =>
+        [201, 409].includes(response.status),
+      ),
+    ).toBe(true);
+    expect(await prisma.dailyLog.count({ where: { id: concurrentId } })).toBe(
+      1,
+    );
 
     await request(app.getHttpServer())
-      .delete(`/api/v1/periods/${firstCreatedPeriod.id}?version=${firstCreatedPeriod.version}`)
+      .delete(
+        `/api/v1/periods/${firstCreatedPeriod.id}?version=${firstCreatedPeriod.version}`,
+      )
       .set('Authorization', `Bearer ${trackerAccess}`)
       .expect(204);
     const softDeleted = await prisma.periodEvent.findUniqueOrThrow({
@@ -614,7 +684,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${trackerAccess}`)
       .expect(200);
     expect(visiblePeriods.body).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: firstCreatedPeriod.id })]),
+      expect.arrayContaining([
+        expect.objectContaining({ id: firstCreatedPeriod.id }),
+      ]),
     );
 
     const raceLogin = await request(app.getHttpServer())
@@ -633,9 +705,14 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: raceLogin.body.refreshToken }),
     ]);
-    expect(concurrentRefreshes.map((response) => response.status).sort()).toEqual([201, 401]);
-    const concurrentWinner = concurrentRefreshes.find((response) => response.status === 201);
-    if (!concurrentWinner) throw new Error('Expected one concurrent refresh winner');
+    expect(
+      concurrentRefreshes.map((response) => response.status).sort(),
+    ).toEqual([201, 401]);
+    const concurrentWinner = concurrentRefreshes.find(
+      (response) => response.status === 201,
+    );
+    if (!concurrentWinner)
+      throw new Error('Expected one concurrent refresh winner');
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: concurrentWinner.body.refreshToken })
@@ -661,23 +738,202 @@ describe('Lunara core flow (real PostgreSQL)', () => {
 
     await prisma.user.delete({ where: { id: foreignUserId } });
     await prisma.household.delete({ where: { id: foreignHousehold.id } });
-    const deletionLogin = await request(app.getHttpServer())
+    const authService = app.get(AuthService);
+    const trackerIdentity = {
+      id: trackerUserId,
+      username: 'tracker-e2e',
+      displayName: 'Tracker',
+      preferredLanguage: 'DE' as const,
+      role: UserRole.TRACKER,
+      householdId: trackerHouseholdId,
+    };
+    const passwordChangeSession = await authService.createAuthenticatedSession(
+      prisma,
+      trackerIdentity,
+      'Password change device',
+    );
+    const otherPasswordSession = await authService.createAuthenticatedSession(
+      prisma,
+      trackerIdentity,
+      'Session revoked by password change',
+    );
+    const wrongPasswordChange = await request(app.getHttpServer())
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${passwordChangeSession.accessToken}`)
+      .send({
+        currentPassword: 'An incorrect current password!',
+        newPassword: 'A new secure tracker password 2026!',
+      })
+      .expect(403);
+    expect(wrongPasswordChange.body.message).toBe(
+      'Password change could not be authorized',
+    );
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${passwordChangeSession.accessToken}`)
+      .send({
+        currentPassword: 'A secure tracker password 2026!',
+        newPassword: 'A secure tracker password 2026!',
+      })
+      .expect(400);
+    expect(
+      (
+        await prisma.deviceSession.findUniqueOrThrow({
+          where: { id: otherPasswordSession.sessionId },
+        })
+      ).revokedAt,
+    ).toBeNull();
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/change-password')
+      .set('Authorization', `Bearer ${passwordChangeSession.accessToken}`)
+      .send({
+        currentPassword: 'A secure tracker password 2026!',
+        newPassword: 'A new secure tracker password 2026!',
+      })
+      .expect(204);
+    await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${passwordChangeSession.accessToken}`)
+      .expect(200);
+    expect(
+      await prisma.deviceSession.findUniqueOrThrow({
+        where: { id: passwordChangeSession.sessionId },
+      }),
+    ).toEqual(expect.objectContaining({ revokedAt: null }));
+    expect(
+      (
+        await prisma.deviceSession.findUniqueOrThrow({
+          where: { id: otherPasswordSession.sessionId },
+        })
+      ).revokedAt,
+    ).toBeInstanceOf(Date);
+    await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${otherPasswordSession.accessToken}`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: otherPasswordSession.refreshToken })
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${partnerAccess}`)
+      .expect(200);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          actorUserId: trackerUserId,
+          type: AuditEventType.PASSWORD_CHANGE_FAILED,
+        },
+      }),
+    ).toBe(2);
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          actorUserId: trackerUserId,
+          type: AuditEventType.PASSWORD_CHANGED,
+        },
+      }),
+    ).toBe(1);
+    await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
         username: 'tracker-e2e',
         password: 'A secure tracker password 2026!',
-        deviceName: 'Account deletion device',
+        deviceName: 'Old password must fail',
+      })
+      .expect(401);
+    const newPasswordLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        username: 'tracker-e2e',
+        password: 'A new secure tracker password 2026!',
+        deviceName: 'New password succeeds',
       })
       .expect(201);
+    const currentRefreshAfterChange = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: passwordChangeSession.refreshToken })
+      .expect(201);
+    // Reproduce the guard/refresh interleaving deterministically: the access
+    // guard had already built a context for the now-rotated S0 session while
+    // refresh created S1 in the same token family. A password change using that
+    // stale context must preserve S1 while revoking every other family.
+    await authService.changePassword(
+      {
+        userId: trackerUserId,
+        sessionId: passwordChangeSession.sessionId,
+        householdId: trackerHouseholdId,
+        membershipId: randomUUID(),
+        role: UserRole.TRACKER,
+        username: 'tracker-e2e',
+        displayName: 'Tracker',
+        preferredLanguage: 'DE',
+      },
+      {
+        currentPassword: 'A new secure tracker password 2026!',
+        newPassword: 'A final secure tracker password 2026!',
+      },
+    );
+    await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set(
+        'Authorization',
+        `Bearer ${currentRefreshAfterChange.body.accessToken}`,
+      )
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: currentRefreshAfterChange.body.refreshToken })
+      .expect(201);
+    await request(app.getHttpServer())
+      .get('/api/v1/me')
+      .set('Authorization', `Bearer ${newPasswordLogin.body.accessToken}`)
+      .expect(401);
+    await expect(
+      authService.login({
+        username: 'tracker-e2e',
+        password: 'A new secure tracker password 2026!',
+        deviceName: 'Intermediate password must fail',
+      }),
+    ).rejects.toThrow('Invalid username or password');
+    const finalPasswordLogin = await authService.login({
+      username: 'tracker-e2e',
+      password: 'A final secure tracker password 2026!',
+      deviceName: 'Final password succeeds',
+    });
+    expect(
+      await prisma.auditEvent.count({
+        where: {
+          actorUserId: trackerUserId,
+          type: AuditEventType.PASSWORD_CHANGED,
+        },
+      }),
+    ).toBe(2);
     await request(app.getHttpServer())
       .delete('/api/v1/account')
-      .set('Authorization', `Bearer ${deletionLogin.body.accessToken}`)
-      .send({ password: 'A secure tracker password 2026!', deleteHousehold: true })
+      .set('Authorization', `Bearer ${finalPasswordLogin.accessToken}`)
+      .send({
+        password: 'A final secure tracker password 2026!',
+        deleteHousehold: true,
+      })
       .expect(204);
-    expect(await prisma.user.count({ where: { id: { in: [trackerUserId, partnerUserId] } } })).toBe(0);
-    expect(await prisma.deviceSession.count({ where: { userId: { in: [trackerUserId, partnerUserId] } } })).toBe(0);
-    expect(await prisma.periodEvent.count({ where: { userId: trackerUserId } })).toBe(0);
-    expect(await prisma.dailyLog.count({ where: { userId: trackerUserId } })).toBe(0);
+    expect(
+      await prisma.user.count({
+        where: { id: { in: [trackerUserId, partnerUserId] } },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.deviceSession.count({
+        where: { userId: { in: [trackerUserId, partnerUserId] } },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.periodEvent.count({ where: { userId: trackerUserId } }),
+    ).toBe(0);
+    expect(
+      await prisma.dailyLog.count({ where: { userId: trackerUserId } }),
+    ).toBe(0);
     expect(
       await prisma.auditEvent.count({
         where: {
@@ -690,6 +946,8 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     await request(app.getHttpServer())
       .get('/api/v1/meta')
       .expect(200)
+      .expect('Cache-Control', 'no-store, max-age=0')
+      .expect('Pragma', 'no-cache')
       .expect(({ body }) => expect(body.setupRequired).toBe(true));
   });
 });

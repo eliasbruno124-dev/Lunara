@@ -11,7 +11,7 @@
     <string name="server_connect_title">Server verbinden</string>
     <string name="server_url">Server-URL</string>
     <string name="server_url_example">https://user:pass@lunara.example.de</string>
-    <string name="gateway_hint">Die Serverdomain ist vorausgefüllt. Für Authentik gib https://BENUTZER:APP-PASSWORT@lunara.3li361.de ein – ohne /api/v1/meta. Die Zugangsdaten werden sicher getrennt gespeichert und dürfen nicht im QR-Code stehen.</string>
+    <string name="gateway_hint">Gib deine vollständige persönliche Header-Auth-URL ein: https://BENUTZER:APP-PASSWORT@lunara.3li361.de – ohne /api/v1/meta. Die Zugangsdaten werden sicher getrennt gespeichert und dürfen nicht im QR-Code stehen.</string>
     <string name="development_http">Unsicheres HTTP im lokalen Entwicklungsmodus erlauben</string>
     <string name="development_http_warning">HTTP überträgt Daten unverschlüsselt und darf nur in einer vertrauenswürdigen Entwicklungsumgebung verwendet werden.</string>
     <string name="test_connection">Verbindung testen</string>
@@ -32,6 +32,7 @@
     <string name="display_name">Anzeigename</string>
     <string name="household_name">Name des Haushalts</string>
     <string name="bootstrap_token">Bootstrap-Token</string>
+    <string name="bootstrap_explanation">Nur für das allererste Tracker-Konto auf einem vollständig leeren Server. Den Token findest du ausschließlich in der lokalen Serverkonfiguration. Danach erfolgt der Zugang per Anmeldung oder Einladung.</string>
     <string name="invitation_code">Einladungscode</string>
     <string name="sign_in">Sicher anmelden</string>
     <string name="create_household">Haushalt erstellen</string>
@@ -105,6 +106,22 @@
     <string name="privacy_mode">Screenshot-Schutz</string>
     <string name="privacy_mode_summary">Blockiert Screenshots und die Vorschau in der App-Übersicht.</string>
     <string name="server_information">Server-Informationen</string>
+    <string name="account_security">Konto und Sicherheit</string>
+    <string name="change_password">Lunara-Passwort ändern</string>
+    <string name="change_password_summary">Ändert dein persönliches Lunara-Passwort und widerruft alle anderen Lunara-Serversitzungen.</string>
+    <string name="change_password_notice">Gemeint ist dein Lunara-Passwort, nicht das Authentik-App-Passwort. Andere Lunara-Serversitzungen werden widerrufen. Bereits offline gespeicherte Daten bleiben auf diesen Geräten erhalten.</string>
+    <string name="current_password">Aktuelles Lunara-Passwort</string>
+    <string name="new_password">Neues Lunara-Passwort</string>
+    <string name="confirm_new_password">Neues Passwort wiederholen</string>
+    <string name="password_length_hint">12–128 Zeichen</string>
+    <string name="password_current_required">Gib dein aktuelles Lunara-Passwort ein.</string>
+    <string name="password_new_length">Das neue Passwort muss 12–128 Zeichen lang sein.</string>
+    <string name="password_must_differ">Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.</string>
+    <string name="password_confirmation_mismatch">Die beiden Eingaben für das neue Passwort stimmen nicht überein.</string>
+    <string name="password_current_rejected">Das aktuelle Lunara-Passwort ist nicht richtig.</string>
+    <string name="password_change_failed">Das Passwort konnte nicht geändert werden. Prüfe die Verbindung und versuche es erneut.</string>
+    <string name="password_changing">Wird geändert …</string>
+    <string name="password_change_success">Passwort geändert. Alle anderen Lunara-Serversitzungen wurden widerrufen.</string>
     <string name="partner_connect">Partner verbinden</string>
     <string name="partner_connect_summary">Erzeuge einen einmal verwendbaren Einladungscode. Er enthält weder Passwort noch Server-Zugangsdaten.</string>
     <string name="create_invitation">Zeitlich begrenzte Einladung erstellen</string>
@@ -131,6 +148,15 @@
     <string name="error_timeout">Der Server hat nicht rechtzeitig geantwortet.</string>
     <string name="error_gateway_auth">Authentik hat den Zugang nicht angenommen. Hänge keinen API-Pfad an die Adresse an und nutze die vollständige persönliche Header-Auth-URL.</string>
     <string name="error_api">Der Server antwortet nicht mit einer kompatiblen Lunara-API.</string>
+    <string name="error_username">Benutzername: 3–64 Zeichen, ohne Leerzeichen. Er muss mit einem Buchstaben oder einer Zahl beginnen; erlaubt sind außerdem Punkt, Unterstrich und Bindestrich.</string>
+    <string name="error_password">Das Lunara-Passwort muss 12–128 Zeichen lang sein.</string>
+    <string name="error_display_name">Bitte gib einen Anzeigenamen ein.</string>
+    <string name="error_household_name">Bitte gib einen Namen für den Haushalt ein.</string>
+    <string name="error_bootstrap_token">Der Bootstrap-Token muss 20–256 Zeichen lang sein. Kopiere nur den Wert, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen.</string>
+    <string name="error_bootstrap_rejected">Der Server hat den Bootstrap-Token nicht akzeptiert. Kopiere nur den Wert aus der lokalen Serverdatei, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen.</string>
+    <string name="error_setup_complete">Dieser Server wurde bereits eingerichtet. Du kannst dich jetzt mit deinem Lunara-Konto anmelden.</string>
+    <string name="error_invitation_code">Der Einladungscode muss aus 8–12 gültigen Zeichen bestehen.</string>
+    <string name="error_invalid_credentials">Benutzername oder Lunara-Passwort ist nicht korrekt.</string>
     <string name="error_generic">Das hat nicht funktioniert. Prüfe deine Eingaben und versuche es erneut.</string>
     <string name="offline_badge">Offline verfügbar</string>
     <string name="estimated_label">Geschätzt</string>

@@ -10,6 +10,7 @@ builder_image="${ANDROID_BUILDER_IMAGE:-mingc/android-build-box:1.29.0}"
 gradle_jvm_args="${ANDROID_GRADLE_JVM_ARGS:--Xmx768m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8}"
 builder_memory="${ANDROID_BUILDER_MEMORY:-2g}"
 builder_memory_swap="${ANDROID_BUILDER_MEMORY_SWAP:-3g}"
+builder_cpus="${ANDROID_BUILDER_CPUS:-1}"
 minimum_available_kib="${ANDROID_MIN_AVAILABLE_KIB:-4194304}"
 
 if [[ ! "${minimum_available_kib}" =~ ^[0-9]+$ ]]; then
@@ -34,7 +35,7 @@ chmod 0700 -- "${debug_keystore_dir}"
 docker run --rm \
   --memory "${builder_memory}" \
   --memory-swap "${builder_memory_swap}" \
-  --cpus 2 \
+  --cpus "${builder_cpus}" \
   --user "$(id -u):$(id -g)" \
   -e ANDROID_SDK_HOME=/root \
   -e ANDROID_USER_HOME=/root/.android \
@@ -46,7 +47,7 @@ docker run --rm \
   -w /workspace/apps/android \
   "${builder_image}" \
   bash -ceu '
-    for task in testLocalDebugUnitTest lintLocalDebug lintProductionDebug assembleProductionDebug; do
+    for task in testLocalDebugUnitTest lintLocalDebug lintProductionDebug compileProductionDebugAndroidTestKotlin assembleProductionDebug; do
       ./gradlew --no-daemon --max-workers=1 \
         "-Dorg.gradle.jvmargs=${LUNARA_GRADLE_JVM_ARGS}" "${task}"
       done
@@ -79,7 +80,7 @@ fi
 docker run --rm \
   --memory "${builder_memory}" \
   --memory-swap "${builder_memory_swap}" \
-  --cpus 2 \
+  --cpus "${builder_cpus}" \
   --user "$(id -u):$(id -g)" \
   -e ANDROID_SDK_HOME=/root \
   -e ANDROID_USER_HOME=/root/.android \

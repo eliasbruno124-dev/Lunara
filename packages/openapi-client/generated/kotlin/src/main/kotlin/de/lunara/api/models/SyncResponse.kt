@@ -28,11 +28,11 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param changes 
- * @param cursor 
- * @param hasMore 
+ *
+ * @param changes
+ * @param cursor
+ * @param hasMore
  */
 
 
@@ -51,4 +51,3 @@ data class SyncResponse (
 
 
 }
-

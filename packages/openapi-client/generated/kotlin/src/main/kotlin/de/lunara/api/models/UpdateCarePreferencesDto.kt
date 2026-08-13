@@ -28,18 +28,18 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param customHelpfulActions 
- * @param customUnhelpfulActions 
- * @param dislikesUnsolicitedAdvice 
- * @param likesConversation 
- * @param likesCuddling 
- * @param likesHouseholdHelp 
- * @param likesReminders 
- * @param likesSnacks 
- * @param likesSpace 
- * @param likesWarmth 
+ *
+ * @param customHelpfulActions
+ * @param customUnhelpfulActions
+ * @param dislikesUnsolicitedAdvice
+ * @param likesConversation
+ * @param likesCuddling
+ * @param likesHouseholdHelp
+ * @param likesReminders
+ * @param likesSnacks
+ * @param likesSpace
+ * @param likesWarmth
  */
 
 
@@ -79,4 +79,3 @@ data class UpdateCarePreferencesDto (
 
 
 }
-

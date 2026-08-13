@@ -45,7 +45,10 @@ export class SetupDto extends CredentialsDto {
   @Length(1, 120)
   displayName!: string;
 
-  @ApiPropertyOptional({ enum: PreferredLanguage, default: PreferredLanguage.DE })
+  @ApiPropertyOptional({
+    enum: PreferredLanguage,
+    default: PreferredLanguage.DE,
+  })
   @IsOptional()
   @IsEnum(PreferredLanguage)
   preferredLanguage?: PreferredLanguage;
@@ -68,4 +71,16 @@ export class LogoutDto {
   @MinLength(32)
   @MaxLength(256)
   refreshToken?: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ minLength: 1, maxLength: 128, writeOnly: true })
+  @IsString()
+  @Length(1, 128)
+  currentPassword!: string;
+
+  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @IsString()
+  @Length(12, 128)
+  newPassword!: string;
 }

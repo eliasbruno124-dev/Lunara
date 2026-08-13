@@ -13,12 +13,12 @@ import de.lunara.api.models.RespondCheckInDto
 interface CheckInsApi {
     /**
      * POST api/v1/check-ins
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param createCheckInDto 
+     * @param createCheckInDto
      * @return [CheckInResponse]
      */
     @POST("api/v1/check-ins")
@@ -26,8 +26,8 @@ interface CheckInsApi {
 
     /**
      * GET api/v1/check-ins
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -38,13 +38,13 @@ interface CheckInsApi {
 
     /**
      * POST api/v1/check-ins/{id}/respond
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param id 
-     * @param respondCheckInDto 
+     * @param id
+     * @param respondCheckInDto
      * @return [CheckInResponse]
      */
     @POST("api/v1/check-ins/{id}/respond")

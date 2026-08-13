@@ -28,14 +28,14 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param displayName 
- * @param householdId 
- * @param id 
- * @param preferredLanguage 
- * @param role 
- * @param username 
+ *
+ * @param displayName
+ * @param householdId
+ * @param id
+ * @param preferredLanguage
+ * @param role
+ * @param username
  */
 
 
@@ -62,7 +62,7 @@ data class AuthUserResponse (
 ) {
 
     /**
-     * 
+     *
      *
      * Values: DE,EN
      */
@@ -72,7 +72,7 @@ data class AuthUserResponse (
         @Json(name = "EN") EN("EN");
     }
     /**
-     * 
+     *
      *
      * Values: TRACKER,PARTNER
      */
@@ -83,4 +83,3 @@ data class AuthUserResponse (
     }
 
 }
-

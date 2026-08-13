@@ -7,7 +7,10 @@ import de.lunara.app.data.local.MutationEntity
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.local.DailyLogEntity
 import de.lunara.app.data.sync.SyncScheduler
+import de.lunara.app.data.sync.ProcessSyncGate
+import de.lunara.app.data.preferences.AppPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -20,47 +23,55 @@ class PeriodRepository @Inject constructor(
     private val database: LunaraDatabase,
     private val syncScheduler: SyncScheduler,
     private val gson: Gson,
+    private val preferences: AppPreferences,
 ) {
     fun observePeriods(): Flow<List<PeriodEntity>> = database.periodDao().observeActive()
     fun observePendingCount(): Flow<Int> = database.mutationDao().observeCount()
     fun observeDailyLogs(): Flow<List<DailyLogEntity>> = database.dailyLogDao().observeActive()
 
-    suspend fun startPeriod(userId: String, date: LocalDate = LocalDate.now(Clock.systemDefaultZone())): String {
-        database.periodDao().findByStartDate(userId, date.toString())?.let { return it.id }
-        val entityId = UUID.randomUUID().toString()
-        val mutationId = UUID.randomUUID().toString()
-        val now = Instant.now().toString()
-        val period = PeriodEntity(
-            id = entityId,
-            userId = userId,
-            startDate = date.toString(),
-            createdAt = now,
-            updatedAt = now,
-        )
-        val mutation = MutationEntity(
-            id = UUID.randomUUID().toString(),
-            clientMutationId = mutationId,
-            entityType = "PERIOD",
-            entityId = entityId,
-            operation = "UPSERT",
-            payloadJson = gson.toJson(
-                mapOf(
-                    "id" to entityId,
-                    "startDate" to date.toString(),
-                    "source" to "MANUAL",
-                ),
-            ),
-            baseVersion = 0,
-            createdAt = now,
-            nextAttemptAt = now,
-        )
-        database.withTransaction {
-            database.periodDao().insert(period)
-            check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
-        }
-        syncScheduler.requestImmediate()
-        return entityId
+    suspend fun retryFailedMutations() = ProcessSyncGate.serialized {
+        database.mutationDao().resetFailed(Instant.now().toString())
+        syncScheduler.requestAfterMutation()
     }
+
+    suspend fun startPeriod(userId: String, date: LocalDate = LocalDate.now(Clock.systemDefaultZone())): String =
+        ProcessSyncGate.serialized {
+            ensureCurrentUser(userId)
+            database.periodDao().findByStartDate(userId, date.toString())?.let { return@serialized it.id }
+            val entityId = UUID.randomUUID().toString()
+            val mutationId = UUID.randomUUID().toString()
+            val now = Instant.now().toString()
+            val period = PeriodEntity(
+                id = entityId,
+                userId = userId,
+                startDate = date.toString(),
+                createdAt = now,
+                updatedAt = now,
+            )
+            val mutation = MutationEntity(
+                id = UUID.randomUUID().toString(),
+                clientMutationId = mutationId,
+                entityType = "PERIOD",
+                entityId = entityId,
+                operation = "UPSERT",
+                payloadJson = gson.toJson(
+                    mapOf(
+                        "id" to entityId,
+                        "startDate" to date.toString(),
+                        "source" to "MANUAL",
+                    ),
+                ),
+                baseVersion = 0,
+                createdAt = now,
+                nextAttemptAt = now,
+            )
+            database.withTransaction {
+                database.periodDao().insert(period)
+                check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
+            }
+            syncScheduler.requestAfterMutation()
+            entityId
+        }
 
     suspend fun logToday(
         userId: String,
@@ -70,7 +81,8 @@ class PeriodRepository @Inject constructor(
         energy: Int?,
         sleepQuality: Int?,
         symptoms: List<String>,
-    ): String {
+    ): String = ProcessSyncGate.serialized {
+        ensureCurrentUser(userId)
         val localDate = LocalDate.now(Clock.systemDefaultZone()).toString()
         val existing = database.dailyLogDao().findByDate(userId, localDate)
         val id = existing?.id ?: UUID.randomUUID().toString()
@@ -128,10 +140,18 @@ class PeriodRepository @Inject constructor(
             } else 0
             if (replaced == 0) check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
         }
-        syncScheduler.requestImmediate()
-        return id
+        syncScheduler.requestAfterMutation()
+        id
+    }
+
+    private suspend fun ensureCurrentUser(expectedUserId: String) {
+        if (preferences.state.first().session?.userId != expectedUserId) {
+            throw SessionChangedException()
+        }
     }
 }
+
+internal class SessionChangedException : IllegalStateException("Session changed while saving local data")
 
 internal object ApiPayloadPolicy {
     const val MAX_MOOD_LENGTH = 64

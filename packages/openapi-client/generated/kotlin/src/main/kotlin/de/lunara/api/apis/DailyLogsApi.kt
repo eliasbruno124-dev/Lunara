@@ -13,12 +13,12 @@ import de.lunara.api.models.UpdateDailyLogDto
 interface DailyLogsApi {
     /**
      * POST api/v1/daily-logs
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 201: Successful response
      *
-     * @param createDailyLogDto 
+     * @param createDailyLogDto
      * @return [DailyLogResponse]
      */
     @POST("api/v1/daily-logs")
@@ -26,8 +26,8 @@ interface DailyLogsApi {
 
     /**
      * GET api/v1/daily-logs
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
@@ -40,13 +40,13 @@ interface DailyLogsApi {
 
     /**
      * DELETE api/v1/daily-logs/{id}
-     * 
-     * 
-     * Responses:
-     *  - 204: 
      *
-     * @param id 
-     * @param version 
+     *
+     * Responses:
+     *  - 204:
+     *
+     * @param id
+     * @param version
      * @return [Unit]
      */
     @DELETE("api/v1/daily-logs/{id}")
@@ -54,13 +54,13 @@ interface DailyLogsApi {
 
     /**
      * PATCH api/v1/daily-logs/{id}
-     * 
-     * 
+     *
+     *
      * Responses:
      *  - 200: Successful response
      *
-     * @param id 
-     * @param updateDailyLogDto 
+     * @param id
+     * @param updateDailyLogDto
      * @return [DailyLogResponse]
      */
     @PATCH("api/v1/daily-logs/{id}")

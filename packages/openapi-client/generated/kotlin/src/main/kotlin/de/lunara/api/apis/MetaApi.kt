@@ -12,7 +12,7 @@ interface MetaApi {
     /**
      * GET api/v1/meta
      * Server identity, compatibility and setup state
-     * 
+     *
      * Responses:
      *  - 200: Successful response
      *

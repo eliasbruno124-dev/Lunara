@@ -28,10 +28,10 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
  *
- * @param password 
- * @param deleteHousehold 
+ *
+ * @param password
+ * @param deleteHousehold
  */
 
 
@@ -47,4 +47,3 @@ data class DeleteAccountDto (
 
 
 }
-

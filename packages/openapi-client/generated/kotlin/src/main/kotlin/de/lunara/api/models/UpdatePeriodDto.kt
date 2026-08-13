@@ -28,11 +28,11 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- * 
+ *
  *
  * @param version Current version for optimistic conflict detection
- * @param endDate 
- * @param startDate 
+ * @param endDate
+ * @param startDate
  */
 
 
@@ -52,4 +52,3 @@ data class UpdatePeriodDto (
 
 
 }
-

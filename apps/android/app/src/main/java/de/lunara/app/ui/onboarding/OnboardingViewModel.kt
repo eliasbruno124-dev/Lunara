@@ -34,7 +34,15 @@ enum class OnboardingError {
     TIMEOUT,
     GATEWAY_AUTH,
     API,
-    FORM,
+    USERNAME,
+    PASSWORD,
+    DISPLAY_NAME,
+    HOUSEHOLD_NAME,
+    BOOTSTRAP_TOKEN,
+    BOOTSTRAP_REJECTED,
+    SETUP_COMPLETE,
+    INVITATION_CODE,
+    INVALID_CREDENTIALS,
     GENERIC,
 }
 
@@ -89,9 +97,9 @@ class OnboardingViewModel @Inject constructor(
     fun setAllowHttp(value: Boolean) = _state.update { it.copy(allowInsecureHttp = value, error = null) }
     fun setAuthMode(value: AuthMode) = _state.update { it.copy(authMode = value, error = null, password = "") }
     fun setUsername(value: String) = _state.update { it.copy(username = value.take(64), error = null) }
-    fun setPassword(value: String) = _state.update { it.copy(password = value.take(256), error = null) }
-    fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(80), error = null) }
-    fun setHouseholdName(value: String) = _state.update { it.copy(householdName = value.take(80), error = null) }
+    fun setPassword(value: String) = _state.update { it.copy(password = value.take(128), error = null) }
+    fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(120), error = null) }
+    fun setHouseholdName(value: String) = _state.update { it.copy(householdName = value.take(120), error = null) }
     fun setBootstrapToken(value: String) = _state.update { it.copy(bootstrapToken = value.take(256), error = null) }
     fun setInvitationCode(value: String) = _state.update { it.copy(invitationCode = value.take(32), error = null) }
 
@@ -138,8 +146,9 @@ class OnboardingViewModel @Inject constructor(
 
     fun submitAuthentication() {
         val snapshot = _state.value
-        if (!valid(snapshot)) {
-            _state.update { it.copy(error = OnboardingError.FORM) }
+        val validationError = validateOnboardingForm(snapshot)
+        if (validationError != null) {
+            _state.update { it.copy(error = validationError) }
             return
         }
         _state.update { it.copy(isBusy = true, error = null) }
@@ -164,20 +173,32 @@ class OnboardingViewModel @Inject constructor(
                     )
                 }
             }.onSuccess {
-                _state.update { state -> state.copy(isBusy = false, password = "", bootstrapToken = "") }
+                resetForNewSession()
             }.onFailure { failure ->
-                _state.update { state -> state.copy(isBusy = false, password = "", error = mapError(failure)) }
+                _state.update { state ->
+                    val mappedError = mapAuthenticationError(failure, snapshot.authMode)
+                    // Fail closed against an unexpectedly stale intermediary/meta response:
+                    // the authoritative setup endpoint can move the UI straight to login.
+                    authenticationFailureState(state, mappedError)
+                }
             }
         }
     }
 
-    private fun valid(state: OnboardingUiState): Boolean {
-        if (state.username.trim().length !in 3..64 || state.password.length !in 12..256) return false
-        return when (state.authMode) {
-            AuthMode.LOGIN -> true
-            AuthMode.SETUP -> state.displayName.isNotBlank() && state.householdName.isNotBlank() && state.bootstrapToken.isNotBlank()
-            AuthMode.JOIN -> state.displayName.isNotBlank() && state.invitationCode.length in 8..12
+    private fun mapAuthenticationError(error: Throwable, mode: AuthMode): OnboardingError {
+        if (error is ApiException && mode == AuthMode.SETUP) {
+            if (error.status == 401) return OnboardingError.BOOTSTRAP_REJECTED
+            if (error.status == 409) return OnboardingError.SETUP_COMPLETE
         }
+        if (error is ApiException && mode == AuthMode.LOGIN && error.status == 401) {
+            return OnboardingError.INVALID_CREDENTIALS
+        }
+        return mapError(error)
+    }
+
+    fun resetForNewSession() {
+        val language = _state.value.language
+        _state.value = OnboardingUiState(language = language)
     }
 
     private fun mapError(error: Throwable): OnboardingError = when (error) {
@@ -187,7 +208,11 @@ class OnboardingViewModel @Inject constructor(
         is UnknownHostException -> OnboardingError.DNS
         is SSLException -> OnboardingError.TLS
         is SocketTimeoutException -> OnboardingError.TIMEOUT
-        is ApiException -> if (error.status in 300..399) OnboardingError.GATEWAY_AUTH else OnboardingError.API
+        is ApiException -> if (error.status in 300..399 || error.status == 401 || error.status == 403) {
+            OnboardingError.GATEWAY_AUTH
+        } else {
+            OnboardingError.API
+        }
         else -> OnboardingError.GENERIC
     }
 }
