@@ -85,9 +85,13 @@ cd artifacts
 sha256sum -c SHA256SUMS
 ```
 
-Die APK ist mit dem Android-Debugschlüssel signiert. Ein eigener dauerhaft
-signierter Release-Build ist in [`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md)
-beschrieben; private Signierschlüssel liegen absichtlich nicht im Repository.
+Die APK ist mit einem lokal dauerhaft abgelegten Android-Debugschlüssel
+signiert, der von Git ausgeschlossen ist. Die frühere 1.0.0-Test-APK verwendete
+noch einen anderen flüchtigen Schlüssel und muss vor der Installation von
+1.0.1 einmal deinstalliert werden. Ab 1.0.1 lassen sich Builds von diesem Host
+mit demselben Debug-Schlüssel aktualisieren. Ein eigener Release-Build ist in
+[`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md) beschrieben; private
+Signierschlüssel liegen absichtlich nicht im Repository.
 
 ## Verbindung über Authentik
 

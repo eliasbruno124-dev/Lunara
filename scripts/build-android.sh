@@ -5,6 +5,7 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 android_dir="${project_dir}/apps/android"
 artifact_dir="${project_dir}/artifacts"
+debug_keystore_dir="${ANDROID_DEBUG_KEYSTORE_DIR:-${project_dir}/.android-builder}"
 builder_image="${ANDROID_BUILDER_IMAGE:-mingc/android-build-box:1.29.0}"
 gradle_jvm_args="${ANDROID_GRADLE_JVM_ARGS:--Xmx768m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8}"
 builder_memory="${ANDROID_BUILDER_MEMORY:-2g}"
@@ -27,16 +28,20 @@ if (( available_kib < minimum_available_kib )); then
   exit 1
 fi
 
-mkdir -p -- "${artifact_dir}"
+mkdir -p -- "${artifact_dir}" "${debug_keystore_dir}"
+chmod 0700 -- "${debug_keystore_dir}"
 
 docker run --rm \
   --memory "${builder_memory}" \
   --memory-swap "${builder_memory_swap}" \
   --cpus 2 \
   --user "$(id -u):$(id -g)" \
+  -e ANDROID_SDK_HOME=/root \
+  -e ANDROID_USER_HOME=/root/.android \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
   -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
   -e "LUNARA_GRADLE_JVM_ARGS=${gradle_jvm_args}" \
+  -v "${debug_keystore_dir}:/root/.android" \
   -v "${project_dir}:/workspace" \
   -w /workspace/apps/android \
   "${builder_image}" \
@@ -44,8 +49,15 @@ docker run --rm \
     for task in testLocalDebugUnitTest lintLocalDebug lintProductionDebug assembleProductionDebug; do
       ./gradlew --no-daemon --max-workers=1 \
         "-Dorg.gradle.jvmargs=${LUNARA_GRADLE_JVM_ARGS}" "${task}"
-    done
+      done
   '
+
+debug_keystore="${debug_keystore_dir}/debug.keystore"
+if [[ ! -s "${debug_keystore}" ]]; then
+  echo "Persistenter lokaler Debug-Schlüssel wurde nicht erzeugt: ${debug_keystore}" >&2
+  exit 1
+fi
+chmod 0600 -- "${debug_keystore}"
 
 debug_apk="${android_dir}/app/build/outputs/apk/production/debug/app-production-debug.apk"
 if [[ ! -s "${debug_apk}" ]]; then
@@ -69,8 +81,11 @@ docker run --rm \
   --memory-swap "${builder_memory_swap}" \
   --cpus 2 \
   --user "$(id -u):$(id -g)" \
+  -e ANDROID_SDK_HOME=/root \
+  -e ANDROID_USER_HOME=/root/.android \
   -e GRADLE_USER_HOME=/workspace/.gradle-container \
   -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
+  -v "${debug_keystore_dir}:/root/.android" \
   -v "${project_dir}:/workspace" \
   -w /workspace/apps/android \
   "${builder_image}" \

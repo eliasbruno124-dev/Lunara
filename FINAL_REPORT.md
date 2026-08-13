@@ -77,7 +77,7 @@ Validierung und E2E waren erfolgreich.
 
 ### Android
 
-- `testLocalDebugUnitTest`: 17/17 JVM-Tests erfolgreich
+- `testLocalDebugUnitTest`: 18/18 JVM-Tests erfolgreich
 - `lintLocalDebug`: erfolgreich
 - `lintProductionDebug`: erfolgreich
 - `assembleProductionDebug`: erfolgreich
@@ -95,9 +95,13 @@ Erzeugtes installierbares Artefakt:
 - Standardserver: `https://lunara.3li361.de/`
 - Klartext-HTTP: deaktiviert
 - Größe: 24.219.939 Bytes
-- SHA-256: `df487a30b937f11109ba735418455cfcafd19cd6583b49cba7f55e70f33b488f`
+- SHA-256: `10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8`
 - `sha256sum -c artifacts/SHA256SUMS`: erfolgreich
 - APK-ZIP-Struktur und APK-Signature-Scheme-v2-Signatur: erfolgreich geprüft
+- Der lokale Debug-Schlüssel liegt mit Modus `0600` unter dem Git-ignorierten
+  Buildzustand; APK- und Keystore-Fingerabdruck wurden identisch geprüft. Die
+  frühere 1.0.0-Test-APK hatte noch eine flüchtige andere Debug-Signatur und
+  muss deshalb einmal deinstalliert werden, bevor 1.0.1 installiert wird.
 
 Ein unsigned Production-Release-Build wurde versucht, konnte auf dem Host wegen
 wiederholter Gradle-Daemon-/Speicherabbrüche aber nicht erfolgreich beendet

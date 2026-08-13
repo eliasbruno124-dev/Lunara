@@ -9,6 +9,15 @@ dem expliziten Schalter versucht:
 BUILD_ANDROID_RELEASE=true ./scripts/build-android.sh
 ```
 
+Für wiederholbare lokale Test-Updates legt das Skript seinen Debug-Key unter
+`.android-builder/debug.keystore` an. Das Verzeichnis ist Git-ignoriert und auf
+dem Buildhost nur für den Besitzer zugänglich. Der Key muss wie ein Secret
+gesichert werden; geht er verloren, kann eine damit installierte Debug-App nur
+nach einer Deinstallation mit einem neuen Schlüssel installiert werden. Mit
+`ANDROID_DEBUG_KEYSTORE_DIR="/sicherer/lokaler/pfad"` lässt sich der Speicherort
+außerhalb des Arbeitsbaums festlegen. Dieser Debug-Key ersetzt keinen privaten
+Release-Key.
+
 Wenn `artifacts/lunara-release-unsigned.apk` danach nicht existiert, wurde auf
 diesem Host kein erfolgreicher Release-Build erzeugt. Niemals die Debug-APK als
 Release-Artefakt umbenennen.

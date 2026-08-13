@@ -78,7 +78,11 @@ Stand: 12. August 2026
 - [x] Version 1.0.1 mit vorausgefüllter Produktionsdomain gebaut; Unit-Tests,
   Local-/Production-Lint, APK-ZIP- und v2-Signaturprüfung erfolgreich. Größe:
   24.219.939 Bytes, SHA-256:
-  `df487a30b937f11109ba735418455cfcafd19cd6583b49cba7f55e70f33b488f`.
+  `10c34b75a1833894ecae89613b9ad25ef4d038d02b25364901ad719ca2f9a5c8`.
+- [x] Lokalen Debug-Signierschlüssel dauerhaft, mit Modus `0600` und außerhalb
+  der Git-Erfassung abgelegt. APK- und Keystore-Fingerabdruck stimmen überein,
+  sodass nach der einmaligen Ablösung der 1.0.0-Testsignatur weitere lokale
+  Debug-Updates denselben Schlüssel verwenden.
 
 ## In Arbeit
 

@@ -11,6 +11,8 @@
   eine verständliche Gateway-Fehlermeldung ergänzt.
 - Eingefügten `/api/v1/meta`-Testpfad automatisch auf die Serverbasis
   normalisiert und das vorausgefüllte URL-Schema im Onboarding verdeutlicht.
+- Debug-Signierschlüssel für wiederholbare lokale APK-Updates persistent und
+  Git-ausgeschlossen gemacht.
 
 ## 1.0.0 – 2026-08-12
 
