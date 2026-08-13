@@ -116,6 +116,10 @@ Die tatsächlich erzeugte, installierbare Production-Debug-APK liegt hier:
 artifacts/lunara-debug.apk
 ```
 
+Im privaten GitHub-Repository kann sie nach Anmeldung direkt über den
+[Release Lunara 1.0.5](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.5)
+heruntergeladen werden.
+
 Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:
 
 ```text

@@ -102,10 +102,13 @@ Stand: 13. August 2026, Quellstand 1.0.5
   installiert und bleibt Aufgabe des CI-History-Scans.
 - [x] OpenAPI-Snapshot aktuell; generierten Kotlin-Client nach einem
   dokumentierten 1-GiB-Daemonabbruch mit 1,5 GiB erfolgreich kompiliert.
+- [x] Geprüften 1.0.5-Stand einschließlich beider APKs als Commit
+  `3c3ced280203a4108bbf665b1a2b0a63c700c278` in den privaten Branch gepusht,
+  Draft-PR 1 aktualisiert und privaten Release `v1.0.5` mit beiden bestätigten
+  Artefakten veröffentlicht.
 
-Der lokale, gebaute und live geprüfte 1.0.5-Stand ist vollständig belegt. Ein
-konkreter neuer GitHub-Commit wird erst nach dem tatsächlich ausgeführten Push
-im Repository nachgewiesen und hier nicht vorweggenommen.
+Der lokale, gebaute, live geprüfte und privat veröffentlichte 1.0.5-Stand ist
+vollständig belegt.
 
 ## Bewusst offen nach dem produktionsnahen Kern
 

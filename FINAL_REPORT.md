@@ -332,21 +332,21 @@ https://github.com/eliasbruno124-dev/Lunara
 ```
 
 Die GitHub-Geräteanmeldung des Eigentümers und der private Branch
-`agent/authentik-human-access` bestehen. Dieser Bericht behauptet keinen neuen
-1.0.5-Commit, bevor der abschließende Commit und Push tatsächlich ausgeführt
-und von GitHub bestätigt wurden. Die lokal geprüften 1.0.5-Artefakte sind die
-oben mit Größe und Prüfsumme belegten Dateien.
+`agent/authentik-human-access` bestehen. Der vollständig geprüfte 1.0.5-Stand
+einschließlich beider APKs wurde als Commit
+`3c3ced280203a4108bbf665b1a2b0a63c700c278` erfolgreich gepusht. GitHub
+bestätigte denselben Commit für Branch und Tag `v1.0.5`.
 
-Direkte private Downloadpfade:
+Der private Release ist:
 
 ```text
-https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-debug.apk
-https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-release-unsigned.apk
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.5
 ```
 
-Der bestehende Draft-Pull-Request 1 bleibt der vorgesehene Veröffentlichungsweg.
-Die direkten Branch-Pfade liefern 1.0.5 erst nach dem tatsächlich bestätigten
-Push; wegen des privaten Repositorys müssen Downloads mit dem berechtigten
+GitHub bestätigte `lunara-debug.apk` mit 24.406.431 Bytes und
+`lunara-release-unsigned.apk` mit 19.749.539 Bytes als vollständig hochgeladen.
+Der bestehende Draft-Pull-Request 1 wurde auf 1.0.5 aktualisiert. Wegen des
+privaten Repositorys müssen Repository, PR und Downloads mit dem berechtigten
 GitHub-Konto angemeldet geöffnet werden.
 
 Echte `.env`-Dateien, Authentik-Zugänge, Passwörter, Token, Dumps und
