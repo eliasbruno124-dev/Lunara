@@ -87,8 +87,9 @@
             "writeOnly": true
           },
           "newPassword": {
+            "description": "No composition rules; passphrases and password-manager values are accepted",
             "maxLength": 128,
-            "minLength": 12,
+            "minLength": 8,
             "type": "string",
             "writeOnly": true
           }
@@ -548,6 +549,8 @@
             "type": "boolean"
           },
           "password": {
+            "maxLength": 128,
+            "minLength": 1,
             "type": "string",
             "writeOnly": true
           }
@@ -724,8 +727,9 @@
             "type": "string"
           },
           "password": {
+            "description": "No composition rules; passphrases and password-manager values are accepted",
             "maxLength": 128,
-            "minLength": 12,
+            "minLength": 8,
             "type": "string",
             "writeOnly": true
           },
@@ -758,8 +762,9 @@
             "type": "string"
           },
           "password": {
+            "description": "Existing credentials remain accepted after password-policy changes",
             "maxLength": 128,
-            "minLength": 12,
+            "minLength": 1,
             "type": "string",
             "writeOnly": true
           },
@@ -1087,8 +1092,9 @@
             "type": "string"
           },
           "password": {
+            "description": "No composition rules; passphrases and password-manager values are accepted",
             "maxLength": 128,
-            "minLength": 12,
+            "minLength": 8,
             "type": "string",
             "writeOnly": true
           },
@@ -1188,8 +1194,9 @@
             "type": "string"
           },
           "password": {
+            "description": "No composition rules; passphrases and password-manager values are accepted",
             "maxLength": 128,
-            "minLength": 12,
+            "minLength": 8,
             "type": "string",
             "writeOnly": true
           },
@@ -1889,7 +1896,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },

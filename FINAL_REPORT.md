@@ -1,8 +1,8 @@
-# Lunara 1.0.4 – Abschlussbericht
+# Lunara 1.0.5 – Abschlussbericht
 
 Stand: 13. August 2026
 
-Lunara 1.0.4 ist als selbst gehosteter Kernablauf implementiert, gebaut,
+Lunara 1.0.5 ist als selbst gehosteter Kernablauf implementiert, gebaut,
 getestet und auf dem produktiven Server ausgerollt. Die API läuft gesund hinter
 Pangolin und Authentik. Eine installierbare Debug-APK sowie eine unsignierte
 Release-APK wurden tatsächlich erzeugt. Dieser Bericht trennt bestätigte
@@ -45,6 +45,10 @@ Weitere bestätigte Funktionen:
   Backoff; manueller Sync bleibt zusätzlich verfügbar
 - persönlicher Passwortwechsel in den Android-Einstellungen mit aktuellem
   Passwort; andere Lunara-Sitzungen werden dabei widerrufen
+- Kontopasswörter mit 8 bis 128 Unicode-Codepoints ohne Pflicht zu
+  Großbuchstaben, Ziffern oder Sonderzeichen; bestehende Zugangsdaten werden
+  zur Kompatibilität mit 1 bis 128 Zeichen verifiziert. Die separate
+  Exportpassphrase bleibt als Verschlüsselungsschlüssel bei 12 bis 128 Zeichen
 - Argon2id, kurze Access-Tokens, rotierende und nur gehasht gespeicherte
   Refresh-Tokens, Gerätesitzungen, Login-Rate-Limit und generische
   Login-Fehlermeldungen
@@ -128,28 +132,33 @@ ersetzen.
 Tatsächlich ausgeführte öffentliche Prüfungen:
 
 - gemeinsamer Header-Zugang auf Meta und OpenAPI: erfolgreich
-- ohne Header-Zugang: Root, Health, Meta, Login und OpenAPI durch Authentik
+- ohne Header-Zugang: alle geprüften öffentlichen Pfade durch Authentik
   abgefangen
-- persönlicher Login des vorhandenen Kontos `dune`: HTTP 201
-- `/api/v1/me` mit äußerem Basic Header plus persönlichem Lunara-Token:
-  HTTP 200 und richtige Identität
-- Sync-Pull: HTTP 200; leerer idempotenter Sync-Push: HTTP 201
-- Logout: HTTP 204
+- Registrierung mit einem temporären, acht Zeichen langen und ausschließlich
+  kleingeschriebenen Passwort: erfolgreich
+- zusätzlicher Unicode-Grenztest mit vier Herz-Darstellungssequenzen, also
+  acht Codepoints einschließlich Variationsselektoren: erfolgreich; das Konto
+  wurde ebenfalls vollständig gelöscht
+- dieselbe Registrierung mit sieben Zeichen: erwartungsgemäß HTTP 400
+- temporäres Testkonto anschließend über den vorgesehenen Account-Endpunkt
+  gelöscht; Benutzer, Beziehungen/Mandanten, Mitgliedschaften, Sitzungen,
+  Perioden und Tageslogs danach jeweils bei 0
 - Pangolin-Konfigurations- und Eigentumsprüfung: erfolgreich
 
-Der Anzeigename ist Dunja, der technische Lunara-Benutzername lautet `dune`.
-Das zuvor neu gesetzte persönliche Passwort ist gültig und liegt weiterhin nur
-serverlokal unter `/docker/lunara/dunja-lunara-password.txt` mit Modus `0600`.
+Dunjas früheres Konto mit dem technischen Benutzernamen `dune` bleibt wie
+beauftragt gelöscht. Es gibt aktuell kein aktives Dunja-Konto und kein aktives
+Dunja-Passwort. Die obsolete Passwortdatei wurde zuvor in ein root-only Archiv
+verschoben und wird nicht mehr als Zugang verwendet.
 
 ## Ausgeführte Tests und Builds
 
 ### Backend und OpenAPI
 
-Auf dem finalen 1.0.4-Quellstand wurden Prisma-Erzeugung/-Validierung, ESLint,
+Auf dem finalen 1.0.5-Quellstand wurden Prisma-Erzeugung/-Validierung, ESLint,
 Jest, Nest-Build, OpenAPI-Export/-Reproduzierbarkeitsprüfung und Audits
 tatsächlich ausgeführt:
 
-- Jest: **18/18 Suites, 79/79 Tests**, erfolgreich
+- Jest: **19/19 Suites, 83/83 Tests**, erfolgreich
 - ESLint: erfolgreich
 - Nest-/TypeScript-Build: erfolgreich
 - echter PostgreSQL-18-E2E-Lauf: **1/1 Suite, 1/1 durchgehender Test**,
@@ -158,7 +167,9 @@ tatsächlich ausgeführt:
   **0 bekannte Schwachstellen**
 - OpenAPI-Snapshot und generierter Kotlin-Baum: reproduzierbar aktuell
 - OpenAPI-SHA-256:
-  `ecc509078317b29569d3d0917f332efd9ea1d7b90e85e77d370f07f0ae930003`
+  `8618f15f759748bafedc7396e8ce4e4591de82b7f22c22fc4afe95b61eece932`
+- generierter Kotlin-Client: nach einem Abbruch des 1-GiB-Gradle-Daemons mit
+  1,5 GiB erfolgreich kompiliert
 
 Der E2E-Test umfasst Setup/Bootstrap-Sperre, getrennte Beziehungen,
 Einladungen, Rollenprüfung, Perioden, Prognose, Freigabeentzug,
@@ -170,7 +181,7 @@ Cross-Relationship-Angriffsversuche.
 
 Die finale Android-Prüfkette wurde tatsächlich ausgeführt:
 
-- JVM-Tests: **19/19 Suites, 77/77 Tests**, erfolgreich
+- JVM-Tests: **20/20 Suites, 86/86 Tests**, erfolgreich
 - `lintLocalDebug`: 33 Hinweise, **0 Error/Fatal**
 - `lintProductionDebug`: 32 Hinweise, **0 Error/Fatal**
 - Production-Instrumentierungscode: erfolgreich kompiliert
@@ -185,11 +196,11 @@ Die Debug-APK ist installierbar:
 ```
 
 - Paket: `de.lunara.app.debug`
-- `versionName`: 1.0.4; `versionCode`: 5
+- `versionName`: 1.0.5; `versionCode`: 6
 - `minSdk`: 26; `targetSdk`/`compileSdk`: 37
-- Größe: 24.832.745 Bytes
+- Größe: 24.406.431 Bytes
 - SHA-256:
-  `4eca5000e7ff1a774cce65fc1b6c5e7e428eb9c0d62d7df0aff61078a59697de`
+  `193a562553be284f114e932748a14779710367ec8ef8a041e93241296eef48d2`
 - APK-v2-Signatur erfolgreich verifiziert
 - Debug-Zertifikat SHA-256:
   `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`
@@ -201,17 +212,18 @@ Die unsignierte Release-APK liegt unter:
 ```
 
 - Paket: `de.lunara.app`
-- `versionName`: 1.0.4; `versionCode`: 5
-- Größe: 19.749.043 Bytes
+- `versionName`: 1.0.5; `versionCode`: 6
+- Größe: 19.749.539 Bytes
 - SHA-256:
-  `d63c3ca30bc9730c316079412e235d3d2b47e2ac3047bda9700c239a81462868`
+  `e104ff2f946d732a6157d4a5d712d37167e1aee8898a9fe17bf4da640ecdf508`
 - erwartungsgemäß **nicht signiert** und daher vor Verteilung selbst zu
   signieren
 
-Ein erster Release-Build-Versuch mit 2 GiB Speichergrenze wurde beim
-`lintVital`-Schritt durch den Linux-cgroup-OOM-Schutz beendet. Der erneute Lauf
-mit 2.560 MiB und vorhandenem Swap war erfolgreich. Dabei wurde kein anderer
-Dienst neu gestartet oder beeinträchtigt.
+Beim separaten generierten OpenAPI-Kotlin-Client endete der erste
+`compileKotlin`-Versuch mit einem Abbruch des auf 1 GiB begrenzten
+Gradle-Daemons. Die Wiederholung mit 1,5 GiB war erfolgreich. Beide Android-
+APKs wurden anschließend tatsächlich gebaut; kein anderer Dienst wurde dafür
+neu gestartet.
 
 Die instrumentierten Compose-Tests wurden mangels angeschlossenem Gerät oder
 Emulator **nur kompiliert, nicht ausgeführt**. Reale Keystore-, SQLCipher-,
@@ -223,13 +235,13 @@ Android-Gerät zu prüfen.
 Vor dem Update wurde dieses eng benannte Backup angelegt:
 
 ```text
-/var/backups/lunara/release-1.0.4-pre-20260813T174450Z/
+/var/backups/lunara/release-1.0.5-pre-20260813T232500Z/
 ```
 
 - Verzeichnis `0700`, Dateien `0600`
-- PostgreSQL-Custom-Dump: 64.011 Bytes
+- PostgreSQL-Custom-Dump: 61.665 Bytes
 - Dump-SHA-256:
-  `c9e4622074d41937d027c3414b056b738aaa4a43c0a96e69eccba84dab95dbdc`
+  `aa45ba8940bc0919e91a9bfb137f1ce7af349406f75fe6dff31ac9e6d747858d`
 - Dump mit `pg_restore --list` validiert
 - Compose- und Env-Sicherung enthalten; Secrets werden nicht dokumentiert
 
@@ -243,22 +255,24 @@ destruktiv wäre.
 Das finale Image wurde tatsächlich gebaut:
 
 ```text
-lunara-api:1.0.4
-sha256:fd1eeead3fedc3415bd0ca30e97e5b47ada88c20baeed6a279a637f469992c2f
+lunara-api:1.0.5
+sha256:fe12d3ecf3473d3df7360d649bd868d0b9f285e69317c14cab8d09baff7e3afe
 ```
 
 Live bestätigt:
 
-- API-Container `bf6cfda79dd5…`: running und healthy
+- API-Container `f049893c…`: running und healthy
 - `/health`: HTTP 200; `/ready`: HTTP 200
-- `/api/v1/meta`: Version 1.0.4, `setupRequired: false`,
+- `/api/v1/meta`: Version 1.0.5, `setupRequired: false`,
   `registrationEnabled: true`
 - sechs Prisma-Migrationen angewendet
 - API als `10001:10001`, read-only Root-Dateisystem, Capability-Drop und
   `no-new-privileges`
 - PostgreSQL ohne veröffentlichten Host-Port, weiterhin healthy
-- Authentik, Pangolin, Traefik, PostgreSQL und Emby wurden für die
-  Authentik-Regel nicht neu gestartet; ihre Container-IDs blieben unverändert
+- eine zehnminütige Beobachtung mit 30 Stichproben zeigte keinen ungesunden
+  Dienst; der freie Arbeitsspeicher lag nie unter rund 1,87 GiB
+- die Container-IDs von PostgreSQL, Authentik, Pangolin, Traefik und Emby
+  blieben während Build und Update unverändert
 
 Der Bootstrap wird auf diesem eingerichteten Server nicht mehr benötigt.
 `setupRequired: false` ist persistent; der produktive Bootstrap-Token wurde aus
@@ -317,11 +331,11 @@ Das private Repository ist:
 https://github.com/eliasbruno124-dev/Lunara
 ```
 
-Nach einer vom Eigentümer bestätigten GitHub-Geräteanmeldung wurde der
-vollständige 1.0.4-Stand einschließlich beider APKs erfolgreich in den Branch
-`agent/authentik-human-access` übertragen. GitHub bestätigte den Release-
-Commit `e60800c1278053d136336dc9579785f4b817e432`; die über GitHub gelesenen
-Dateigrößen stimmen mit den lokal geprüften Artefakten überein.
+Die GitHub-Geräteanmeldung des Eigentümers und der private Branch
+`agent/authentik-human-access` bestehen. Dieser Bericht behauptet keinen neuen
+1.0.5-Commit, bevor der abschließende Commit und Push tatsächlich ausgeführt
+und von GitHub bestätigt wurden. Die lokal geprüften 1.0.5-Artefakte sind die
+oben mit Größe und Prüfsumme belegten Dateien.
 
 Direkte private Downloadpfade:
 
@@ -330,9 +344,10 @@ https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human
 https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-release-unsigned.apk
 ```
 
-Der bestehende Draft-Pull-Request 1 wurde auf Lunara 1.0.4 aktualisiert. Wegen
-des privaten Repositorys müssen Downloads mit dem berechtigten GitHub-Konto
-angemeldet geöffnet werden.
+Der bestehende Draft-Pull-Request 1 bleibt der vorgesehene Veröffentlichungsweg.
+Die direkten Branch-Pfade liefern 1.0.5 erst nach dem tatsächlich bestätigten
+Push; wegen des privaten Repositorys müssen Downloads mit dem berechtigten
+GitHub-Konto angemeldet geöffnet werden.
 
 Echte `.env`-Dateien, Authentik-Zugänge, Passwörter, Token, Dumps und
 Serverbackups bleiben ausschließlich auf dem Server.
@@ -344,9 +359,10 @@ Serverbackups bleiben ausschließlich auf dem Server.
    `/docker/lunara/lunara-app-headerauth.url` übernehmen. Nicht in Chat,
    GitHub oder QR-Codes kopieren.
 3. Die App zeigt danach nur noch `https://lunara.3li361.de/` an.
-4. Mit dem persönlichen Lunara-Benutzernamen und -Passwort anmelden. Für Dunja
-   lautet der technische Benutzername `dune`.
-5. Neue Tracker wählen „Registrieren“. Der Server erzeugt automatisch eine
+4. Da Dunjas früheres Konto gelöscht ist, „Registrieren“ wählen und ein neues
+   persönliches Konto anlegen. Das Passwort darf 8 bis 128 Zeichen lang sein;
+   Großbuchstaben, Ziffern und Sonderzeichen sind nicht verpflichtend.
+5. Der Server erzeugt für jede Tracker-Registrierung automatisch eine
    eigene unsichtbare Beziehungsgrenze; ein Haushaltsname ist nicht nötig.
 6. In den Einstellungen Freigaben, Care Preferences und die optionalen
    Fertilitätshinweise bewusst konfigurieren.

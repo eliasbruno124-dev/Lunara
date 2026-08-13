@@ -58,6 +58,17 @@ oder über die Admin-CLI vollständig widerrufen. Die API stellt die
 Gerätesitzungen bereit; eine vollständige Geräteverwaltung ist in der
 Android-Oberfläche noch nicht umgesetzt.
 
+Für neue Konten und Passwortänderungen gelten 8 bis 128 Unicode-Zeichen. Es
+werden keine bestimmten Zeichenklassen wie Großbuchstaben, Ziffern oder
+Sonderzeichen erzwungen; die empfohlene Wahl ist eine lange, einzigartige
+Passphrase. Die Verifikation eines bestehenden Passworts akzeptiert 1 bis 128
+Zeichen, damit ein älteres Konto nach einer späteren Richtlinienänderung noch
+für Login, Kontolöschung und Passwortwechsel verwendbar bleibt. Dieses
+Kompatibilitätsfenster erlaubt kein neues Passwort unter acht Zeichen.
+Argon2id, die Login- und Passwortwechsel-Rate-Limits, generische
+Anmeldefehlermeldungen und der vorgeschaltete Authentik-Schutz bleiben
+unverändert aktiv.
+
 Bei aktivierter öffentlicher Tracker-Registrierung wird für jedes neue Konto
 serverseitig eine eigene interne Beziehungs-/Mandantengrenze erzeugt. Diese ist
 nicht als „Haushalt“ in der Oberfläche sichtbar. Registrierung vergibt nur die
@@ -107,7 +118,9 @@ Re-Encryption-Migration; niemals einfach einen neuen Wert eintragen.
 
 Die Anwendungsverschlüsselung schützt Notizen in Datenbankdumps, nicht
 strukturierte Metadaten wie Datum, Rolle oder Datensatzanzahl. Exportpasswörter
-werden mit PBKDF2-SHA-256 abgeleitet und der Export mit AES-256-GCM geschützt.
+sind eine getrennte Verschlüsselungspassphrase, bleiben auf 12 bis 128 Zeichen
+begrenzt, werden mit PBKDF2-SHA-256 abgeleitet und schützen den Export mit
+AES-256-GCM. Die gelockerte Kontopasswort-Regel gilt für sie nicht.
 
 Beim Logout oder bestätigten Serverwechsel führt Android den lokalen Wipe auch
 dann vollständig aus, wenn die Serververbindung scheitert: Room-Tabellen,
@@ -118,7 +131,7 @@ getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
 ## HTTP, Zertifikate und Serveradresse
 
-Android 1.0.4 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
+Android 1.0.5 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
 eine HTTPS-URL mit Userinfo enthalten: Gateway-Benutzer, Doppelpunkt und
 App-Passwort stehen dabei vor `@` und dem Server-Host.
 Sonderzeichen müssen URL-kodiert sein. Die App extrahiert das Credential,

@@ -358,8 +358,15 @@ private fun AuthStep(
         state.password,
         onPassword,
         stringResource(R.string.password),
-        state.error == OnboardingError.PASSWORD,
+        state.error == OnboardingError.PASSWORD || state.error == OnboardingError.PASSWORD_REQUIRED,
     )
+    if (state.authMode != AuthMode.LOGIN) {
+        Text(
+            stringResource(R.string.password_length_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     ErrorText(state.error)
     val button = when (state.authMode) {
         AuthMode.LOGIN -> R.string.sign_in
@@ -434,6 +441,7 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.API -> R.string.error_api
         OnboardingError.USERNAME -> R.string.error_username
         OnboardingError.USERNAME_IN_USE -> R.string.error_username_in_use
+        OnboardingError.PASSWORD_REQUIRED -> R.string.error_password_required
         OnboardingError.PASSWORD -> R.string.error_password
         OnboardingError.DISPLAY_NAME -> R.string.error_display_name
         OnboardingError.BOOTSTRAP_TOKEN -> R.string.error_bootstrap_token

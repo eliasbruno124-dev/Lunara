@@ -1,5 +1,8 @@
 package de.lunara.app.ui.onboarding
 
+import de.lunara.app.security.isValidExistingPassword
+import de.lunara.app.security.isValidNewAccountPassword
+
 private val usernamePattern = Regex("^[\\p{L}\\p{N}][\\p{L}\\p{N}._-]*$")
 private val invitationPattern = Regex("^[A-HJ-NP-Z2-9]{8,12}$", RegexOption.IGNORE_CASE)
 
@@ -11,7 +14,11 @@ internal fun validateOnboardingForm(state: OnboardingUiState): OnboardingError? 
     if (username.length !in 3..64 || !usernamePattern.matches(username)) {
         return OnboardingError.USERNAME
     }
-    if (state.password.length !in 12..128) return OnboardingError.PASSWORD
+    if (state.authMode == AuthMode.LOGIN) {
+        if (!isValidExistingPassword(state.password)) return OnboardingError.PASSWORD_REQUIRED
+    } else if (!isValidNewAccountPassword(state.password)) {
+        return OnboardingError.PASSWORD
+    }
 
     return when (state.authMode) {
         AuthMode.LOGIN -> null

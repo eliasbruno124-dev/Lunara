@@ -31,7 +31,7 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param currentPassword
- * @param newPassword
+ * @param newPassword No composition rules; passphrases and password-manager values are accepted
  */
 
 
@@ -40,6 +40,7 @@ data class ChangePasswordDto (
     @Json(name = "currentPassword")
     val currentPassword: kotlin.String,
 
+    /* No composition rules; passphrases and password-manager values are accepted */
     @Json(name = "newPassword")
     val newPassword: kotlin.String
 

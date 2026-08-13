@@ -33,7 +33,7 @@ import com.squareup.moshi.JsonClass
  * @param deviceName
  * @param displayName
  * @param invitationCode
- * @param password
+ * @param password No composition rules; passphrases and password-manager values are accepted
  * @param username
  * @param preferredLanguage
  */
@@ -50,6 +50,7 @@ data class JoinHouseholdDto (
     @Json(name = "invitationCode")
     val invitationCode: kotlin.String,
 
+    /* No composition rules; passphrases and password-manager values are accepted */
     @Json(name = "password")
     val password: kotlin.String,
 

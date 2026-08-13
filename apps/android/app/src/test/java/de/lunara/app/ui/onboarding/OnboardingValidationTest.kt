@@ -28,7 +28,36 @@ class OnboardingValidationTest {
     fun `short password identifies password field`() {
         assertEquals(
             OnboardingError.PASSWORD,
-            validateOnboardingForm(validSetup.copy(password = "too-short")),
+            validateOnboardingForm(validSetup.copy(password = "short")),
+        )
+    }
+
+    @Test
+    fun `new account accepts eight characters without composition rules`() {
+        assertNull(validateOnboardingForm(validSetup.copy(password = "12345678")))
+    }
+
+    @Test
+    fun `new account counts supplementary unicode characters instead of utf16 units`() {
+        assertEquals(
+            OnboardingError.PASSWORD,
+            validateOnboardingForm(validSetup.copy(password = "🔒".repeat(7))),
+        )
+        assertNull(validateOnboardingForm(validSetup.copy(password = "🔒".repeat(8))))
+    }
+
+    @Test
+    fun `login accepts an existing non-empty password independently of creation policy`() {
+        assertNull(
+            validateOnboardingForm(
+                validSetup.copy(authMode = AuthMode.LOGIN, password = "x", bootstrapToken = ""),
+            ),
+        )
+        assertEquals(
+            OnboardingError.PASSWORD_REQUIRED,
+            validateOnboardingForm(
+                validSetup.copy(authMode = AuthMode.LOGIN, password = "", bootstrapToken = ""),
+            ),
         )
     }
 

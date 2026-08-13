@@ -177,7 +177,7 @@ Zugangsdaten gehören weder in DNS-Werte noch Cloudflare-Regeln.
 
 ## 6. Android-App mit Header Auth verbinden
 
-Das Serverfeld ist in Android 1.0.4 beim Erststart leer. Der Betreiber
+Das Serverfeld ist in Android 1.0.5 beim Erststart leer. Der Betreiber
 übermittelt die vom Authentik-Skript erzeugte Header-Auth-Adresse einmalig über
 einen sicheren Kanal. Ihr allgemeines Schema ist HTTPS, gefolgt von Gateway-
 Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die echten Bestandteile
@@ -231,6 +231,16 @@ Persönliche Lunara-Passwörter und Gerätesitzungen sind davon unabhängig.
    Passwort ein `PARTNER`-Konto an.
 8. `BOOTSTRAP_TOKEN` nach erfolgreichem Setup aus der Live-Konfiguration
    entfernen.
+
+Für Bootstrap, öffentliche Tracker-Registrierung, Partnerbeitritt und
+Passwortänderung gilt dieselbe Kontopasswort-Regel: 8 bis 128 Unicode-Zeichen,
+ohne verpflichtende Großbuchstaben, Ziffern oder Sonderzeichen. Eine lange,
+einzigartige Passphrase ist dennoch vorzuziehen. Die Prüfung eines bereits
+existierenden Passworts bei Login, Kontolöschung und Passwortänderung lässt 1
+bis 128 Zeichen zu, damit ältere Konten nach einer Richtlinienänderung nicht
+ausgesperrt werden. Diese Kompatibilitätsregel senkt nicht die Mindestlänge für
+neu gesetzte Passwörter. Passwortgeschützte Exporte verwenden eine getrennte
+Passphrase mit weiterhin 12 bis 128 Zeichen.
 
 Der Bootstrap-Token ist nur der Besitznachweis für eine frische Datenbank. Der
 Abschluss liegt dauerhaft in `ServerState`; selbst die spätere Löschung aller

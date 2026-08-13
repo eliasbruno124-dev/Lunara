@@ -158,9 +158,9 @@
     <string name="current_password">Aktuelles Lunara-Passwort</string>
     <string name="new_password">Neues Lunara-Passwort</string>
     <string name="confirm_new_password">Neues Passwort wiederholen</string>
-    <string name="password_length_hint">12–128 Zeichen</string>
+    <string name="password_length_hint">8–128 Zeichen · keine Pflicht für Sonderzeichen</string>
     <string name="password_current_required">Gib dein aktuelles Lunara-Passwort ein.</string>
-    <string name="password_new_length">Das neue Passwort muss 12–128 Zeichen lang sein.</string>
+    <string name="password_new_length">Das neue Passwort muss 8–128 Zeichen lang sein. Großbuchstaben, Zahlen und Sonderzeichen sind nicht vorgeschrieben.</string>
     <string name="password_must_differ">Das neue Passwort muss sich vom aktuellen Passwort unterscheiden.</string>
     <string name="password_confirmation_mismatch">Die beiden Eingaben für das neue Passwort stimmen nicht überein.</string>
     <string name="password_current_rejected">Das aktuelle Lunara-Passwort ist nicht richtig.</string>
@@ -234,7 +234,8 @@
     <string name="error_gateway_auth">Der geschützte Serverzugang wurde abgewiesen. Prüfe die Header-Auth-Adresse und das App-Passwort.</string>
     <string name="error_api">Der Server antwortet nicht mit einer kompatiblen Lunara-API.</string>
     <string name="error_username">Benutzername: 3–64 Zeichen, ohne Leerzeichen. Er muss mit einem Buchstaben oder einer Zahl beginnen; erlaubt sind außerdem Punkt, Unterstrich und Bindestrich.</string>
-    <string name="error_password">Das Lunara-Passwort muss 12–128 Zeichen lang sein.</string>
+    <string name="error_password_required">Gib dein Lunara-Passwort ein.</string>
+    <string name="error_password">Das neue Lunara-Passwort muss 8–128 Zeichen lang sein. Großbuchstaben, Zahlen und Sonderzeichen sind nicht vorgeschrieben.</string>
     <string name="error_display_name">Bitte gib einen Anzeigenamen ein.</string>
     <string name="error_bootstrap_token">Der Bootstrap-Token muss 20–256 Zeichen lang sein. Kopiere nur den Wert, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen.</string>
     <string name="error_bootstrap_rejected">Der Server hat den Bootstrap-Token nicht akzeptiert. Kopiere nur den Wert aus der lokalen Serverdatei, ohne „BOOTSTRAP_TOKEN=“ oder Anführungszeichen.</string>

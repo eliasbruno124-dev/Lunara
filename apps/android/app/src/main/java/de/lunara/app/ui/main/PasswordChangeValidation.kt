@@ -1,5 +1,8 @@
 package de.lunara.app.ui.main
 
+import de.lunara.app.security.isValidExistingPassword
+import de.lunara.app.security.isValidNewAccountPassword
+
 internal enum class PasswordChangeValidation {
     CURRENT_REQUIRED,
     NEW_LENGTH,
@@ -24,8 +27,8 @@ internal fun validatePasswordChange(
     newPassword: String,
     confirmation: String,
 ): PasswordChangeValidation? = when {
-    currentPassword.isEmpty() || currentPassword.length > 128 -> PasswordChangeValidation.CURRENT_REQUIRED
-    newPassword.length !in 12..128 -> PasswordChangeValidation.NEW_LENGTH
+    !isValidExistingPassword(currentPassword) -> PasswordChangeValidation.CURRENT_REQUIRED
+    !isValidNewAccountPassword(newPassword) -> PasswordChangeValidation.NEW_LENGTH
     currentPassword == newPassword -> PasswordChangeValidation.SAME_PASSWORD
     newPassword != confirmation -> PasswordChangeValidation.CONFIRMATION_MISMATCH
     else -> null

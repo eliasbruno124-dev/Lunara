@@ -64,6 +64,13 @@ artifacts                    nur nachweislich erzeugte Build-Artefakte
 - Argon2id, kurze JWT-Access-Tokens, gehashte rotierende Refresh-Tokens,
   Geräte-Sitzungen, Login-Rate-Limit, serverseitige Rollenprüfung und Audit-Logs
   ohne Gesundheitsdaten.
+- Zentrale Kontopasswort-Richtlinie: neue und geänderte Passwörter enthalten 8
+  bis 128 Unicode-Zeichen ohne erzwungene Zeichenklassen. Bestehende
+  Passwörter werden für Login, Kontolöschung und Passwortwechsel mit 1 bis 128
+  Zeichen akzeptiert, um Richtlinienänderungen ohne Kontosperre zu erlauben.
+  Die getrennte Verschlüsselungspassphrase für Exporte bleibt bei 12 bis 128
+  Zeichen. Argon2id, Rate Limits und die äußere Authentik-Schicht bleiben
+  unabhängig davon aktiv.
 - AES-256-GCM-Anwendungsverschlüsselung für Freitext mit versioniertem
   Ciphertext-Format und ausschließlich extern bereitgestelltem Master-Key.
 - Partnerprojektion wird serverseitig aus Freigaben aufgebaut. Rohobjekte werden

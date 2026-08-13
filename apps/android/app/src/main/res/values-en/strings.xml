@@ -158,9 +158,9 @@
     <string name="current_password">Current Lunara password</string>
     <string name="new_password">New Lunara password</string>
     <string name="confirm_new_password">Repeat new password</string>
-    <string name="password_length_hint">12–128 characters</string>
+    <string name="password_length_hint">8–128 characters · no special-character requirement</string>
     <string name="password_current_required">Enter your current Lunara password.</string>
-    <string name="password_new_length">The new password must be 12–128 characters long.</string>
+    <string name="password_new_length">The new password must be 8–128 characters long. Uppercase letters, numbers, and special characters are not required.</string>
     <string name="password_must_differ">The new password must differ from the current password.</string>
     <string name="password_confirmation_mismatch">The two new-password entries do not match.</string>
     <string name="password_current_rejected">The current Lunara password is incorrect.</string>
@@ -234,7 +234,8 @@
     <string name="error_gateway_auth">Access to the protected server was rejected. Check the header-auth address and app password.</string>
     <string name="error_api">The server does not provide a compatible Lunara API.</string>
     <string name="error_username">Username: 3–64 characters with no spaces. It must start with a letter or number; dots, underscores and hyphens are also allowed.</string>
-    <string name="error_password">The Lunara password must be 12–128 characters long.</string>
+    <string name="error_password_required">Enter your Lunara password.</string>
+    <string name="error_password">The new Lunara password must be 8–128 characters long. Uppercase letters, numbers, and special characters are not required.</string>
     <string name="error_display_name">Enter a display name.</string>
     <string name="error_bootstrap_token">The bootstrap token must be 20–256 characters long. Copy only its value, without “BOOTSTRAP_TOKEN=” or quotation marks.</string>
     <string name="error_bootstrap_rejected">The server did not accept the bootstrap token. Copy only its value from the local server file, without “BOOTSTRAP_TOKEN=” or quotation marks.</string>

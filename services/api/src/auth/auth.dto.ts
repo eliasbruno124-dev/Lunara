@@ -9,6 +9,12 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {
+  ACCOUNT_PASSWORD_MAX_LENGTH,
+  ACCOUNT_PASSWORD_MIN_LENGTH,
+  EXISTING_PASSWORD_MIN_LENGTH,
+  IsPasswordCodePointLength,
+} from './password-policy.js';
 
 export class CredentialsDto {
   @ApiProperty({ example: 'partner-a' })
@@ -17,9 +23,14 @@ export class CredentialsDto {
   @Matches(/^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u)
   username!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({
+    minLength: ACCOUNT_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+    description: 'No composition rules; passphrases and password-manager values are accepted',
+  })
   @IsString()
-  @Length(12, 128)
+  @IsPasswordCodePointLength(ACCOUNT_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
   password!: string;
 
   @ApiProperty({ example: 'Pixel 10' })
@@ -65,7 +76,29 @@ export class SetupDto extends RegisterDto {
   bootstrapToken!: string;
 }
 
-export class LoginDto extends CredentialsDto {}
+export class LoginDto {
+  @ApiProperty({ example: 'partner-a' })
+  @IsString()
+  @Length(3, 64)
+  @Matches(/^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u)
+  username!: string;
+
+  @ApiProperty({
+    minLength: EXISTING_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+    description: 'Existing credentials remain accepted after password-policy changes',
+  })
+  @IsString()
+  @IsPasswordCodePointLength(EXISTING_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
+  password!: string;
+
+  @ApiProperty({ example: 'Pixel 10' })
+  @IsString()
+  @Length(1, 120)
+  @Matches(/\S/u)
+  deviceName!: string;
+}
 
 export class RefreshDto {
   @ApiProperty({ writeOnly: true })
@@ -85,13 +118,22 @@ export class LogoutDto {
 }
 
 export class ChangePasswordDto {
-  @ApiProperty({ minLength: 1, maxLength: 128, writeOnly: true })
+  @ApiProperty({
+    minLength: EXISTING_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+  })
   @IsString()
-  @Length(1, 128)
+  @IsPasswordCodePointLength(EXISTING_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
   currentPassword!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty({
+    minLength: ACCOUNT_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+    description: 'No composition rules; passphrases and password-manager values are accepted',
+  })
   @IsString()
-  @Length(12, 128)
+  @IsPasswordCodePointLength(ACCOUNT_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
   newPassword!: string;
 }

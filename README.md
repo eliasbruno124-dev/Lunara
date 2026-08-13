@@ -41,7 +41,7 @@ OpenAPI-Dokumentation.
   Sync bleibt zusätzlich verfügbar
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
   `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.4 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+- native Compose-App 1.0.5 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
   rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
   Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
 - nachträgliche Korrektur und Löschung eines Periodenstarts über dieselbe
@@ -59,7 +59,7 @@ Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
 ## Verbindung und Authentifizierung
 
-Das Serverfeld ist beim ersten Start von Android 1.0.4 absichtlich leer. Für
+Das Serverfeld ist beim ersten Start von Android 1.0.5 absichtlich leer. Für
 die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
 Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
 Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
@@ -90,6 +90,15 @@ App-Zugang manuell in Authentik rotiert und neu ausgerollt, müssen alle
 autorisierten App-Installationen einmalig die neue Header-Auth-Adresse
 erhalten; die persönlichen Lunara-Passwörter bleiben davon unberührt.
 Menschliche Authentik-Konten sind nicht für Lunara freigeschaltet.
+
+Neue Lunara-Kontopasswörter müssen 8 bis 128 Unicode-Zeichen lang sein. Es
+gibt keine vorgeschriebenen Großbuchstaben, Ziffern oder Sonderzeichen; eine
+lange, nur für Lunara verwendete Passphrase bleibt empfehlenswert. Bei Login,
+Kontolöschung und der Eingabe des aktuellen Passworts akzeptiert die API aus
+Kompatibilitätsgründen bestehende Passwörter mit 1 bis 128 Zeichen. Neue oder
+geänderte Passwörter müssen immer die aktuelle Mindestlänge erfüllen. Die
+Passphrase für einen verschlüsselten Export ist davon getrennt und bleibt auf
+12 bis 128 Zeichen begrenzt.
 
 Der Bootstrap ist ausschließlich für das erste `TRACKER`-Konto einer noch nie
 eingerichteten Instanz bestimmt. Sein erfolgreicher Abschluss wird dauerhaft

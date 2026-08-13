@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsObject, IsOptional, IsString, Length } from 'class-validator';
+import {
+  ACCOUNT_PASSWORD_MAX_LENGTH,
+  EXISTING_PASSWORD_MIN_LENGTH,
+  IsPasswordCodePointLength,
+} from '../auth/password-policy.js';
 
 export enum ExportFormatDto {
   JSON = 'JSON',
@@ -37,9 +42,13 @@ export class ImportDto {
 }
 
 export class DeleteAccountDto {
-  @ApiProperty({ writeOnly: true })
+  @ApiProperty({
+    minLength: EXISTING_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+  })
   @IsString()
-  @Length(12, 128)
+  @IsPasswordCodePointLength(EXISTING_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
   password!: string;
 
   @ApiPropertyOptional({ default: false })

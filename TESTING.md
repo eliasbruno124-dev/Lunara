@@ -2,22 +2,23 @@
 
 Erfolgsaussagen beziehen sich ausschließlich auf tatsächlich ausgeführte
 Befehle. Die endgültigen Ergebnisse, Artefaktgrößen, Prüfsummen, Image-IDs und
-Live-Prüfungen des Release 1.0.4 stehen in `FINAL_REPORT.md`. Diese Datei
+Live-Prüfungen des Release 1.0.5 stehen in `FINAL_REPORT.md`. Diese Datei
 beschreibt die verbindliche Prüfmatrix und behauptet nicht allein aufgrund
 vorhandener Dateien einen erfolgreichen Build.
 
-## Tatsächlich ausgeführter 1.0.4-Abschluss
+## Tatsächlich ausgeführter 1.0.5-Abschluss
 
-- Backend: 18/18 Jest-Suites und 79/79 Tests; Prisma, ESLint, Nest-Build,
+- Backend: 19/19 Jest-Suites und 83/83 Tests; Prisma, ESLint, Nest-Build,
   OpenAPI-Reproduzierbarkeit sowie vollständiges und produktives npm-Audit
   erfolgreich; beide Audits mit 0 bekannten Schwachstellen
 - PostgreSQL 18: 1/1 E2E-Suite und 1/1 durchgehender Test mit sechs
   Migrationen erfolgreich
-- Android: 19/19 JVM-Suites und 77/77 Tests; beide Lints ohne Error/Fatal,
+- Android: 20/20 JVM-Suites und 86/86 Tests; beide Lints ohne Error/Fatal,
   Production-Instrumentierung kompiliert, Debug- und unsignierte Release-APK
   gebaut
-- Gateway: vollständiger anonymer Authentik-Schutz, gemeinsamer App-Header,
-  persönlicher Login, `/me`, Sync-Pull/-Push und Logout erfolgreich
+- Gateway: vollständiger anonymer Authentik-Schutz und gemeinsamer App-Header
+  erfolgreich; die produktive Passwortgrenze wurde mit einem temporären Konto
+  geprüft und dieses anschließend vollständig gelöscht
 
 Prüfsummen, Image-ID, Live-Zustand und bewusst nicht ausgeführte Gerätetests
 stehen in `FINAL_REPORT.md`.
@@ -32,6 +33,7 @@ npm run lint
 npm test
 npm run build
 npm run openapi:check
+npm audit
 npm audit --omit=dev
 ```
 
@@ -53,6 +55,10 @@ Die Backend-Suites prüfen insbesondere:
   erscheinen
 - Argon2id-Login, generische Fehler, Refresh-Token-Rotation, Replay-Widerruf,
   Passwortwechsel und getrennte Gerätesitzungen
+- einheitliche Kontopasswortgrenze von 8 bis 128 Unicode-Codepoints ohne
+  vorgeschriebene Großbuchstaben, Ziffern oder Sonderzeichen; Verifikation
+  bestehender Zugangsdaten weiterhin mit 1 bis 128 Zeichen sowie identische
+  Zählung von Variationsselektoren in API und Android
 - Bootstrap, optionale Tracker-Registrierung, permanente Einmal-Einladungen,
   Rollenprüfung und Isolation fremder Beziehungen
 - JSON-/CSV-Export, Importvorschau, Soft Deletes, Sync-Idempotenz und
@@ -83,7 +89,7 @@ PostgreSQL-18-Strecke ab:
 11. Isolation fremder Beziehungs-IDs über direkte API- und Sync-Aufrufe
 12. weiterhin gesperrten Bootstrap nach Löschung der letzten Beziehung
 
-Der finale 1.0.4-E2E-Lauf wurde tatsächlich erfolgreich beendet. Der
+Der finale 1.0.5-E2E-Lauf wurde tatsächlich erfolgreich beendet. Der
 detaillierte Ergebnisnachweis steht in `FINAL_REPORT.md`.
 
 ## Android
@@ -94,9 +100,10 @@ cd apps/android
 ./gradlew --no-daemon --max-workers=1 lintLocalDebug lintProductionDebug
 ./gradlew --no-daemon --max-workers=1 compileProductionDebugAndroidTestKotlin
 ./gradlew --no-daemon --max-workers=1 assembleProductionDebug
+./gradlew --no-daemon --max-workers=1 assembleProductionRelease
 ```
 
-Für Android 1.0.4 umfasst die JVM-Prüfung zusätzlich zu Offline-Sync,
+Für Android 1.0.5 umfasst die JVM-Prüfung zusätzlich zu Offline-Sync,
 Navigation, Wipe und Passwortwechsel insbesondere:
 
 - ein wirklich leeres Serverfeld beim ersten Start
@@ -107,6 +114,8 @@ Navigation, Wipe und Passwortwechsel insbesondere:
 - präemptives `Authorization: Basic …` nur auf exakt demselben Ursprung,
   unterdrückte Redirects und kein Credential-Leak an Fremdhosts
 - persönliches `X-Lunara-Authorization: Bearer …`, wenn Gateway Auth aktiv ist
+- dieselbe 8-bis-128-Zeichen-Grenze für Registrierung, Partnerbeitritt und
+  Passwortwechsel sowie kompatible Anmeldung mit bestehenden Passwörtern
 - rollenabhängige Navigation und vollständige Freigabeschalter
 - autoritatives Entfernen gecachter Partner-Tipps nach Freigabeentzug
 - Fertilitäts-Opt-in, Sicherheitsbestätigung, Mindestdaten und getrennte
@@ -134,7 +143,7 @@ unzip -t artifacts/lunara-debug.apk
 sha256sum artifacts/lunara-debug.apk
 ```
 
-Zusätzlich sind Manifestwerte, `versionName` 1.0.4, `versionCode` 5 und APK-v2-
+Zusätzlich sind Manifestwerte, `versionName` 1.0.5, `versionCode` 6 und APK-v2-
 Signatur mit Android-Buildtools zu prüfen. Die konkreten Werte gehören in
 `FINAL_REPORT.md` und `artifacts/SHA256SUMS`.
 
@@ -148,18 +157,21 @@ cd packages/openapi-client/generated/kotlin
 ```
 
 `openapi:check` vergleicht Spezifikation, Generatorparameter und Kotlin-
-Ausgabebaum mit gespeicherten Hashes. Der Vertrag für 1.0.4 beschreibt bei
+Ausgabebaum mit gespeicherten Hashes. Der Vertrag für 1.0.5 beschreibt bei
 Gateway-Betrieb das persönliche Token in `X-Lunara-Authorization`; der äußere
 Basic Header bleibt Infrastruktur- und Transportvoraussetzung. Ein erfolgreicher
 Hashvergleich beweist nicht automatisch, dass der separate Kotlin-Client unter
-der verfügbaren Speichergrenze kompiliert wurde.
+der verfügbaren Speichergrenze kompiliert wurde. Beim 1.0.5-Abschluss wurde
+`compileKotlin` nach einem dokumentierten Abbruch des 1-GiB-Gradle-Daemons mit
+1,5 GiB tatsächlich erfolgreich wiederholt. Der OpenAPI-Hash lautet
+`8618f15f759748bafedc7396e8ce4e4591de82b7f22c22fc4afe95b61eece932`.
 
 ## Container
 
 ```bash
 docker compose --env-file .env.example config --quiet
 docker compose --env-file .env.example build api
-docker image inspect lunara-api:1.0.4
+docker image inspect lunara-api:1.0.5
 ```
 
 `.env.example` enthält nur Platzhalter und eignet sich nicht zum Start einer
@@ -176,7 +188,7 @@ sudo /docker/lunara/scripts/configure-pangolin.sh --check
 sudo /docker/lunara/scripts/verify-gateway.sh
 ```
 
-Der erwartete 1.0.4-Zustand ist:
+Der erwartete 1.0.5-Zustand ist:
 
 1. genau eine neutrale Authentik-Serviceidentität und genau ein nicht
    ablaufendes App-Passwort
@@ -185,8 +197,9 @@ Der erwartete 1.0.4-Zustand ist:
 4. `/api-docs-json` mit äußerem Basic Header: HTTP 200 und gültiges OpenAPI
 5. Root, Health, OpenAPI, Meta und Login ohne Basic Header: Authentik-Redirect,
    niemals anonyme HTTP-200-APIantwort
-6. persönlicher Lunara-Login mit äußerem Basic Header, anschließend `/me` mit
-   zusätzlichem `X-Lunara-Authorization` und erfolgreicher Logout
+6. öffentliche Registrierungsprüfung: acht kleingeschriebene Zeichen werden
+   akzeptiert, sieben mit HTTP 400 abgelehnt; das temporäre Konto wird danach
+   wieder gelöscht und alle fachlichen Tabellen bleiben leer
 7. kein zweiter direkter Pangolin-/Traefik-Pfad zur API
 
 `verify-gateway.sh` liest den gemeinsamen Zugang nur aus einer lokalen

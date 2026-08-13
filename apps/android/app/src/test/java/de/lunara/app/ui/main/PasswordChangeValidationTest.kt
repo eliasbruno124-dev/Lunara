@@ -27,6 +27,23 @@ class PasswordChangeValidationTest {
     }
 
     @Test
+    fun `eight character password change passes without composition rules`() {
+        assertNull(validatePasswordChange("old", "12345678", "12345678"))
+    }
+
+    @Test
+    fun `password change counts supplementary unicode characters instead of utf16 units`() {
+        val sevenCodePoints = "🔒".repeat(7)
+        val eightCodePoints = "🔒".repeat(8)
+
+        assertEquals(
+            PasswordChangeValidation.NEW_LENGTH,
+            validatePasswordChange("old", sevenCodePoints, sevenCodePoints),
+        )
+        assertNull(validatePasswordChange("old", eightCodePoints, eightCodePoints))
+    }
+
+    @Test
     fun `new password must differ`() {
         assertEquals(
             PasswordChangeValidation.SAME_PASSWORD,

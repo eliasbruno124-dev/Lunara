@@ -104,6 +104,7 @@ import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.repository.ApiPayloadPolicy
 import de.lunara.app.data.repository.SyncEditPolicy
+import de.lunara.app.security.limitAccountPasswordInput
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.StatusPill
@@ -1330,7 +1331,7 @@ internal fun PasswordChangeDialog(
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = {
-                        currentPassword = it.take(128)
+                        currentPassword = limitAccountPasswordInput(it)
                         onInputChanged()
                     },
                     label = { Text(stringResource(R.string.current_password)) },
@@ -1344,7 +1345,7 @@ internal fun PasswordChangeDialog(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = {
-                        newPassword = it.take(128)
+                        newPassword = limitAccountPasswordInput(it)
                         onInputChanged()
                     },
                     label = { Text(stringResource(R.string.new_password)) },
@@ -1359,7 +1360,7 @@ internal fun PasswordChangeDialog(
                 OutlinedTextField(
                     value = confirmation,
                     onValueChange = {
-                        confirmation = it.take(128)
+                        confirmation = limitAccountPasswordInput(it)
                         onInputChanged()
                     },
                     label = { Text(stringResource(R.string.confirm_new_password)) },

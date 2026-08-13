@@ -31,7 +31,7 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param deviceName
- * @param password
+ * @param password Existing credentials remain accepted after password-policy changes
  * @param username
  */
 
@@ -41,6 +41,7 @@ data class LoginDto (
     @Json(name = "deviceName")
     val deviceName: kotlin.String,
 
+    /* Existing credentials remain accepted after password-policy changes */
     @Json(name = "password")
     val password: kotlin.String,
 

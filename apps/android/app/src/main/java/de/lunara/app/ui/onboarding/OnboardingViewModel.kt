@@ -12,6 +12,7 @@ import de.lunara.app.core.network.ServerChangeConfirmationRequired
 import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.repository.ConnectionRepository
+import de.lunara.app.security.limitAccountPasswordInput
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,7 @@ enum class OnboardingError {
     API,
     USERNAME,
     USERNAME_IN_USE,
+    PASSWORD_REQUIRED,
     PASSWORD,
     DISPLAY_NAME,
     BOOTSTRAP_TOKEN,
@@ -109,7 +111,9 @@ class OnboardingViewModel @Inject constructor(
         }
     }
     fun setUsername(value: String) = _state.update { it.copy(username = value.take(64), error = null) }
-    fun setPassword(value: String) = _state.update { it.copy(password = value.take(128), error = null) }
+    fun setPassword(value: String) = _state.update {
+        it.copy(password = limitAccountPasswordInput(value), error = null)
+    }
     fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(120), error = null) }
     fun setBootstrapToken(value: String) = _state.update { it.copy(bootstrapToken = value.take(256), error = null) }
     fun setInvitationCode(value: String) = _state.update { it.copy(invitationCode = value.take(32), error = null) }

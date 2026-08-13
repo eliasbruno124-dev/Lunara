@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.5 – 2026-08-13
+
+- Kontopasswort-Regel für Bootstrap, Registrierung, Partnerbeitritt und
+  Passwortänderung auf 8 bis 128 Unicode-Codepoints vereinheitlicht. Android,
+  API und OpenAPI zählen auch Variationsselektoren jetzt identisch.
+- Verpflichtende Zeichenklassen entfernt: Neue Kontopasswörter benötigen keine
+  erzwungenen Großbuchstaben, Ziffern oder Sonderzeichen. Lange, einzigartige
+  Passphrasen bleiben empfohlen.
+- Bestehende Passwörter bei Login, Kontolöschung und der Eingabe des aktuellen
+  Passworts mit 1 bis 128 Zeichen kompatibel gehalten, damit spätere
+  Richtlinienänderungen keine vorhandenen Konten aussperren. Neu gesetzte
+  Passwörter bleiben auf mindestens acht Zeichen begrenzt.
+- Argon2id-Hashing, Login-/Passwortwechsel-Rate-Limits, generische
+  Anmeldefehler, getrennte Gerätesitzungen und der vollständige Authentik-
+  Domainschutz unverändert beibehalten.
+- Verschlüsselte Exportpassphrase bewusst nicht gelockert; sie bleibt getrennt
+  von Kontopasswörtern auf 12 bis 128 Zeichen begrenzt.
+- API-, Android- und OpenAPI-Version auf 1.0.5 angehoben. Tatsächlich
+  ausgeführte Build-, Test-, Container- und Live-Ergebnisse werden weiterhin
+  ausschließlich in den dafür vorgesehenen Nachweisdokumenten festgehalten.
+
 ## 1.0.4 – 2026-08-13
 
 - Authentik auf vollständigen Schutz der gesamten Lunara-Domain umgestellt.
