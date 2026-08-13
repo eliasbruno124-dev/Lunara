@@ -362,6 +362,7 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.DNS -> R.string.error_dns
         OnboardingError.TLS -> R.string.error_tls
         OnboardingError.TIMEOUT -> R.string.error_timeout
+        OnboardingError.GATEWAY_AUTH -> R.string.error_gateway_auth
         OnboardingError.API -> R.string.error_api
         OnboardingError.FORM, OnboardingError.GENERIC -> R.string.error_generic
         null -> return

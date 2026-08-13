@@ -22,17 +22,17 @@ class DashboardRepository @Inject constructor(
 ) {
     suspend fun partnerDashboard(): PartnerDashboardDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
         if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
         }
         val dashboard = response.requireBody()
-        var tipResponse = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .todayTip(endpoint(base, "api/v1/tips/today"))
         if (tipResponse.code() == 401 && connectionRepository.refresh()) {
-            tipResponse = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .todayTip(endpoint(base, "api/v1/tips/today"))
         }
         return dashboard.copy(tip = tipResponse.body()?.tip).also {
@@ -46,10 +46,10 @@ class DashboardRepository @Inject constructor(
 
     suspend fun trackerPrediction(): de.lunara.app.data.remote.dto.PredictionDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .prediction(endpoint(base, "api/v1/predictions"))
         if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .prediction(endpoint(base, "api/v1/predictions"))
         }
         return response.requireBody()
@@ -58,10 +58,10 @@ class DashboardRepository @Inject constructor(
     suspend fun sendCheckIn(prompt: String): de.lunara.app.data.remote.dto.CheckInDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
         val request = de.lunara.app.data.remote.dto.CreateCheckInRequest(prompt.take(240))
-        var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .createCheckIn(endpoint(base, "api/v1/check-ins"), request)
         if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .createCheckIn(endpoint(base, "api/v1/check-ins"), request)
         }
         return response.requireBody()

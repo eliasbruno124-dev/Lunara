@@ -71,6 +71,14 @@ Stand: 12. August 2026
   verglichen.
 - [x] APK als privates GitHub-Release `v1.0.0` veröffentlicht und Größe sowie
   SHA-256 vor dem Upload erneut geprüft.
+- [x] Android-Cachefehler nach anonymem Authentik-Aufruf behoben: anonyme
+  Proxy-Cookies unterdrücken Header-Auth nicht mehr, Zugangsdaten bleiben auf
+  den exakten Server-Ursprung begrenzt und Browser-Login-Redirects werden nicht
+  verfolgt. Eingefügtes `/api/v1/meta` wird auf die Serverbasis normalisiert.
+- [x] Version 1.0.1 mit vorausgefüllter Produktionsdomain gebaut; Unit-Tests,
+  Local-/Production-Lint, APK-ZIP- und v2-Signaturprüfung erfolgreich. Größe:
+  24.219.939 Bytes, SHA-256:
+  `df487a30b937f11109ba735418455cfcafd19cd6583b49cba7f55e70f33b488f`.
 
 ## In Arbeit
 

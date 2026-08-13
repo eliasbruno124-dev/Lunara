@@ -62,18 +62,18 @@ class SyncWorker @AssistedInject constructor(
             )
 
             val body = if (pending.isNotEmpty()) {
-                var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+                var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                     .sync(endpoint(base, "api/v1/sync"), request)
                 if (response.code() == 401 && connectionRepository.refresh()) {
-                    response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+                    response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                         .sync(endpoint(base, "api/v1/sync"), request)
                 }
                 response.requireBody()
             } else {
-                var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+                var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                     .pullSync(endpoint(base, "api/v1/sync"), storedCursor)
                 if (response.code() == 401 && connectionRepository.refresh()) {
-                    response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+                    response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                         .pullSync(endpoint(base, "api/v1/sync"), storedCursor)
                 }
                 val pull = response.requireBody()

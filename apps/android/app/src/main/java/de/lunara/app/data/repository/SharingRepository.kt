@@ -17,10 +17,10 @@ class SharingRepository @Inject constructor(
 ) {
     suspend fun load(): SharingSettingsDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .sharing(endpoint(base, "api/v1/sharing"))
         if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .sharing(endpoint(base, "api/v1/sharing"))
         }
         return response.requireBody()
@@ -28,10 +28,10 @@ class SharingRepository @Inject constructor(
 
     suspend fun update(request: UpdateSharingRequest): SharingSettingsDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        var response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .updateSharing(endpoint(base, "api/v1/sharing"), request)
         if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .updateSharing(endpoint(base, "api/v1/sharing"), request)
         }
         return response.requireBody()

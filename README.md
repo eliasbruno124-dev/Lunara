@@ -74,7 +74,7 @@ artifacts/lunara-debug.apk
 ```
 
 Für berechtigte GitHub-Benutzer steht sie außerdem im privaten
-[`v1.0.0-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.0)
+[`v1.0.1-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.1)
 als direkter Download bereit.
 
 Sie erzwingt HTTPS und verwendet standardmäßig
@@ -94,6 +94,10 @@ beschrieben; private Signierschlüssel liegen absichtlich nicht im Repository.
 Beim ersten Start akzeptiert die App die vom Server lokal erzeugte URL in dieser
 Form:
 
+```text
+https://{BENUTZERNAME}:{AUTHENTIK-APP-PASSWORT}@lunara.3li361.de
+```
+
 Die HTTPS-URL wird dazu um die URL-Benutzerinfo
 `gateway-benutzer:authentik-app-passwort@lunara.3li361.de` ergänzt. Die fertige
 Adresse beginnt wie gewohnt mit `https://`.
@@ -104,6 +108,11 @@ ein Authentik-**App-Passwort**, nicht das normale Kontopasswort, verwendet
 werden. URLs mit Zugangsdaten gehören nicht in QR-Codes, Chats oder
 Cloudflare-DNS-Einträge und können vor dem Einfügen in Zwischenablage- oder
 Tastaturverläufen sichtbar sein.
+
+Version 1.0.1 sendet die Gateway-Anmeldung auch nach einem vorherigen anonymen
+Verbindungsversuch zuverlässig und ausschließlich an den konfigurierten
+Server-Ursprung. Ein versehentlich eingefügter `/api/v1/meta`-Testpfad wird auf
+die Serverbasis normalisiert.
 
 ## Entwicklung und Prüfung
 

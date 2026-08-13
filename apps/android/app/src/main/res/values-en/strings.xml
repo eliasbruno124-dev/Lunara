@@ -11,7 +11,7 @@
     <string name="server_connect_title">Connect server</string>
     <string name="server_url">Server URL</string>
     <string name="server_url_example">https://user:pass@lunara.example.com</string>
-    <string name="gateway_hint">An optional Authentik user and Authentik app password from the URL are stored separately and securely. QR codes must never contain them.</string>
+    <string name="gateway_hint">The server domain is prefilled. For Authentik, enter https://USER:APP-PASSWORD@lunara.3li361.de without /api/v1/meta. Credentials are stored separately and securely and must not be placed in a QR code.</string>
     <string name="development_http">Allow insecure HTTP in local development mode</string>
     <string name="development_http_warning">HTTP sends data without encryption and may only be used in a trusted development environment.</string>
     <string name="test_connection">Test connection</string>
@@ -129,6 +129,7 @@
     <string name="error_dns">The server name could not be resolved.</string>
     <string name="error_tls">The TLS connection or certificate is invalid.</string>
     <string name="error_timeout">The server did not respond in time.</string>
+    <string name="error_gateway_auth">Authentik did not accept access. Do not append an API path and use the complete personal header-auth URL.</string>
     <string name="error_api">The server does not provide a compatible Lunara API.</string>
     <string name="error_generic">That did not work. Check your input and try again.</string>
     <string name="offline_badge">Available offline</string>

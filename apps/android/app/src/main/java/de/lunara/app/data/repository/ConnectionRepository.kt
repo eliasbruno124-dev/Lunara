@@ -36,7 +36,12 @@ class ConnectionRepository @Inject constructor(
         val switchingServer = ServerChangePolicy.requiresConfirmation(oldBase, address.baseUrl)
         if (switchingServer && !confirmServerChange) throw ServerChangeConfirmationRequired()
 
-        val api = apiFactory.create(address.gatewayCredentials, null)
+        if (oldBase != address.baseUrl || secrets.gatewayCredentials != address.gatewayCredentials) {
+            // Anonymous Authentik redirects also set a proxy cookie. It must not survive a first
+            // connection or a gateway-credential change and influence the next validation.
+            cookieJar.clear()
+        }
+        val api = apiFactory.create(address.baseUrl, address.gatewayCredentials, null)
         val meta = api.meta(endpoint(address.baseUrl, "api/v1/meta")).requireBody()
         if (meta.apiVersion != SUPPORTED_API_VERSION || meta.name.isBlank()) {
             throw ApiException(426, "unsupported_api_version")
@@ -107,7 +112,7 @@ class ConnectionRepository @Inject constructor(
         val state = preferences.state.first()
         val base = state.baseUrl ?: return false
         val refresh = secrets.refreshToken ?: return false
-        val response = apiFactory.create(secrets.gatewayCredentials, null).refresh(
+        val response = apiFactory.create(base, secrets.gatewayCredentials, null).refresh(
             endpoint(base, "api/v1/auth/refresh"),
             RefreshRequest(refresh),
         )
@@ -123,7 +128,7 @@ class ConnectionRepository @Inject constructor(
     ): AppSession {
         val state = preferences.state.first()
         val base = state.baseUrl ?: throw ApiException(400, "server_not_configured")
-        val api = apiFactory.create(secrets.gatewayCredentials, null)
+        val api = apiFactory.create(base, secrets.gatewayCredentials, null)
         val auth = call(base, api)
         val rawRole = auth.user.role
         val role = runCatching { UserRole.valueOf(rawRole) }.getOrElse {

@@ -5,9 +5,11 @@ import de.lunara.app.core.security.SecureCookieJar
 import okhttp3.Authenticator
 import okhttp3.Credentials
 import okhttp3.Interceptor
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.Route
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.nio.charset.StandardCharsets
@@ -17,10 +19,15 @@ import javax.inject.Singleton
 
 private class GatewayAuthenticator(
     private val credentials: GatewayCredentials?,
+    private val expectedOrigin: GatewayOrigin,
 ) : Authenticator {
     override fun authenticate(route: Route?, response: Response): okhttp3.Request? {
         val gateway = credentials ?: return null
-        if (responseCount(response) >= 2 || response.request.header("Authorization")?.startsWith("Basic ") == true) {
+        if (
+            !expectedOrigin.matches(response.request.url) ||
+            responseCount(response) >= 2 ||
+            response.request.header("Authorization")?.startsWith("Basic ") == true
+        ) {
             return null
         }
         return response.request.newBuilder()
@@ -42,26 +49,42 @@ private class GatewayAuthenticator(
     }
 }
 
+internal data class GatewayOrigin(
+    val scheme: String,
+    val host: String,
+    val port: Int,
+) {
+    fun matches(url: HttpUrl): Boolean =
+        scheme == url.scheme && host == url.host && port == url.port
+
+    companion object {
+        fun fromBaseUrl(baseUrl: String): GatewayOrigin = baseUrl.toHttpUrl().let {
+            GatewayOrigin(it.scheme, it.host, it.port)
+        }
+    }
+}
+
 internal object GatewayHeaderPolicy {
     fun shouldAttach(
         credentialsPresent: Boolean,
-        hasValidCookie: Boolean,
+        requestMatchesOrigin: Boolean,
         existingAuthorization: String?,
-    ): Boolean = credentialsPresent && !hasValidCookie && existingAuthorization == null
+    ): Boolean = credentialsPresent && requestMatchesOrigin && existingAuthorization == null
 }
 
 /**
- * Authentik's proxy provider can redirect anonymous traffic directly to its HTML login page.
- * Supplying the app-password once, before that redirect, establishes the encrypted session cookie.
+ * Authentik's proxy provider redirects anonymous API traffic to an HTML login page. Cookies set
+ * during that anonymous redirect are not proof of authentication, so the app password is sent
+ * preemptively on every request to the configured server origin and never to another origin.
  */
 private class PreemptiveGatewayHeaderInterceptor(
     private val credentials: GatewayCredentials?,
-    private val cookieJar: SecureCookieJar,
+    private val expectedOrigin: GatewayOrigin,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val gateway = credentials
-        if (!GatewayHeaderPolicy.shouldAttach(gateway != null, cookieJar.hasValidFor(request.url), request.header("Authorization"))) {
+        if (!GatewayHeaderPolicy.shouldAttach(gateway != null, expectedOrigin.matches(request.url), request.header("Authorization"))) {
             return chain.proceed(request)
         }
         return chain.proceed(
@@ -87,18 +110,21 @@ private class AppTokenInterceptor(
 class ApiClientFactory @Inject constructor(
     private val cookieJar: SecureCookieJar,
 ) {
-    fun create(gateway: GatewayCredentials?, accessToken: String?): LunaraApi {
+    fun create(baseUrl: String, gateway: GatewayCredentials?, accessToken: String?): LunaraApi {
+        val gatewayOrigin = GatewayOrigin.fromBaseUrl(baseUrl)
         val client = OkHttpClient.Builder()
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)
             .cookieJar(cookieJar)
-            .authenticator(GatewayAuthenticator(gateway))
-            .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, cookieJar))
+            .authenticator(GatewayAuthenticator(gateway, gatewayOrigin))
+            .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, gatewayOrigin))
             .addInterceptor(AppTokenInterceptor(accessToken, gateway != null))
-            .followRedirects(true)
-            .followSslRedirects(true)
+            // A REST client must not follow Authentik's browser-login redirect and try to parse
+            // HTML as JSON. A valid gateway header returns the API response directly.
+            .followRedirects(false)
+            .followSslRedirects(false)
             .build()
 
         return Retrofit.Builder()

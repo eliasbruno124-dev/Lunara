@@ -255,6 +255,13 @@ Passwörter gehören weder in Cloudflare-Regeln noch in DNS-Werte.
 7. Bootstrap-Token nach erfolgreichem Setup in der Live-Konfiguration durch einen
    neuen Zufallswert ersetzen; serverseitig bleibt Bootstrap dennoch gesperrt.
 
+Der Bootstrap-Token ist ausschließlich der einmalige Besitznachweis für einen
+noch leeren Server. Er verhindert, dass eine fremde Person den ersten Haushalt
+anlegt. Nach dem ersten erfolgreichen Setup setzt der Server den Bootstrap-
+Status dauerhaft auf abgeschlossen; für Login, Einladung und normalen Betrieb
+wird der Token nicht mehr verwendet. Er darf nicht entfernt, in die APK
+eingebaut oder über Chat, QR-Code beziehungsweise GitHub verteilt werden.
+
 ## 7. Backup, Restore und Updates
 
 ```bash

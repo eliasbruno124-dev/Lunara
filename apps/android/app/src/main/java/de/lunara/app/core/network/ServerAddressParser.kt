@@ -54,7 +54,8 @@ object ServerAddressParser {
             uri.port in 1..65535 -> ":${uri.port}"
             else -> throw ServerAddressException.InvalidUrl
         }
-        val path = uri.rawPath.orEmpty().trimEnd('/')
+        val enteredPath = uri.rawPath.orEmpty().trimEnd('/')
+        val path = enteredPath.removeSuffix(META_ENDPOINT)
         val sanitized = "$scheme://$host$port${if (path.isBlank()) "" else path}/"
         return ParsedServerAddress(sanitized, credentials)
     }
@@ -62,6 +63,8 @@ object ServerAddressParser {
     private fun decode(value: String): String = runCatching {
         URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8.name())
     }.getOrElse { throw ServerAddressException.InvalidUrl }
+
+    private const val META_ENDPOINT = "/api/v1/meta"
 }
 
 object ServerChangePolicy {

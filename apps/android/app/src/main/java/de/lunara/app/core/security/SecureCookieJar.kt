@@ -71,15 +71,6 @@ class SecureCookieJar @Inject constructor(
         return result
     }
 
-    /** True only when a non-expired Authentik cookie is valid for this exact request URL. */
-    @Synchronized
-    fun hasValidFor(url: HttpUrl): Boolean {
-        val now = System.currentTimeMillis()
-        return storedCookies.values.any { stored ->
-            stored.expiresAt > now && runCatching { stored.toCookie().matches(url) }.getOrDefault(false)
-        }
-    }
-
     fun clear() {
         storedCookies.clear()
         secretStore.putString(KEY, null)

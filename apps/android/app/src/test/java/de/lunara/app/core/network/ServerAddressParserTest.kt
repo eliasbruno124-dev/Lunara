@@ -25,6 +25,18 @@ class ServerAddressParserTest {
     }
 
     @Test
+    fun `normalizes a pasted meta endpoint back to the server base`() {
+        assertEquals(
+            "https://cycle.example.de/",
+            ServerAddressParser.parse("https://cycle.example.de/api/v1/meta", false).baseUrl,
+        )
+        assertEquals(
+            "https://cycle.example.de/instance/",
+            ServerAddressParser.parse("https://cycle.example.de/instance/api/v1/meta", false).baseUrl,
+        )
+    }
+
+    @Test
     fun `rejects HTTP unless development mode explicitly allows it`() {
         assertThrows(ServerAddressException.HttpsRequired::class.java) {
             ServerAddressParser.parse("http://10.0.2.2:3000", false)

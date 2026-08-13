@@ -91,11 +91,13 @@ Erzeugtes installierbares Artefakt:
 ```
 
 - Variante: Production-Debug
+- App-Version: `1.0.1` (`versionCode` 2)
 - Standardserver: `https://lunara.3li361.de/`
 - Klartext-HTTP: deaktiviert
-- Größe: 24.219.463 Bytes
-- SHA-256: `8ec7dab3fee58a65452393887c60e82c61ac27a2d49e0c7966d810d832d19533`
+- Größe: 24.219.939 Bytes
+- SHA-256: `df487a30b937f11109ba735418455cfcafd19cd6583b49cba7f55e70f33b488f`
 - `sha256sum -c artifacts/SHA256SUMS`: erfolgreich
+- APK-ZIP-Struktur und APK-Signature-Scheme-v2-Signatur: erfolgreich geprüft
 
 Ein unsigned Production-Release-Build wurde versucht, konnte auf dem Host wegen
 wiederholter Gradle-Daemon-/Speicherabbrüche aber nicht erfolgreich beendet
@@ -146,10 +148,10 @@ Debugsignierschlüssel und ist nicht für einen öffentlichen Store gedacht.
 ### Privates GitHub-Repository
 
 Das Repository `https://github.com/eliasbruno124-dev/Lunara` wurde vor dem
-ersten Push als privat geprüft. `main` und der lokale Commit stimmten nach dem
-Push exakt überein. Das private Release `v1.0.0` enthält die geprüfte
-`lunara-debug.apk` mit 24.219.463 Bytes. Echte `.env`, Gateway-Zugangsdaten,
-Tokens, Datenbankdumps und Infrastruktur-Backups wurden nicht hochgeladen.
+ersten Push als privat geprüft. Das private Release `v1.0.1` enthält die
+korrigierte `lunara-debug.apk` mit 24.219.939 Bytes. Echte `.env`, Gateway-
+Zugangsdaten, Tokens, Datenbankdumps und Infrastruktur-Backups wurden nicht
+hochgeladen.
 
 ## Bekannte Funktionsgrenzen
 

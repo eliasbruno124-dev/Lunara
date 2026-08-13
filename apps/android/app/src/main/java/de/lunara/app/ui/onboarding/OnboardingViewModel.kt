@@ -24,7 +24,19 @@ import javax.net.ssl.SSLException
 
 enum class OnboardingStage { INTRO, SERVER, AUTH }
 enum class AuthMode { LOGIN, SETUP, JOIN }
-enum class OnboardingError { INVALID_URL, HTTPS_REQUIRED, INCOMPLETE_CREDENTIALS, QR_CREDENTIALS, DNS, TLS, TIMEOUT, API, FORM, GENERIC }
+enum class OnboardingError {
+    INVALID_URL,
+    HTTPS_REQUIRED,
+    INCOMPLETE_CREDENTIALS,
+    QR_CREDENTIALS,
+    DNS,
+    TLS,
+    TIMEOUT,
+    GATEWAY_AUTH,
+    API,
+    FORM,
+    GENERIC,
+}
 
 data class OnboardingUiState(
     val stage: OnboardingStage = OnboardingStage.INTRO,
@@ -175,7 +187,7 @@ class OnboardingViewModel @Inject constructor(
         is UnknownHostException -> OnboardingError.DNS
         is SSLException -> OnboardingError.TLS
         is SocketTimeoutException -> OnboardingError.TIMEOUT
-        is ApiException -> OnboardingError.API
+        is ApiException -> if (error.status in 300..399) OnboardingError.GATEWAY_AUTH else OnboardingError.API
         else -> OnboardingError.GENERIC
     }
 }

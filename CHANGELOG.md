@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 – 2026-08-13
+
+- Authentik-Header-Auth nach einem anonymen Verbindungsversuch repariert:
+  anonyme Proxy-Cookies unterdrücken den erforderlichen Basic-Header nicht mehr.
+- Gateway-Zugangsdaten strikt auf Ursprungsschema, Host und Port des
+  konfigurierten Servers begrenzt; Browser-Login-Weiterleitungen werden nicht
+  mehr als API-Antwort verfolgt.
+- Veraltete Authentik-Cookies bei Server- oder Zugangsdatenwechsel entfernt und
+  eine verständliche Gateway-Fehlermeldung ergänzt.
+- Eingefügten `/api/v1/meta`-Testpfad automatisch auf die Serverbasis
+  normalisiert und das vorausgefüllte URL-Schema im Onboarding verdeutlicht.
+
 ## 1.0.0 – 2026-08-12
 
 - Separates Lunara-Monorepo mit NestJS-/Prisma-API, PostgreSQL 18 und nativer

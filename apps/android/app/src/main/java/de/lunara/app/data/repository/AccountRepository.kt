@@ -23,7 +23,7 @@ class AccountRepository @Inject constructor(
         SecureWipeCoordinator.execute(
             bestEffortRemoteLogout = {
                 if (state.baseUrl != null && refresh != null) {
-                    apiFactory.create(secrets.gatewayCredentials, secrets.accessToken)
+                    apiFactory.create(state.baseUrl, secrets.gatewayCredentials, secrets.accessToken)
                         .logout(endpoint(state.baseUrl, "api/v1/auth/logout"), LogoutRequest(refresh))
                 }
             },
