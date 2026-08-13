@@ -205,6 +205,10 @@ Stand: 13. August 2026
 
 ## Bewusst offen nach dem produktionsnahen Kern
 
+- [ ] GitHub-Android-CI so initialisieren, dass `sdkmanager` verfügbar ist.
+- [ ] GitHub-Backend-CI Prisma vor dem ESLint-Lauf generieren lassen.
+- [ ] Im isolierten GitHub-E2E-Container die Prisma-CLI für Migrationen
+  bereitstellen. Diese Workflow-Anpassungen wurden nicht ungefragt vorgenommen.
 - [ ] Instrumentierte Android-Tests auf realem Gerät/Emulator ausführen.
 - [ ] Eigener signierter/minifizierter Release-Build; privater Signing-Key ist
   absichtlich nicht vorhanden.

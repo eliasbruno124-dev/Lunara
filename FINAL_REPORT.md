@@ -267,6 +267,20 @@ Infrastruktur-Backups sind nicht für Git vorgesehen. Der projektinterne
 Secret-Scan bestand ohne Fund; `gitleaks` war auf dem Host nicht installiert
 und wird daher nicht als ausgeführt bezeichnet.
 
+### GitHub-Actions-Status nach der Veröffentlichung
+
+Für den finalen Branch-Commit `ea06eeb0fe0f467a194d4be32c840064b22ef6da`
+wurden die vorhandenen Workflows tatsächlich gestartet. Dependency Review war
+erfolgreich; Container and dependency security lief beim Abschluss dieses
+Berichts noch. Android CI brach vor Build, Lint und Tests ab, weil auf dem
+GitHub-Runner `sdkmanager` nicht im Pfad vorhanden war. Backend CI brach beim
+Lint ab, weil die Prisma-Typen laut Workflow erst nach dem Lint generiert
+werden; der getrennte E2E-Job fand im Testcontainer die Prisma-CLI nicht.
+Diese roten Workflow-Läufe werden nicht als Produkttestfehler umgedeutet und
+auch nicht verschwiegen. Die oben dokumentierten lokalen Backend-/Android-
+Prüfungen wurden tatsächlich erfolgreich ausgeführt. Die CI-Workflows wurden
+ohne ausdrückliche Freigabe nicht verändert.
+
 ## Bekannte Funktionsgrenzen
 
 - Instrumentierte Android-Tests wurden nur kompiliert, nicht auf einem Gerät
