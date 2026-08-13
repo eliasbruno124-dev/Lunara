@@ -177,6 +177,10 @@ private fun ServerStep(
     onAllowHttp: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
 ) {
+    var revealCredentialUrl by remember { mutableStateOf(false) }
+    val containsGatewayCredentials = remember(state.serverUrl) {
+        state.serverUrl.substringBefore("@", missingDelimiterValue = "").contains("://")
+    }
     val scanPrompt = stringResource(R.string.scan_qr_prompt)
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let(onScannedServerUrl)
@@ -192,6 +196,24 @@ private fun ServerStep(
         label = { Text(stringResource(R.string.server_url)) },
         placeholder = { Text(stringResource(R.string.server_url_example)) },
         singleLine = true,
+        visualTransformation = if (containsGatewayCredentials && !revealCredentialUrl) {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        trailingIcon = if (containsGatewayCredentials) {
+            {
+                IconButton(onClick = { revealCredentialUrl = !revealCredentialUrl }) {
+                    Icon(
+                        Icons.Rounded.Lock,
+                        contentDescription = stringResource(
+                            if (revealCredentialUrl) R.string.hide_gateway_url else R.string.show_gateway_url,
+                        ),
+                    )
+                }
+            }
+        } else null,
         modifier = Modifier.fillMaxWidth(),
     )
     OutlinedButton(
@@ -403,6 +425,7 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.INVALID_URL -> R.string.error_invalid_url
         OnboardingError.HTTPS_REQUIRED -> R.string.error_https_required
         OnboardingError.INCOMPLETE_CREDENTIALS -> R.string.error_credentials
+        OnboardingError.CREDENTIALS_REQUIRE_HTTPS -> R.string.error_credentials_require_https
         OnboardingError.QR_CREDENTIALS -> R.string.error_qr_credentials
         OnboardingError.DNS -> R.string.error_dns
         OnboardingError.TLS -> R.string.error_tls

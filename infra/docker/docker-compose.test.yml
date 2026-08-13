@@ -31,7 +31,7 @@ services:
       NODE_ENV: test
       PORT: "3000"
       APP_NAME: Lunara Test
-      APP_VERSION: 1.0.3-test
+      APP_VERSION: 1.0.4-test
       PUBLIC_BASE_URL: http://api-test:3000
       DATABASE_URL: postgresql://lunara_test:integration-only-password@postgres-test:5432/lunara_test?schema=public
       APP_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=

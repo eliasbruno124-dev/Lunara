@@ -27,7 +27,7 @@ export class PeriodsService {
   }
 
   async create(user: AuthenticatedUser, dto: CreatePeriodDto) {
-    this.validateRange(dto.startDate, dto.endDate);
+    await this.validateRangeForUser(user.userId, dto.startDate, dto.endDate);
     const existing = await this.prisma.periodEvent.findUnique({ where: { id: dto.id } });
     if (existing) {
       if (
@@ -67,7 +67,28 @@ export class PeriodsService {
       });
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        throw this.createUniqueConflict(error);
+        // PostgreSQL/Prisma does not reliably expose the name of a partial
+        // unique index in P2002 metadata. Re-read the client UUID instead:
+        // concurrent delivery of the same mutation remains idempotent, while
+        // a different UUID for the same active local date is a date conflict.
+        const concurrent = await this.prisma.periodEvent.findUnique({
+          where: { id: dto.id },
+        });
+        if (concurrent) {
+          if (
+            concurrent.userId === user.userId &&
+            this.localDate(concurrent.startDate) === dto.startDate &&
+            (concurrent.endDate ? this.localDate(concurrent.endDate) : null) ===
+              (dto.endDate ?? null) &&
+            concurrent.source === (dto.source ?? 'MANUAL')
+          ) {
+            return this.serialize(concurrent);
+          }
+          throw new ConflictException('Client identifier is already in use');
+        }
+        throw new ConflictException(
+          'An active period entry already exists for this date',
+        );
       }
       throw error;
     }
@@ -86,7 +107,7 @@ export class PeriodsService {
         ? this.localDate(current.endDate)
         : null
       : dto.endDate;
-    this.validateRange(startDate, endDate);
+    await this.validateRangeForUser(user.userId, startDate, endDate);
 
     let updated: PeriodEvent;
     try {
@@ -178,6 +199,35 @@ export class PeriodsService {
     if (end < start) throw new BadRequestException('endDate must not be before startDate');
   }
 
+  private async validateRangeForUser(
+    userId: string,
+    startDate: string,
+    endDate?: string | null,
+  ): Promise<void> {
+    this.validateRange(startDate, endDate);
+    const profile = await this.prisma.cycleProfile.findUnique({
+      where: { userId },
+      select: { timezone: true },
+    });
+    if (!profile) throw new NotFoundException('Cycle profile not found');
+    const today = this.todayInTimezone(profile.timezone);
+    if (startDate > today || (endDate !== null && endDate !== undefined && endDate > today)) {
+      throw new BadRequestException('Period dates must not be in the future');
+    }
+  }
+
+  private todayInTimezone(timezone: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const value = (type: 'year' | 'month' | 'day'): string =>
+      parts.find((part) => part.type === type)?.value ?? '';
+    return `${value('year')}-${value('month')}-${value('day')}`;
+  }
+
   private parseDate(value: string): Date {
     const date = new Date(`${value}T00:00:00.000Z`);
     if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== value) {
@@ -199,24 +249,4 @@ export class PeriodsService {
     );
   }
 
-  private createUniqueConflict(
-    error: Prisma.PrismaClientKnownRequestError,
-  ): ConflictException {
-    const target = error.meta?.target;
-    const targetParts = Array.isArray(target)
-      ? target.filter((part): part is string => typeof part === 'string')
-      : typeof target === 'string'
-        ? [target]
-        : [];
-    const isStartDateConflict = targetParts.some(
-      (part) =>
-        part.includes('PeriodEvent_userId_startDate_active_key') ||
-        part === 'startDate',
-    );
-    return new ConflictException(
-      isStartDateConflict
-        ? 'An active period entry already exists for this date'
-        : 'A period entry with this date or client identifier already exists',
-    );
-  }
 }

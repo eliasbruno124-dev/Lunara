@@ -44,6 +44,8 @@ expected_resources_schema="6b9b476bfdbe5f6f672435d3a4dc999aed805dd27449f4d38e568
 expected_targets_schema="c17c2ba266d9591307039c91d8ddff266ba3124dc60d6a1088b395806513f338"
 expected_domains_schema="53e659ec444658b6a9db943a54674db9676ec10701d566d286994c8cb997a586"
 expected_sites_schema="bbd709aade3a2042abefb69357f7bc19f071092608556218feeee60ea12b74bb"
+expected_roles_schema="e4314dc91ad520f5aee282e9e1f87501bdaebef4664cc01234c36fd5baa9e7ff"
+expected_role_resources_schema="fbdc4cb2a85b3ec6a65f466d33e0d9ffffdc9a72b059ff232ea9a74d17dd6853"
 
 for command_name in docker sqlite3 sha256sum awk stat install mktemp date chmod; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
@@ -156,12 +158,14 @@ verify_database_contract() {
     echo "Ungeprüfte Pangolin user_version in ${database}." >&2
     return 1
   fi
-  for table in resources targets domains sites; do
+  for table in resources targets domains sites roles roleResources; do
     case "${table}" in
       resources) expected="${expected_resources_schema}" ;;
       targets) expected="${expected_targets_schema}" ;;
       domains) expected="${expected_domains_schema}" ;;
       sites) expected="${expected_sites_schema}" ;;
+      roles) expected="${expected_roles_schema}" ;;
+      roleResources) expected="${expected_role_resources_schema}" ;;
     esac
     actual="$(schema_fingerprint "${database}" "${table}")"
     if [[ "${actual}" != "${expected}" ]]; then
@@ -176,6 +180,13 @@ verify_database_contract "${pangolin_db}"
 if [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM domains WHERE domainId='${domain_id}' AND verified=1;")" != "1" ]] ||
    [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM sites WHERE siteId=${site_id} AND orgId='${org_id}' AND online=1;")" != "1" ]]; then
   echo "Die angegebene verifizierte Domain oder lokale Online-Site wurde nicht eindeutig gefunden." >&2
+  exit 1
+fi
+
+admin_role_id="$(sql_read "${pangolin_db}" "SELECT roleId FROM roles WHERE orgId='${org_id}' AND name='Admin' AND isAdmin=1;")"
+if [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM roles WHERE orgId='${org_id}' AND name='Admin' AND isAdmin=1;")" != "1" ]] ||
+   [[ ! "${admin_role_id}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Die eindeutige Pangolin-Adminrolle der Organisation wurde nicht gefunden." >&2
   exit 1
 fi
 
@@ -238,6 +249,7 @@ determine_resource_state() {
   local resource_guid
   local target_count
   local exact_target_count
+  local admin_link_count
 
   collision_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM resources WHERE fullDomain='${public_host}' OR niceId='${resource_owner_marker}' OR name='${resource_name}';")"
   if [[ "${collision_count}" == "0" ]]; then
@@ -269,13 +281,22 @@ determine_resource_state() {
     echo "Die vorhandene Lunara-Ressource hat nicht genau das gepinnte Authentik-Ziel; keine Übernahme." >&2
     return 1
   fi
+  admin_link_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM roleResources WHERE resourceId=${resource_id} AND roleId=${admin_role_id};")"
+  if [[ "${admin_link_count}" == "0" ]]; then
+    printf 'repair:%s:%s\n' "${resource_id}" "${resource_guid}"
+    return 0
+  fi
+  if [[ "${admin_link_count}" != "1" ]]; then
+    echo "Die vorhandene Lunara-Ressource hat eine mehrdeutige Admin-Zuordnung; keine Änderung vorgenommen." >&2
+    return 1
+  fi
   printf 'existing:%s:%s\n' "${resource_id}" "${resource_guid}"
 }
 
 if ! resource_state="$(determine_resource_state)"; then
   exit 1
 fi
-if [[ "${resource_state}" != "create" && ! "${resource_state}" =~ ^existing:[1-9][0-9]*:[0-9a-f-]{36}$ ]]; then
+if [[ "${resource_state}" != "create" && ! "${resource_state}" =~ ^(existing|repair):[1-9][0-9]*:[0-9a-f-]{36}$ ]]; then
   echo "Pangolin-Preflight lieferte keinen eindeutigen Zustand; keine Änderung vorgenommen." >&2
   exit 1
 fi
@@ -283,8 +304,11 @@ fi
 if [[ "${check_only}" == "true" ]]; then
   if [[ "${resource_state}" == "create" ]]; then
     echo "Pangolin-Prüfung erfolgreich: Host, Eigentumsmarker und Name sind frei; eine Neuanlage wäre zulässig."
+  elif [[ "${resource_state}" == repair:* ]]; then
+    echo "Pangolin-Prüfung fehlgeschlagen: Die Ressource routet, ist aber ohne Admin-Zuordnung nicht in der Oberfläche verwaltbar. Ohne --check wird sie sicher repariert." >&2
+    exit 1
   else
-    echo "Pangolin-Prüfung erfolgreich: Eigentumsmarker, Ressource und Ziel stimmen exakt."
+    echo "Pangolin-Prüfung erfolgreich: Eigentumsmarker, Ressource, Ziel und UI-Admin-Zuordnung stimmen exakt."
   fi
   exit 0
 fi
@@ -327,9 +351,52 @@ if [[ ! "${database_uid}" =~ ^[0-9]+$ || ! "${database_gid}" =~ ^[0-9]+$ ||
 fi
 
 IFS= read -r resource_guid < /proc/sys/kernel/random/uuid
-if [[ ! "${resource_guid}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+if [[ "${resource_state}" == repair:* ]]; then
+  resource_id="${resource_state#repair:}"
+  resource_id="${resource_id%%:*}"
+  resource_guid="${resource_state##*:}"
+fi
+if [[ ! "${resource_guid}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] ||
+   { [[ "${resource_state}" == repair:* ]] && [[ ! "${resource_id}" =~ ^[1-9][0-9]*$ ]]; }; then
   echo "Es konnte keine kanonische zufällige Ressourcen-GUID erzeugt werden." >&2
   exit 1
+fi
+
+if [[ "${resource_state}" == repair:* ]]; then
+  if ! sqlite3 -batch -cmd '.timeout 5000' "${pangolin_db}" <<SQL
+.bail on
+PRAGMA foreign_keys=ON;
+BEGIN IMMEDIATE;
+CREATE TEMP TABLE lunara_admin_repair_guard (ok INTEGER NOT NULL CHECK (ok=1));
+INSERT INTO lunara_admin_repair_guard VALUES (
+  CASE WHEN
+    (SELECT count(*) FROM resources WHERE resourceId=${resource_id} AND resourceGuid='${resource_guid}' AND ${resource_exact_where})=1
+    AND (SELECT count(*) FROM targets WHERE resourceId=${resource_id} AND ${target_exact_where})=1
+    AND (SELECT count(*) FROM roles WHERE roleId=${admin_role_id} AND orgId='${org_id}' AND name='Admin' AND isAdmin=1)=1
+    AND (SELECT count(*) FROM roleResources WHERE resourceId=${resource_id} AND roleId=${admin_role_id})=0
+  THEN 1 ELSE 0 END
+);
+INSERT INTO roleResources (roleId, resourceId) VALUES (${admin_role_id}, ${resource_id});
+DELETE FROM lunara_admin_repair_guard;
+INSERT INTO lunara_admin_repair_guard VALUES (
+  CASE WHEN (SELECT count(*) FROM roleResources WHERE resourceId=${resource_id} AND roleId=${admin_role_id})=1
+  THEN 1 ELSE 0 END
+);
+DROP TABLE lunara_admin_repair_guard;
+COMMIT;
+SQL
+  then
+    echo "Atomare Pangolin-Admin-Reparatur fehlgeschlagen; die Transaktion wurde verworfen. Backup: ${backup_path}" >&2
+    exit 1
+  fi
+  verify_database_contract "${pangolin_db}"
+  if ! resource_state="$(determine_resource_state)" || [[ "${resource_state}" != "existing:${resource_id}:${resource_guid}" ]]; then
+    echo "Pangolin-Nachprüfung nach Admin-Reparatur fehlgeschlagen. Backup: ${backup_path}" >&2
+    exit 1
+  fi
+  echo "Pangolin-Ressource ${public_host} ist jetzt über die Adminrolle in der Oberfläche verwaltbar."
+  echo "Konsistentes Backup vor der Änderung: ${backup_path}"
+  exit 0
 fi
 
 print_rollback_hints() {
@@ -364,6 +431,7 @@ INSERT INTO lunara_preflight_guard VALUES (
   CASE WHEN
     (SELECT count(*) FROM domains WHERE domainId='${domain_id}' AND verified=1)=1
     AND (SELECT count(*) FROM sites WHERE siteId=${site_id} AND orgId='${org_id}' AND online=1)=1
+    AND (SELECT count(*) FROM roles WHERE roleId=${admin_role_id} AND orgId='${org_id}' AND name='Admin' AND isAdmin=1)=1
     AND (SELECT count(*) FROM resources WHERE fullDomain='${public_host}' OR niceId='${resource_owner_marker}' OR name='${resource_name}')=0
     AND (SELECT user_version FROM pragma_user_version)=${expected_user_version}
   THEN 1 ELSE 0 END
@@ -390,12 +458,15 @@ INSERT INTO targets (
   last_insert_rowid(), ${site_id}, '${target_host}', 'http', ${target_port},
   NULL, 1, NULL, NULL, NULL, NULL, 100, 'http', NULL
 );
+INSERT INTO roleResources (roleId, resourceId)
+SELECT ${admin_role_id}, resourceId FROM resources WHERE resourceGuid='${resource_guid}';
 DELETE FROM lunara_preflight_guard;
 INSERT INTO lunara_preflight_guard VALUES (
   CASE WHEN
     (SELECT count(*) FROM resources WHERE resourceGuid='${resource_guid}' AND ${resource_exact_where})=1
     AND (SELECT count(*) FROM targets WHERE resourceId=(SELECT resourceId FROM resources WHERE resourceGuid='${resource_guid}') AND ${target_exact_where})=1
     AND (SELECT count(*) FROM targets t JOIN resources r ON r.resourceId=t.resourceId WHERE r.resourceGuid='${resource_guid}')=1
+    AND (SELECT count(*) FROM roleResources rr JOIN resources r ON r.resourceId=rr.resourceId WHERE r.resourceGuid='${resource_guid}' AND rr.roleId=${admin_role_id})=1
   THEN 1 ELSE 0 END
 );
 DROP TABLE lunara_preflight_guard;

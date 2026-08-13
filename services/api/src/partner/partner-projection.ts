@@ -45,16 +45,40 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
     };
   }
 
-  const prediction = settings.sharePrediction && input.prediction
-    ? {
-        ...input.prediction,
-        fertileWindowFrom: settings.shareFertileWindow
-          ? input.prediction.fertileWindowFrom ?? null
+  const projectedPrediction = input.prediction
+    ? compact({
+        available: settings.sharePrediction ? input.prediction.available : undefined,
+        predictedStartFrom: settings.sharePrediction
+          ? input.prediction.predictedStartFrom
           : undefined,
-        fertileWindowTo: settings.shareFertileWindow
-          ? input.prediction.fertileWindowTo ?? null
+        predictedStartTo: settings.sharePrediction
+          ? input.prediction.predictedStartTo
           : undefined,
-      }
+        predictedEndFrom: settings.sharePrediction
+          ? input.prediction.predictedEndFrom
+          : undefined,
+        predictedEndTo: settings.sharePrediction
+          ? input.prediction.predictedEndTo
+          : undefined,
+        confidence: settings.sharePrediction ? input.prediction.confidence : undefined,
+        basedOnCycleCount: settings.sharePrediction
+          ? input.prediction.basedOnCycleCount
+          : undefined,
+        variationDays: settings.sharePrediction ? input.prediction.variationDays : undefined,
+        reason: settings.sharePrediction ? input.prediction.reason : undefined,
+        fertileWindowFrom: settings.shareFertileWindow && !privateToday
+          ? input.prediction.fertileWindowFrom
+          : undefined,
+        fertileWindowTo: settings.shareFertileWindow && !privateToday
+          ? input.prediction.fertileWindowTo
+          : undefined,
+        fertilityEstimate: settings.shareFertileWindow && !privateToday
+          ? input.prediction.fertilityEstimate
+          : undefined,
+      })
+    : {};
+  const prediction = Object.keys(projectedPrediction).length > 0
+    ? projectedPrediction
     : null;
 
   const todayLog = privateToday || !input.todayLog
@@ -73,8 +97,11 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
   return {
     sharingPaused: false,
     prediction,
-    phase: settings.sharePhase ? input.phase : null,
-    periodDates: settings.sharePeriodDates ? input.periodDates : [],
+    // A private day is an explicit same-day revocation. Remove every field that could reveal
+    // whether a period or estimated fertile/phase state applies today. Historical knowledge on
+    // the partner's device cannot be undone, but the API must stop confirming it immediately.
+    phase: settings.sharePhase && !privateToday ? input.phase : null,
+    periodDates: settings.sharePeriodDates && !privateToday ? input.periodDates : [],
     todayLog: todayLog && Object.keys(todayLog).length > 1 ? todayLog : null,
   };
 }

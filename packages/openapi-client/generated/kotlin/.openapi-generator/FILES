@@ -51,6 +51,7 @@ src/main/kotlin/de/lunara/api/models/CustomSymptomResponseDto.kt
 src/main/kotlin/de/lunara/api/models/DailyLogResponse.kt
 src/main/kotlin/de/lunara/api/models/DeleteAccountDto.kt
 src/main/kotlin/de/lunara/api/models/ExportDto.kt
+src/main/kotlin/de/lunara/api/models/FertilityEstimateResponse.kt
 src/main/kotlin/de/lunara/api/models/ImportDto.kt
 src/main/kotlin/de/lunara/api/models/InvitationResponse.kt
 src/main/kotlin/de/lunara/api/models/InvitationSummaryResponse.kt
@@ -59,6 +60,7 @@ src/main/kotlin/de/lunara/api/models/LoginDto.kt
 src/main/kotlin/de/lunara/api/models/LogoutDto.kt
 src/main/kotlin/de/lunara/api/models/MetaResponse.kt
 src/main/kotlin/de/lunara/api/models/PartnerDashboardResponse.kt
+src/main/kotlin/de/lunara/api/models/PartnerPredictionResponse.kt
 src/main/kotlin/de/lunara/api/models/PeriodResponse.kt
 src/main/kotlin/de/lunara/api/models/PredefinedSymptomResponseDto.kt
 src/main/kotlin/de/lunara/api/models/PredictionResponse.kt

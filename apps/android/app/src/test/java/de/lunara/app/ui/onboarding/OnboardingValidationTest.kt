@@ -7,6 +7,10 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class OnboardingValidationTest {
+    @Test
+    fun `new onboarding never prefills a server address`() {
+        assertEquals("", OnboardingUiState().serverUrl)
+    }
     private val validSetup = OnboardingUiState(
         authMode = AuthMode.SETUP,
         username = "elias",

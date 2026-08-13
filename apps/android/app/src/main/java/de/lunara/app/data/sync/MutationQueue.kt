@@ -1,6 +1,7 @@
 package de.lunara.app.data.sync
 
 import de.lunara.app.data.local.MutationEntity
+import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import kotlin.math.min
 
 object MutationQueuePolicy {
@@ -33,6 +34,19 @@ internal object SyncConflictPolicy {
 internal object SyncReplayPolicy {
     /** Finalization depends on completing the replay, not on the cursor used to start this run. */
     fun shouldFinalizeResolvingRows(hasMore: Boolean): Boolean = !hasMore
+}
+
+internal object PartnerDashboardCachePolicy {
+    /**
+     * A sync projection is authoritative. In particular, a missing tip means the server no
+     * longer permits one (for example after sharing was paused or symptom access was revoked).
+     * Retaining any field from the previous projection would turn a server-side revocation into
+     * a privacy leak while the partner is offline.
+     */
+    fun replace(
+        @Suppress("UNUSED_PARAMETER") previous: PartnerDashboardDto?,
+        current: PartnerDashboardDto,
+    ): PartnerDashboardDto = current
 }
 
 internal data class SyncEntityKey(val type: String, val id: String)

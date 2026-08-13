@@ -32,7 +32,7 @@ export class MetaController {
     const bootstrapped = await isServerBootstrapped(this.prisma);
     return {
       name: this.config.get<string>('lunara.appName', 'Lunara'),
-      version: this.config.get<string>('lunara.appVersion', '1.0.3'),
+      version: this.config.get<string>('lunara.appVersion', '1.0.4'),
       apiVersion: 'v1',
       setupRequired: !bootstrapped,
       registrationEnabled: this.config.get<boolean>(

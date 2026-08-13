@@ -3,6 +3,8 @@ package de.lunara.app.data.remote
 import de.lunara.app.data.remote.dto.AuthResponseDto
 import de.lunara.app.data.remote.dto.CheckInDto
 import de.lunara.app.data.remote.dto.ChangePasswordRequest
+import de.lunara.app.data.remote.dto.CarePreferencesDto
+import de.lunara.app.data.remote.dto.CycleProfileDto
 import de.lunara.app.data.remote.dto.CreateCheckInRequest
 import de.lunara.app.data.remote.dto.CreateInvitationRequest
 import de.lunara.app.data.remote.dto.InvitationDto
@@ -23,6 +25,8 @@ import de.lunara.app.data.remote.dto.SyncPullDto
 import de.lunara.app.data.remote.dto.TodayTipDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
+import de.lunara.app.data.remote.dto.UpdateCycleProfileRequest
+import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -46,6 +50,8 @@ interface LunaraApi {
     @GET suspend fun partnerDashboard(@Url url: String): Response<PartnerDashboardDto>
     @GET suspend fun periods(@Url url: String): Response<List<PeriodDto>>
     @GET suspend fun prediction(@Url url: String): Response<PredictionDto>
+    @GET suspend fun cycleProfile(@Url url: String): Response<CycleProfileDto>
+    @PATCH suspend fun updateCycleProfile(@Url url: String, @Body request: UpdateCycleProfileRequest): Response<CycleProfileDto>
     @GET suspend fun todayTip(@Url url: String): Response<TodayTipDto>
     @POST suspend fun createCheckIn(@Url url: String, @Body request: CreateCheckInRequest): Response<CheckInDto>
     @POST suspend fun createInvitation(@Url url: String, @Body request: CreateInvitationRequest): Response<InvitationDto>
@@ -54,4 +60,9 @@ interface LunaraApi {
     @DELETE suspend fun revokeInvitation(@Url url: String): Response<Unit>
     @GET suspend fun sharing(@Url url: String): Response<SharingSettingsDto>
     @PATCH suspend fun updateSharing(@Url url: String, @Body request: UpdateSharingRequest): Response<SharingSettingsDto>
+    @GET suspend fun carePreferences(@Url url: String): Response<CarePreferencesDto>
+    @PATCH suspend fun updateCarePreferences(
+        @Url url: String,
+        @Body request: UpdateCarePreferencesRequest,
+    ): Response<CarePreferencesDto>
 }

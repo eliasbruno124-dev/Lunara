@@ -11,6 +11,7 @@ export interface CatalogTip {
   callToActionEn: string;
   requiredSharedFields: string[];
   applicablePhase?: CyclePhase;
+  applicableSymptoms?: string[];
   priority: number;
 }
 
@@ -24,6 +25,7 @@ type TipText = [
   actionEn: string,
   required?: string[],
   phase?: CyclePhase,
+  symptoms?: string[],
 ];
 
 const texts: TipText[] = [
@@ -86,10 +88,37 @@ const texts: TipText[] = [
   [TipCategory.COMFORT, 'Berührung nicht voraussetzen', 'Auch gut gemeinte Nähe sollte einvernehmlich sein.', 'Frag vor einer Umarmung oder Massage kurz nach.', 'Do not assume touch', 'Even well-meant closeness should be consensual.', 'Ask briefly before a hug or massage.'],
   [TipCategory.SPACE, 'Keine Rechtfertigung verlangen', 'Ein Wunsch nach Ruhe braucht keine ausführliche Begründung.', 'Akzeptiere den Wunsch ohne Verhör oder Diskussion.', 'No justification required', 'Wanting quiet does not require a detailed explanation.', 'Accept the request without interrogation or debate.'],
   [TipCategory.FOOD_AND_DRINK, 'Vorräte ergänzen', 'Bekannte Alltagsfavoriten verfügbar zu halten kann praktisch sein.', 'Frag, ob beim nächsten Einkauf etwas Bestimmtes mit soll.', 'Restock favourites', 'Keeping familiar everyday favourites available can be practical.', 'Ask whether anything specific should go on the next shopping list.'],
+
+  [TipCategory.GENERAL, 'Phase bleibt eine Schätzung', 'Die geschätzte frühe Zyklusphase beschreibt keinen sicheren biologischen Zustand und sagt nichts über Stimmung oder Bedürfnisse aus.', 'Frag ganz normal, was heute guttun würde.', 'The phase remains an estimate', 'The estimated early-cycle phase does not describe a confirmed biological state and says nothing about mood or needs.', 'Ask normally what would feel helpful today.', ['sharePhase'], CyclePhase.FOLLICULAR_ESTIMATE],
+  [TipCategory.PRACTICAL_HELP, 'Alltag statt Annahmen', 'Auch eine geteilte Phasenschätzung ist kein Grund, Energie oder Leistungsfähigkeit vorauszusagen.', 'Biete eine konkrete kleine Hilfe an, ohne sie mit dem Zyklus zu begründen.', 'Daily life, not assumptions', 'Even a shared phase estimate is no reason to predict energy or capacity.', 'Offer one specific small help without attributing it to the cycle.', ['sharePhase'], CyclePhase.FOLLICULAR_ESTIMATE],
+  [TipCategory.COMMUNICATION, 'Offen bleiben', 'Menschen erleben dieselbe geschätzte Zyklusphase sehr unterschiedlich.', 'Frag offen nach Plänen oder Wünschen, statt etwas aus der Phase abzuleiten.', 'Stay open', 'People can experience the same estimated cycle phase very differently.', 'Ask openly about plans or wishes instead of inferring them from the phase.', ['sharePhase'], CyclePhase.FOLLICULAR_ESTIMATE],
+
+  [TipCategory.GENERAL, 'Keine Gefühlsprognose', 'Eine geschätzte spätere Zyklusphase erlaubt keine Aussage darüber, wie sich jemand heute fühlt.', 'Reagiere auf das Gesagte und Beobachtbare, nicht auf eine Phasenbezeichnung.', 'No mood forecast', 'An estimated later-cycle phase cannot tell you how someone feels today.', 'Respond to what is said and observable, not to a phase label.', ['sharePhase'], CyclePhase.LUTEAL_ESTIMATE],
+  [TipCategory.COMMUNICATION, 'Neutral einchecken', 'Ein kurzer Check-in kann hilfreich sein, solange er keine Beschwerden oder Stimmung unterstellt.', 'Frag: „Wie ist dein Tag gerade?“', 'Check in neutrally', 'A brief check-in can help as long as it does not assume discomfort or mood.', 'Ask: “How is your day going?”', ['sharePhase'], CyclePhase.LUTEAL_ESTIMATE],
+  [TipCategory.PRACTICAL_HELP, 'Flexibilität anbieten', 'Planungsspielraum kann immer nützlich sein; die Schätzung ist nur ein zusätzlicher Orientierungspunkt.', 'Biete an, einen Plan bei Bedarf unkompliziert anzupassen.', 'Offer flexibility', 'Planning room can always be useful; the estimate is only one additional point of reference.', 'Offer to adjust a plan easily if needed.', ['sharePhase'], CyclePhase.LUTEAL_ESTIMATE],
+
+  [TipCategory.GENERAL, 'Nur geschätzt', 'Das geteilte fruchtbare Fenster ist eine Kalender-Schätzung. Es bestätigt weder einen Eisprung noch tatsächliche Fruchtbarkeit.', 'Behandle den Zeitraum als unsichere, private Information.', 'Estimate only', 'The shared fertile window is a calendar estimate. It confirms neither ovulation nor actual fertility.', 'Treat the window as uncertain, private information.', ['shareFertileWindow'], CyclePhase.OVULATION_ESTIMATE],
+  [TipCategory.COMMUNICATION, 'Nicht zur Verhütung', 'Eine Zyklus-App kann keine sichere Verhütungsentscheidung liefern.', 'Verwende die Schätzung niemals als Verhütungsmethode.', 'Not for contraception', 'A cycle app cannot provide a reliable contraceptive decision.', 'Never use the estimate as a contraceptive method.', ['shareFertileWindow'], CyclePhase.OVULATION_ESTIMATE],
+  [TipCategory.EMOTIONAL_SUPPORT, 'Keinen Kinderwunsch annehmen', 'Ein geteilter Schätzzeitraum sagt nichts über Familienplanung, Wünsche oder Entscheidungen aus.', 'Lass alle Entscheidungen und Gespräche bei den beteiligten Personen.', 'Do not assume family plans', 'A shared estimated window says nothing about family planning, wishes, or decisions.', 'Leave every decision and conversation with the people involved.', ['shareFertileWindow'], CyclePhase.OVULATION_ESTIMATE],
+
+  [TipCategory.COMFORT, 'Bei geteilten Krämpfen nachfragen', 'Wenn Krämpfe ausdrücklich geteilt wurden, kann eine selbst gewählte kleine Entlastung willkommen sein.', 'Frag, ob Wärme, Ruhe oder etwas anderes helfen würde.', 'Ask about shared cramps', 'When cramps were explicitly shared, a small self-chosen comfort may be welcome.', 'Ask whether warmth, quiet, or something else would help.', ['shareSymptoms'], undefined, ['CRAMPS', 'Krämpfe', 'Cramps']],
+  [TipCategory.COMFORT, 'Reize bei Kopfschmerz abstimmen', 'Wenn Kopfschmerzen geteilt wurden, können Wünsche zu Licht oder Lautstärke unterschiedlich sein.', 'Frag, ob Licht oder Lautstärke angepasst werden sollen.', 'Check stimuli for a headache', 'When a headache was shared, preferences about light or sound may vary.', 'Ask whether the light or sound should be adjusted.', ['shareSymptoms'], undefined, ['HEADACHE', 'Kopfschmerzen', 'Headache']],
+  [TipCategory.PRACTICAL_HELP, 'Bei geteilter Müdigkeit entlasten', 'Geteilte Müdigkeit ist keine Bewertung der Leistungsfähigkeit, kann aber Anlass für ein Hilfsangebot sein.', 'Frag, welche eine Aufgabe du übernehmen kannst.', 'Offer help with shared fatigue', 'Shared fatigue is not a judgement of capacity, but it can be a reason to offer help.', 'Ask which one task you can take over.', ['shareSymptoms'], undefined, ['FATIGUE', 'Müdigkeit', 'Fatigue']],
+  [TipCategory.FOOD_AND_DRINK, 'Bei geteilter Übelkeit vorsichtig fragen', 'Wenn Übelkeit geteilt wurde, sind ungefragte Essensvorschläge nicht immer hilfreich.', 'Frag, ob ein Getränk, etwas Neutrales oder lieber nichts gewünscht ist.', 'Ask gently about shared nausea', 'When nausea was shared, unsolicited food suggestions may not always help.', 'Ask whether a drink, something plain, or nothing is preferred.', ['shareSymptoms'], undefined, ['NAUSEA', 'Übelkeit', 'Nausea']],
+  [TipCategory.EMOTIONAL_SUPPORT, 'Geteilten Stress nicht erklären', 'Wenn Stress geteilt wurde, muss er weder gelöst noch dem Zyklus zugeschrieben werden.', 'Frag, ob Zuhören, praktische Hilfe oder Ruhe angenehmer wäre.', 'Do not explain shared stress', 'When stress was shared, it does not need to be solved or attributed to the cycle.', 'Ask whether listening, practical help, or space would feel better.', ['shareSymptoms'], undefined, ['STRESS', 'Stress']],
+  [TipCategory.COMFORT, 'Bei geteilten Rückenschmerzen fragen', 'Wenn Rückenschmerzen geteilt wurden, entscheidet die betroffene Person, welche Unterstützung passt.', 'Frag, ob ein bequemer Platz, Wärme oder keine Aktion gewünscht ist.', 'Ask about shared back pain', 'When back pain was shared, the affected person decides what support fits.', 'Ask whether a comfortable place, warmth, or no action is wanted.', ['shareSymptoms'], undefined, ['BACK_PAIN', 'Rückenschmerzen', 'Back pain']],
+
+  [TipCategory.PERIOD_DAYS, 'Geteilte Phase, offener Bedarf', 'Auch eine ausdrücklich geteilte Menstruationsphase sagt nicht, ob heute Beschwerden oder Unterstützungsbedarf bestehen.', 'Frag neutral, ob heute etwas hilfreich wäre.', 'Shared phase, open needs', 'Even an explicitly shared menstruation phase does not say whether there is discomfort or a need for support today.', 'Ask neutrally whether anything would be helpful today.', ['sharePhase'], CyclePhase.MENSTRUATION],
+  [TipCategory.COMMUNICATION, 'Nicht automatisch thematisieren', 'Eine geteilte Phasenanzeige ist keine Aufforderung, den Zyklus zum Gesprächsthema zu machen.', 'Lass die andere Person entscheiden, ob sie darüber sprechen möchte.', 'Do not bring it up automatically', 'A shared phase display is not an invitation to make the cycle a topic of conversation.', 'Let the other person decide whether they want to discuss it.', ['sharePhase'], CyclePhase.MENSTRUATION],
+  [TipCategory.PRACTICAL_HELP, 'Hilfe ohne Annahme', 'Praktische Unterstützung darf angeboten werden, ohne Schmerzen, Stimmung oder geringe Energie zu unterstellen.', 'Biete eine konkrete kleine Aufgabe an und akzeptiere auch ein Nein.', 'Help without assumptions', 'Practical support can be offered without assuming pain, mood, or low energy.', 'Offer one specific small task and accept no as an answer.', ['sharePhase'], CyclePhase.MENSTRUATION],
+
+  [TipCategory.PREMENSTRUAL_ESTIMATE, 'Phasenfreigabe bleibt unsicher', 'Die geteilte prämenstruelle Schätzung kann zeitlich abweichen und sagt nichts Sicheres über das heutige Befinden.', 'Nutze sie nicht, um Verhalten zu erklären.', 'Phase sharing remains uncertain', 'The shared premenstrual estimate can be off in time and says nothing certain about how today feels.', 'Do not use it to explain behaviour.', ['sharePhase'], CyclePhase.PREMENSTRUAL_ESTIMATE],
+  [TipCategory.COMMUNICATION, 'Keine Zuschreibung', 'Eine geschätzte Phase ist kein Etikett für Gefühle, Entscheidungen oder Konflikte.', 'Frag sachlich nach, statt den Zyklus als Ursache zu nennen.', 'No attribution', 'An estimated phase is not a label for feelings, decisions, or conflict.', 'Ask plainly instead of naming the cycle as a cause.', ['sharePhase'], CyclePhase.PREMENSTRUAL_ESTIMATE],
+  [TipCategory.PRACTICAL_HELP, 'Spielraum ohne Erwartung', 'Ein wenig Flexibilität kann hilfreich sein, ohne einen bestimmten Bedarf vorherzusagen.', 'Biete unkomplizierten Planungsspielraum an, falls er gewünscht ist.', 'Room without expectation', 'A little flexibility can help without predicting a particular need.', 'Offer easy planning room if it is wanted.', ['sharePhase'], CyclePhase.PREMENSTRUAL_ESTIMATE],
 ];
 
-if (texts.length !== 50) {
-  throw new Error(`The built-in tip catalogue must contain exactly 50 tips, found ${texts.length}`);
+if (texts.length < 50) {
+  throw new Error(`The built-in tip catalogue must contain at least 50 tips, found ${texts.length}`);
 }
 
 export const TIP_CATALOG: CatalogTip[] = texts.map((tip, index) => ({
@@ -103,5 +132,6 @@ export const TIP_CATALOG: CatalogTip[] = texts.map((tip, index) => ({
   callToActionEn: tip[6],
   requiredSharedFields: tip[7] ?? [],
   applicablePhase: tip[8],
+  applicableSymptoms: tip[9] ?? [],
   priority: 100 - index,
 }));

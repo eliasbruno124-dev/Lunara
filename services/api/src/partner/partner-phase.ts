@@ -23,15 +23,15 @@ export function estimatePartnerPhase(
   prediction: PredictionResult | null,
   shareFertileWindow = false,
 ): CyclePhase | null {
-  if (!prediction || prediction.basedOnCycleCount < 3) return null;
   const todayDay = epochDay(today);
   if (latestPeriod) {
     const start = epochDay(latestPeriod.startDate.toISOString().slice(0, 10));
     const end = latestPeriod.endDate
       ? epochDay(latestPeriod.endDate.toISOString().slice(0, 10))
-      : start + Math.min(prediction.typicalPeriodLength, 14) - 1;
+      : start + 13;
     if (todayDay >= start && todayDay <= end) return CyclePhase.MENSTRUATION;
   }
+  if (!prediction || prediction.basedOnCycleCount < 3) return null;
 
   const predictedFrom = epochDay(prediction.predictedStartFrom);
   const predictedTo = epochDay(prediction.predictedStartTo);
@@ -40,6 +40,8 @@ export function estimatePartnerPhase(
   }
   if (
     shareFertileWindow &&
+    prediction.fertilityEstimate.enabled &&
+    prediction.fertilityEstimate.available &&
     prediction.fertileWindowFrom &&
     prediction.fertileWindowTo &&
     todayDay >= epochDay(prediction.fertileWindowFrom) &&
@@ -47,6 +49,9 @@ export function estimatePartnerPhase(
   ) {
     return CyclePhase.OVULATION_ESTIMATE;
   }
+  if (!latestPeriod) return null;
+  const latestStart = epochDay(latestPeriod.startDate.toISOString().slice(0, 10));
+  if (todayDay < latestStart || todayDay > predictedTo) return null;
   const estimatedOvulation = predictedFrom - 14;
   return todayDay < estimatedOvulation
     ? CyclePhase.FOLLICULAR_ESTIMATE

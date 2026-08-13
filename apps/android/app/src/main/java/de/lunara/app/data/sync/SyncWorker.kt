@@ -182,12 +182,12 @@ class SyncWorker @AssistedInject constructor(
                 }
             }
             val completedAt = Instant.now().toString()
-            val cachedTip = database.partnerDashboardDao().current()?.let { cached ->
+            val cachedDashboard = database.partnerDashboardDao().current()?.let { cached ->
                 runCatching {
                     gson.fromJson(
                         cached.payloadJson,
                         de.lunara.app.data.remote.dto.PartnerDashboardDto::class.java,
-                    ).tip
+                    )
                 }.getOrNull()
             }
             database.withTransaction {
@@ -229,7 +229,9 @@ class SyncWorker @AssistedInject constructor(
                 body.partnerDashboard?.let {
                     database.partnerDashboardDao().save(
                         PartnerDashboardEntity(
-                            payloadJson = gson.toJson(it.copy(tip = it.tip ?: cachedTip)),
+                            payloadJson = gson.toJson(
+                                PartnerDashboardCachePolicy.replace(cachedDashboard, it),
+                            ),
                             updatedAt = completedAt,
                         ),
                     )

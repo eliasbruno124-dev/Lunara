@@ -180,6 +180,11 @@ data class PredictionDto(
     val available: Boolean = true,
     val predictedStartFrom: String? = null,
     val predictedStartTo: String? = null,
+    val predictedEndFrom: String? = null,
+    val predictedEndTo: String? = null,
+    val fertileWindowFrom: String? = null,
+    val fertileWindowTo: String? = null,
+    val fertilityEstimate: FertilityEstimateDto? = null,
     val confidence: String,
     val basedOnCycleCount: Int = 0,
     val explanation: Map<String, Any?>? = null,
@@ -190,12 +195,39 @@ data class PredictionDto(
     val statistics: Map<String, Any?>? = null,
 )
 
+data class FertilityEstimateDto(
+    val enabled: Boolean = false,
+    val available: Boolean = false,
+    val estimated: Boolean = false,
+    val reason: String? = null,
+    val basedOnCycleCount: Int = 0,
+    val notContraception: Boolean = false,
+    val doesNotConfirmOvulation: Boolean = false,
+)
+
+data class CycleProfileDto(
+    val id: String? = null,
+    val userId: String? = null,
+    val typicalCycleLengthOptional: Int? = null,
+    val typicalPeriodLengthOptional: Int? = null,
+    val lutealLengthOptional: Int? = null,
+    val fertilityPredictionEnabled: Boolean = false,
+    val predictionPaused: Boolean = false,
+    val specialMode: String = "NONE",
+    val timezone: String? = null,
+)
+
+data class UpdateCycleProfileRequest(
+    val fertilityPredictionEnabled: Boolean? = null,
+)
+
 data class PartnerTipDto(
     val id: String,
     val title: String,
     val body: String,
     val callToAction: String,
     val category: String,
+    val applicablePhase: String? = null,
 )
 
 data class PartnerDashboardDto(
@@ -274,4 +306,28 @@ data class UpdateSharingRequest(
     val checkInsEnabled: Boolean? = null,
     val sharingPaused: Boolean? = null,
     val privateDate: String? = null,
+)
+
+data class CarePreferencesDto(
+    val likesWarmth: Boolean = false,
+    val likesCuddling: Boolean = false,
+    val likesSpace: Boolean = false,
+    val likesSnacks: Boolean = false,
+    val likesConversation: Boolean = false,
+    val likesHouseholdHelp: Boolean = false,
+    val likesReminders: Boolean = false,
+    val dislikesUnsolicitedAdvice: Boolean = true,
+    val customHelpfulActions: List<String> = emptyList(),
+    val customUnhelpfulActions: List<String> = emptyList(),
+)
+
+data class UpdateCarePreferencesRequest(
+    val likesWarmth: Boolean? = null,
+    val likesCuddling: Boolean? = null,
+    val likesSpace: Boolean? = null,
+    val likesSnacks: Boolean? = null,
+    val likesConversation: Boolean? = null,
+    val likesHouseholdHelp: Boolean? = null,
+    val likesReminders: Boolean? = null,
+    val dislikesUnsolicitedAdvice: Boolean? = null,
 )

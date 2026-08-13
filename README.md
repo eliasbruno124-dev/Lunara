@@ -1,168 +1,134 @@
 # Lunara
 
-Lunara ist eine selbst gehostete Zyklus- und Perioden-App für
-zyklustrackende Personen und ihre jeweiligen Partnerpersonen. Alle verwenden
-dieselbe native Android-App mit getrennten Konten und erhalten ausschließlich
-die serverseitig erlaubte Rollenansicht. Eine Serverinstanz kann mehrere Paare
-aufnehmen; Daten verschiedener Beziehungen bleiben strikt getrennt.
+Lunara ist eine private, selbst gehostete Zyklus- und Perioden-App für
+zyklustrackende Personen und ihre Partnerpersonen. Beide verwenden dieselbe
+native Android-App mit eigenen Konten, unterschiedlichen Rollenansichten und
+serverseitig erzwungenen Freigaben. Eine Instanz kann mehrere voneinander
+isolierte Beziehungen aufnehmen.
 
-Die Anwendung enthält keine Werbung, Telemetrie, Analyse-SDKs, Firebase- oder
-Google-Play-Services-Abhängigkeit für Kernfunktionen. Sie ist kein
-Medizinprodukt, stellt keine Diagnose und darf nicht als Verhütungsmethode
-verwendet werden.
+Lunara enthält keine Werbung, Telemetrie, Analyse-SDKs, Firebase- oder
+Google-Play-Services-Pflicht für Kernfunktionen. Die Anwendung ist kein
+Medizinprodukt, stellt keine Diagnose, bestätigt keine Ovulation und darf nicht
+als Verhütungsmethode verwendet werden.
 
 Der Quellcode liegt im privaten Repository
 [`eliasbruno124-dev/Lunara`](https://github.com/eliasbruno124-dev/Lunara). Der
 Produktionsstack läuft getrennt unter `/docker/lunara`; Authentik und Pangolin
-bilden den öffentlichen HTTPS-Eingang. Die Android-App verbindet sich ohne
-Gateway-Zugangsdaten über `https://lunara.3li361.de`.
+bilden den einzigen öffentlichen HTTPS-Eingang. Die gesamte Domain ist durch
+Authentik geschützt, einschließlich `/api/v1`, `/health`, `/ready` und der
+OpenAPI-Dokumentation.
 
 ## Umgesetzter Kern
 
 - NestJS-/Prisma-API mit PostgreSQL, Argon2id, kurzen Access-Tokens,
   rotierenden gehashten Refresh-Tokens und getrennten Gerätesitzungen
-- sicherer Erstserver-Bootstrap mit dauerhaftem Datenbankstatus und optional
-  öffentliche Tracker-Registrierung; der `BOOTSTRAP_TOKEN` kann nach dem ersten
-  erfolgreichen Setup entfernt werden; pro intern abgegrenzter Beziehung gibt
-  es genau einmal `TRACKER` und einmal `PARTNER`
-- permanente, einmal verwendbare und jederzeit widerrufbare Partner-Einladungen;
-  der QR-Code enthält ausschließlich den Einladungscode
-- Perioden, Tageslogs, vordefinierte und eigene Symptome, Prognosen,
-  Freigaben, Care Preferences, mindestens 50 zweisprachige Tipps und Check-ins
+- sicherer Erstserver-Bootstrap mit dauerhaftem Datenbankstatus sowie optional
+  öffentliche Tracker-Registrierung; pro interner Beziehungsgrenze gibt es
+  genau einmal `TRACKER` und einmal `PARTNER`
+- permanente, einmal verwendbare und jederzeit widerrufbare Partner-
+  Einladungen; der QR-Code enthält ausschließlich den Einladungscode
+- Perioden, Tageslogs, vordefinierte und eigene Symptome, nachvollziehbare
+  Bereichsprognosen, granulare Freigaben und Check-ins
+- 71 sorgfältig formulierte Partner-Tipps auf Deutsch und Englisch; Auswahl
+  anhand freigegebener Daten, geschätzter Phase, Care Preferences und Feedback
+- optionale Schätzung des fruchtbaren Fensters nur nach ausdrücklichem Opt-in,
+  mit mindestens drei vollständigen Zyklen und ständig sichtbarem
+  Sicherheitshinweis; niemals als Ovulationsbestätigung oder Verhütung
 - verschlüsselte Freitextnotizen, Soft Deletes, Cursor-Sync, optimistische
   Versionskonflikte und idempotente Offline-Mutationen
+- automatische Synchronisierung nach Anmeldung und lokalen Änderungen, beim
+  Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; ein manueller
+  Sync bleibt zusätzlich verfügbar
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
-  `.lunarabackup`-JSON-Format; kein ZIP-Container
-- feldvalidierter JSON-Import mit Vorschau und Erkennung bereits vorhandener
-  aktiver Perioden und Tageslogs
-- native Compose-App mit deutschem/englischem Onboarding,
-  normaler HTTPS-Serveradresse, SQLCipher/Keystore, Room, WorkManager,
-  rollenabhängigen Ansichten, Basis-Tageslog, Kalender, Verlauf, Freigaben und
-  `FLAG_SECURE`; automatische Vordergrund-/Hintergrundsynchronisierung und
-  persönlicher Lunara-Passwortwechsel sind integriert; Periodenstarts lassen
-  sich nachträglich korrigieren oder löschen; Versionskonflikte bleiben bis zu
-  einer ausdrücklichen Entscheidung sichtbar und erhalten die lokale Fassung
+  `.lunarabackup`-JSON-Format
+- native Compose-App 1.0.4 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+  rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
+  Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
+- nachträgliche Korrektur und Löschung eines Periodenstarts über dieselbe
+  offlinefähige, automatisch synchronisierte Mutation Queue
 - gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
   Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
 - versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
-  die App nutzt zur Laufzeit ihre typisierten Retrofit-Schnittstellen
+  die Android-App nutzt zur Laufzeit ihre typisierten Retrofit-Schnittstellen
 
-Der tatsächlich verifizierte Stand und bewusst offene Erweiterungen stehen in
-[`FINAL_REPORT.md`](FINAL_REPORT.md) und [`PROGRESS.md`](PROGRESS.md).
+Der tatsächlich verifizierte Build- und Live-Stand, ausgeführte Befehle,
+Prüfsummen und bewusst offene Erweiterungen stehen in
+[`FINAL_REPORT.md`](FINAL_REPORT.md), [`TESTING.md`](TESTING.md) und
+[`PROGRESS.md`](PROGRESS.md). Diese Dateien sind die maßgebliche Quelle für
+Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
-## Zuletzt verifizierter Live-Stand
+## Verbindung und Authentifizierung
 
-Der verifizierte Serverstand trägt Version 1.0.3. Alle sechs Migrationen
-einschließlich der persistenten Bootstrap-Sperre und des Schutzes vor doppelten
-aktiven Periodenstarts sind live angewendet. Die Android-Prüfkette und der
-Production-Debug-APK-Build 1.0.3 wurden ebenfalls tatsächlich ausgeführt.
+Das Serverfeld ist beim ersten Start von Android 1.0.4 absichtlich leer. Für
+die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
+Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
+Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
+Bestandteile liefert ausschließlich der Betreiber über einen sicheren Kanal.
 
-- API und PostgreSQL laufen gesund unter `/docker/lunara`; sechs Migrationen
-  sind angewendet. `/health` und `/ready` antworten mit HTTP 200, die
-  Metaantwort meldet Version 1.0.3, abgeschlossenen Bootstrap und aktivierte
-  Registrierung.
-- Weder API noch Datenbank veröffentlichen einen Host-Port. Die API läuft als
-  UID/GID `10001:10001` mit read-only Root-Dateisystem und ohne Linux-
-  Capabilities.
-- Authentik-Provider und Pangolin-Ressource wurden additiv eingerichtet. Der
-  Cloudflare-CNAME und das Let’s-Encrypt-Zertifikat sind aktiv. Authentik reicht
-  `/api/v1` ohne Browser-Login an die weiterhin durch Lunara-Tokens und Rollen
-  geschützte API weiter; OpenAPI-/Browserseiten bleiben Authentik-geschützt.
-- Vor API- und Authentik-Änderungen wurden eng benannte, validierte Datenbank-
-  und Konfigurationsbackups angelegt. Beim Update wurde nur die Lunara-API neu
-  erstellt; Emby, Authentik, Pangolin und PostgreSQL wurden nicht neu gestartet.
-- Auf dem aktuellen Quellstand sind Prisma-Validierung, ESLint, 14/14
-  Jest-Suites mit 59/59 Tests, Nest-Build und OpenAPI-Erzeugung/-Hashprüfung
-  erfolgreich. Der letzte PostgreSQL-18-E2E-Lauf entstand vor den beiden
-  finalen Migrationen und ist deshalb kein Abschlussnachweis für diesen
-  Quellstand.
-  Details stehen in [`TESTING.md`](TESTING.md).
-- Der `BOOTSTRAP_TOKEN` wurde nach erfolgreicher Migration aus der Live-`.env`
-  entfernt. Der persistente Serverstatus meldet weiterhin
-  `setupRequired: false`; die offene Tracker-Registrierung bleibt aktiv.
+Sonderzeichen in Benutzername oder App-Passwort müssen URL-kodiert sein. Die
+App akzeptiert eingebettete Gateway-Zugangsdaten ausschließlich über HTTPS,
+trennt sie sofort von der Basisadresse und legt sie Keystore-gestützt ab. In
+der sichtbaren und dauerhaft gespeicherten Serveradresse bleibt danach nur:
+
+```text
+https://<server-host>
+```
+
+Es existiert genau ein gemeinsamer, nicht ablaufender technischer Authentik-
+App-Zugang für alle Lunara-App-Installationen. Er authentifiziert nur den
+äußeren Proxyzugang mit `Authorization: Basic …`. Persönliche Lunara-Konten,
+Rollen und Datensicht bleiben getrennt: Nach dem Login sendet die App den
+persönlichen Lunara-Access-Token als
+`X-Lunara-Authorization: Bearer …`. Der äußere Header ist für jeden öffentlichen
+Domainaufruf erforderlich; persönliche geschützte API-Aufrufe benötigen danach
+zusätzlich das Lunara-Token.
+
+Der gemeinsame Zugang ist ein Infrastrukturgeheimnis. Seine URL darf weder in
+Git, Dokumentation, Chat, Cloudflare, Screenshots noch einen QR-Code gelangen.
+Server- und Einladungs-QR-Codes enthalten keine Passwörter. Wird der gemeinsame
+App-Zugang manuell in Authentik rotiert und neu ausgerollt, müssen alle
+autorisierten App-Installationen einmalig die neue Header-Auth-Adresse
+erhalten; die persönlichen Lunara-Passwörter bleiben davon unberührt.
+Menschliche Authentik-Konten sind nicht für Lunara freigeschaltet.
+
+Der Bootstrap ist ausschließlich für das erste `TRACKER`-Konto einer noch nie
+eingerichteten Instanz bestimmt. Sein erfolgreicher Abschluss wird dauerhaft
+in PostgreSQL gespeichert. Danach kann der `BOOTSTRAP_TOKEN` entfernt werden.
+Bei `REGISTRATION_ENABLED=true` können weitere Tracker jeweils eine neue,
+unsichtbar abgegrenzte Beziehung beginnen. „Haushalt“ ist kein sichtbares
+Produktkonzept; die interne Datenstruktur dient nur als Mandanten- und
+Autorisierungsgrenze.
 
 ## APK
 
-Das tatsächlich gebaute 1.0.3-Artefakt liegt unter:
+Die tatsächlich erzeugte, installierbare Production-Debug-APK liegt hier:
 
 ```text
 artifacts/lunara-debug.apk
 ```
 
-Die APK besitzt folgende geprüfte Eigenschaften:
+Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:
 
-- Paket `de.lunara.app.debug`
-- `versionName` 1.0.3, `versionCode` 4
-- `minSdk` 26, `targetSdk`/`compileSdk` 37
-- 24.362.451 Bytes
-- SHA-256
-  `4dac957e020684f3d5ee5699fdc584a0f68393a58a76452801a21831616dd416`
-- gültige ZIP-Struktur und APK Signature Scheme v2
-- Signaturzertifikat SHA-256
-  `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`
+```text
+artifacts/lunara-release-unsigned.apk
+```
 
-Der geprüfte 1.0.3-Stand ist im privaten Branch
-[`agent/authentik-human-access`](https://github.com/eliasbruno124-dev/Lunara/tree/agent/authentik-human-access)
-veröffentlicht. Berechtigte, bei GitHub angemeldete Benutzer können die
-[APK 1.0.3 direkt herunterladen](https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-debug.apk).
-Der Implementierungscommit ist
-[`9a9b35a5beadb2664935517feba5c9bfeadb0b9e`](https://github.com/eliasbruno124-dev/Lunara/commit/9a9b35a5beadb2664935517feba5c9bfeadb0b9e).
-
-Der 1.0.3-Quellstand erzwingt für die Produktionsvariante HTTPS und verwendet
-standardmäßig die änderbare Basisadresse `https://lunara.3li361.de`. Er erwartet
-weder Benutzername noch Passwort in der URL. Lokal sind 63/63 JVM-Tests, beide
-Lintvarianten, die Kompilierung der Production-Instrumentierungstests und der
-Production-Debug-Build erfolgreich. Instrumentierte Tests wurden mangels
-Gerät/Emulator nicht ausgeführt. Vor der Installation eines veröffentlichten
-Artefakts den zugehörigen Hash prüfen:
+Vor Installation immer Version, Signatur und die zugehörige Prüfsumme aus
+`FINAL_REPORT.md` beziehungsweise `artifacts/SHA256SUMS` vergleichen:
 
 ```bash
 cd artifacts
 sha256sum -c SHA256SUMS
 ```
 
-Die APK ist mit einem lokal dauerhaft abgelegten
-Android-Debugschlüssel
-signiert, der von Git ausgeschlossen ist. Nur die frühe 1.0.0-Test-APK
-verwendete noch einen anderen flüchtigen Schlüssel und muss vor jeder Version
-ab 1.0.1 einmal deinstalliert werden. Installationen ab 1.0.1 lassen sich bei
-identischem Schlüssel direkt aktualisieren. Ein eigener Release-Build ist in
-[`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md) beschrieben; private
-Signierschlüssel liegen absichtlich nicht im Repository.
-
-## Verbindung und Authentik
-
-In der App genügt die normale Basisadresse:
-
-```text
-https://lunara.3li361.de
-```
-
-Authentik bleibt der einzige öffentliche Reverse-Proxy-Pfad, überspringt seinen
-Browser-Login aber gezielt für `^/api/v1(?:/|$)`. Öffentliche Endpunkte wie
-`/api/v1/meta`, Setup, Registrierung und Login besitzen eigene enge Regeln;
-alle übrigen API-Aufrufe verlangen ein gültiges Lunara-Access-Token und prüfen
-Rolle, Eigentum und interne Beziehungsgrenze serverseitig. `/api-docs` und
-`/api-docs-json` bleiben durch Authentik geschützt.
-
-Lokale Header-Auth-URL-Dateien dienen ausschließlich der administrativen
-Prüfung der geschützten Browser-/OpenAPI-Oberfläche. Sie dürfen nicht in die
-App, einen QR-Code, Git, Chat oder Cloudflare-DNS übernommen werden.
-
-Der Bootstrap ist nur für das allererste `TRACKER`-Konto einer noch nie
-eingerichteten Serverinstanz bestimmt. Sein erfolgreicher Abschluss wird
-dauerhaft in PostgreSQL gespeichert und öffnet sich auch nach dem Löschen aller
-Konten nicht erneut. Der `BOOTSTRAP_TOKEN` kann danach aus der Live-
-Konfiguration entfernt werden. Bei `REGISTRATION_ENABLED=true` können weitere
-Tracker jeweils eine neue, unsichtbar abgegrenzte Beziehung beginnen.
-„Haushalt“ ist kein sichtbares Produktkonzept; die gleichnamige interne
-Datenstruktur bleibt ausschließlich als Mandanten-/Autorisierungsgrenze
-bestehen. Jede Beziehung erhält höchstens eine Tracker- und eine Partnerrolle.
+Der Debugschlüssel liegt lokal und Git-ausgeschlossen. Ein eigener
+Release-Build ist in [`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md)
+beschrieben; private Signierschlüssel gehören nicht ins Repository.
 
 ## Entwicklung und Prüfung
 
-Auf einem Docker-Host startet der folgende Befehl ausschließlich eine zufällig
-benannte, kurzlebige PostgreSQL-Testumgebung und führt den API-Kernablauf aus:
+Der E2E-Befehl startet ausschließlich eine zufällig benannte, kurzlebige
+PostgreSQL-Testumgebung:
 
 ```bash
 ./scripts/e2e.sh
@@ -185,9 +151,9 @@ cd apps/android
 ./gradlew assembleProductionDebug
 ```
 
-Die Produktionskonfiguration veröffentlicht absichtlich weder API- noch
-Datenbankports. Verwende für den produktiven Start ausschließlich die geprüfte
-Anleitung in [`DEPLOYMENT.md`](DEPLOYMENT.md), nicht den Test-Stack.
+Die Produktionskonfiguration veröffentlicht weder API- noch Datenbankports.
+Verwende für einen produktiven Start ausschließlich
+[`DEPLOYMENT.md`](DEPLOYMENT.md), nicht den Test-Stack.
 
 ## Projektstruktur
 
@@ -199,20 +165,16 @@ infra/docker/             Containerfiles und isolierte Testkonfiguration
 infra/traefik/            Proxy-Beispiele
 scripts/                  Betrieb, Backup, Restore, Update, Gateway und E2E
 docs/                     ergänzende Dokumentation und Tippkatalog
-artifacts/                tatsächlich erzeugte installierbare APK
+artifacts/                erfolgreich erzeugte installierbare APKs
 ```
-
-Produktname, Servername/-version und Android-Brandwerte sind an zentralen
-Konfigurationsstellen gebündelt. Package-ID, Übersetzungstexte und Vektor-Assets
-müssen bei einer vollständigen Umbenennung zusätzlich angepasst werden.
 
 ## Weiterführende Dokumentation
 
 - [`DEPLOYMENT.md`](DEPLOYMENT.md): Debian 12, Docker, Authentik, Pangolin,
-  Cloudflare, Backup und Update
-- [`SECURITY.md`](SECURITY.md): Bedrohungsmodell, Schlüssel, Gerätesicherheit
-  und bekannte Grenzen
-- [`PRIVACY.md`](PRIVACY.md): gespeicherte und geteilte Daten
+  Cloudflare, Bootstrap, Backup und Updates
+- [`SECURITY.md`](SECURITY.md): Bedrohungsmodell, Schlüssel, Gateway-Credential,
+  Gerätesicherheit und bekannte Grenzen
+- [`PRIVACY.md`](PRIVACY.md): gespeicherte und freigegebene Daten
 - [`ALGORITHM.md`](ALGORITHM.md): deterministische Prognose
 - [`TESTING.md`](TESTING.md): ausgeführte und noch nicht ausführbare Tests
 

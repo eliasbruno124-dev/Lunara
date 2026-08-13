@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PredictionConfidence, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
+import { lockRelationship } from '../common/database/database-coordination.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   calculatePrediction,
@@ -20,9 +21,21 @@ export class PredictionService {
   }
 
   async updateProfile(user: AuthenticatedUser, dto: UpdateCycleProfileDto) {
-    const profile = await this.prisma.cycleProfile.update({
-      where: { userId: user.userId },
-      data: dto,
+    const profile = await this.prisma.$transaction(async (tx) => {
+      await lockRelationship(tx, user.householdId);
+      const updated = await tx.cycleProfile.update({
+        where: { userId: user.userId },
+        data: dto,
+      });
+      if (dto.fertilityPredictionEnabled === false) {
+        // Disabling the source estimate also revokes its sharing permission. Re-enabling the
+        // estimate later must never silently restore a previously granted sensitive share.
+        await tx.sharingSettings.updateMany({
+          where: { ownerUserId: user.userId, householdId: user.householdId },
+          data: { shareFertileWindow: false },
+        });
+      }
+      return updated;
     });
     await this.recalculateAndCache(user.userId);
     return profile;

@@ -7,8 +7,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
+import de.lunara.app.data.remote.dto.PartnerTipDto
+import de.lunara.app.data.remote.dto.PredictionDto
+import de.lunara.app.data.remote.dto.FertilityEstimateDto
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.local.DailyLogEntity
 import de.lunara.app.ui.main.PartnerDashboard
@@ -39,7 +43,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = { starts++ },
-                    onPeriodUpdated = { _, _ -> },
+                    onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = {},
                     onSync = {},
@@ -65,7 +69,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = {},
-                    onPeriodUpdated = { _, _ -> },
+                    onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = { draft = it },
                     onSync = {},
@@ -105,7 +109,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = {},
-                    onPeriodUpdated = { _, _ -> },
+                    onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = { draft = it },
                     onSync = {},
@@ -133,11 +137,58 @@ class RoleDashboardComposeTest {
         compose.onAllNodesWithText("Frag kurz, ob heute praktische Unterstützung hilfreich wäre.").assertCountEquals(0)
         compose.onAllNodesWithText("Eine konkrete kleine Aufgabe anbieten").assertCountEquals(0)
         compose.onAllNodesWithText("Periode gestartet").assertCountEquals(0)
+        compose.onAllNodesWithText("Geschätztes fruchtbares Fenster").assertCountEquals(0)
+    }
+
+    @Test
+    fun partnerSeesOnlyServerSharedPhaseFertilityAndContextualTip() {
+        compose.setContent {
+            LunaraTheme {
+                PartnerDashboard(
+                    displayName = "Sam",
+                    dashboard = PartnerDashboardDto(
+                        prediction = PredictionDto(
+                            confidence = "MEDIUM",
+                            fertileWindowFrom = "2026-09-10",
+                            fertileWindowTo = "2026-09-16",
+                            fertilityEstimate = FertilityEstimateDto(
+                                enabled = true,
+                                available = true,
+                                estimated = true,
+                                reason = "AVAILABLE",
+                                basedOnCycleCount = 6,
+                                notContraception = true,
+                                doesNotConfirmOvulation = true,
+                            ),
+                        ),
+                        phase = "LUTEAL_ESTIMATE",
+                        tip = PartnerTipDto(
+                            "tip-1",
+                            "Erst fragen",
+                            "Frag, was heute hilfreich wäre.",
+                            "Biete eine kleine Handlung an",
+                            "COMMUNICATION",
+                            "LUTEAL_ESTIMATE",
+                        ),
+                    ),
+                    unavailable = false,
+                    onRefresh = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Mögliche aktuelle Zyklusphase").assertIsDisplayed()
+        compose.onNodeWithText("Lutealphase, geschätzt").assertIsDisplayed()
+        compose.onNodeWithText("Geschätztes fruchtbares Fenster").assertIsDisplayed()
+        compose.onNodeWithText("Berücksichtigt eine freigegebene Phase").assertIsDisplayed()
+        compose.onNodeWithText(
+            "Nur eine grobe kalendarische Schätzung: keine Aussage über einen tatsächlichen Eisprung und nicht zur Verhütung verwenden.",
+        ).assertIsDisplayed()
     }
 
     @Test
     fun trackerCanEditAndConfirmDeleteForExistingPeriod() {
-        var updated: Pair<String, LocalDate>? = null
+        var updated: Triple<String, LocalDate, LocalDate?>? = null
         var deleted: String? = null
         val period = PeriodEntity("period-1", "tracker", "2026-08-10", createdAt = "", updatedAt = "")
         compose.setContent {
@@ -151,7 +202,7 @@ class RoleDashboardComposeTest {
                     0,
                     null,
                     {},
-                    { id, date -> updated = id to date },
+                    { id, start, end -> updated = Triple(id, start, end) },
                     { id -> deleted = id },
                     {},
                     {},
@@ -169,6 +220,80 @@ class RoleDashboardComposeTest {
     }
 
     @Test
+    fun trackerCanSetAndRemoveAnOptionalPeriodEnd() {
+        var updated: Triple<String, LocalDate, LocalDate?>? = null
+        val period = PeriodEntity("period-1", "tracker", "2026-08-10", createdAt = "", updatedAt = "")
+        compose.setContent {
+            LunaraTheme {
+                TrackerDashboard(
+                    "Alex",
+                    listOf(period),
+                    emptyList(),
+                    null,
+                    0,
+                    0,
+                    null,
+                    {},
+                    { id, start, end -> updated = Triple(id, start, end) },
+                    {},
+                    {},
+                    {},
+                    {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("period-manage-period-1").performClick()
+        compose.onNodeWithTag("period-start-input").performTextClearance()
+        compose.onNodeWithTag("period-start-input").performTextInput("2026-08-09")
+        compose.onNodeWithTag("period-end-input").performTextInput("2026-08-12")
+        compose.onNodeWithTag("period-update-confirm").performClick()
+
+        assertEquals(
+            Triple("period-1", LocalDate.parse("2026-08-09"), LocalDate.parse("2026-08-12")),
+            updated,
+        )
+    }
+
+    @Test
+    fun trackerCanRemoveAnExistingPeriodEnd() {
+        var updated: Triple<String, LocalDate, LocalDate?>? = null
+        val period = PeriodEntity(
+            "period-1",
+            "tracker",
+            "2026-08-10",
+            endDate = "2026-08-12",
+            createdAt = "",
+            updatedAt = "",
+        )
+        compose.setContent {
+            LunaraTheme {
+                TrackerDashboard(
+                    "Alex",
+                    listOf(period),
+                    emptyList(),
+                    null,
+                    0,
+                    0,
+                    null,
+                    {},
+                    { id, start, end -> updated = Triple(id, start, end) },
+                    {},
+                    {},
+                    {},
+                    {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("period-manage-period-1").performClick()
+        compose.onNodeWithTag("period-end-clear").performClick()
+        compose.onNodeWithTag("period-update-confirm").performClick()
+
+        assertEquals(Triple("period-1", LocalDate.parse("2026-08-10"), null), updated)
+    }
+
+    @Test
     fun conflictResolutionRequiresConfirmation() {
         var resolutions = 0
         compose.setContent {
@@ -182,7 +307,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 1,
                     lastSyncAt = null,
                     onPeriodStarted = {},
-                    onPeriodUpdated = { _, _ -> },
+                    onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = {},
                     onSync = {},

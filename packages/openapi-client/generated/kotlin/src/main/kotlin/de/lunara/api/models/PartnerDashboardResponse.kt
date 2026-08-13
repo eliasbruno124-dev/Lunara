@@ -24,8 +24,8 @@
 package de.lunara.api.models
 
 import de.lunara.api.models.DailyLogResponse
+import de.lunara.api.models.PartnerPredictionResponse
 import de.lunara.api.models.PeriodResponse
-import de.lunara.api.models.PredictionResponse
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -53,7 +53,7 @@ data class PartnerDashboardResponse (
     val phase: kotlin.String? = null,
 
     @Json(name = "prediction")
-    val prediction: PredictionResponse? = null,
+    val prediction: PartnerPredictionResponse? = null,
 
     @Json(name = "todayLog")
     val todayLog: DailyLogResponse? = null

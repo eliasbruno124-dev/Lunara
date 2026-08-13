@@ -14,7 +14,7 @@ const booleanValue = (value: string | undefined, fallback = false): boolean =>
 export const appConfig = (): { lunara: LunaraConfig } => ({
   lunara: {
     appName: process.env.APP_NAME?.trim() || 'Lunara',
-    appVersion: process.env.APP_VERSION?.trim() || '1.0.3',
+    appVersion: process.env.APP_VERSION?.trim() || '1.0.4',
     publicBaseUrl: process.env.PUBLIC_BASE_URL?.trim() || 'http://localhost:3000',
     registrationEnabled: booleanValue(process.env.REGISTRATION_ENABLED),
     accessTokenTtlSeconds: Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 900),

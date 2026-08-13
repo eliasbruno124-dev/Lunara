@@ -578,6 +578,56 @@
         },
         "type": "object"
       },
+      "FertilityEstimateResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "basedOnCycleCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "doesNotConfirmOvulation": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "estimated": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "notContraception": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "reason": {
+            "enum": [
+              "AVAILABLE",
+              "DISABLED",
+              "INSUFFICIENT_DATA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "available",
+          "estimated",
+          "reason",
+          "basedOnCycleCount",
+          "notContraception",
+          "doesNotConfirmOvulation"
+        ],
+        "type": "object"
+      },
       "GenericObjectResponse": {
         "additionalProperties": true,
         "type": "object"
@@ -790,7 +840,7 @@
             "type": "string"
           },
           "prediction": {
-            "$ref": "#/components/schemas/PredictionResponse",
+            "$ref": "#/components/schemas/PartnerPredictionResponse",
             "nullable": true
           },
           "sharingPaused": {
@@ -804,6 +854,65 @@
         "required": [
           "sharingPaused"
         ],
+        "type": "object"
+      },
+      "PartnerPredictionResponse": {
+        "additionalProperties": false,
+        "description": "Privacy-filtered partner projection. Every property is optional and is included only under its dedicated server-side sharing permission.",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "basedOnCycleCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "confidence": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "UNAVAILABLE"
+            ],
+            "type": "string"
+          },
+          "fertileWindowFrom": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "fertileWindowTo": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "fertilityEstimate": {
+            "$ref": "#/components/schemas/FertilityEstimateResponse"
+          },
+          "predictedEndFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedEndTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedStartFrom": {
+            "format": "date",
+            "type": "string"
+          },
+          "predictedStartTo": {
+            "format": "date",
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "variationDays": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "PeriodResponse": {
@@ -880,6 +989,7 @@
       },
       "PredictionResponse": {
         "additionalProperties": true,
+        "description": "Deterministic calendar estimate. It is not a diagnosis, does not confirm ovulation, and must not be used as contraception.",
         "properties": {
           "algorithmVersion": {
             "type": "string"
@@ -901,14 +1011,19 @@
             "type": "string"
           },
           "fertileWindowFrom": {
+            "description": "Start of an optional estimated fertile window; never a confirmation of fertility.",
             "format": "date",
             "nullable": true,
             "type": "string"
           },
           "fertileWindowTo": {
+            "description": "End of an optional estimated fertile window; never a confirmation of fertility.",
             "format": "date",
             "nullable": true,
             "type": "string"
+          },
+          "fertilityEstimate": {
+            "$ref": "#/components/schemas/FertilityEstimateResponse"
           },
           "predictedEndFrom": {
             "format": "date",
@@ -1774,7 +1889,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },

@@ -1,6 +1,8 @@
 package de.lunara.app.data.sync
 
 import de.lunara.app.data.local.MutationEntity
+import de.lunara.app.data.remote.dto.PartnerDashboardDto
+import de.lunara.app.data.remote.dto.PartnerTipDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -72,6 +74,25 @@ class MutationQueuePolicyTest {
     fun `resumed full replay finalizes resolving rows on its last page`() {
         assertFalse(SyncReplayPolicy.shouldFinalizeResolvingRows(hasMore = true))
         assertTrue(SyncReplayPolicy.shouldFinalizeResolvingRows(hasMore = false))
+    }
+
+    @Test
+    fun `authoritative partner sync clears a previously cached tip after access is revoked`() {
+        val previous = PartnerDashboardDto(
+            tip = PartnerTipDto(
+                id = "previous-sensitive-tip",
+                title = "Previous",
+                body = "Previously permitted",
+                callToAction = "Ask",
+                category = "COMFORT",
+            ),
+        )
+        val current = PartnerDashboardDto(sharingPaused = true, tip = null)
+
+        val result = PartnerDashboardCachePolicy.replace(previous, current)
+
+        assertTrue(result.sharingPaused)
+        assertEquals(null, result.tip)
     }
 
     @Test

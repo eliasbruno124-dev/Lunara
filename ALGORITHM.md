@@ -83,8 +83,9 @@ normale Zyklusprognose ausgegeben. Historie bleibt sichtbar. Nach Rückkehr zu
 
 ## Geschätztes fruchtbares Fenster
 
-Die Funktion ist standardmäßig deaktiviert. Sie wird nur bei `NONE`, nicht
-pausierter Prognose und ausreichend stabiler Datenbasis angeboten. Ein möglicher
+Die Funktion ist standardmäßig deaktiviert. Sie wird nur nach ausdrücklicher
+Aktivierung, bei `NONE`, nicht pausierter Prognose und mindestens drei
+vollständigen erfassten Zyklen angeboten. Ein möglicher
 Ovulationsmittelpunkt wird rein kalendarisch als erwarteter Periodenbeginn minus
 konfigurierte Lutealphase (Standard 14 Tage) geschätzt. Das sichtbare Fenster
 umfasst mindestens fünf Tage davor bis einen Tag danach und wird bei
@@ -93,6 +94,12 @@ Prognoseunsicherheit um deren Halbbreite erweitert.
 Jede Ansicht bezeichnet es als „geschätzt“ und zeigt: Es beweist keine Ovulation,
 ist bei unregelmäßigen Zyklen besonders unsicher und darf nicht als
 Verhütungsmethode verwendet werden.
+
+Die API liefert zusätzlich explizite Sicherheitsmetadaten (`enabled`,
+`available`, Datenbasis, Grund sowie die Konstanten `notContraception` und
+`doesNotConfirmOvulation`). Clients zeigen den Zeitraum nur, wenn alle positiven
+Sicherheitsbedingungen erfüllt sind. Fehlende oder unbekannte Metadaten werden
+als „nicht verfügbar“ behandelt.
 
 ## Grenzen
 

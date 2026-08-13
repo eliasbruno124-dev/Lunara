@@ -21,10 +21,14 @@ describe('projectPartnerDashboard', () => {
     const result = projectPartnerDashboard({
       settings: allPrivate,
       prediction: {
+        available: true,
         predictedStartFrom: '2026-09-18',
         predictedStartTo: '2026-09-21',
+        confidence: 'MEDIUM',
         fertileWindowFrom: '2026-09-01',
         fertileWindowTo: '2026-09-07',
+        fertilityEstimate: { available: true },
+        explanation: { privateHistoryDetail: 'six exact cycles' },
       },
       phase: 'LUTEAL_ESTIMATE',
       periodDates: [{ startDate: '2026-08-20' }],
@@ -41,16 +45,58 @@ describe('projectPartnerDashboard', () => {
       today: '2026-08-12',
     });
     expect(result.prediction).toEqual({
+      available: true,
       predictedStartFrom: '2026-09-18',
       predictedStartTo: '2026-09-21',
-      fertileWindowFrom: undefined,
-      fertileWindowTo: undefined,
+      confidence: 'MEDIUM',
     });
     expect(result.phase).toBeNull();
     expect(result.periodDates).toEqual([]);
     expect(result.todayLog).toBeNull();
     expect(JSON.stringify(result)).not.toContain('private words');
     expect(JSON.stringify(result)).not.toContain('cramps');
+    expect(JSON.stringify(result)).not.toContain('privateHistoryDetail');
+    expect(JSON.stringify(result)).not.toContain('fertilityEstimate');
+  });
+
+  it('projects the fertility estimate only under its dedicated permission', () => {
+    const result = projectPartnerDashboard({
+      settings: {
+        ...allPrivate,
+        sharePrediction: false,
+        shareFertileWindow: true,
+      },
+      prediction: {
+        available: true,
+        predictedStartFrom: '2026-09-18',
+        fertileWindowFrom: '2026-09-01',
+        fertileWindowTo: '2026-09-07',
+        fertilityEstimate: {
+          enabled: true,
+          available: true,
+          estimated: true,
+          notContraception: true,
+          doesNotConfirmOvulation: true,
+        },
+      },
+      phase: 'OVULATION_ESTIMATE',
+      periodDates: [],
+      todayLog: null,
+      today: '2026-09-03',
+    });
+    expect(result.prediction).toEqual({
+      fertileWindowFrom: '2026-09-01',
+      fertileWindowTo: '2026-09-07',
+      fertilityEstimate: {
+        enabled: true,
+        available: true,
+        estimated: true,
+        notContraception: true,
+        doesNotConfirmOvulation: true,
+      },
+    });
+    expect(JSON.stringify(result.prediction)).not.toContain('predictedStartFrom');
+    expect(result.phase).toBeNull();
   });
 
   it('stops all projections while sharing is paused', () => {
@@ -78,12 +124,27 @@ describe('projectPartnerDashboard', () => {
     const result = projectPartnerDashboard({
       settings: {
         ...allPrivate,
+        sharePeriodDates: true,
+        sharePhase: true,
         sharePain: true,
+        shareFertileWindow: true,
         privateDate: new Date('2026-08-12T00:00:00.000Z'),
       },
-      prediction: null,
-      phase: null,
-      periodDates: [],
+      prediction: {
+        available: true,
+        predictedStartFrom: '2026-09-18',
+        fertileWindowFrom: '2026-08-10',
+        fertileWindowTo: '2026-08-16',
+        fertilityEstimate: {
+          enabled: true,
+          available: true,
+          estimated: true,
+          notContraception: true,
+          doesNotConfirmOvulation: true,
+        },
+      },
+      phase: 'OVULATION_ESTIMATE',
+      periodDates: [{ startDate: '2026-08-12', endDate: null }],
       todayLog: {
         localDate: '2026-08-12', flowLevel: null, painLevel: 8, mood: null,
         energy: null, sleepQuality: null, customSymptoms: [], note: null,
@@ -91,5 +152,13 @@ describe('projectPartnerDashboard', () => {
       today: '2026-08-12',
     });
     expect(result.todayLog).toBeNull();
+    expect(result.phase).toBeNull();
+    expect(result.periodDates).toEqual([]);
+    expect(result.prediction).toEqual({
+      available: true,
+      predictedStartFrom: '2026-09-18',
+    });
+    expect(JSON.stringify(result)).not.toContain('fertileWindow');
+    expect(JSON.stringify(result)).not.toContain('fertilityEstimate');
   });
 });

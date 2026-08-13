@@ -12,7 +12,8 @@ Google-Play-Services-Pflicht für Kernfunktionen.
   Mitgliedschaften, Einladungen, Freigaben und Care Preferences
 - Gesundheit: Periodenstart/-ende, Tageslogs, Intensitäten, Temperatur,
   Ovulationstest-Markierung, Symptome und verschlüsselte optionale Notizen
-- abgeleitete Daten: Bereichsprognosen, Statistik und Erklärung
+- abgeleitete Daten: Bereichsprognosen, Statistik, Erklärung sowie nur nach
+  Opt-in eine grobe Schätzung des fruchtbaren Fensters
 - Unterstützung: Tippfeedback, eigene Tipps und zeitlich begrenzte Check-ins
 - Sicherheit: erfolgreiche/fehlgeschlagene Anmeldung, neues Gerät,
   Sitzungs-/Einladungswiderruf, Freigabeänderung, Export und Kontolöschung
@@ -42,29 +43,49 @@ deaktiviert, erscheint der Wert in der nächsten Serverantwort nicht mehr.
 
 Tipps dürfen gesperrte Symptome weder nennen noch indirekt verraten. Sind Tipps
 deaktiviert oder ist kein Tipp zulässig, zeigt Android nur einen neutralen
-Nullzustand. Care Preferences und symptomabhängige Tipps werden ausschließlich
-verwendet, wenn die dafür nötigen Einstellungen dies erlauben.
+Nullzustand. Die 71 deutschen und englischen Tipps berücksichtigen eine
+geschätzte Phase nur, wenn diese freigegeben ist. Care Preferences und
+symptomabhängige Tipps werden ausschließlich verwendet, wenn die dafür nötigen
+Einstellungen dies erlauben. Ein privater Tag entfernt aktuelle Phase,
+tatsächliche Periodendaten und Fertilitätsangaben aus der Partnerprojektion;
+eine allgemein freigegebene zukünftige Periodenprognose darf bestehen bleiben.
 
-Die Android-Einstellungsansicht bietet derzeit die wichtigsten Freigaben,
-Freigabepause, permanente Einmal-Einladungen samt Widerruf,
-Lunara-Passwortwechsel und Screenshot-Schutz. Weitere serverseitig
-vorhandene Schalter – unter anderem Flow, Stimmung, Energie, Schlaf,
-Tipps/Check-ins, privates Datum und symptomabhängige Tipps – müssen in Version 1
-noch per API verwaltet werden. Eine Partner-Trennen- oder Beziehung-verlassen-UI
+Die Android-Einstellungsansicht 1.0.4 bietet die Freigaben für Prognose,
+Periodendaten, Phase, Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf,
+Symptome, Notizen, Fertilitätsfenster, Tipps und Check-ins sowie
+symptombasierte Tipps. Die trackende Person kann zudem die Care Preferences
+Wärme, Nähe, Raum, Snacks, Gespräch, Haushaltshilfe, Erinnerungen und „keine
+ungefragten Ratschläge“ direkt pflegen. Freigabepause, permanente
+Einmal-Einladungen samt Widerruf, Lunara-Passwortwechsel und Screenshot-Schutz
+sind ebenfalls integriert. Eine Partner-Trennen- oder Beziehung-verlassen-UI
 ist noch nicht vorhanden.
+
+Die Fertilitätsschätzung ist standardmäßig aus. Sie erfordert ein ausdrückliches
+Opt-in im Zyklusprofil und mindestens drei vollständige Zyklen. Eine getrennte
+Freigabe entscheidet über die Partneransicht; das Deaktivieren der Schätzung
+widerruft diese Freigabe serverseitig. Der Zeitraum ist nur eine statistische
+Schätzung, bestätigt keine Ovulation und eignet sich nicht zur Verhütung.
 
 Bereits außerhalb von Lunara gespeicherte Screenshots oder Abschriften können
 nicht nachträglich zurückgerufen werden.
 
 ## Serveradresse und Authentik
 
-Android verbindet sich über eine normale HTTPS-Basisadresse und benötigt keine
-Authentik-Header-Zugangsdaten. Authentik überspringt seinen Browser-Login nur
-für `/api/v1`; geschützte API-Daten bleiben durch Lunara-Token, Rollen,
-Eigentum und die interne Beziehungsgrenze abgesichert. OpenAPI-/Browserpfade
-bleiben Authentik-geschützt. Deren lokal gespeicherte administrative
-Prüfzugänge sind Infrastrukturgeheimnisse und dürfen weder in die App noch in
-QR-Codes, Chat, Git oder Cloudflare-DNS gelangen.
+Authentik schützt die gesamte Domain einschließlich aller API-, Meta-, Health-
+und Dokumentationspfade. Genau ein gemeinsamer technischer App-Zugang öffnet
+die äußere Proxy-Schicht mit `Authorization: Basic …`; er ist kein persönliches
+Konto. Persönliche Lunara-Authentifizierung und Rollenprüfung erfolgen separat
+über `X-Lunara-Authorization: Bearer …`.
+
+Android 1.0.4 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
+Gateway-Zugangsdaten darf ausschließlich bei der ersten Einrichtung einmalig
+eingegeben werden. Die App trennt die Zugangsdaten sofort von der sichtbaren
+Basisadresse und speichert sie Keystore-gestützt. Die dauerhaft sichtbare
+Serveradresse und sämtliche QR-Codes enthalten keine Credentials. Der
+gemeinsame App-Zugang bleibt dennoch ein Infrastrukturgeheimnis und muss bei
+Verdacht zentral für alle Installationen rotiert werden. Die Header-Auth-Adresse
+darf nicht in Zwischenablagehistorien, Chat, Git, Dokumentation oder Cloudflare-
+DNS gelangen.
 
 ## Benachrichtigungen
 

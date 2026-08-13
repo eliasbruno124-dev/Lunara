@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditEventType } from '@prisma/client';
+import { lockRelationship } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSharingDto } from './sharing.dto.js';
@@ -23,6 +24,21 @@ export class SharingService {
 
   async update(user: AuthenticatedUser, dto: UpdateSharingDto) {
     const settings = await this.prisma.$transaction(async (tx) => {
+      // Serialize this consent transition with cycle-profile changes. Without the shared lock,
+      // a concurrent "enable sharing" and "disable estimate" request could commit in the wrong
+      // order and silently restore a sensitive permission.
+      await lockRelationship(tx, user.householdId);
+      if (dto.shareFertileWindow === true) {
+        const profile = await tx.cycleProfile.findUnique({
+          where: { userId: user.userId },
+          select: { fertilityPredictionEnabled: true },
+        });
+        if (!profile?.fertilityPredictionEnabled) {
+          throw new ConflictException(
+            'Fertility prediction must be explicitly enabled before it can be shared',
+          );
+        }
+      }
       const updated = await tx.sharingSettings.update({
         where: {
           ownerUserId_householdId: {

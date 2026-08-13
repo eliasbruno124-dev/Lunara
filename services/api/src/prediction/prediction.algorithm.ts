@@ -37,6 +37,7 @@ export interface PredictionResult {
   predictedEndTo: string;
   fertileWindowFrom: string | null;
   fertileWindowTo: string | null;
+  fertilityEstimate: FertilityEstimate;
   confidence: Exclude<PredictionConfidenceValue, 'UNAVAILABLE'>;
   basedOnCycleCount: number;
   calculatedAt: string;
@@ -53,6 +54,25 @@ export interface PredictionResult {
     uncertainty: 'low' | 'medium' | 'high';
     note: string;
   };
+}
+
+export type FertilityEstimateReason =
+  | 'AVAILABLE'
+  | 'DISABLED'
+  | 'INSUFFICIENT_DATA';
+
+/**
+ * Explicit safety metadata for the optional calendar-based fertility estimate.
+ * Clients must keep the warning visible anywhere the estimate is presented.
+ */
+export interface FertilityEstimate {
+  enabled: boolean;
+  available: boolean;
+  estimated: true;
+  reason: FertilityEstimateReason;
+  basedOnCycleCount: number;
+  notContraception: true;
+  doesNotConfirmOvulation: true;
 }
 
 export interface UnavailablePrediction {
@@ -178,7 +198,9 @@ export function calculatePrediction(
 
   let fertileWindowFrom: string | null = null;
   let fertileWindowTo: string | null = null;
-  if (input.fertilityPredictionEnabled && cycleLengths.length >= 3) {
+  const fertilityEnabled = input.fertilityPredictionEnabled === true;
+  const fertilityAvailable = fertilityEnabled && cycleLengths.length >= 3;
+  if (fertilityAvailable) {
     const lutealLength = finiteInteger(input.lutealLength, 8, 20) ?? 14;
     const ovulationCenter = center - lutealLength;
     fertileWindowFrom = fromEpochDay(ovulationCenter - 5 - variationDays);
@@ -193,6 +215,19 @@ export function calculatePrediction(
     predictedEndTo: fromEpochDay(startTo + typicalPeriodLength - 1),
     fertileWindowFrom,
     fertileWindowTo,
+    fertilityEstimate: {
+      enabled: fertilityEnabled,
+      available: fertilityAvailable,
+      estimated: true,
+      reason: fertilityAvailable
+        ? 'AVAILABLE'
+        : fertilityEnabled
+          ? 'INSUFFICIENT_DATA'
+          : 'DISABLED',
+      basedOnCycleCount: cycleLengths.length,
+      notContraception: true,
+      doesNotConfirmOvulation: true,
+    },
     confidence,
     basedOnCycleCount: cycleLengths.length,
     calculatedAt: now.toISOString(),

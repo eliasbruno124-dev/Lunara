@@ -1,4 +1,3 @@
-import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -8,12 +7,6 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
-val localProperties = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
-}
-
-fun escapedBuildConfig(value: String): String = "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-
 android {
     namespace = "de.lunara.app"
     compileSdk = 37
@@ -22,8 +15,8 @@ android {
         applicationId = "de.lunara.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -39,22 +32,11 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".local"
             versionNameSuffix = "-local"
-            buildConfigField("String", "DEFAULT_API_URL", escapedBuildConfig(localProperties.getProperty("LUNARA_LOCAL_API_URL", "http://10.0.2.2:3000/")))
             buildConfigField("boolean", "ALLOW_INSECURE_HTTP", "true")
             manifestPlaceholders["usesCleartextTraffic"] = "true"
         }
         create("production") {
             dimension = "environment"
-            buildConfigField(
-                "String",
-                "DEFAULT_API_URL",
-                escapedBuildConfig(
-                    localProperties.getProperty(
-                        "LUNARA_PRODUCTION_API_URL",
-                        "https://lunara.3li361.de",
-                    ),
-                ),
-            )
             buildConfigField("boolean", "ALLOW_INSECURE_HTTP", "false")
             manifestPlaceholders["usesCleartextTraffic"] = "false"
         }
@@ -136,7 +118,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:5.4.0")
     implementation("com.google.code.gson:gson:2.13.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")

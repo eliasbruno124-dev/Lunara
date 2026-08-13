@@ -13,6 +13,8 @@ import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import de.lunara.app.data.sync.ProcessSyncGate
+import de.lunara.app.data.remote.dto.CycleProfileDto
+import de.lunara.app.data.remote.dto.UpdateCycleProfileRequest
 
 @Singleton
 class DashboardRepository @Inject constructor(
@@ -67,6 +69,29 @@ class DashboardRepository @Inject constructor(
         if (response.code() == 401 && connectionRepository.refresh()) {
             response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .prediction(endpoint(base, "api/v1/predictions"))
+        }
+        return response.requireBody()
+    }
+
+    suspend fun cycleProfile(): CycleProfileDto {
+        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            .cycleProfile(endpoint(base, "api/v1/cycle/profile"))
+        if (response.code() == 401 && connectionRepository.refresh()) {
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                .cycleProfile(endpoint(base, "api/v1/cycle/profile"))
+        }
+        return response.requireBody()
+    }
+
+    suspend fun setFertilityPredictionEnabled(enabled: Boolean): CycleProfileDto {
+        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
+        val request = UpdateCycleProfileRequest(fertilityPredictionEnabled = enabled)
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            .updateCycleProfile(endpoint(base, "api/v1/cycle/profile"), request)
+        if (response.code() == 401 && connectionRepository.refresh()) {
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                .updateCycleProfile(endpoint(base, "api/v1/cycle/profile"), request)
         }
         return response.requireBody()
     }

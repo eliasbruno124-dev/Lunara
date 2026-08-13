@@ -16,6 +16,7 @@ sealed class ServerAddressException(message: String) : IllegalArgumentException(
     data object InvalidUrl : ServerAddressException("invalid_url")
     data object HttpsRequired : ServerAddressException("https_required")
     data object IncompleteCredentials : ServerAddressException("incomplete_credentials")
+    data object CredentialsRequireHttps : ServerAddressException("credentials_require_https")
 }
 
 object ServerAddressParser {
@@ -41,7 +42,16 @@ object ServerAddressParser {
             }
             val username = decode(it.substring(0, separator))
             val appPassword = decode(it.substring(separator + 1))
-            if (username.isBlank() || appPassword.isBlank()) throw ServerAddressException.IncompleteCredentials
+            if (
+                username.isBlank() || appPassword.isBlank() ||
+                username.length > MAX_GATEWAY_USERNAME_LENGTH ||
+                appPassword.length > MAX_GATEWAY_PASSWORD_LENGTH ||
+                ':' in username ||
+                username.any(Char::isISOControl) || appPassword.any(Char::isISOControl)
+            ) {
+                throw ServerAddressException.IncompleteCredentials
+            }
+            if (scheme != "https") throw ServerAddressException.CredentialsRequireHttps
             GatewayCredentials(username, appPassword)
         }
 
@@ -65,6 +75,8 @@ object ServerAddressParser {
     }.getOrElse { throw ServerAddressException.InvalidUrl }
 
     private const val META_ENDPOINT = "/api/v1/meta"
+    private const val MAX_GATEWAY_USERNAME_LENGTH = 128
+    private const val MAX_GATEWAY_PASSWORD_LENGTH = 512
 }
 
 object ServerChangePolicy {

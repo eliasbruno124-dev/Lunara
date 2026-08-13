@@ -563,7 +563,7 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       ).startDate.toISOString().slice(0, 10),
     ).toBe(periodStarts[0]);
 
-    const concurrentPeriodDate = '2026-08-15';
+    const concurrentPeriodDate = '2026-07-15';
     const concurrentPeriodResponses = await Promise.all(
       [randomUUID(), randomUUID()].map((id) =>
         request(app.getHttpServer())
@@ -589,15 +589,15 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       }),
     ).toBe(1);
 
-    const concurrentWinner = concurrentPeriodResponses.find(
+    const concurrentPeriodWinner = concurrentPeriodResponses.find(
       ({ status }) => status === 201,
     );
-    if (!concurrentWinner) {
+    if (!concurrentPeriodWinner) {
       throw new Error('Expected one concurrent period-create winner');
     }
     await request(app.getHttpServer())
       .delete(
-        `/api/v1/periods/${concurrentWinner.body.id}?version=${concurrentWinner.body.version}`,
+        `/api/v1/periods/${concurrentPeriodWinner.body.id}?version=${concurrentPeriodWinner.body.version}`,
       )
       .set('Authorization', `Bearer ${trackerAccess}`)
       .expect(204);
@@ -635,6 +635,21 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(200);
     expect(prediction.body.available).toBe(true);
     expect(prediction.body.typicalCycleLength).toBe(30);
+    // Phase disclosure is evaluated against today, so anchor this assertion to
+    // a recent completed period instead of a calendar date that will age out.
+    const phaseAnchorStart = new Date();
+    phaseAnchorStart.setUTCDate(phaseAnchorStart.getUTCDate() - 10);
+    const phaseAnchorEnd = new Date(phaseAnchorStart);
+    phaseAnchorEnd.setUTCDate(phaseAnchorEnd.getUTCDate() + 4);
+    await request(app.getHttpServer())
+      .post('/api/v1/periods')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({
+        id: randomUUID(),
+        startDate: phaseAnchorStart.toISOString().slice(0, 10),
+        endDate: phaseAnchorEnd.toISOString().slice(0, 10),
+      })
+      .expect(201);
     await request(app.getHttpServer())
       .patch('/api/v1/sharing')
       .set('Authorization', `Bearer ${trackerAccess}`)
@@ -865,7 +880,7 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(201)
       .expect(({ body }) => {
         expect(body.preview).toBe(true);
-        expect(body.periods.duplicates).toBe(4);
+        expect(body.periods.duplicates).toBe(5);
         expect(body.dailyLogs.duplicates).toBe(1);
       });
 

@@ -10,6 +10,15 @@ const prediction: PredictionResult = {
   predictedEndTo: '2026-09-25',
   fertileWindowFrom: null,
   fertileWindowTo: null,
+  fertilityEstimate: {
+    enabled: false,
+    available: false,
+    estimated: true,
+    reason: 'DISABLED',
+    basedOnCycleCount: 6,
+    notContraception: true,
+    doesNotConfirmOvulation: true,
+  },
   confidence: 'MEDIUM',
   basedOnCycleCount: 6,
   calculatedAt: '2026-08-12T00:00:00.000Z',
@@ -56,6 +65,12 @@ describe('partner phase estimate', () => {
       predictedStartTo: '2026-10-03',
       fertileWindowFrom: '2026-09-10',
       fertileWindowTo: '2026-09-16',
+      fertilityEstimate: {
+        ...prediction.fertilityEstimate,
+        enabled: true,
+        available: true,
+        reason: 'AVAILABLE' as const,
+      },
     };
     expect(estimatePartnerPhase('2026-09-14', null, withFertility)).not.toBe(
       CyclePhase.OVULATION_ESTIMATE,
@@ -63,6 +78,32 @@ describe('partner phase estimate', () => {
     expect(estimatePartnerPhase('2026-09-14', null, withFertility, true)).toBe(
       CyclePhase.OVULATION_ESTIMATE,
     );
+  });
+
+  it('can report an actual period without enough history for an estimate', () => {
+    expect(
+      estimatePartnerPhase(
+        '2026-09-14',
+        {
+          startDate: new Date('2026-09-12T00:00:00.000Z'),
+          endDate: null,
+        },
+        null,
+      ),
+    ).toBe(CyclePhase.MENSTRUATION);
+  });
+
+  it('does not keep returning a luteal estimate after the forecast passed', () => {
+    expect(
+      estimatePartnerPhase(
+        '2026-10-10',
+        {
+          startDate: new Date('2026-08-22T00:00:00.000Z'),
+          endDate: new Date('2026-08-26T00:00:00.000Z'),
+        },
+        prediction,
+      ),
+    ).toBeNull();
   });
 
   it('uses the tracker IANA timezone for the local calendar day', () => {

@@ -28,6 +28,7 @@ enum class OnboardingError {
     INVALID_URL,
     HTTPS_REQUIRED,
     INCOMPLETE_CREDENTIALS,
+    CREDENTIALS_REQUIRE_HTTPS,
     QR_CREDENTIALS,
     DNS,
     TLS,
@@ -53,7 +54,9 @@ enum class OnboardingError {
 data class OnboardingUiState(
     val stage: OnboardingStage = OnboardingStage.INTRO,
     val language: String = "de",
-    val serverUrl: String = BuildConfig.DEFAULT_API_URL,
+    // Deliberately blank: a production server or credential-bearing gateway URL must never
+    // appear in a distributable APK or be silently selected for a new user.
+    val serverUrl: String = "",
     val allowInsecureHttp: Boolean = false,
     val isBusy: Boolean = false,
     val meta: MetaDto? = null,
@@ -234,6 +237,7 @@ class OnboardingViewModel @Inject constructor(
         ServerAddressException.InvalidUrl -> OnboardingError.INVALID_URL
         ServerAddressException.HttpsRequired -> OnboardingError.HTTPS_REQUIRED
         ServerAddressException.IncompleteCredentials -> OnboardingError.INCOMPLETE_CREDENTIALS
+        ServerAddressException.CredentialsRequireHttps -> OnboardingError.CREDENTIALS_REQUIRE_HTTPS
         is UnknownHostException -> OnboardingError.DNS
         is SSLException -> OnboardingError.TLS
         is SocketTimeoutException -> OnboardingError.TIMEOUT

@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.0.4 – 2026-08-13
+
+- Authentik auf vollständigen Schutz der gesamten Lunara-Domain umgestellt.
+  `/api/v1`, Meta, Login, Health und OpenAPI besitzen keine Skip-Ausnahme mehr.
+- Frühere menschliche und getrennte A/B-Gateway-Bindungen durch genau eine
+  neutrale Serviceidentität `lunara-native-app` mit genau einem gemeinsamen,
+  nicht ablaufenden App-Passwort ersetzt. Alte technische Credentials werden
+  bei der Migration ungültig und ihre lokalen Dateien serverseitig archiviert.
+- Zwei klar getrennte Authentifizierungsschichten umgesetzt: außen
+  `Authorization: Basic …` für Authentik, innen das persönliche kurze Lunara-
+  Token als `X-Lunara-Authorization: Bearer …`. Persönliche Konten, Rollen und
+  Freigaben bleiben damit trotz des gemeinsamen äußeren App-Zugangs getrennt.
+- Android-Onboarding startet ohne vorausgefüllte URL. Eine HTTPS-Userinfo-
+  Adresse kann einmalig eingegeben werden; die App extrahiert und verschlüsselt
+  das Gateway-Credential und speichert/zeigt danach nur die bereinigte
+  Basisadresse. Credential-URLs in QR-Codes werden abgelehnt.
+- Basic Header strikt auf den exakten konfigurierten Ursprung begrenzt und
+  Browser-Redirects deaktiviert, damit Zugangsdaten nicht an andere Hosts
+  gelangen. Der gemeinsame Zugang wird zentral für alle Installationen rotiert.
+- Fertilitätsschätzung als bewusstes Opt-in ergänzt. Sie erfordert mindestens
+  drei vollständige Zyklen, fällt bei ungeeigneten Sondermodi geschlossen aus,
+  trägt explizite Sicherheitsmetadaten und wird nie als Ovulationsbestätigung
+  oder Verhütungsmethode dargestellt.
+- Separate Partnerfreigabe für das geschätzte fruchtbare Fenster gehärtet:
+  Freigabe ist nur bei aktivem persönlichen Opt-in möglich; Deaktivieren der
+  Schätzung widerruft sie atomar. Parallele Profil-/Freigabeänderungen werden
+  pro Beziehung serialisiert.
+- Partnerprojektion weiter minimiert: privater Tag verbirgt aktuelle Phase,
+  tatsächliche Periodendaten und Fertilitätsdaten. Nicht freigegebene Notizen
+  werden nicht mehr vorsorglich entschlüsselt.
+- Partner-Tippkatalog auf 71 respektvolle deutsche und englische Tipps
+  erweitert. Auswahl berücksichtigt nur freigegebene Phase/Symptome, Care
+  Preferences, Feedback und Priorität; gesperrte Gesundheitsdaten bleiben
+  fail-closed.
+- Android-Einstellungen um die vollständige Freigabematrix, Fertilitäts-Opt-in
+  mit Sicherheitshinweis und acht direkt pflegbare Care Preferences erweitert.
+- Partner-Cache bei jeder autoritativen Serverantwort vollständig ersetzt,
+  damit ein zuvor sichtbarer Tipp nach Freigabeentzug oder privatem Tag nicht
+  lokal weiter angezeigt wird.
+- Automatische Vordergrund-/Hintergrundsynchronisierung, persönlicher
+  Passwortwechsel sowie Korrektur und Löschen eines Periodenstarts beibehalten
+  und in die neue Gateway-Authentifizierung eingebunden.
+- API-, Android- und OpenAPI-Version auf 1.0.4 angehoben. Tatsächlich
+  ausgeführte Build-, Test-, Container- und Live-Ergebnisse werden getrennt in
+  `FINAL_REPORT.md` dokumentiert.
+
 ## 1.0.3 – 2026-08-13
 
 - Sichtbares Haushaltsfeld und entsprechende Produkttexte aus Onboarding und

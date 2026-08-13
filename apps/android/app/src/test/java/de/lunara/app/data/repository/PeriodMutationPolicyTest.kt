@@ -1,12 +1,42 @@
 package de.lunara.app.data.repository
 
+import com.google.gson.Gson
+import com.google.gson.JsonParser
 import de.lunara.app.data.local.MutationEntity
+import de.lunara.app.data.local.PeriodEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
 
 class PeriodMutationPolicyTest {
+    @Test
+    fun `an end-only edit is treated as a real period change`() {
+        val current = PeriodEntity(
+            id = "period",
+            userId = "tracker",
+            startDate = "2026-08-10",
+            endDate = null,
+            createdAt = "",
+            updatedAt = "",
+        )
+
+        assertTrue(
+            PeriodMutationPolicy.datesChanged(
+                current,
+                LocalDate.parse("2026-08-10"),
+                LocalDate.parse("2026-08-12"),
+            ),
+        )
+        assertEquals(
+            false,
+            PeriodMutationPolicy.datesChanged(current, LocalDate.parse("2026-08-10"), null),
+        )
+    }
+
     @Test
     fun `fresh unsent period mutation is replaceable before its first attempt`() {
         val create = mutation(operation = "UPSERT", baseVersion = 0)
@@ -68,6 +98,59 @@ class PeriodMutationPolicyTest {
             listOf(millisecond, nextNanosecond, finalNanosecond, nextSecond),
             listOf(nextSecond, nextNanosecond, finalNanosecond, millisecond).sorted(),
         )
+    }
+
+    @Test
+    fun `period patch preserves the optional end date and sends explicit null when removed`() {
+        val withEnd = JsonParser.parseString(
+            PeriodPayloadPolicy.update(
+                Gson(),
+                "period-1",
+                LocalDate.parse("2026-08-10"),
+                LocalDate.parse("2026-08-13"),
+                4,
+            ),
+        ).asJsonObject
+        val withoutEnd = JsonParser.parseString(
+            PeriodPayloadPolicy.update(
+                Gson(),
+                "period-1",
+                LocalDate.parse("2026-08-10"),
+                null,
+                5,
+            ),
+        ).asJsonObject
+
+        assertEquals("2026-08-13", withEnd.get("endDate").asString)
+        assertEquals(4, withEnd.get("version").asInt)
+        assertTrue(withoutEnd.has("endDate"))
+        assertTrue(withoutEnd.get("endDate").isJsonNull)
+    }
+
+    @Test
+    fun `repository date policy rejects future and reversed periods`() {
+        val today = LocalDate.parse("2026-08-13")
+
+        PeriodDatePolicy.requireValid(LocalDate.parse("2026-08-10"), null, today)
+        PeriodDatePolicy.requireValid(
+            LocalDate.parse("2026-08-10"),
+            LocalDate.parse("2026-08-13"),
+            today,
+        )
+        assertThrows(PeriodDateInFutureException::class.java) {
+            PeriodDatePolicy.requireValid(
+                LocalDate.parse("2026-08-10"),
+                LocalDate.parse("2026-08-14"),
+                today,
+            )
+        }
+        assertThrows(InvalidPeriodRangeException::class.java) {
+            PeriodDatePolicy.requireValid(
+                LocalDate.parse("2026-08-10"),
+                LocalDate.parse("2026-08-09"),
+                today,
+            )
+        }
     }
 
     private fun mutation(

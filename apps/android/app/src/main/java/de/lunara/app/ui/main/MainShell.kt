@@ -97,7 +97,10 @@ import de.lunara.app.data.preferences.AppPreferencesState
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
+import de.lunara.app.data.remote.dto.CycleProfileDto
+import de.lunara.app.data.remote.dto.CarePreferencesDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
+import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.repository.ApiPayloadPolicy
 import de.lunara.app.data.repository.SyncEditPolicy
@@ -192,7 +195,9 @@ fun MainShell(
                         conflictMutations = state.conflictMutations,
                         lastSyncAt = state.lastSyncAt,
                         onPeriodStarted = { viewModel.startPeriod(session.userId) },
-                        onPeriodUpdated = { id, date -> viewModel.updatePeriodStart(session.userId, id, date) },
+                        onPeriodUpdated = { id, start, end ->
+                            viewModel.updatePeriodDates(session.userId, id, start, end)
+                        },
                         onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
                         onDailyLog = { draft ->
                             viewModel.logToday(
@@ -232,7 +237,9 @@ fun MainShell(
                 HistoryScreen(
                     periods = state.periods,
                     prediction = state.trackerPrediction,
-                    onPeriodUpdated = { id, date -> viewModel.updatePeriodStart(session.userId, id, date) },
+                    onPeriodUpdated = { id, start, end ->
+                        viewModel.updatePeriodDates(session.userId, id, start, end)
+                    },
                     onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
                 )
             }
@@ -257,6 +264,8 @@ fun MainShell(
                     onDarkMode = viewModel::setDarkMode,
                     onSync = viewModel::syncNow,
                     sharing = state.sharing,
+                    cycleProfile = state.cycleProfile,
+                    carePreferences = state.carePreferences,
                     invitation = state.invitation,
                     partnerConnected = state.partnerConnected,
                     settingsBusy = state.settingsBusy,
@@ -266,6 +275,8 @@ fun MainShell(
                     onRefreshInvitation = viewModel::refreshInvitation,
                     onRevokeInvitation = viewModel::revokeInvitation,
                     onUpdateSharing = viewModel::updateSharing,
+                    onUpdateCarePreferences = viewModel::updateCarePreferences,
+                    onFertilityPrediction = viewModel::setFertilityPredictionEnabled,
                     onChangePassword = viewModel::changePassword,
                     onClearPasswordChangeStatus = viewModel::clearPasswordChangeStatus,
                     onLogout = onLogout,
@@ -301,7 +312,7 @@ fun TrackerDashboard(
     conflictMutations: Int,
     lastSyncAt: String?,
     onPeriodStarted: () -> Unit,
-    onPeriodUpdated: (String, LocalDate) -> Unit,
+    onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
     onDailyLog: (TodayLogDraft) -> Unit,
     onSync: () -> Unit,
@@ -344,6 +355,11 @@ fun TrackerDashboard(
                     }
                 },
             )
+        }
+        PredictionPresentationPolicy.fertileWindow(prediction)?.let { fertileWindow ->
+            item {
+                FertilityEstimateCard(fertileWindow)
+            }
         }
         item {
             Button(
@@ -636,6 +652,19 @@ fun PartnerDashboard(
                 action = { StatusPill(stringResource(R.string.estimated_label)) },
             )
         }
+        PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
+            item {
+                InsightCard(
+                    Icons.Rounded.Info,
+                    stringResource(R.string.current_estimated_phase),
+                    localizedPhase(phase),
+                    action = { StatusPill(stringResource(R.string.estimated_label)) },
+                )
+            }
+        }
+        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
+            item { FertilityEstimateCard(fertileWindow) }
+        }
         item {
             val tip = dashboard?.tip
             if (tip == null) {
@@ -650,11 +679,16 @@ fun PartnerDashboard(
                     tip.title,
                     tip.body,
                     action = {
-                        Text(
-                            tip.callToAction,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            PredictionPresentationPolicy.phaseAwareTipPhase(dashboard)?.let {
+                                StatusPill(stringResource(R.string.tip_uses_shared_phase))
+                            }
+                            Text(
+                                tip.callToAction,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     },
                 )
             }
@@ -677,6 +711,30 @@ fun PartnerDashboard(
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
+}
+
+@Composable
+private fun FertilityEstimateCard(range: PredictionDateRange) {
+    InsightCard(
+        Icons.Rounded.Info,
+        stringResource(R.string.estimated_fertile_window),
+        formatRange(range.from, range.to),
+        action = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                StatusPill(stringResource(R.string.estimated_label))
+                FertilitySafetyNotice()
+            }
+        },
+    )
+}
+
+@Composable
+private fun FertilitySafetyNotice() {
+    Text(
+        stringResource(R.string.fertility_safety_notice),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
 }
 
 @Composable
@@ -711,6 +769,13 @@ private fun CalendarScreen(
         if (start == null || end == null || prediction.available.not()) emptySet() else
             generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toSet()
     }
+    val fertilityRange = remember(prediction) { PredictionPresentationPolicy.fertileWindow(prediction) }
+    val fertilityDays = remember(fertilityRange) {
+        val start = fertilityRange?.from?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        val end = fertilityRange?.to?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        if (start == null || end == null) emptySet() else
+            generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toSet()
+    }
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item { LunaraHeader(title = stringResource(R.string.calendar), body = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))) }
         item {
@@ -724,26 +789,45 @@ private fun CalendarScreen(
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
                     if (date == null) Spacer(Modifier.weight(1f).height(52.dp))
-                    else DayCell(date, date in periodDays, date in predictionDays, Modifier.weight(1f))
+                    else DayCell(
+                        date,
+                        date in periodDays,
+                        date in predictionDays,
+                        date in fertilityDays,
+                        Modifier.weight(1f),
+                    )
                 }
                 repeat(7 - week.size) { Spacer(Modifier.weight(1f).height(52.dp)) }
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.calendar_actual_marker), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(R.string.calendar_prediction_marker), style = MaterialTheme.typography.bodyMedium)
+                if (fertilityDays.isNotEmpty()) {
+                    Text(stringResource(R.string.calendar_fertility_marker), style = MaterialTheme.typography.bodyMedium)
+                }
             }
+        }
+        if (fertilityDays.isNotEmpty()) {
+            item { FertilitySafetyNotice() }
         }
         if (role == UserRole.PARTNER) item { Text(stringResource(R.string.privacy_guard), color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
 
 @Composable
-private fun DayCell(date: LocalDate, actual: Boolean, predicted: Boolean, modifier: Modifier = Modifier) {
+private fun DayCell(
+    date: LocalDate,
+    actual: Boolean,
+    predicted: Boolean,
+    fertileEstimate: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val description = when {
         actual -> stringResource(R.string.calendar_day_period, date.dayOfMonth)
         predicted -> stringResource(R.string.calendar_day_prediction, date.dayOfMonth)
+        fertileEstimate -> stringResource(R.string.calendar_day_fertility, date.dayOfMonth)
         else -> date.dayOfMonth.toString()
     }
     Card(
@@ -752,6 +836,7 @@ private fun DayCell(date: LocalDate, actual: Boolean, predicted: Boolean, modifi
             containerColor = when {
                 actual -> MaterialTheme.colorScheme.secondaryContainer
                 predicted -> MaterialTheme.colorScheme.tertiaryContainer
+                fertileEstimate -> MaterialTheme.colorScheme.primaryContainer
                 else -> MaterialTheme.colorScheme.surface
             },
         ),
@@ -760,6 +845,7 @@ private fun DayCell(date: LocalDate, actual: Boolean, predicted: Boolean, modifi
             Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.bodyMedium)
             if (actual) Text("P", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
             else if (predicted) Text("~", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            else if (fertileEstimate) Text("F?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }
@@ -768,7 +854,7 @@ private fun DayCell(date: LocalDate, actual: Boolean, predicted: Boolean, modifi
 private fun HistoryScreen(
     periods: List<PeriodEntity>,
     prediction: PredictionDto?,
-    onPeriodUpdated: (String, LocalDate) -> Unit,
+    onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
 ) {
     val starts = periods.mapNotNull { runCatching { LocalDate.parse(it.startDate) }.getOrNull() }.distinct().sorted()
@@ -845,7 +931,14 @@ private fun SupportScreen(
                     Icons.Rounded.Star,
                     tip.title,
                     tip.body,
-                    action = { Text(tip.callToAction, color = MaterialTheme.colorScheme.tertiary) },
+                    action = {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            PredictionPresentationPolicy.phaseAwareTipPhase(dashboard)?.let {
+                                StatusPill(stringResource(R.string.tip_uses_shared_phase))
+                            }
+                            Text(tip.callToAction, color = MaterialTheme.colorScheme.tertiary)
+                        }
+                    },
                 )
             }
         }
@@ -863,7 +956,7 @@ private fun SupportScreen(
 @Composable
 private fun EditablePeriodRow(
     period: PeriodEntity,
-    onUpdate: (String, LocalDate) -> Unit,
+    onUpdate: (String, LocalDate, LocalDate?) -> Unit,
     onDelete: (String) -> Unit,
 ) {
     var showEditor by remember(period.id) { mutableStateOf(false) }
@@ -877,7 +970,16 @@ private fun EditablePeriodRow(
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text(formatDate(period.startDate), fontWeight = FontWeight.SemiBold)
+                Text(
+                    period.endDate?.let { end ->
+                        stringResource(
+                            R.string.period_date_range,
+                            formatDate(period.startDate),
+                            formatDate(end),
+                        )
+                    } ?: stringResource(R.string.period_date_open, formatDate(period.startDate)),
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text(
                     when (period.syncState) {
                         "SYNCED" -> stringResource(R.string.synced)
@@ -894,8 +996,8 @@ private fun EditablePeriodRow(
     if (showEditor) {
         PeriodEditorDialog(
             period = period,
-            onUpdate = { date ->
-                onUpdate(period.id, date)
+            onUpdate = { start, end ->
+                onUpdate(period.id, start, end)
                 showEditor = false
             },
             onDelete = {
@@ -910,14 +1012,21 @@ private fun EditablePeriodRow(
 @Composable
 internal fun PeriodEditorDialog(
     period: PeriodEntity,
-    onUpdate: (LocalDate) -> Unit,
+    onUpdate: (LocalDate, LocalDate?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var rawDate by remember(period.id, period.startDate) { mutableStateOf(period.startDate) }
+    var rawStartDate by remember(period.id, period.startDate) { mutableStateOf(period.startDate) }
+    var rawEndDate by remember(period.id, period.endDate) { mutableStateOf(period.endDate.orEmpty()) }
     var confirmDelete by remember(period.id) { mutableStateOf(false) }
-    val parsedDate = remember(rawDate) { PeriodEditValidation.parseAllowedStartDate(rawDate) }
-    val invalid = rawDate.isNotBlank() && parsedDate == null
+    val validation = remember(rawStartDate, rawEndDate) {
+        PeriodEditValidation.validateRange(rawStartDate, rawEndDate)
+    }
+    val validationError = (validation as? PeriodDateValidationResult.Invalid)?.error
+    val validDates = (validation as? PeriodDateValidationResult.Valid)?.dates
+    val changed = validDates?.let {
+        it.startDate.toString() != period.startDate || it.endDate?.toString() != period.endDate
+    } == true
 
     if (confirmDelete) {
         AlertDialog(
@@ -939,24 +1048,53 @@ internal fun PeriodEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_period_start)) },
+        title = { Text(stringResource(R.string.edit_period_dates)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Text(stringResource(R.string.period_date_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(
-                    value = rawDate,
-                    onValueChange = { rawDate = PeriodEditValidation.sanitizeDateInput(it) },
+                    value = rawStartDate,
+                    onValueChange = { rawStartDate = PeriodEditValidation.sanitizeDateInput(it) },
                     label = { Text(stringResource(R.string.period_start_date)) },
                     placeholder = { Text("2026-08-13") },
                     supportingText = {
-                        if (invalid) Text(stringResource(R.string.period_date_invalid))
+                        if (validationError == PeriodDateValidationError.INVALID_START) {
+                            Text(stringResource(R.string.period_start_invalid))
+                        }
                         else Text(stringResource(R.string.period_date_format))
                     },
-                    isError = invalid,
+                    isError = validationError == PeriodDateValidationError.INVALID_START,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().testTag("period-date-input"),
+                    modifier = Modifier.fillMaxWidth().testTag("period-start-input"),
                 )
+                OutlinedTextField(
+                    value = rawEndDate,
+                    onValueChange = { rawEndDate = PeriodEditValidation.sanitizeDateInput(it) },
+                    label = { Text(stringResource(R.string.period_end_date_optional)) },
+                    placeholder = { Text("2026-08-17") },
+                    supportingText = {
+                        when (validationError) {
+                            PeriodDateValidationError.INVALID_END -> Text(stringResource(R.string.period_end_invalid))
+                            PeriodDateValidationError.END_BEFORE_START -> Text(stringResource(R.string.period_end_before_start))
+                            else -> Text(stringResource(R.string.period_end_optional_hint))
+                        }
+                    },
+                    isError = validationError == PeriodDateValidationError.INVALID_END ||
+                        validationError == PeriodDateValidationError.END_BEFORE_START,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth().testTag("period-end-input"),
+                )
+                if (rawEndDate.isNotBlank()) {
+                    TextButton(
+                        onClick = { rawEndDate = "" },
+                        modifier = Modifier.align(Alignment.End).testTag("period-end-clear"),
+                    ) { Text(stringResource(R.string.remove_period_end)) }
+                }
                 TextButton(
                     onClick = { confirmDelete = true },
                     modifier = Modifier.align(Alignment.End).testTag("period-delete"),
@@ -968,8 +1106,8 @@ internal fun PeriodEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { parsedDate?.let(onUpdate) },
-                enabled = parsedDate != null && parsedDate.toString() != period.startDate,
+                onClick = { validDates?.let { onUpdate(it.startDate, it.endDate) } },
+                enabled = changed,
                 modifier = Modifier.testTag("period-update-confirm"),
             ) { Text(stringResource(R.string.save)) }
         },
@@ -986,6 +1124,8 @@ private fun SettingsScreen(
     onDarkMode: (Boolean) -> Unit,
     onSync: () -> Unit,
     sharing: SharingSettingsDto?,
+    cycleProfile: CycleProfileDto?,
+    carePreferences: CarePreferencesDto?,
     invitation: de.lunara.app.data.remote.dto.InvitationDto?,
     partnerConnected: Boolean,
     settingsBusy: Boolean,
@@ -995,6 +1135,8 @@ private fun SettingsScreen(
     onRefreshInvitation: () -> Unit,
     onRevokeInvitation: () -> Unit,
     onUpdateSharing: (UpdateSharingRequest) -> Unit,
+    onUpdateCarePreferences: (UpdateCarePreferencesRequest) -> Unit,
+    onFertilityPrediction: (Boolean) -> Unit,
     onChangePassword: (String, String, String) -> Unit,
     onClearPasswordChangeStatus: () -> Unit,
     onLogout: () -> Unit,
@@ -1041,6 +1183,14 @@ private fun SettingsScreen(
         item { SettingText(Icons.Rounded.Lock, stringResource(R.string.no_sensitive_lock_screen), null) }
         item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
         if (session.role == UserRole.TRACKER) {
+            item { SettingHeader(stringResource(R.string.fertility_predictions)) }
+            item {
+                FertilityPredictionControl(
+                    profile = cycleProfile,
+                    busy = settingsBusy,
+                    onEnabled = onFertilityPrediction,
+                )
+            }
             item { SettingHeader(stringResource(R.string.partner_connect)) }
             item {
                 InsightCard(
@@ -1093,7 +1243,29 @@ private fun SettingsScreen(
             item { SettingHeader(stringResource(R.string.sharing_settings)) }
             item { Text(stringResource(R.string.sharing_preview_default), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             sharing?.let { current ->
-                item { SharingControls(current, onUpdateSharing) }
+                item {
+                    SharingControls(
+                        current = current,
+                        fertilityPredictionEnabled = cycleProfile?.fertilityPredictionEnabled == true,
+                        onUpdate = onUpdateSharing,
+                    )
+                }
+            }
+            item { SettingHeader(stringResource(R.string.care_preferences)) }
+            item {
+                Text(
+                    stringResource(R.string.care_preferences_summary),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            carePreferences?.let { current ->
+                item {
+                    CarePreferencesControls(
+                        current = current,
+                        busy = settingsBusy,
+                        onUpdate = onUpdateCarePreferences,
+                    )
+                }
             }
             if (settingsError) item { Text(stringResource(R.string.settings_save_error), color = MaterialTheme.colorScheme.error) }
         }
@@ -1217,16 +1389,168 @@ internal fun PasswordChangeDialog(
 }
 
 @Composable
-private fun SharingControls(current: SharingSettingsDto, onUpdate: (UpdateSharingRequest) -> Unit) {
+private fun FertilityPredictionControl(
+    profile: CycleProfileDto?,
+    busy: Boolean,
+    onEnabled: (Boolean) -> Unit,
+) {
+    var confirmEnable by remember { mutableStateOf(false) }
+    val enabled = profile?.fertilityPredictionEnabled == true
+    SettingSwitch(
+        icon = Icons.Rounded.Info,
+        title = stringResource(R.string.fertility_prediction_enabled),
+        subtitle = stringResource(R.string.fertility_prediction_summary),
+        checked = enabled,
+        onChecked = { requested ->
+            if (requested) confirmEnable = true else onEnabled(false)
+        },
+        enabled = profile != null && !busy,
+    )
+    FertilitySafetyNotice()
+    if (confirmEnable) {
+        AlertDialog(
+            onDismissRequest = { confirmEnable = false },
+            title = { Text(stringResource(R.string.enable_fertility_prediction_title)) },
+            text = { Text(stringResource(R.string.fertility_enable_confirmation)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmEnable = false
+                        onEnabled(true)
+                    },
+                    modifier = Modifier.testTag("fertility-enable-confirm"),
+                ) { Text(stringResource(R.string.enable_estimate)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmEnable = false }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SharingControls(
+    current: SharingSettingsDto,
+    fertilityPredictionEnabled: Boolean,
+    onUpdate: (UpdateSharingRequest) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         SettingSwitch(Icons.Rounded.DateRange, stringResource(R.string.sharing_prediction), null, current.sharePrediction, { onUpdate(UpdateSharingRequest(sharePrediction = it)) })
         SettingSwitch(Icons.Rounded.DateRange, stringResource(R.string.sharing_period_dates), null, current.sharePeriodDates, { onUpdate(UpdateSharingRequest(sharePeriodDates = it)) })
         SettingSwitch(Icons.Rounded.Info, stringResource(R.string.sharing_phase), null, current.sharePhase, { onUpdate(UpdateSharingRequest(sharePhase = it)) })
+        SettingSwitch(Icons.AutoMirrored.Rounded.List, stringResource(R.string.sharing_flow), null, current.shareFlow, { onUpdate(UpdateSharingRequest(shareFlow = it)) })
         SettingSwitch(Icons.Rounded.FavoriteBorder, stringResource(R.string.sharing_pain), null, current.sharePain, { onUpdate(UpdateSharingRequest(sharePain = it)) })
+        SettingSwitch(Icons.Rounded.FavoriteBorder, stringResource(R.string.sharing_mood), null, current.shareMood, { onUpdate(UpdateSharingRequest(shareMood = it)) })
+        SettingSwitch(Icons.Rounded.Star, stringResource(R.string.sharing_energy), null, current.shareEnergy, { onUpdate(UpdateSharingRequest(shareEnergy = it)) })
+        SettingSwitch(Icons.Rounded.Info, stringResource(R.string.sharing_sleep), null, current.shareSleep, { onUpdate(UpdateSharingRequest(shareSleep = it)) })
         SettingSwitch(Icons.AutoMirrored.Rounded.List, stringResource(R.string.sharing_symptoms), null, current.shareSymptoms, { onUpdate(UpdateSharingRequest(shareSymptoms = it)) })
         SettingSwitch(Icons.AutoMirrored.Rounded.List, stringResource(R.string.sharing_notes), null, current.shareNotes, { onUpdate(UpdateSharingRequest(shareNotes = it)) })
-        SettingSwitch(Icons.Rounded.Info, stringResource(R.string.sharing_fertility), stringResource(R.string.medical_notice), current.shareFertileWindow, { onUpdate(UpdateSharingRequest(shareFertileWindow = it)) })
+        SettingSwitch(
+            Icons.Rounded.Info,
+            stringResource(R.string.sharing_fertility),
+            stringResource(
+                if (fertilityPredictionEnabled) R.string.fertility_safety_notice
+                else R.string.enable_fertility_before_sharing,
+            ),
+            current.shareFertileWindow,
+            { requested ->
+                if (
+                    FertilitySharingPolicy.mayEnableSharing(
+                        fertilityPredictionEnabled,
+                        current.shareFertileWindow,
+                        requested,
+                    )
+                ) {
+                    onUpdate(UpdateSharingRequest(shareFertileWindow = requested))
+                }
+            },
+            enabled = fertilityPredictionEnabled || current.shareFertileWindow,
+        )
+        SettingSwitch(Icons.Rounded.Star, stringResource(R.string.partner_tips_enabled), null, current.tipsEnabled, { onUpdate(UpdateSharingRequest(tipsEnabled = it)) })
+        SettingSwitch(
+            Icons.Rounded.Info,
+            stringResource(R.string.symptom_based_tips),
+            stringResource(if (current.shareSymptoms) R.string.symptom_tips_explanation else R.string.share_symptoms_before_tips),
+            current.allowSymptomBasedTips,
+            { requested -> if (!requested || current.shareSymptoms) onUpdate(UpdateSharingRequest(allowSymptomBasedTips = requested)) },
+            enabled = current.shareSymptoms || current.allowSymptomBasedTips,
+        )
+        SettingSwitch(Icons.Rounded.FavoriteBorder, stringResource(R.string.check_ins_enabled), null, current.checkInsEnabled, { onUpdate(UpdateSharingRequest(checkInsEnabled = it)) })
         SettingSwitch(Icons.Rounded.Lock, stringResource(R.string.sharing_pause), null, current.sharingPaused, { onUpdate(UpdateSharingRequest(sharingPaused = it)) })
+    }
+}
+
+@Composable
+private fun CarePreferencesControls(
+    current: CarePreferencesDto,
+    busy: Boolean,
+    onUpdate: (UpdateCarePreferencesRequest) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        SettingSwitch(
+            Icons.Rounded.FavoriteBorder,
+            stringResource(R.string.care_warmth),
+            stringResource(R.string.care_warmth_summary),
+            current.likesWarmth,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.WARMTH, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.FavoriteBorder,
+            stringResource(R.string.care_cuddling),
+            stringResource(R.string.care_cuddling_summary),
+            current.likesCuddling,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.CUDDLING, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Lock,
+            stringResource(R.string.care_space),
+            stringResource(R.string.care_space_summary),
+            current.likesSpace,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.SPACE, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Star,
+            stringResource(R.string.care_snacks),
+            stringResource(R.string.care_snacks_summary),
+            current.likesSnacks,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.SNACKS, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Info,
+            stringResource(R.string.care_conversation),
+            stringResource(R.string.care_conversation_summary),
+            current.likesConversation,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.CONVERSATION, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Home,
+            stringResource(R.string.care_household_help),
+            stringResource(R.string.care_household_help_summary),
+            current.likesHouseholdHelp,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.HOUSEHOLD_HELP, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Refresh,
+            stringResource(R.string.care_reminders),
+            stringResource(R.string.care_reminders_summary),
+            current.likesReminders,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.REMINDERS, it)) },
+            enabled = !busy,
+        )
+        SettingSwitch(
+            Icons.Rounded.Lock,
+            stringResource(R.string.care_no_unsolicited_advice),
+            stringResource(R.string.care_no_unsolicited_advice_summary),
+            current.dislikesUnsolicitedAdvice,
+            { onUpdate(CarePreferencesPatchPolicy.request(CarePreferenceOption.NO_UNSOLICITED_ADVICE, it)) },
+            enabled = !busy,
+        )
     }
 }
 
@@ -1292,6 +1616,18 @@ private fun localizedConfidence(confidence: String): String = stringResource(
     },
 )
 
+@Composable
+private fun localizedPhase(phase: String): String = stringResource(
+    when (phase.uppercase()) {
+        "MENSTRUATION" -> R.string.phase_menstruation
+        "FOLLICULAR_ESTIMATE" -> R.string.phase_follicular_estimate
+        "OVULATION_ESTIMATE" -> R.string.phase_ovulation_estimate
+        "LUTEAL_ESTIMATE" -> R.string.phase_luteal_estimate
+        "PREMENSTRUAL_ESTIMATE" -> R.string.phase_premenstrual_estimate
+        else -> R.string.phase_unknown
+    },
+)
+
 private fun formatDate(raw: String): String = runCatching {
     LocalDate.parse(raw).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 }.getOrDefault(raw)
@@ -1311,7 +1647,7 @@ private fun TrackerPreview() = LunaraTheme {
         0,
         null,
         onPeriodStarted = {},
-        onPeriodUpdated = { _, _ -> },
+        onPeriodUpdated = { _, _, _ -> },
         onPeriodDeleted = {},
         onDailyLog = {},
         onSync = {},

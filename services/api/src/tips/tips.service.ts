@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  CyclePhase,
   PartnerTip,
   PreferredLanguage,
   Prisma,
@@ -15,6 +14,7 @@ import {
 } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
+import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   carePreferenceScore,
@@ -23,17 +23,19 @@ import {
   TipSelectionContext,
 } from './tip-filter.js';
 import { TIP_CATALOG } from './tip-catalog.js';
+import { applicableTipPhases } from './tip-phase.js';
 import {
   CreateUserDefinedTipDto,
   TipFeedbackDto,
   UpdateUserDefinedTipDto,
 } from './tips.dto.js';
 
-const DAY_MS = 86_400_000;
-
 @Injectable()
 export class TipsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly predictions: PredictionService,
+  ) {}
 
   async today(user: AuthenticatedUser) {
     const partnerContext = await this.partnerContext(user);
@@ -210,7 +212,7 @@ export class TipsService {
       day: '2-digit',
     }).format(new Date());
     const today = new Date(`${date}T00:00:00.000Z`);
-    const [sharing, carePreferences, todayLog, latestPeriod, prediction] = await Promise.all([
+    const [sharing, carePreferences, todayLog, latestPeriod, predictionResult] = await Promise.all([
       this.prisma.sharingSettings.findUnique({
         where: {
           ownerUserId_householdId: {
@@ -227,10 +229,7 @@ export class TipsService {
         where: { userId: tracker.userId, deletedAt: null, startDate: { lte: today } },
         orderBy: { startDate: 'desc' },
       }),
-      this.prisma.prediction.findFirst({
-        where: { userId: tracker.userId },
-        orderBy: { calculatedAt: 'desc' },
-      }),
+      this.predictions.calculateForUser(tracker.userId),
     ]);
     if (!sharing) throw new NotFoundException('Sharing settings not found');
 
@@ -248,68 +247,23 @@ export class TipsService {
         : [];
     const applicablePhases = privateToday
       ? []
-      : this.applicablePhases(today, latestPeriod, prediction, sharing);
+      : applicableTipPhases(
+          date,
+          latestPeriod
+            ? {
+                startDate: latestPeriod.startDate.toISOString().slice(0, 10),
+                endDate: latestPeriod.endDate?.toISOString().slice(0, 10) ?? null,
+              }
+            : null,
+          predictionResult.available ? predictionResult : null,
+          sharing,
+        );
     return {
       trackerId: tracker.userId,
       sharing,
       selection: { applicablePhases, sharedSymptoms, carePreferences },
       date,
     };
-  }
-
-  private applicablePhases(
-    today: Date,
-    period: { startDate: Date; endDate: Date | null } | null,
-    prediction: {
-      predictedStartFrom: Date;
-      predictedStartTo: Date;
-      fertileWindowFrom: Date | null;
-      fertileWindowTo: Date | null;
-      typicalCycleLength: number;
-      typicalPeriodLength: number;
-    } | null,
-    sharing: SharingSettings,
-  ): CyclePhase[] {
-    const phases = new Set<CyclePhase>();
-    const epoch = (date: Date) => Math.floor(date.getTime() / DAY_MS);
-    const todayDay = epoch(today);
-    const periodStart = period ? epoch(period.startDate) : null;
-    const periodEnd = period?.endDate ? epoch(period.endDate) : null;
-    const periodIsCurrent =
-      periodStart !== null &&
-      periodStart <= todayDay &&
-      (periodEnd !== null ? todayDay <= periodEnd : todayDay - periodStart < 14);
-
-    if (periodIsCurrent && (sharing.sharePeriodDates || sharing.sharePhase)) {
-      phases.add(CyclePhase.MENSTRUATION);
-    }
-    if (prediction && sharing.sharePrediction) {
-      const premenstrualFrom = epoch(prediction.predictedStartFrom) - 7;
-      if (todayDay >= premenstrualFrom && todayDay <= epoch(prediction.predictedStartTo)) {
-        phases.add(CyclePhase.PREMENSTRUAL_ESTIMATE);
-      }
-    }
-    if (!sharing.sharePhase || periodIsCurrent || periodStart === null) return [...phases];
-
-    if (
-      prediction?.fertileWindowFrom &&
-      prediction.fertileWindowTo &&
-      sharing.shareFertileWindow &&
-      todayDay >= epoch(prediction.fertileWindowFrom) &&
-      todayDay <= epoch(prediction.fertileWindowTo)
-    ) {
-      phases.add(CyclePhase.OVULATION_ESTIMATE);
-    } else if (prediction) {
-      const estimatedOvulation = epoch(prediction.predictedStartFrom) - 14;
-      phases.add(
-        todayDay < estimatedOvulation
-          ? CyclePhase.FOLLICULAR_ESTIMATE
-          : CyclePhase.LUTEAL_ESTIMATE,
-      );
-    } else {
-      phases.add(CyclePhase.UNKNOWN);
-    }
-    return [...phases];
   }
 
   private chooseWeighted(
@@ -324,7 +278,8 @@ export class TipsService {
       weight:
         1 +
         Math.max(0, carePreferenceScore(tip, selection.carePreferences)) * 4 +
-        Math.max(0, Math.min(4, Math.floor(tip.priority / 25))),
+        Math.max(0, Math.min(4, Math.floor(tip.priority / 25))) +
+        (tip.feedback.some((feedback) => feedback.helpful === true) ? 3 : 0),
     }));
     const total = weighted.reduce((sum, item) => sum + item.weight, 0);
     let slot =
@@ -401,7 +356,7 @@ export class TipsService {
     await this.prisma.partnerTip.createMany({
       data: TIP_CATALOG.map((tip) => ({
         ...tip,
-        applicableSymptoms: [],
+        applicableSymptoms: tip.applicableSymptoms ?? [],
       })),
       skipDuplicates: true,
     });

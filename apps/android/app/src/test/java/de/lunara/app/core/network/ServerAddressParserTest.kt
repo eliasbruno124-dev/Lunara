@@ -45,6 +45,9 @@ class ServerAddressParserTest {
             "http://10.0.2.2:3000/",
             ServerAddressParser.parse("http://10.0.2.2:3000", true).baseUrl,
         )
+        assertThrows(ServerAddressException.CredentialsRequireHttps::class.java) {
+            ServerAddressParser.parse("http://app:secret@10.0.2.2:3000", true)
+        }
     }
 
     @Test
@@ -57,6 +60,9 @@ class ServerAddressParserTest {
         }
         assertThrows(ServerAddressException.InvalidUrl::class.java) {
             ServerAddressParser.parse("https://cycle.example.de/#token", false)
+        }
+        assertThrows(ServerAddressException.IncompleteCredentials::class.java) {
+            ServerAddressParser.parse("https://app%0Aname:secret@cycle.example.de", false)
         }
     }
 }

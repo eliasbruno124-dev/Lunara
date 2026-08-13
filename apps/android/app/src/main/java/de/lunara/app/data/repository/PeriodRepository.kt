@@ -119,18 +119,22 @@ class PeriodRepository @Inject constructor(
             entityId
         }
 
-    suspend fun updatePeriodStart(userId: String, periodId: String, startDate: LocalDate): String =
+    suspend fun updatePeriodDates(
+        userId: String,
+        periodId: String,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+    ): String =
         ProcessSyncGate.serialized {
             ensureCurrentTracker(userId)
-            require(!startDate.isAfter(LocalDate.now(Clock.systemDefaultZone()))) { "A period cannot start in the future" }
+            PeriodDatePolicy.requireValid(startDate, endDate, LocalDate.now(Clock.systemDefaultZone()))
             val now = nextMutationTime()
             val entityTimestamp = now.toString()
             val mutationTimestamp = MutationTimestampPolicy.format(now)
             database.withTransaction {
                 val current = requireOwnedActivePeriod(userId, periodId)
-                if (current.startDate == startDate.toString()) return@withTransaction
-                current.endDate?.let { endDate ->
-                    if (startDate.isAfter(LocalDate.parse(endDate))) throw InvalidPeriodRangeException()
+                if (!PeriodMutationPolicy.datesChanged(current, startDate, endDate)) {
+                    return@withTransaction
                 }
                 database.periodDao().findByStartDate(userId, startDate.toString())
                     ?.takeIf { it.id != periodId }
@@ -146,16 +150,11 @@ class PeriodRepository @Inject constructor(
                 val baseVersion = tail?.baseVersion
                     ?: PeriodMutationPolicy.predictedServerVersion(current.version, normalizedQueue)
                 val payloadJson = if (baseVersion > 0L) {
-                    gson.toJson(
-                        mapOf(
-                            "id" to periodId,
-                            "startDate" to startDate.toString(),
-                            "version" to baseVersion,
-                        ),
-                    )
+                    PeriodPayloadPolicy.update(gson, periodId, startDate, endDate, baseVersion)
                 } else ""
                 val pendingPeriod = current.copy(
                     startDate = startDate.toString(),
+                    endDate = endDate?.toString(),
                     updatedAt = entityTimestamp,
                     syncState = "PENDING",
                 )
@@ -438,6 +437,7 @@ internal class SessionChangedException : IllegalStateException("Session changed 
 internal class PeriodNotFoundException : IllegalStateException("Period entry is unavailable")
 internal class DuplicatePeriodDateException : IllegalArgumentException("A period already starts on this date")
 internal class InvalidPeriodRangeException : IllegalArgumentException("The period end would precede its start")
+internal class PeriodDateInFutureException : IllegalArgumentException("Period dates cannot be in the future")
 internal class PeriodSyncConflictException : IllegalStateException("Resolve the existing sync conflict first")
 internal class DailyLogSyncConflictException : IllegalStateException("Resolve the existing sync conflict first")
 
@@ -451,6 +451,33 @@ internal object DailyLogPayloadPolicy {
         gson.newBuilder().serializeNulls().create().toJson(fields)
 }
 
+internal object PeriodPayloadPolicy {
+    /** Explicit null is required to remove a previously stored end date through PATCH. */
+    fun update(
+        gson: Gson,
+        id: String,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+        version: Long,
+    ): String = gson.newBuilder().serializeNulls().create().toJson(
+        linkedMapOf<String, Any?>(
+            "id" to id,
+            "startDate" to startDate.toString(),
+            "endDate" to endDate?.toString(),
+            "version" to version,
+        ),
+    )
+}
+
+internal object PeriodDatePolicy {
+    fun requireValid(startDate: LocalDate, endDate: LocalDate?, today: LocalDate) {
+        if (startDate.isAfter(today) || endDate?.isAfter(today) == true) {
+            throw PeriodDateInFutureException()
+        }
+        if (endDate?.isBefore(startDate) == true) throw InvalidPeriodRangeException()
+    }
+}
+
 internal object MutationTimestampPolicy {
     private val formatter = DateTimeFormatterBuilder().appendInstant(9).toFormatter()
 
@@ -459,6 +486,9 @@ internal object MutationTimestampPolicy {
 }
 
 internal object PeriodMutationPolicy {
+    fun datesChanged(current: PeriodEntity, startDate: LocalDate, endDate: LocalDate?): Boolean =
+        current.startDate != startDate.toString() || current.endDate != endDate?.toString()
+
     fun replaceableTail(queued: List<MutationEntity>): MutationEntity? = queued.lastOrNull()
         ?.takeIf { it.state == "PENDING" && it.attemptCount == 0 }
 

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,6 +6,9 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const packageDir = resolve(scriptDir, '..');
 const rootDir = resolve(packageDir, '../..');
 const outputPath = resolve(packageDir, 'openapi/lunara-v1.openapi.json');
+const apiPackage = JSON.parse(
+  await readFile(resolve(rootDir, 'services/api/package.json'), 'utf8'),
+);
 
 // Exporting metadata must never require live infrastructure or real secrets.
 // Nest constructs the Prisma adapter but does not connect before app.init().
@@ -29,7 +32,7 @@ const configuration = new DocumentBuilder()
     'Versioned API for the self-hosted Lunara Android application. ' +
       'Health information is returned according to server-side role and sharing checks.',
   )
-  .setVersion('1.0.3')
+  .setVersion(apiPackage.version)
   .addServer('https://lunara.example.com', 'Configured self-hosted server')
   .addBearerAuth(
     {
@@ -155,9 +158,23 @@ function addResponseContracts(document) {
       deletedAt: nullable(dateTimeSchema()),
       version: { type: 'integer', format: 'int32' },
     }),
+    FertilityEstimateResponse: objectSchema({
+      enabled: booleanSchema(),
+      available: booleanSchema(),
+      estimated: { type: 'boolean', enum: [true] },
+      reason: {
+        type: 'string',
+        enum: ['AVAILABLE', 'DISABLED', 'INSUFFICIENT_DATA'],
+      },
+      basedOnCycleCount: { type: 'integer', format: 'int32' },
+      notContraception: { type: 'boolean', enum: [true] },
+      doesNotConfirmOvulation: { type: 'boolean', enum: [true] },
+    }),
     PredictionResponse: {
       type: 'object',
       additionalProperties: true,
+      description:
+        'Deterministic calendar estimate. It is not a diagnosis, does not confirm ovulation, and must not be used as contraception.',
       required: ['available', 'confidence', 'algorithmVersion'],
       properties: {
         available: booleanSchema(),
@@ -167,13 +184,40 @@ function addResponseContracts(document) {
         predictedStartTo: dateSchema(),
         predictedEndFrom: dateSchema(),
         predictedEndTo: dateSchema(),
-        fertileWindowFrom: nullable(dateSchema()),
-        fertileWindowTo: nullable(dateSchema()),
+        fertileWindowFrom: nullable({
+          ...dateSchema(),
+          description: 'Start of an optional estimated fertile window; never a confirmation of fertility.',
+        }),
+        fertileWindowTo: nullable({
+          ...dateSchema(),
+          description: 'End of an optional estimated fertile window; never a confirmation of fertility.',
+        }),
+        fertilityEstimate: ref('FertilityEstimateResponse'),
         basedOnCycleCount: { type: 'integer', format: 'int32' },
         typicalCycleLength: { type: 'integer', format: 'int32' },
         typicalPeriodLength: { type: 'integer', format: 'int32' },
         variationDays: { type: 'integer', format: 'int32' },
         reason: stringSchema(),
+      },
+    },
+    PartnerPredictionResponse: {
+      type: 'object',
+      additionalProperties: false,
+      description:
+        'Privacy-filtered partner projection. Every property is optional and is included only under its dedicated server-side sharing permission.',
+      properties: {
+        available: booleanSchema(),
+        confidence: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'UNAVAILABLE'] },
+        predictedStartFrom: dateSchema(),
+        predictedStartTo: dateSchema(),
+        predictedEndFrom: dateSchema(),
+        predictedEndTo: dateSchema(),
+        basedOnCycleCount: { type: 'integer', format: 'int32' },
+        variationDays: { type: 'integer', format: 'int32' },
+        reason: stringSchema(),
+        fertileWindowFrom: nullable(dateSchema()),
+        fertileWindowTo: nullable(dateSchema()),
+        fertilityEstimate: ref('FertilityEstimateResponse'),
       },
     },
     TipResponse: objectSchema({
@@ -210,7 +254,7 @@ function addResponseContracts(document) {
       required: ['sharingPaused'],
       properties: {
         sharingPaused: booleanSchema(),
-        prediction: nullable(ref('PredictionResponse')),
+        prediction: nullable(ref('PartnerPredictionResponse')),
         phase: nullable(stringSchema()),
         periodDates: { type: 'array', items: ref('PeriodResponse') },
         todayLog: nullable(ref('DailyLogResponse')),

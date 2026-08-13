@@ -15,14 +15,19 @@ kann die Anwendung nicht schützen.
 - TLS endet am Traefik/Pangolin-Eingang. Der API-Container besitzt keinen
   veröffentlichten Host-Port; der einzige öffentliche Router zeigt auf den
   Authentik-Proxy-Outpost.
-- Authentik überspringt den Browser-Login exakt für `/api/v1`. Diese Requests
-  durchlaufen weiterhin denselben Proxy, werden aber von Lunara selbst
-  authentifiziert. Öffentliche Setup-/Meta-/Login-/Registrierungsendpunkte sind
-  eng validiert und rate-limitiert; alle übrigen API-Endpunkte verlangen ein
-  gültiges Lunara-Token.
-- `/api-docs`, `/api-docs-json` und sonstige Browserpfade bleiben durch
-  Authentik geschützt. Lokale Header-Auth-Zugänge dienen nur ihrer
-  administrativen Prüfung und werden nicht in der Android-App verwendet.
+- Authentik schützt die gesamte Domain ohne Pfadausnahme. Auch Meta, Setup,
+  Login, Refresh, Sync, Health und OpenAPI verlangen den gemeinsamen
+  technischen App-Zugang. Ein anonymer Aufruf wird vor Erreichen der API zum
+  Authentik-Login umgeleitet.
+- Es gibt genau eine neutrale Authentik-Serviceidentität mit genau einem nicht
+  ablaufenden App-Passwort. Sie sendet außen `Authorization: Basic …` und ist
+  die einzige Identität der Lunara-Gateway-Gruppe; menschliche Authentik-Konten
+  besitzen keinen Lunara-Zugriff.
+- Der äußere App-Zugang ersetzt keine persönliche Anmeldung. Nach dem Login
+  trägt `X-Lunara-Authorization: Bearer …` das kurze Lunara-Access-Token;
+  öffentliche Lunara-Endpunkte sind lediglich innerhalb der bereits
+  authentifizierten Gateway-Schicht öffentlich. Alle geschützten Endpunkte
+  prüfen zusätzlich Lunara-Token, Rolle und Eigentum.
 - Lunara verwendet getrennte App-Konten, Argon2id-Passworthashes, kurze
   signierte Access-Tokens und rotierende, nur als Pepper-Hash gespeicherte
   Refresh-Tokens pro Gerät.
@@ -32,10 +37,19 @@ kann die Anwendung nicht schützen.
   Freigabekonfiguration.
 - Freitextnotizen werden anwendungsseitig mit AES-256-GCM verschlüsselt.
 - Android speichert die Room-Datenbank mit SQLCipher; Datenbankschlüssel,
-  Tokens und eventuell vorhandene Legacy-Verbindungswerte liegen hinter einem
-  nicht exportierbaren Android-Keystore-Schlüssel.
+  Token und das getrennt von der Basisadresse abgelegte Gateway-Credential
+  liegen hinter einem nicht exportierbaren Android-Keystore-Schlüssel.
 
 ## Authentifizierung und Sitzungen
+
+Der nicht ablaufende Authentik-App-Zugang ist ein gemeinsames Geräte-
+Vorgeheimnis und identifiziert keine Person. Sein Verlust öffnet nur die äußere
+Proxy-Schicht; Gesundheits- und Kontodaten benötigen weiterhin persönliche
+Lunara-Anmeldedaten. Trotzdem ist er wie ein Passwort zu behandeln, weil er
+Angriffsfläche bis zu Login und Rate Limits freigibt. Bei Verdacht wird das
+App-Passwort zentral rotiert, das alte sofort ungültig gemacht und die neue
+Header-Auth-Adresse allen berechtigten Installationen einmalig über einen
+sicheren Kanal bereitgestellt. Die Rotation betrifft zwangsläufig alle Geräte.
 
 Login ist rate-limitiert und liefert dieselbe Fehlermeldung für unbekannte
 Benutzer und falsche Passwörter. Wiederverwendung eines bereits rotierten
@@ -104,16 +118,27 @@ getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
 ## HTTP, Zertifikate und Serveradresse
 
-Der ausgelieferte Produktions-Debug-Build erzwingt HTTPS und vertraut nur dem
-normalen Android-Zertifikatsspeicher. Selbst signierte Zertifikate werden nicht
-umgangen; die unsichere HTTP-Option existiert ausschließlich in der separaten
-`local`-Entwicklungsvariante.
+Android 1.0.4 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
+eine HTTPS-URL mit Userinfo enthalten: Gateway-Benutzer, Doppelpunkt und
+App-Passwort stehen dabei vor `@` und dem Server-Host.
+Sonderzeichen müssen URL-kodiert sein. Die App extrahiert das Credential,
+speichert es Keystore-gestützt und entfernt Userinfo aus der sichtbaren und
+dauerhaften Basisadresse. Ein Credential in einer HTTP-URL wird abgelehnt.
 
-Die Produktions-App verwendet die normale HTTPS-Basisadresse, beispielsweise
-`https://lunara.3li361.de`. Zugangsdaten im Userinfo-Teil einer URL sind weder
-erforderlich noch vorgesehen. Partner-QR-Codes enthalten nur den Lunara-
-Einladungscode; Passwörter, Refresh-Tokens und Bootstrap-Token dürfen nie in
-QR-Codes, Chat, Git oder Cloudflare-Konfiguration gelangen.
+Der Production-Build erzwingt HTTPS und vertraut dem normalen Android-
+Zertifikatsspeicher. Selbst signierte Zertifikate werden nicht umgangen; die
+unsichere HTTP-Option existiert nur in der separaten `local`-Variante. Basic
+Auth wird präemptiv ausschließlich an exakt denselben Ursprung aus Schema,
+Host und Port gesendet. Redirects zu Browser-Login oder anderen Ursprüngen
+werden nicht verfolgt.
+
+Die einmalige Userinfo-URL selbst kann trotz der Trennung in einer
+Zwischenablage-, Tastatur- oder Screenshot-Historie des Betriebssystems landen.
+Sie soll deshalb nicht kopiert oder geteilt, sondern über einen kontrollierten
+Kanal direkt eingegeben und anschließend aus der Quelle entfernt werden.
+Server- und Partner-QR-Codes enthalten keine Gateway-Zugangsdaten. Passwörter,
+Refresh-Tokens, Einladungscodes und Bootstrap-Token gehören nie in Chat, Git,
+Dokumentation oder Cloudflare-Konfiguration.
 
 Helmet, Body-Limit, DTO-Validierung und restriktives CORS sind aktiv. Tokens,
 Passwörter, Header, Freitextnotizen und Gesundheitswerte werden nicht
@@ -165,6 +190,11 @@ in einer isolierten Instanz testen.
   gesetzten Authentik-Header. Jeder Dienst mit Zugriff auf das gemeinsame
   Proxy-Netz ist deshalb Teil der Vertrauensgrenze; das Netz darf nur
   administrativ kontrollierte Container enthalten.
+- Der gemeinsame, nicht ablaufende Authentik-App-Zugang ist ein zentraler
+  Schlüssel für die äußere Proxy-Schicht. Eine Rotation sperrt alle
+  Installationen, bis die neue einmalige Header-Auth-Adresse eingegeben wurde.
+  Android Keystore reduziert die lokale Extraktion, schützt aber nicht gegen
+  ein vollständig kompromittiertes oder entsperrtes Betriebssystem.
 - Die Proxy-IP-/Rate-Limit-Auswertung nutzt eine feste Trust-Proxy-Hopzahl. Nach
   Änderungen an Pangolin/Authentik muss geprüft werden, dass der erwartete
   Client-IP-Hop weiterhin stimmt und kein direkt erreichbarer Peer Header
@@ -183,8 +213,10 @@ in einer isolierten Instanz testen.
   vorhandenen API-Limits reduzieren, beseitigen diese Grenzen aber nicht.
 - Das AES-GCM-Notizformat authentifiziert den Ciphertext, bindet ihn in Version
   1 jedoch nicht mit AAD an Benutzer-/Datensatz-ID.
-- Prognosen sind Schätzungen, keine Diagnosen, keine Ovulationsfeststellung und
-  keine Verhütungsmethode.
+- Das optionale fruchtbare Fenster wird nur nach ausdrücklichem Opt-in und mit
+  mindestens drei vollständigen Zyklen berechnet. Es bleibt eine grobe
+  Schätzung, bestätigt keine Ovulation und ist weder Diagnose noch
+  Verhütungsmethode.
 
 ## Schwachstellen melden
 

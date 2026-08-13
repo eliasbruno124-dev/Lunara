@@ -23,19 +23,21 @@
 
 package de.lunara.api.models
 
+import de.lunara.api.models.FertilityEstimateResponse
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 /**
- *
+ * Deterministic calendar estimate. It is not a diagnosis, does not confirm ovulation, and must not be used as contraception.
  *
  * @param algorithmVersion
  * @param available
  * @param confidence
  * @param basedOnCycleCount
- * @param fertileWindowFrom
- * @param fertileWindowTo
+ * @param fertileWindowFrom Start of an optional estimated fertile window; never a confirmation of fertility.
+ * @param fertileWindowTo End of an optional estimated fertile window; never a confirmation of fertility.
+ * @param fertilityEstimate
  * @param predictedEndFrom
  * @param predictedEndTo
  * @param predictedStartFrom
@@ -61,11 +63,16 @@ data class PredictionResponse (
     @Json(name = "basedOnCycleCount")
     val basedOnCycleCount: kotlin.Int? = null,
 
+    /* Start of an optional estimated fertile window; never a confirmation of fertility. */
     @Json(name = "fertileWindowFrom")
     val fertileWindowFrom: java.time.LocalDate? = null,
 
+    /* End of an optional estimated fertile window; never a confirmation of fertility. */
     @Json(name = "fertileWindowTo")
     val fertileWindowTo: java.time.LocalDate? = null,
+
+    @Json(name = "fertilityEstimate")
+    val fertilityEstimate: FertilityEstimateResponse? = null,
 
     @Json(name = "predictedEndFrom")
     val predictedEndFrom: java.time.LocalDate? = null,

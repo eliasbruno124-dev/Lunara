@@ -52,15 +52,21 @@ export class PartnerService {
       }),
     ]);
     if (!settings) throw new NotFoundException('Sharing settings not found');
+    const privateToday = settings.privateDate?.toISOString().slice(0, 10) === today;
+    const latestStartedPeriod = recentPeriods.find(
+      (period) => period.startDate <= todayDate,
+    ) ?? null;
 
     const prediction = predictionResult.available
       ? {
+          available: true,
           predictedStartFrom: predictionResult.predictedStartFrom,
           predictedStartTo: predictionResult.predictedStartTo,
           predictedEndFrom: predictionResult.predictedEndFrom,
           predictedEndTo: predictionResult.predictedEndTo,
           fertileWindowFrom: predictionResult.fertileWindowFrom,
           fertileWindowTo: predictionResult.fertileWindowTo,
+          fertilityEstimate: predictionResult.fertilityEstimate,
           confidence: predictionResult.confidence,
           basedOnCycleCount: predictionResult.basedOnCycleCount,
           variationDays: predictionResult.variationDays,
@@ -75,7 +81,7 @@ export class PartnerService {
         settings.sharePhase && predictionResult.available
           ? estimatePartnerPhase(
               today,
-              recentPeriods[0] ?? null,
+              latestStartedPeriod,
               predictionResult,
               settings.shareFertileWindow,
             )
@@ -93,7 +99,10 @@ export class PartnerService {
             energy: todayLog.energy,
             sleepQuality: todayLog.sleepQuality,
             customSymptoms: todayLog.customSymptoms,
-            note: todayLog.encryptedNote ? this.encryption.decrypt(todayLog.encryptedNote) : null,
+            note:
+              settings.shareNotes && !settings.sharingPaused && !privateToday && todayLog.encryptedNote
+                ? this.encryption.decrypt(todayLog.encryptedNote)
+                : null,
           }
         : null,
       today,

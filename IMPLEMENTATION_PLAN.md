@@ -1,6 +1,6 @@
 # Lunara – Implementierungsplan
 
-Stand: 12. August 2026
+Stand: 13. August 2026
 
 ## 1. Ausgangslage und Leitplanken
 
@@ -80,15 +80,18 @@ artifacts                    nur nachweislich erzeugte Build-Artefakte
   Coroutines/Flow, WorkManager, SQLCipher und Android Keystore.
 - Offline-first: lokale UUIDs, Mutation Queue, optimistische UI, Backoff,
   Cursor-Sync, Konfliktanzeige, manueller Sync und lokales Scheduling.
-- Onboarding prüft `/api/v1/meta`, TLS und API-Kompatibilität, unterstützt
-  Erst-Setup, Login, öffentliche Tracker-Registrierung und permanente
-  Partner-Einladungen. Ein Partner-QR enthält nur den einmal verwendbaren Code;
-  Passwörter oder Bootstrap-Token werden nie eingebettet. Unsicheres HTTP bleibt
-  auf die ausdrücklich gewählte Entwicklungsvariante begrenzt.
-- Die Produktions-App verwendet eine normale HTTPS-Basisadresse und eigene
-  Lunara-Bearer-Tokens. Authentik-Header-Zugangsdaten sind ausschließlich für
-  geschützte administrative Browser-/OpenAPI-Pfade bestimmt und werden weder
-  in der App konfiguriert noch im Android Keystore gespeichert.
+- Onboarding beginnt mit einem leeren Serverfeld und prüft `/api/v1/meta`, TLS
+  und API-Kompatibilität. Für die vollständig geschützte Domain akzeptiert es
+  eine HTTPS-URL mit Authentik-App-Zugang im Userinfo-Teil, trennt diese
+  Zugangsdaten sofort von der gespeicherten Basisadresse und legt sie
+  Keystore-gestützt ab. Ein Partner-QR enthält weiterhin nur den einmal
+  verwendbaren Einladungscode; Passwörter, Bootstrap-Token und der gemeinsame
+  Gateway-Zugang werden nie eingebettet.
+- Jede Anfrage führt zwei getrennte Schutzschichten: Authentik erhält
+  ausschließlich am exakt gleichen HTTPS-Ursprung den äußeren Basic-Header;
+  das persönliche Lunara-JWT wird bei aktivem Gateway als
+  `X-Lunara-Authorization` übertragen. Weiterleitungen werden nicht verfolgt,
+  Klartext-HTTP mit Zugangsdaten ist immer verboten.
 
 ### Deployment und äußerer Zugriff
 
@@ -97,13 +100,16 @@ artifacts                    nur nachweislich erzeugte Build-Artefakte
   keine Hostports; DB: persistentes Volume, Healthcheck, internes Netz.
 - `lunara.3li361.de` wird über Pangolin zum eingebetteten Authentik Proxy Outpost
   geroutet; dessen Proxy Provider leitet intern an `lunara-api:3000` weiter.
-- Authentik überspringt seinen Browser-Login exakt für `/api/v1`; dort erzwingt
-  Lunara selbst öffentliche Endpunktregeln, Bearer-Tokens, Rollen, Eigentum und
-  die unsichtbare Beziehungsgrenze. OpenAPI- und sonstige Browserpfade bleiben
-  Authentik-geschützt und können administrativ per Header Auth geprüft werden.
-- Lunara-Konten bleiben vollständig von Authentik-Konten getrennt. Technische
-  Authentik-Prüfzugänge sind Infrastrukturgeheimnisse und gelangen weder in die
-  Android-App noch in QR-Codes, Git oder Cloudflare.
+- Authentik schützt die vollständige Domain einschließlich `/api/v1`, Health
+  und OpenAPI. Genau ein neutraler technischer App-Benutzer mit genau einem
+  nicht ablaufenden App-Passwort ist Mitglied der Gateway-Gruppe; persönliche
+  Authentik-Konten erhalten darüber keinen Zugriff. Hinter dieser äußeren
+  Schranke erzwingt Lunara weiterhin eigene Passwörter, kurzlebige JWTs,
+  Rollen, Eigentum und die unsichtbare Beziehungsgrenze.
+- Lunara-Konten bleiben vollständig von Authentik-Konten getrennt. Der eine
+  technische Authentik-App-Zugang ist ein gemeinsam zu schützendes
+  Infrastrukturgeheimnis: nur serverlokal und im Android Keystore, niemals in
+  QR-Codes, Logs, Git, Cloudflare oder Dokumentation.
 - Die einzige verbleibende externe Aktion soll der Cloudflare-DNS-Eintrag sein.
 
 ## 4. Implementierungsreihenfolge

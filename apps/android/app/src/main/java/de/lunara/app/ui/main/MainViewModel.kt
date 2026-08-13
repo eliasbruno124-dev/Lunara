@@ -11,12 +11,16 @@ import de.lunara.app.data.remote.dto.InvitationDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.remote.dto.PredictionDto
+import de.lunara.app.data.remote.dto.CycleProfileDto
+import de.lunara.app.data.remote.dto.CarePreferencesDto
+import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import de.lunara.app.data.repository.DashboardRepository
 import de.lunara.app.data.repository.PeriodRepository
 import de.lunara.app.data.repository.HouseholdRepository
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.repository.PasswordRepository
 import de.lunara.app.data.repository.SharingRepository
+import de.lunara.app.data.repository.CarePreferencesRepository
 import de.lunara.app.data.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +64,8 @@ data class MainUiState(
     val settingsBusy: Boolean = false,
     val settingsError: Boolean = false,
     val trackerPrediction: PredictionDto? = null,
+    val cycleProfile: CycleProfileDto? = null,
+    val carePreferences: CarePreferencesDto? = null,
     val passwordChangeStatus: PasswordChangeStatus = PasswordChangeStatus.IDLE,
 )
 
@@ -82,6 +88,8 @@ private data class SessionUiExtras(
     val settingsBusy: Boolean,
     val settingsError: Boolean,
     val trackerPrediction: PredictionDto?,
+    val cycleProfile: CycleProfileDto?,
+    val carePreferences: CarePreferencesDto?,
     val passwordChangeStatus: PasswordChangeStatus,
 )
 
@@ -93,6 +101,7 @@ class MainViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
     private val householdRepository: HouseholdRepository,
     private val sharingRepository: SharingRepository,
+    private val carePreferencesRepository: CarePreferencesRepository,
     private val passwordRepository: PasswordRepository,
 ) : ViewModel() {
     private val partnerDashboard = MutableStateFlow<PartnerDashboardDto?>(null)
@@ -105,10 +114,13 @@ class MainViewModel @Inject constructor(
     private val settingsBusy = MutableStateFlow(false)
     private val settingsError = MutableStateFlow(false)
     private val trackerPrediction = MutableStateFlow<PredictionDto?>(null)
+    private val cycleProfile = MutableStateFlow<CycleProfileDto?>(null)
+    private val carePreferences = MutableStateFlow<CarePreferencesDto?>(null)
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
     private val sessionOwnerId = MutableStateFlow<String?>(null)
     private var sessionOperations: CoroutineScope? = null
     private var invitationRevision = 0L
+    private var carePreferencesRevision = 0L
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
@@ -137,7 +149,7 @@ class MainViewModel @Inject constructor(
     ) { partner, unavailable -> partner to unavailable }
     private val sessionExtras = combine(
         checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
-        trackerPrediction, passwordChangeStatus,
+        trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
@@ -148,7 +160,9 @@ class MainViewModel @Inject constructor(
             settingsBusy = values[5] as Boolean,
             settingsError = values[6] as Boolean,
             trackerPrediction = values[7] as PredictionDto?,
-            passwordChangeStatus = values[8] as PasswordChangeStatus,
+            cycleProfile = values[8] as CycleProfileDto?,
+            carePreferences = values[9] as CarePreferencesDto?,
+            passwordChangeStatus = values[10] as PasswordChangeStatus,
         )
     }
     val state: StateFlow<MainUiState> = combine(
@@ -173,6 +187,8 @@ class MainViewModel @Inject constructor(
                 settingsBusy = extra.settingsBusy,
                 settingsError = extra.settingsError,
                 trackerPrediction = extra.trackerPrediction,
+                cycleProfile = extra.cycleProfile,
+                carePreferences = extra.carePreferences,
                 passwordChangeStatus = extra.passwordChangeStatus,
             )
         }
@@ -221,6 +237,8 @@ class MainViewModel @Inject constructor(
                             launch { loadInvitationNow(session.userId) }
                             launch { loadSharingNow(session.userId) }
                             launch { refreshTrackerPredictionNow(session.userId) }
+                            launch { loadCycleProfileNow(session.userId) }
+                            launch { loadCarePreferencesNow(session.userId) }
                             launch {
                                 preferences.state
                                     .map { it.lastSyncAt }
@@ -229,6 +247,8 @@ class MainViewModel @Inject constructor(
                                     .distinctUntilChanged()
                                     .collectLatest {
                                         refreshTrackerPredictionNow(session.userId)
+                                        loadCycleProfileNow(session.userId)
+                                        loadCarePreferencesNow(session.userId)
                                         loadInvitationNow(session.userId)
                                     }
                             }
@@ -252,6 +272,9 @@ class MainViewModel @Inject constructor(
         settingsBusy.value = false
         settingsError.value = false
         trackerPrediction.value = null
+        cycleProfile.value = null
+        carePreferences.value = null
+        carePreferencesRevision += 1
         passwordChangeStatus.value = PasswordChangeStatus.IDLE
     }
 
@@ -264,10 +287,15 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun updatePeriodStart(userId: String, periodId: String, startDate: LocalDate) {
+    fun updatePeriodDates(
+        userId: String,
+        periodId: String,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+    ) {
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
-            runSessionOperation { periodRepository.updatePeriodStart(userId, periodId, startDate) }
+            runSessionOperation { periodRepository.updatePeriodDates(userId, periodId, startDate, endDate) }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) } }
                 .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
         }
@@ -340,6 +368,29 @@ class MainViewModel @Inject constructor(
     private suspend fun refreshTrackerPredictionNow(ownerId: String) {
         runSessionOperation { dashboardRepository.trackerPrediction() }
             .onSuccess { prediction -> ifCurrentSession(ownerId) { trackerPrediction.value = prediction } }
+    }
+
+    private suspend fun loadCycleProfileNow(ownerId: String) {
+        runSessionOperation { dashboardRepository.cycleProfile() }
+            .onSuccess { profile -> ifCurrentSession(ownerId) { cycleProfile.value = profile } }
+    }
+
+    fun setFertilityPredictionEnabled(enabled: Boolean) {
+        val ownerId = sessionOwnerId.value ?: return
+        if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
+        launchForSession(ownerId) {
+            ifCurrentSession(ownerId) { settingsBusy.value = true }
+            runSessionOperation { dashboardRepository.setFertilityPredictionEnabled(enabled) }
+                .onSuccess { profile ->
+                    ifCurrentSession(ownerId) {
+                        cycleProfile.value = profile
+                        settingsError.value = false
+                        refreshTrackerPredictionNow(ownerId)
+                    }
+                }
+                .onFailure { ifCurrentSession(ownerId) { settingsError.value = true } }
+            ifCurrentSession(ownerId) { settingsBusy.value = false }
+        }
     }
 
     fun sendCheckIn(prompt: String) {
@@ -436,6 +487,49 @@ class MainViewModel @Inject constructor(
             runSessionOperation { sharingRepository.update(request) }
                 .onSuccess { result -> ifCurrentSession(ownerId) { sharing.value = result; settingsError.value = false } }
                 .onFailure { ifCurrentSession(ownerId) { settingsError.value = true } }
+            ifCurrentSession(ownerId) { settingsBusy.value = false }
+        }
+    }
+
+    private suspend fun loadCarePreferencesNow(ownerId: String) {
+        if (settingsBusy.value) return
+        val revision = carePreferencesRevision
+        runSessionOperation { carePreferencesRepository.load() }
+            .onSuccess { result ->
+                ifCurrentSession(ownerId) {
+                    if (carePreferencesRevision == revision) {
+                        carePreferences.value = result
+                        settingsError.value = false
+                    }
+                }
+            }
+            .onFailure {
+                ifCurrentSession(ownerId) {
+                    if (carePreferencesRevision == revision) settingsError.value = true
+                }
+            }
+    }
+
+    fun updateCarePreferences(request: UpdateCarePreferencesRequest) {
+        val ownerId = sessionOwnerId.value ?: return
+        if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
+        val revision = ++carePreferencesRevision
+        launchForSession(ownerId) {
+            ifCurrentSession(ownerId) { settingsBusy.value = true }
+            runSessionOperation { carePreferencesRepository.update(request) }
+                .onSuccess { result ->
+                    ifCurrentSession(ownerId) {
+                        if (carePreferencesRevision == revision) {
+                            carePreferences.value = result
+                            settingsError.value = false
+                        }
+                    }
+                }
+                .onFailure {
+                    ifCurrentSession(ownerId) {
+                        if (carePreferencesRevision == revision) settingsError.value = true
+                    }
+                }
             ifCurrentSession(ownerId) { settingsBusy.value = false }
         }
     }

@@ -91,5 +91,57 @@ describe('calculatePrediction', () => {
     if (!result.available) return;
     expect(result.fertileWindowFrom).not.toBeNull();
     expect(result.fertileWindowTo).not.toBeNull();
+    expect(result.fertilityEstimate).toEqual({
+      enabled: true,
+      available: true,
+      estimated: true,
+      reason: 'AVAILABLE',
+      basedOnCycleCount: 3,
+      notContraception: true,
+      doesNotConfirmOvulation: true,
+    });
+  });
+
+  it('keeps fertility unavailable when disabled even with sufficient cycle data', () => {
+    const result = calculatePrediction({
+      periods: [
+        { startDate: '2026-01-01' },
+        { startDate: '2026-01-30' },
+        { startDate: '2026-02-28' },
+        { startDate: '2026-03-29' },
+      ],
+    });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.fertileWindowFrom).toBeNull();
+    expect(result.fertileWindowTo).toBeNull();
+    expect(result.fertilityEstimate).toMatchObject({
+      enabled: false,
+      available: false,
+      reason: 'DISABLED',
+      notContraception: true,
+      doesNotConfirmOvulation: true,
+    });
+  });
+
+  it('keeps fertility unavailable with fewer than three complete cycles', () => {
+    const result = calculatePrediction({
+      periods: [
+        { startDate: '2026-01-01' },
+        { startDate: '2026-01-30' },
+        { startDate: '2026-02-28' },
+      ],
+      fertilityPredictionEnabled: true,
+    });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.fertileWindowFrom).toBeNull();
+    expect(result.fertileWindowTo).toBeNull();
+    expect(result.fertilityEstimate).toMatchObject({
+      enabled: true,
+      available: false,
+      reason: 'INSUFFICIENT_DATA',
+      basedOnCycleCount: 2,
+    });
   });
 });

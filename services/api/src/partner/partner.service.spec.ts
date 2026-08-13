@@ -15,14 +15,26 @@ describe('PartnerService household isolation', () => {
       cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
       sharingSettings: { findUnique: sharingFindUnique },
       periodEvent: { findMany: jest.fn().mockResolvedValue([]) },
-      dailyLog: { findUnique: jest.fn().mockResolvedValue(null) },
+      dailyLog: {
+        findUnique: jest.fn().mockResolvedValue({
+          deletedAt: null,
+          flowLevel: null,
+          painLevel: null,
+          mood: null,
+          energy: null,
+          sleepQuality: null,
+          customSymptoms: [],
+          encryptedNote: 'intentionally-invalid-ciphertext',
+        }),
+      },
     };
     const predictions = {
       calculateForUser: jest.fn().mockResolvedValue({
         available: false, confidence: 'UNAVAILABLE', reason: 'INSUFFICIENT_DATA',
       }),
     };
-    const service = new PartnerService(prisma as never, predictions as never, {} as never);
+    const encryption = { decrypt: jest.fn(() => { throw new Error('must not decrypt'); }) };
+    const service = new PartnerService(prisma as never, predictions as never, encryption as never);
     await service.dashboard({
       userId: 'partner', sessionId: 'session', householdId: 'household-a',
       membershipId: 'membership', role: UserRole.PARTNER, username: 'p',
@@ -40,5 +52,6 @@ describe('PartnerService household isolation', () => {
       },
     });
     expect(predictions.calculateForUser).toHaveBeenCalledWith('tracker-in-household');
+    expect(encryption.decrypt).not.toHaveBeenCalled();
   });
 });
