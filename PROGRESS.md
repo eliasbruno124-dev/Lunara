@@ -196,9 +196,12 @@ Stand: 13. August 2026
   Container endete durch memcg-OOM/Gradle-Daemon-Abbruch; keine Dienste waren
   betroffen. Export, Generierung und Hashprüfung sind davon unabhängig
   erfolgreich.
-- [ ] Geprüften 1.0.3-Quellstand und die vorhandene APK committen/pushen und
-  als privates GitHub-Release mit verifiziertem Hash veröffentlichen. Bis zur
-  tatsächlichen Veröffentlichung bleibt v1.0.2 das letzte GitHub-Release.
+- [x] Geprüften 1.0.3-Quellstand und die vorhandene APK im privaten Branch
+  `agent/authentik-human-access` veröffentlicht (Implementierungscommit
+  `9a9b35a5beadb2664935517feba5c9bfeadb0b9e`, Git-Baum
+  `d4f2d0941e9e016e65d535ac04eed9e82465f062`). Die APK ist über den privaten
+  Repository-Raw-Link abrufbar; ein separates Release-Tag `v1.0.3` bleibt
+  optional offen.
 
 ## Bewusst offen nach dem produktionsnahen Kern
 

@@ -101,12 +101,12 @@ Die APK besitzt folgende geprüfte Eigenschaften:
 - Signaturzertifikat SHA-256
   `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`
 
-Der aktuelle 1.0.3-Stand ist zum Zeitpunkt dieser Dokumentation noch nicht nach
-GitHub übertragen. Der letzte tatsächlich veröffentlichte Build steht
-berechtigten GitHub-Benutzern im privaten
-[`v1.0.2-Release`](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.2)
-als [direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.2/lunara-debug.apk)
-bereit.
+Der geprüfte 1.0.3-Stand ist im privaten Branch
+[`agent/authentik-human-access`](https://github.com/eliasbruno124-dev/Lunara/tree/agent/authentik-human-access)
+veröffentlicht. Berechtigte, bei GitHub angemeldete Benutzer können die
+[APK 1.0.3 direkt herunterladen](https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-debug.apk).
+Der Implementierungscommit ist
+[`9a9b35a5beadb2664935517feba5c9bfeadb0b9e`](https://github.com/eliasbruno124-dev/Lunara/commit/9a9b35a5beadb2664935517feba5c9bfeadb0b9e).
 
 Der 1.0.3-Quellstand erzwingt für die Produktionsvariante HTTPS und verwendet
 standardmäßig die änderbare Basisadresse `https://lunara.3li361.de`. Er erwartet

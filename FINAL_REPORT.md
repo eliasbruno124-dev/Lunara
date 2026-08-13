@@ -5,8 +5,9 @@ Stand: 13. August 2026
 Der Backend-, Datenbank-, Gateway- und Android-Stand 1.0.3 ist gebaut und
 geprüft; Backend und Datenbank sind produktiv ausgerollt. Eine installierbare,
 v2-signierte Production-Debug-APK wurde tatsächlich erzeugt. Der aktuelle
-1.0.3-Stand ist zum Zeitpunkt dieses Berichts noch nicht nach GitHub übertragen
-und nicht als GitHub-Release veröffentlicht.
+1.0.3-Stand samt APK wurde im privaten GitHub-Branch
+`agent/authentik-human-access` veröffentlicht. Ein separates GitHub-Release-Tag
+für 1.0.3 wurde nicht erzeugt.
 
 ## Architektur
 
@@ -249,16 +250,18 @@ Das Repository ist privat:
 https://github.com/eliasbruno124-dev/Lunara
 ```
 
-Der aktuelle 1.0.3-Quellstand und die neue 1.0.3-APK sind zum Zeitpunkt dieses
-Berichts noch nicht nach GitHub übertragen. Das letzte tatsächlich
-veröffentlichte APK-Release ist weiterhin v1.0.2:
+Der geprüfte 1.0.3-Quellstand und die neue 1.0.3-APK wurden mit
+Implementierungscommit `9a9b35a5beadb2664935517feba5c9bfeadb0b9e` im privaten Branch
+`agent/authentik-human-access` veröffentlicht:
 
 ```text
-https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.2
+https://github.com/eliasbruno124-dev/Lunara/tree/agent/authentik-human-access
+https://github.com/eliasbruno124-dev/Lunara/raw/refs/heads/agent/authentik-human-access/artifacts/lunara-debug.apk
 ```
 
-Der erforderliche 1.0.3-Build, APK-Hash und die Artefaktprüfung sind lokal
-abgeschlossen; Veröffentlichung und Downloadlink folgen getrennt. Echte `.env`-Dateien,
+Der Download erfordert wegen des privaten Repositorys eine GitHub-Anmeldung mit
+Zugriffsrecht. Ein formales GitHub-Release `v1.0.3` wurde nicht angelegt; die
+APK im Branch ist jedoch das lokal gebaute und hashgeprüfte Artefakt. Echte `.env`-Dateien,
 Authentik-Zugangsdaten, Tokens, Passwörter, Datenbankdumps und
 Infrastruktur-Backups sind nicht für Git vorgesehen. Der projektinterne
 Secret-Scan bestand ohne Fund; `gitleaks` war auf dem Host nicht installiert

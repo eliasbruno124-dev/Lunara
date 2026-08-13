@@ -57,9 +57,11 @@
   PostgreSQL-Container wurden nicht neu gestartet.
 - Production-Debug-APK 1.0.3 erzeugt: 24.362.451 Bytes, SHA-256
   `4dac957e020684f3d5ee5699fdc584a0f68393a58a76452801a21831616dd416`.
-  Instrumentierte Tests wurden mangels Gerät/Emulator nur kompiliert. Der
-  aktuelle 1.0.3-Stand ist in dieser Dokumentationsfassung noch nicht auf
-  GitHub veröffentlicht.
+  Instrumentierte Tests wurden mangels Gerät/Emulator nur kompiliert.
+- Quellstand und APK 1.0.3 im privaten GitHub-Branch
+  `agent/authentik-human-access` veröffentlicht; der APK-Download erfordert
+  eine berechtigte GitHub-Anmeldung. Ein separates Release-Tag wurde nicht
+  erzeugt.
 - Der echte PostgreSQL-E2E-Lauf wurde nach den beiden finalen Migrationen nicht
   erneut ausgeführt; ein erfolgreicher Lauf des früheren 1.0.3-Zwischenstands
   wird nicht als Abschlussnachweis für den finalen Stand gewertet.
