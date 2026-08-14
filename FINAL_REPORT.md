@@ -1,12 +1,64 @@
-# Lunara 1.0.5 – Abschlussbericht
+# Lunara – Abschlussbericht (Server 1.0.5 / Android 1.0.6)
 
-Stand: 13. August 2026
+Stand: 14. August 2026
 
 Lunara 1.0.5 ist als selbst gehosteter Kernablauf implementiert, gebaut,
 getestet und auf dem produktiven Server ausgerollt. Die API läuft gesund hinter
 Pangolin und Authentik. Eine installierbare Debug-APK sowie eine unsignierte
-Release-APK wurden tatsächlich erzeugt. Dieser Bericht trennt bestätigte
-Ergebnisse von bewusst offenen Funktionen.
+Release-APK wurden tatsächlich erzeugt. Android 1.0.6 ergänzt lokal geplante,
+konfigurierbare Benachrichtigungen, ohne den Serverstand oder produktive
+Container zu verändern. Dieser Bericht trennt bestätigte Ergebnisse von
+bewusst offenen Funktionen.
+
+## Android 1.0.6 – Benachrichtigungsergänzung
+
+Umgesetzt sind pro Gerät standardmäßig deaktivierte Hinweise für den Beginn des
+geschätzten Periodenzeitraums am Folgetag, das nur grob geschätzte fruchtbare
+Fenster am Folgetag, die tägliche Tracker-Eingabe und einen Partner-Tipp.
+Uhrzeit, Ruhezeit, Tagesmaximum und neutrale Sperrbildschirmvorschau sind
+einstellbar. Android WorkManager plant jeden Lauf neu an lokaler Uhrzeit; ein
+TIME-/TIMEZONE-Receiver richtet Sommerzeit- und Zeitzonenwechsel neu aus.
+
+Tracker-Prognosen liegen für den Offline-Fallback nutzergebunden und
+Keystore-gestützt verschlüsselt vor. Partner-Hinweise erfordern dagegen immer
+eine aktuelle, serverseitig freigabefilterte Antwort und fallen offline strikt
+geschlossen aus. Zustell-Deduplizierung wird erst nach erfolgreicher Übergabe
+an Androids NotificationManager festgeschrieben. Logout beziehungsweise
+lokaler Wipe entfernt geplante Arbeit, sichtbare Hinweise, Zustellzustand und
+Cache.
+
+Tatsächlich ausgeführte Android-Abnahme:
+
+- 25 JVM-Suites, 114 Tests, 0 Fehler, 0 übersprungen; darin 28 fokussierte
+  Benachrichtigungstests
+- vollständiger `lintLocalDebug` einschließlich Testquellen sowie separater
+  Production-Hauptcode-Lint: jeweils 0 Error/Fatal
+- `compileProductionDebugAndroidTestKotlin`: erfolgreich; kein Emulator oder
+  reales Gerät vorhanden, daher keine Behauptung ausgeführter UI-Tests
+- `assembleProductionDebug`: erfolgreich
+- `assembleProductionRelease`: nach dem bereits erfolgreichen Production-Lint
+  mit ausgeschlossenen redundanten `lintVital*ProductionRelease`-Tasks
+  erfolgreich
+
+Geprüfte Artefakte:
+
+- `artifacts/lunara-debug.apk`: 24.727.376 Bytes; SHA-256:
+  `779dc019ebd534c0a536ac245f8bd90b4dfedb51f1c20959bb593cd93593f27f`
+- `artifacts/lunara-release-unsigned.apk`: 19.806.359 Bytes; SHA-256:
+  `83275de788b89d78aaab8ee60e674987328baa8177ef1ca1d55809f94246c3fa`
+- beide: VersionCode 7, VersionName 1.0.6, minSdk 26, targetSdk 37 und
+  fehlerfreie ZIP-Struktur
+- Debug: gültige APK-v2-Signatur mit dem bestehenden lokalen Android-
+  Debugschlüssel; Release: erwartungsgemäß nicht signiert
+
+Ein kombinierter Sammellauf und kleinere Containerlimits reichten zeitweise
+nicht aus. Die betroffenen Läufe werden nicht als Erfolg gezählt; sie wurden
+kontrolliert beendet und die Prüfschritte anschließend einzeln erfolgreich
+ausgeführt. Während der engmaschigen Überwachung gab es keine Emby-Wiedergabe,
+keinen Encoder, keinen Host-/Produktivdienst-OOM und keinen Dienstneustart. Lunara/PostgreSQL,
+Authentik, Pangolin, Traefik und Emby blieben stabil. Der niedrigste kurzzeitig
+beobachtete Speicherwert im ersten abgebrochenen Lauf lag bei 1.311 MiB; der
+erfolgreiche Production-Release-Einzellauf blieb bei mindestens 2.000 MiB.
 
 ## Implementierte Architektur
 
@@ -308,8 +360,9 @@ Beziehung erhält.
   nicht vollständig in der UI verfügbar.
 - Periodenkorrektur und -löschung funktionieren in „Heute“ und „Verlauf“;
   Kalender-Direktaktionen und Monatwechsel sind noch offen.
-- Lokale Benachrichtigungen, ntfy, Biometrie, Widget, Demo-Modus, SSE-Client
-  und reduzierte Bewegungen sind noch nicht vollständig umgesetzt.
+- Lokale Benachrichtigungen sind in Android 1.0.6 umgesetzt. ntfy, Biometrie,
+  Widget, Demo-Modus, SSE-Client und reduzierte Bewegungen sind weiterhin
+  nicht vollständig umgesetzt.
 - Der verschlüsselte Export ist ein AES-256-GCM-geschütztes
   `.lunarabackup`-JSON-Format, kein ZIP. Generischer CSV-Zuordnungsassistent,
   direkter Import verschlüsselter Backups und Import-Undo fehlen.
@@ -332,20 +385,20 @@ https://github.com/eliasbruno124-dev/Lunara
 ```
 
 Die GitHub-Geräteanmeldung des Eigentümers und der private Branch
-`agent/authentik-human-access` bestehen. Der vollständig geprüfte 1.0.5-Stand
-einschließlich beider APKs wurde als Commit
-`3c3ced280203a4108bbf665b1a2b0a63c700c278` erfolgreich gepusht. GitHub
-bestätigte denselben Commit für Branch und Tag `v1.0.5`.
+`agent/authentik-human-access` bestehen. Der vollständig geprüfte
+Android-1.0.6-Stand einschließlich beider APKs wurde erfolgreich gepusht und
+als Tag `v1.0.6` veröffentlicht. Der zuvor bestätigte Server-/App-Stand 1.0.5
+bleibt in der Historie erhalten.
 
 Der private Release ist:
 
 ```text
-https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.5
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.6
 ```
 
-GitHub bestätigte `lunara-debug.apk` mit 24.406.431 Bytes und
-`lunara-release-unsigned.apk` mit 19.749.539 Bytes als vollständig hochgeladen.
-Der bestehende Draft-Pull-Request 1 wurde auf 1.0.5 aktualisiert. Wegen des
+GitHub bestätigte `lunara-debug.apk` mit 24.727.376 Bytes und
+`lunara-release-unsigned.apk` mit 19.806.359 Bytes als vollständig hochgeladen.
+Der bestehende Draft-Pull-Request 1 wurde auf Android 1.0.6 aktualisiert. Wegen des
 privaten Repositorys müssen Repository, PR und Downloads mit dem berechtigten
 GitHub-Konto angemeldet geöffnet werden.
 
@@ -364,8 +417,9 @@ Serverbackups bleiben ausschließlich auf dem Server.
    Großbuchstaben, Ziffern und Sonderzeichen sind nicht verpflichtend.
 5. Der Server erzeugt für jede Tracker-Registrierung automatisch eine
    eigene unsichtbare Beziehungsgrenze; ein Haushaltsname ist nicht nötig.
-6. In den Einstellungen Freigaben, Care Preferences und die optionalen
-   Fertilitätshinweise bewusst konfigurieren.
+6. In den Einstellungen Freigaben, Care Preferences, lokale
+   Benachrichtigungen und die optionalen Fertilitätshinweise bewusst
+   konfigurieren.
 7. Die permanente Partner-Einladung als Code oder passwortfreien QR anzeigen.
    Sie ist bis zur Verwendung gültig, nur einmal nutzbar und widerrufbar.
 8. Nach dem ersten echten Gerätetest ein aktuelles Backup samt getrennt

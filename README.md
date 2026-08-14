@@ -39,9 +39,12 @@ OpenAPI-Dokumentation.
 - automatische Synchronisierung nach Anmeldung und lokalen Änderungen, beim
   Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; ein manueller
   Sync bleibt zusätzlich verfügbar
+- lokale, pro Gerät konfigurierbare Benachrichtigungen für den geschätzten
+  Periodenzeitraum, das optional grob geschätzte fruchtbare Fenster,
+  Tracker-Eingaben und Partner-Tipps; ohne Firebase oder externe Push-Dienste
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
   `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.5 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+- native Compose-App 1.0.6 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
   rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
   Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
 - nachträgliche Korrektur und Löschung eines Periodenstarts über dieselbe
@@ -59,7 +62,7 @@ Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
 ## Verbindung und Authentifizierung
 
-Das Serverfeld ist beim ersten Start von Android 1.0.5 absichtlich leer. Für
+Das Serverfeld ist beim ersten Start von Android 1.0.6 absichtlich leer. Für
 die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
 Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
 Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
@@ -108,6 +111,21 @@ unsichtbar abgegrenzte Beziehung beginnen. „Haushalt“ ist kein sichtbares
 Produktkonzept; die interne Datenstruktur dient nur als Mandanten- und
 Autorisierungsgrenze.
 
+## Lokale Benachrichtigungen
+
+Unter **Einstellungen → Benachrichtigungen** werden Hinweise pro Android-Gerät
+bewusst aktiviert. Wählbar sind der Beginn des geschätzten Periodenzeitraums am
+Folgetag, das ausschließlich grob geschätzte fruchtbare Fenster am Folgetag,
+eine Tracker-Eingabeerinnerung beziehungsweise ein Partner-Tipp. Zusätzlich
+lassen sich Wunschzeit, Ruhezeit, maximal ein bis drei Hinweise pro Tag und die
+neutrale Sperrbildschirmvorschau festlegen.
+
+Die Erinnerungen laufen lokal über WorkManager und benötigen weder Firebase
+noch einen externen Push-Dienst. Android kann Hintergrundarbeit zum
+Energiesparen verzögern; die Uhrzeit ist daher kein exakter Wecker. Angaben zum
+fruchtbaren Fenster bestätigen keine Ovulation und dürfen nicht zur Verhütung
+verwendet werden.
+
 ## APK
 
 Die tatsächlich erzeugte, installierbare Production-Debug-APK liegt hier:
@@ -117,7 +135,9 @@ artifacts/lunara-debug.apk
 ```
 
 Im privaten GitHub-Repository kann sie nach Anmeldung direkt über den
-[Release Lunara 1.0.5](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.5)
+[Release Lunara 1.0.6](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.6)
+oder als
+[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.6/lunara-debug.apk)
 heruntergeladen werden.
 
 Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:

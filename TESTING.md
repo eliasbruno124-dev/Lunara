@@ -2,9 +2,35 @@
 
 Erfolgsaussagen beziehen sich ausschließlich auf tatsächlich ausgeführte
 Befehle. Die endgültigen Ergebnisse, Artefaktgrößen, Prüfsummen, Image-IDs und
-Live-Prüfungen des Release 1.0.5 stehen in `FINAL_REPORT.md`. Diese Datei
+Live-Prüfungen des Server-Release 1.0.5 und der Android-Ergänzung 1.0.6 stehen
+in `FINAL_REPORT.md`. Diese Datei
 beschreibt die verbindliche Prüfmatrix und behauptet nicht allein aufgrund
 vorhandener Dateien einen erfolgreichen Build.
+
+## Tatsächlich ausgeführte Android-1.0.6-Ergänzung
+
+- vollständige Local-Debug-JVM-Suite: 25 Suites, 114 Tests, 0 Fehler,
+  0 übersprungen; darin 28 neue Tests für Benachrichtigungspolicy,
+  verschlüsselten Prognosecache, zweiphasige Zustellmarkierung, Ruhezeit,
+  Doze-Verzögerung sowie Sommer-/Winterzeit
+- `lintLocalDebug` vollständig einschließlich Unit- und Instrumentationstest-
+  Quellen erfolgreich; 0 Error/Fatal
+- Production-Hauptcode mit `lintProductionDebug` und ausgeschlossener
+  doppelter Android-/Unit-Testquellenanalyse erfolgreich; 0 Error/Fatal. Die
+  gleichen Testquellen waren bereits im vollständigen Local-Lint enthalten.
+- `compileProductionDebugAndroidTestKotlin` erfolgreich. Die Compose-Tests
+  wurden mangels Emulator/Gerät kompiliert, aber nicht ausgeführt.
+- `assembleProductionDebug` erfolgreich; `assembleProductionRelease` nach
+  bereits erfolgreichem Production-Lint mit den redundanten
+  `lintVital*ProductionRelease`-Tasks ausgeschlossen erfolgreich
+- APK-ZIP-Struktur, VersionCode 7, VersionName 1.0.6, minSdk 26, targetSdk 37,
+  gültige v2-Debugsignatur und bewusst fehlende Release-Signatur geprüft
+
+Der zunächst kombinierte Sammellauf sowie ein zu eng begrenzter separater
+Lint-/Release-Lauf wurden kontrolliert beendet beziehungsweise vom
+Containerlimit beendet. Sie werden nicht als Erfolg gezählt. Die oben
+aufgeführten Schritte wurden danach einzeln real erfolgreich ausgeführt. Der
+Produktionsserver wurde nicht neu gestartet oder verändert.
 
 ## Tatsächlich ausgeführter 1.0.5-Abschluss
 

@@ -9,6 +9,10 @@ import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.remote.ApiClientFactory
 import de.lunara.app.data.sync.SyncScheduler
 import de.lunara.app.data.sync.ProcessSyncGate
+import de.lunara.app.notifications.LunaraNotificationManager
+import de.lunara.app.notifications.NotificationDataCache
+import de.lunara.app.notifications.NotificationDeliveryStore
+import de.lunara.app.notifications.NotificationScheduler
 import net.zetetic.database.sqlcipher.SQLiteDatabase
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -26,6 +30,10 @@ class LocalDataWiper @Inject constructor(
     private val apiFactory: ApiClientFactory,
     private val credentialGate: SessionCredentialGate,
     private val sessionSecrets: SessionSecrets,
+    private val notificationScheduler: NotificationScheduler,
+    private val notificationManager: LunaraNotificationManager,
+    private val notificationDataCache: NotificationDataCache,
+    private val notificationDeliveryStore: NotificationDeliveryStore,
 ) {
     suspend fun wipe() = withContext(Dispatchers.IO) {
         credentialGate.invalidate()
@@ -33,11 +41,16 @@ class LocalDataWiper @Inject constructor(
         // Request cancellation before waiting for an active worker to leave the process-wide
         // gate. The second cancellation is tracked as a secure-wipe step if the first failed.
         runCatching { syncScheduler.cancelAllAndWait() }
+        runCatching { notificationScheduler.cancelAllAndWait() }
         ProcessSyncGate.serialized {
             credentialGate.exclusive {
                 SecureWipeCoordinator.execute(
                     localSteps = listOf(
                         { syncScheduler.cancelAllAndWait() },
+                        { notificationScheduler.cancelAllAndWait() },
+                        { notificationManager.cancelAll() },
+                        { notificationDataCache.clear() },
+                        { notificationDeliveryStore.clear() },
                         { clearEncryptedDatabase() },
                         { cookieJar.clear() },
                         // Tokens and gateway credentials must be removed even if SQLCipher
@@ -48,6 +61,7 @@ class LocalDataWiper @Inject constructor(
                         { preferences.clearAll() },
                         // Remove a trigger that may have been enqueued while the local wipe ran.
                         { syncScheduler.cancelAllAndWait() },
+                        { notificationScheduler.cancelAllAndWait() },
                     ),
                 )
             }

@@ -22,6 +22,7 @@ import de.lunara.app.data.repository.PasswordRepository
 import de.lunara.app.data.repository.SharingRepository
 import de.lunara.app.data.repository.CarePreferencesRepository
 import de.lunara.app.data.sync.SyncScheduler
+import de.lunara.app.notifications.NotificationPreferences
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -366,7 +367,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun refreshTrackerPredictionNow(ownerId: String) {
-        runSessionOperation { dashboardRepository.trackerPrediction() }
+        runSessionOperation { dashboardRepository.trackerPrediction(ownerId) }
             .onSuccess { prediction -> ifCurrentSession(ownerId) { trackerPrediction.value = prediction } }
     }
 
@@ -544,6 +545,13 @@ class MainViewModel @Inject constructor(
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { preferences.setTheme(false, enabled) }
+    }
+
+    fun setNotificationPreferences(value: NotificationPreferences) {
+        val ownerId = sessionOwnerId.value ?: return
+        launchForSession(ownerId) {
+            preferences.setNotificationPreferences(ownerId, value)
+        }
     }
 
     fun changePassword(currentPassword: String, newPassword: String, confirmation: String) {

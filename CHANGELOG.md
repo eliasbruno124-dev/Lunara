@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.6 – 2026-08-14
+
+- Lokale Android-Benachrichtigungen als ausdrückliches Opt-in ergänzt; keine
+  Firebase-, Werbe-, Analyse- oder externe Push-Abhängigkeit.
+- Getrennt wählbare Hinweise für den geschätzten Periodenzeitraum am Folgetag,
+  das nur grob geschätzte fruchtbare Fenster am Folgetag, die tägliche
+  Tracker-Eingabe und einen Partner-Unterstützungstipp.
+- Gerätebezogene Einstellungen für Uhrzeit, Ruhezeit, maximal ein bis drei
+  Hinweise pro Tag und neutrale Sperrbildschirmvorschau ergänzt.
+- Erinnerungsplanung als täglich neu ausgerichtete lokale Arbeit umgesetzt,
+  damit lokale Uhrzeit, Zeitzonenwechsel und Sommerzeit berücksichtigt werden;
+  Android darf die Ausführung aus Energiespargründen weiterhin verzögern.
+- Prognose- und Zustellzustände Keystore-gestützt verschlüsselt, Hinweise erst
+  nach erfolgreicher Übergabe an Android als zugestellt markiert und Partner-
+  Hinweise bei fehlender aktueller Serverantwort strikt unterdrückt.
+- Partner-Hinweise verwenden ausschließlich das bereits serverseitig nach
+  Freigaben gefilterte Dashboard. Fertilitätshinweise bleiben bei fehlendem
+  Opt-in, zu wenig Daten, ungeeigneten Sondermodi, Freigabeentzug oder
+  Offlinebetrieb aus.
+- Android-Client auf 1.0.6/VersionCode 7 angehoben. Die kompatible Server-API
+  bleibt unverändert auf 1.0.5; für dieses Client-Update ist kein Serverneustart
+  erforderlich.
+
 ## 1.0.5 – 2026-08-13
 
 - Kontopasswort-Regel für Bootstrap, Registrierung, Partnerbeitritt und

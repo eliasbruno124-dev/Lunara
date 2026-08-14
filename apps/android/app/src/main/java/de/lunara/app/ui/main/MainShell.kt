@@ -1,5 +1,13 @@
 package de.lunara.app.ui.main
 
+import android.Manifest
+import android.app.TimePickerDialog
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -25,6 +33,7 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
@@ -62,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -79,6 +89,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -105,6 +117,7 @@ import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.repository.ApiPayloadPolicy
 import de.lunara.app.data.repository.SyncEditPolicy
 import de.lunara.app.security.limitAccountPasswordInput
+import de.lunara.app.notifications.NotificationPreferences
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.StatusPill
@@ -114,6 +127,7 @@ import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -263,6 +277,7 @@ fun MainShell(
                     onPrivacyMode = viewModel::setPrivacyMode,
                     onUseSystemTheme = viewModel::setUseSystemTheme,
                     onDarkMode = viewModel::setDarkMode,
+                    onNotificationPreferences = viewModel::setNotificationPreferences,
                     onSync = viewModel::syncNow,
                     sharing = state.sharing,
                     cycleProfile = state.cycleProfile,
@@ -1123,6 +1138,7 @@ private fun SettingsScreen(
     onPrivacyMode: (Boolean) -> Unit,
     onUseSystemTheme: (Boolean) -> Unit,
     onDarkMode: (Boolean) -> Unit,
+    onNotificationPreferences: (NotificationPreferences) -> Unit,
     onSync: () -> Unit,
     sharing: SharingSettingsDto?,
     cycleProfile: CycleProfileDto?,
@@ -1144,6 +1160,16 @@ private fun SettingsScreen(
 ) {
     var confirmLogout by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var notificationPermissionDenied by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        notificationPermissionDenied = !granted
+        if (granted) {
+            onNotificationPreferences(preferences.notifications.copy(master = true))
+        }
+    }
     LaunchedEffect(session.userId) {
         if (session.role == UserRole.TRACKER) onRefreshInvitation()
     }
@@ -1181,8 +1207,59 @@ private fun SettingsScreen(
                 onPrivacyMode,
             )
         }
-        item { SettingText(Icons.Rounded.Lock, stringResource(R.string.no_sensitive_lock_screen), null) }
         item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
+        item { SettingHeader(stringResource(R.string.notifications)) }
+        item {
+            val hasRuntimePermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            val systemAllowsNotifications = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            SettingSwitch(
+                Icons.Rounded.Notifications,
+                stringResource(R.string.notifications_master),
+                stringResource(R.string.notifications_master_summary),
+                preferences.notifications.master,
+                { requested ->
+                    notificationPermissionDenied = false
+                    when {
+                        !requested -> onNotificationPreferences(preferences.notifications.copy(master = false))
+                        !hasRuntimePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        !systemAllowsNotifications -> notificationPermissionDenied = true
+                        else -> onNotificationPreferences(preferences.notifications.copy(master = true))
+                    }
+                },
+                modifier = Modifier.testTag("notifications-master"),
+            )
+        }
+        if (
+            notificationPermissionDenied ||
+            (preferences.notifications.master && !NotificationManagerCompat.from(context).areNotificationsEnabled())
+        ) {
+            item {
+                Text(
+                    stringResource(R.string.notifications_permission_denied),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            item {
+                TextButton(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                        )
+                    },
+                ) { Text(stringResource(R.string.notifications_open_system_settings)) }
+            }
+        }
+        item {
+            NotificationControls(
+                role = session.role,
+                preferences = preferences.notifications,
+                fertilityPredictionEnabled = cycleProfile?.fertilityPredictionEnabled == true,
+                onUpdate = onNotificationPreferences,
+            )
+        }
         if (session.role == UserRole.TRACKER) {
             item { SettingHeader(stringResource(R.string.fertility_predictions)) }
             item {
@@ -1429,6 +1506,149 @@ private fun FertilityPredictionControl(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun NotificationControls(
+    role: UserRole,
+    preferences: NotificationPreferences,
+    fertilityPredictionEnabled: Boolean,
+    onUpdate: (NotificationPreferences) -> Unit,
+) {
+    val context = LocalContext.current
+    val reminderTime = formatClock(preferences.reminderHour, preferences.reminderMinute)
+    val quietStart = formatClock(preferences.quietStartHour, preferences.quietStartMinute)
+    val quietEnd = formatClock(preferences.quietEndHour, preferences.quietEndMinute)
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        SettingSwitch(
+            Icons.Rounded.DateRange,
+            stringResource(R.string.notification_period_tomorrow),
+            stringResource(R.string.notification_period_tomorrow_summary),
+            preferences.periodTomorrow,
+            { onUpdate(preferences.copy(periodTomorrow = it)) },
+            modifier = Modifier.testTag("notification-period-tomorrow"),
+        )
+        SettingSwitch(
+            Icons.Rounded.Info,
+            stringResource(R.string.notification_fertile_tomorrow),
+            stringResource(
+                if (role == UserRole.TRACKER && !fertilityPredictionEnabled) {
+                    R.string.notification_fertility_disabled_hint
+                } else {
+                    R.string.notification_fertile_tomorrow_summary
+                },
+            ),
+            preferences.fertileTomorrow,
+            { onUpdate(preferences.copy(fertileTomorrow = it)) },
+            enabled = role == UserRole.PARTNER || fertilityPredictionEnabled || preferences.fertileTomorrow,
+            modifier = Modifier.testTag("notification-fertile-tomorrow"),
+        )
+        if (role == UserRole.TRACKER) {
+            SettingSwitch(
+                Icons.AutoMirrored.Rounded.List,
+                stringResource(R.string.notification_daily_log),
+                stringResource(R.string.notification_daily_log_summary),
+                preferences.dailyLogReminder,
+                { onUpdate(preferences.copy(dailyLogReminder = it)) },
+                modifier = Modifier.testTag("notification-daily-log"),
+            )
+        } else {
+            SettingSwitch(
+                Icons.Rounded.FavoriteBorder,
+                stringResource(R.string.notification_partner_tip),
+                stringResource(R.string.notification_partner_tip_summary),
+                preferences.partnerTip,
+                { onUpdate(preferences.copy(partnerTip = it)) },
+                modifier = Modifier.testTag("notification-partner-tip"),
+            )
+        }
+        SettingText(
+            Icons.Rounded.Notifications,
+            stringResource(R.string.notification_time),
+            stringResource(R.string.notification_time_summary, reminderTime),
+        ) {
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    onUpdate(preferences.copy(reminderHour = hour, reminderMinute = minute))
+                },
+                preferences.reminderHour,
+                preferences.reminderMinute,
+                true,
+            ).show()
+        }
+        Text(
+            stringResource(R.string.notification_quiet_summary, quietStart, quietEnd),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        SettingText(
+            Icons.Rounded.Lock,
+            stringResource(R.string.notification_quiet_start),
+            quietStart,
+        ) {
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    onUpdate(preferences.copy(quietStartHour = hour, quietStartMinute = minute))
+                },
+                preferences.quietStartHour,
+                preferences.quietStartMinute,
+                true,
+            ).show()
+        }
+        SettingText(
+            Icons.Rounded.Lock,
+            stringResource(R.string.notification_quiet_end),
+            quietEnd,
+        ) {
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    onUpdate(preferences.copy(quietEndHour = hour, quietEndMinute = minute))
+                },
+                preferences.quietEndHour,
+                preferences.quietEndMinute,
+                true,
+            ).show()
+        }
+        Text(
+            stringResource(R.string.notification_max_per_day),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 10.dp),
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            (1..3).forEach { limit ->
+                FilterChip(
+                    selected = preferences.maxPerDay == limit,
+                    onClick = { onUpdate(preferences.copy(maxPerDay = limit)) },
+                    label = { Text(stringResource(R.string.notification_max_per_day_value, limit)) },
+                )
+            }
+        }
+        SettingSwitch(
+            Icons.Rounded.Lock,
+            stringResource(R.string.notification_hide_sensitive),
+            stringResource(R.string.notification_hide_sensitive_summary),
+            preferences.hideSensitiveContent,
+            { onUpdate(preferences.copy(hideSensitiveContent = it)) },
+        )
+        Text(
+            stringResource(R.string.notification_timing_notice),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+    }
+}
+
+private fun formatClock(hour: Int, minute: Int): String =
+    String.format(Locale.ROOT, "%02d:%02d", hour.coerceIn(0, 23), minute.coerceIn(0, 59))
+
 @Composable
 private fun SharingControls(
     current: SharingSettingsDto,
@@ -1588,8 +1808,12 @@ private fun SettingSwitch(
     checked: Boolean,
     onChecked: (Boolean) -> Unit,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Icon(icon, contentDescription = null)
         Column(Modifier.padding(horizontal = 14.dp).weight(1f)) {
             Text(title, fontWeight = FontWeight.SemiBold)

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import de.lunara.app.data.sync.ProcessSyncGate
 import de.lunara.app.data.remote.dto.CycleProfileDto
 import de.lunara.app.data.remote.dto.UpdateCycleProfileRequest
+import de.lunara.app.notifications.NotificationDataCache
 
 @Singleton
 class DashboardRepository @Inject constructor(
@@ -24,6 +25,7 @@ class DashboardRepository @Inject constructor(
     private val connectionRepository: ConnectionRepository,
     private val database: LunaraDatabase,
     private val gson: Gson,
+    private val notificationDataCache: NotificationDataCache,
 ) {
     suspend fun partnerDashboard(expectedUserId: String): PartnerDashboardDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
@@ -40,7 +42,7 @@ class DashboardRepository @Inject constructor(
             tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .todayTip(endpoint(base, "api/v1/tips/today"))
         }
-        val completeDashboard = dashboard.copy(tip = tipResponse.body()?.tip)
+        val completeDashboard = dashboard.copy(tip = tipResponse.requireBody().tip)
         ProcessSyncGate.serialized {
             if (preferences.state.first().session?.userId != expectedUserId) throw SessionChangedException()
             database.partnerDashboardDao().save(
@@ -62,7 +64,7 @@ class DashboardRepository @Inject constructor(
             cached?.let { runCatching { gson.fromJson(it.payloadJson, PartnerDashboardDto::class.java) }.getOrNull() }
         }
 
-    suspend fun trackerPrediction(): de.lunara.app.data.remote.dto.PredictionDto {
+    suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
         var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .prediction(endpoint(base, "api/v1/predictions"))
@@ -70,7 +72,12 @@ class DashboardRepository @Inject constructor(
             response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .prediction(endpoint(base, "api/v1/predictions"))
         }
-        return response.requireBody()
+        val prediction = response.requireBody()
+        ProcessSyncGate.serialized {
+            if (preferences.state.first().session?.userId != expectedUserId) throw SessionChangedException()
+            notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
+        }
+        return prediction
     }
 
     suspend fun cycleProfile(): CycleProfileDto {

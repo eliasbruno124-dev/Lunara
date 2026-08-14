@@ -50,7 +50,7 @@ Einstellungen dies erlauben. Ein privater Tag entfernt aktuelle Phase,
 tatsächliche Periodendaten und Fertilitätsangaben aus der Partnerprojektion;
 eine allgemein freigegebene zukünftige Periodenprognose darf bestehen bleiben.
 
-Die Android-Einstellungsansicht 1.0.5 bietet die Freigaben für Prognose,
+Die Android-Einstellungsansicht 1.0.6 bietet die Freigaben für Prognose,
 Periodendaten, Phase, Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf,
 Symptome, Notizen, Fertilitätsfenster, Tipps und Check-ins sowie
 symptombasierte Tipps. Die trackende Person kann zudem die Care Preferences
@@ -77,7 +77,7 @@ die äußere Proxy-Schicht mit `Authorization: Basic …`; er ist kein persönli
 Konto. Persönliche Lunara-Authentifizierung und Rollenprüfung erfolgen separat
 über `X-Lunara-Authorization: Bearer …`.
 
-Android 1.0.5 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
+Android 1.0.6 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
 Gateway-Zugangsdaten darf ausschließlich bei der ersten Einrichtung einmalig
 eingegeben werden. Die App trennt die Zugangsdaten sofort von der sichtbaren
 Basisadresse und speichert sie Keystore-gestützt. Die dauerhaft sichtbare
@@ -97,10 +97,26 @@ lang.
 
 ## Benachrichtigungen
 
-Version 1 fordert keine Benachrichtigungsberechtigung an und versendet keine
-Push-Nachrichten. Lokale Erinnerungen und die optionale selbst gehostete
-ntfy-Anbindung sind noch nicht implementiert. `FLAG_SECURE` blockiert im
-aktivierten Datenschutzmodus Screenshots und Vorschauen der App.
+Android 1.0.6 bietet ausschließlich lokale, standardmäßig deaktivierte
+Erinnerungen. Nach dem Einschalten fragt die App auf unterstützten
+Android-Versionen ausdrücklich nach der Benachrichtigungsberechtigung. Es gibt
+keine Firebase-, Werbe-, Analyse- oder externe Push-Verbindung; die optionale
+selbst gehostete ntfy-Anbindung ist weiterhin nicht implementiert.
+
+Pro Gerät lassen sich Periodenzeitraum am Folgetag, grob geschätztes
+fruchtbares Fenster am Folgetag, Tracker-Eingabe beziehungsweise Partner-Tipp,
+Uhrzeit, Ruhezeit und maximale Tageshäufigkeit getrennt festlegen. Der
+Sperrbildschirm zeigt standardmäßig nur einen neutralen Hinweis. Android darf
+lokale Arbeit aus Energiespargründen verzögern; die gewählte Uhrzeit ist daher
+ein Wunschzeitpunkt, keine Weckergarantie.
+
+Tracker-Prognosen werden nach erfolgreicher Abfrage Keystore-gestützt
+verschlüsselt zwischengespeichert. Partner-Hinweise verwenden ausschließlich
+eine aktuelle, serverseitig nach Freigaben gefilterte Antwort. Ohne
+Serververbindung werden für Partner weder Prognose-/Fertilitätshinweise noch
+alte Tagestipps erzeugt. Beim sicheren lokalen Löschen werden
+Benachrichtigungen, Zustellzustand und Prognosecache entfernt. `FLAG_SECURE`
+blockiert im aktivierten Datenschutzmodus Screenshots und Vorschauen der App.
 
 ## Export, Import und Löschung
 

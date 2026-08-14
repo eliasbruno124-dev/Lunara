@@ -11,6 +11,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.sync.SyncScheduler
+import de.lunara.app.notifications.NotificationScheduleEmissionPolicy
+import de.lunara.app.notifications.NotificationScheduler
+import de.lunara.app.notifications.NotificationScheduleUpdate
 import de.lunara.app.ui.LunaraApp
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -23,12 +26,14 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject lateinit var preferences: AppPreferences
     @Inject lateinit var syncScheduler: SyncScheduler
+    @Inject lateinit var notificationScheduler: NotificationScheduler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         observePrivacyMode()
         observeForegroundSync()
+        observeNotificationScheduling()
         setContent { LunaraApp() }
     }
 
@@ -59,6 +64,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun observeNotificationScheduling() {
+        lifecycleScope.launch {
+            val emissionPolicy = NotificationScheduleEmissionPolicy()
+            preferences.state
+                .map { state -> state.session?.userId to state.notifications }
+                .distinctUntilChanged()
+                .collect { (userId, notificationPreferences) ->
+                    when (emissionPolicy.next()) {
+                        NotificationScheduleUpdate.ENSURE ->
+                            notificationScheduler.ensureScheduled(userId != null, notificationPreferences)
+                        NotificationScheduleUpdate.REPLACE ->
+                            notificationScheduler.apply(userId != null, notificationPreferences)
+                    }
+                }
         }
     }
 }

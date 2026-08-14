@@ -133,9 +133,9 @@ artifacts                    nur nachweislich erzeugte Build-Artefakte
 6. Android-Grundprojekt, Designsystem, Onboarding/Auth, verschlüsselte lokale
    Datenhaltung, Sync und rollenabhängige Hauptansichten.
 7. Kalender, Verlauf, Kernfreigaben, Einstellungen, Screenshot-Schutz und
-   QR-Flows. Vollständige Care-/Session-UIs, lokale Benachrichtigungen und
-   Biometrie werden nur nach dem Kernablauf ergänzt und bei Nichterreichen als
-   offene Funktionen ausgewiesen.
+   QR-Flows. Lokale, rollen- und freigabebewusste Benachrichtigungen werden nach
+   dem Kernablauf ergänzt; vollständige Care-/Session-UIs und Biometrie werden
+   bei Nichterreichen als offene Funktionen ausgewiesen.
 8. Docker-/Traefik-Konfiguration, Backup/Restore/Update, CI, SBOM und vollständige
    Betriebs-, Sicherheits-, Datenschutz-, Algorithmus- und Testdokumentation.
 9. Backend-Lint/Test/Build, echte PostgreSQL-Integrationstests, Docker-Build und

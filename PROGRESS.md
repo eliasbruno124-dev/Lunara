@@ -1,6 +1,6 @@
 # Lunara – Fortschritt
 
-Stand: 13. August 2026, Quellstand 1.0.5
+Stand: 14. August 2026, Android-Quellstand 1.0.6 / Server 1.0.5
 
 ## Implementiert
 
@@ -20,6 +20,14 @@ Stand: 13. August 2026, Quellstand 1.0.5
 - [x] Automatische Synchronisierung nach Anmeldung und lokaler Mutation, beim
   Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; begrenzter
   Backoff und manueller Sync bleiben vorhanden.
+- [x] Lokale, ausdrücklich aktivierbare Android-Benachrichtigungen für den
+  geschätzten Periodenzeitraum, das optional grob geschätzte fruchtbare
+  Fenster, Tracker-Eingaben und Partner-Tipps; je Gerät mit Wunschzeit,
+  Ruhezeit, Tageslimit und neutraler Sperrbildschirmvorschau.
+- [x] Tägliche Erinnerungsarbeit bei jedem Lauf an lokaler Uhrzeit neu geplant;
+  verschlüsselte Prognose-/Zustellcaches, Zustell-Commit erst nach Übergabe an
+  Android und strikt unterdrückte Partner-Hinweise ohne aktuelle
+  freigabefilterte Serverantwort.
 - [x] Persönlicher Passwortwechsel mit aktuellem Passwort, Argon2id, Rate
   Limit, Audit und Widerruf aller anderen Lunara-Sitzungen.
 - [x] Kontopasswort-Regel zentral auf 8 bis 128 Unicode-Zeichen ohne
@@ -48,7 +56,7 @@ Stand: 13. August 2026, Quellstand 1.0.5
 - [x] Getrennte Partnerfreigabe für das geschätzte fruchtbare Fenster;
   Aktivierung nur bei persönlichem Opt-in und atomarer Widerruf beim
   Deaktivieren.
-- [x] Android-Quellstand auf 1.0.5/VersionCode 6 angehoben; Serverfeld beim
+- [x] Android-Quellstand auf 1.0.6/VersionCode 7 angehoben; Serverfeld beim
   ersten Start wirklich leer und ohne fest eingebaute Produktionsdomain.
 - [x] Einmalige HTTPS-Userinfo-Eingabe implementiert. Gateway-Credential wird
   von der Basisadresse getrennt, Keystore-gestützt gespeichert und nie in
@@ -67,7 +75,28 @@ Stand: 13. August 2026, Quellstand 1.0.5
   Secret-Scan-Werkzeuge sowie deutsche Betriebs-/Sicherheitsdokumentation auf
   das aktuelle Gateway- und Mehrbeziehungsmodell aktualisiert.
 
-## Zuletzt vollständig verifizierter Release: 1.0.5
+## Verifizierte Android-Ergänzung: 1.0.6
+
+- [x] 25 JVM-Suites und 114 Tests erfolgreich; darunter 28 neue
+  Benachrichtigungstests für Policy, verschlüsselten Cache, Deduplizierung,
+  Ruhezeit, Doze, DST und Zeitzonenwechsel.
+- [x] Vollständiger Local-Lint einschließlich Testquellen und separater
+  Production-Hauptcode-Lint ohne Error/Fatal; Android-Instrumentation final
+  kompiliert, mangels Emulator/Gerät nicht ausgeführt.
+- [x] Installierbare Production-Debug-APK 1.0.6 und unsignierte Release-APK
+  tatsächlich gebaut; ZIP, Manifest, Version, SDKs, Signaturstatus, Größen und
+  SHA-256 geprüft.
+- [x] Ressourcenintensive Sammelläufe bei den vereinbarten Speichergrenzen
+  kontrolliert beendet und Restschritte einzeln begrenzt abgeschlossen. Keine
+  Wiedergabe, kein Host-/Produktivdienst-OOM und kein Restart; Lunara,
+  PostgreSQL, Authentik,
+  Pangolin, Traefik und Emby blieben während der Überwachung stabil.
+- [x] Reines Android-Update: API, Datenbank und produktive Container bleiben
+  unverändert auf dem geprüften Serverstand 1.0.5; kein Live-Neustart nötig.
+- [x] Android-1.0.6-Quellstand und beide geprüften APKs in den privaten Branch
+  gepusht, Draft-PR 1 aktualisiert und privaten Release `v1.0.6` veröffentlicht.
+
+## Vollständig verifizierter Server-/Gesamtrelease: 1.0.5
 
 - [x] Finale Backend-Prüfkette für 1.0.5: Prisma, ESLint, Nest-Build,
   OpenAPI-Reproduzierbarkeit und Audits erfolgreich; 19 Suites und 83 Tests.
@@ -121,8 +150,8 @@ vollständig belegt.
   Tageslog-Korrektur/-Löschung erweitern.
 - [ ] Serverseitige Rollenübertragung beziehungsweise Tracker-Einzellöschung
   ergänzen; aktuell löscht ein Tracker den gesamten internen Mandanten.
-- [ ] Benachrichtigungen, optionale ntfy-Anbindung, Biometrie, SSE-Client,
-  Widget, Demo-Modus und reduzierte Bewegungen.
+- [ ] Optionale ntfy-Anbindung, Biometrie, SSE-Client, Widget, Demo-Modus und
+  reduzierte Bewegungen. Lokale Benachrichtigungen sind umgesetzt.
 - [ ] Generischen CSV-Zuordnungsassistenten, Import-Rollback und direkten
   Import verschlüsselter Backupdateien ergänzen.
 - [ ] Monatwechsel und direkte Korrektur/Löschung in der Kalenderansicht sowie

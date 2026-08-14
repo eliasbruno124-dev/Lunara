@@ -131,7 +131,7 @@ getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
 ## HTTP, Zertifikate und Serveradresse
 
-Android 1.0.5 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
+Android 1.0.6 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
 eine HTTPS-URL mit Userinfo enthalten: Gateway-Benutzer, Doppelpunkt und
 App-Passwort stehen dabei vor `@` und dem Server-Host.
 Sonderzeichen müssen URL-kodiert sein. Die App extrahiert das Credential,
@@ -158,6 +158,23 @@ Passwörter, Header, Freitextnotizen und Gesundheitswerte werden nicht
 protokolliert. Der API-Container läuft als UID 10001, ohne Capabilities, mit
 read-only Root-Dateisystem und `no-new-privileges`.
 
+## Lokale Benachrichtigungen
+
+Benachrichtigungen sind pro Gerät standardmäßig deaktiviert und benötigen eine
+bewusste Freigabe. Prognosecache und Zustellzustand werden mit einem
+Keystore-gestützten `SecretStore` verschlüsselt; normale Schalter und Uhrzeiten
+enthalten keine Gesundheitsdaten und liegen in DataStore. Beim Logout oder
+lokalen Wipe werden geplante Arbeit, sichtbare Hinweise und verschlüsselte
+Benachrichtigungsdaten entfernt.
+
+Partner-Erinnerungen werden ausschließlich aus einer aktuellen, serverseitig
+freigabefilterten Partner-Dashboard-Antwort erzeugt und fallen bei fehlender
+Serververbindung geschlossen aus. Ein Fertilitätshinweis setzt den persönlichen
+Opt-in, ausreichende Daten und alle sicherheitsbezogenen API-Metadaten voraus.
+Die Sperrbildschirmvorschau ist standardmäßig neutral;
+das Betriebssystem selbst, ein entsperrtes kompromittiertes Gerät oder eine
+bewusst aktivierte Inhaltsvorschau bleiben außerhalb der App-Vertrauensgrenze.
+
 ## Verlorenes Gerät
 
 1. Über ein verbleibendes Konto oder die Admin-CLI die betroffene bzw. alle
@@ -181,8 +198,9 @@ in einer isolierten Instanz testen.
 
 ## Bekannte Grenzen
 
-- App-Sperre per Biometrie, Benachrichtigungen/ntfy und Zertifikat-Pinning sind
-  nicht implementiert. Screenshot-Schutz via `FLAG_SECURE` ist vorhanden.
+- App-Sperre per Biometrie, ntfy und Zertifikat-Pinning sind nicht
+  implementiert. Lokale Benachrichtigungen und Screenshot-Schutz via
+  `FLAG_SECURE` sind vorhanden.
 - Server-Sent Events existieren serverseitig, werden von Android Version 1 aber
   noch nicht konsumiert. Die App synchronisiert nach Anmeldung und Änderungen,
   beim Öffnen, im Vordergrund höchstens einmal pro Minute sowie sparsam per
