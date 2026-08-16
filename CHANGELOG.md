@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.8 – 2026-08-16
+
+- Android-Zielverhalten auf den im stabilen SDK-Kanal verfügbaren API-Level
+  36 korrigiert. Kompiliert wird weiterhin mit API 37 aus dem Preview-Kanal,
+  weil die aktuell gepinnten AndroidX-Bibliotheken dieses Compile-SDK bereits
+  voraussetzen; dadurch wird kein Android-17-Laufzeitverhalten aktiviert.
+- Android auf VersionCode 9/VersionName 1.0.8 angehoben. Die App bleibt mit
+  der unveränderten Lunara-API v1 und dem produktiven Server 1.0.7 kompatibel.
+- GitHub-CI richtet das benötigte Preview-Compile-SDK nun explizit ein;
+  Backend-E2E verwendet Node 24.18.0 auf dem Runner gegen eine zufällig und nur
+  an `127.0.0.1` gebundene PostgreSQL-18-Testinstanz.
+- Die geheime Historienprüfung erlaubt exakt einen dokumentierten,
+  veröffentlichten OpenAPI-SHA-256-Wert, ohne andere Regeln oder Dateien von
+  der Suche auszunehmen.
+
 ## 1.0.7 – 2026-08-16
 
 - Im Kalender können Tracker vergangene Perioden vollständig mit Start- und

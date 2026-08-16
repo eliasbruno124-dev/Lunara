@@ -46,7 +46,7 @@ jobs:
           cache-provider: basic
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Run Android lint
         run: gradle -p apps/android --no-daemon lintLocalDebug lintProductionDebug
@@ -85,7 +85,7 @@ jobs:
           cache-provider: basic
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Run Android unit tests
         run: >-
@@ -128,7 +128,7 @@ jobs:
           cache-provider: basic
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Build local and production debug APKs
         run: >-
@@ -170,7 +170,7 @@ jobs:
           cache-provider: basic
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
       - name: Build unsigned production release APK
         run: gradle -p apps/android --no-daemon --max-workers=1 assembleProductionRelease

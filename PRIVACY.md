@@ -77,7 +77,7 @@ die äußere Proxy-Schicht mit `Authorization: Basic …`; er ist kein persönli
 Konto. Persönliche Lunara-Authentifizierung und Rollenprüfung erfolgen separat
 über `X-Lunara-Authorization: Bearer …`.
 
-Android 1.0.7 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
+Android 1.0.8 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
 Gateway-Zugangsdaten darf ausschließlich bei der ersten Einrichtung einmalig
 eingegeben werden. Die App trennt die Zugangsdaten sofort von der sichtbaren
 Basisadresse und speichert sie Keystore-gestützt. Die dauerhaft sichtbare
@@ -97,7 +97,7 @@ lang.
 
 ## Benachrichtigungen
 
-Android 1.0.7 bietet ausschließlich lokale, standardmäßig deaktivierte
+Android 1.0.8 bietet ausschließlich lokale, standardmäßig deaktivierte
 Erinnerungen. Nach dem Einschalten fragt die App auf unterstützten
 Android-Versionen ausdrücklich nach der Benachrichtigungsberechtigung. Es gibt
 keine Firebase-, Werbe-, Analyse- oder externe Push-Verbindung; die optionale

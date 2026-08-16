@@ -1,6 +1,27 @@
 # Lunara – Fortschritt
 
-Stand: 16. August 2026, Android und Server 1.0.7
+Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
+
+## Android-Buildkorrektur 1.0.8
+
+- [x] targetSdk auf den tatsächlich im stabilen SDK-Kanal verfügbaren
+  API-Level 36 korrigiert. compileSdk bleibt wegen der gepinnten aktuellen
+  AndroidX-Versionen auf API 37; Android wurde auf VersionCode 9/VersionName
+  1.0.8 angehoben und bleibt mit Server/API 1.0.7 kompatibel.
+- [x] GitHub-Runner installieren das benötigte Preview-Compile-SDK explizit;
+  PostgreSQL-E2E läuft mit der gepinnten Node-Version des Runners statt in
+  einem internen Container ohne erreichbaren Prisma-Engine-Download.
+- [x] Der Gitleaks-Fehlalarm ist auf den exakten, bereits veröffentlichten
+  OpenAPI-Snapshot-Hash begrenzt; alle übrigen Regeln und Dateien bleiben im
+  Historien-Scan aktiv.
+- [x] Android 1.0.8 lokal real gebaut und geprüft: beide Varianten jeweils
+  27 Suites/132 Tests ohne Fehler, Local-Lint 0 Fehler/39 Warnungen,
+  Production-Lint 0 Fehler/38 Warnungen und Instrumentierung kompiliert.
+- [x] Installierbare Debug-APK (24.531.309 Bytes, SHA-256
+  `66098c59fadc58c84d463e68447b325435aa84d45e13c2bb27761283b958191d`)
+  sowie unsigned Release-APK (19.841.583 Bytes, SHA-256
+  `caa4575e6e782cdeb2639b83a17d475b0f319a6e2a9fd260a30583daef8749f1`)
+  gebaut; ZIP, Manifest, SDK-Stufen und Signaturstatus geprüft.
 
 ## Verifizierter Release 1.0.7
 

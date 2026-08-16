@@ -177,7 +177,7 @@ Zugangsdaten gehören weder in DNS-Werte noch Cloudflare-Regeln.
 
 ## 6. Android-App mit Header Auth verbinden
 
-Das Serverfeld ist in Android 1.0.7 beim Erststart leer. Der Betreiber
+Das Serverfeld ist in Android 1.0.8 beim Erststart leer. Der Betreiber
 übermittelt die vom Authentik-Skript erzeugte Header-Auth-Adresse einmalig über
 einen sicheren Kanal. Ihr allgemeines Schema ist HTTPS, gefolgt von Gateway-
 Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die echten Bestandteile

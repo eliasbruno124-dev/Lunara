@@ -47,7 +47,7 @@ OpenAPI-Dokumentation.
   Tracker-Eingaben und Partner-Tipps; ohne Firebase oder externe Push-Dienste
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
   `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.7 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+- native Compose-App 1.0.8 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
   rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
   Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
 - rückwirkende Erfassung vollständiger Perioden direkt im Kalender sowie
@@ -72,7 +72,7 @@ Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
 ## Verbindung und Authentifizierung
 
-Das Serverfeld ist beim ersten Start von Android 1.0.7 absichtlich leer. Für
+Das Serverfeld ist beim ersten Start von Android 1.0.8 absichtlich leer. Für
 die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
 Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
 Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
@@ -145,9 +145,9 @@ artifacts/lunara-debug.apk
 ```
 
 Im privaten GitHub-Repository kann sie nach Anmeldung direkt über den
-[Release Lunara 1.0.7](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.7)
+[Release Lunara Android 1.0.8](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.8)
 oder als
-[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.7/lunara-debug.apk)
+[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.8/lunara-debug.apk)
 heruntergeladen werden.
 
 Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:

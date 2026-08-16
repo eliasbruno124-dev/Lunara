@@ -1,15 +1,17 @@
-# Lunara – Abschlussbericht 1.0.7
+# Lunara – Abschlussbericht Server 1.0.7 / Android 1.0.8
 
 Stand: 16. August 2026
 
-Lunara 1.0.7 ist gebaut, geprüft und auf dem produktiven Server ausgerollt. Die
-API läuft gesund hinter Pangolin und Authentik; die Datenbankmigration schützt
+Lunara Server 1.0.7 ist gebaut, geprüft und auf dem produktiven Server
+ausgerollt; Android 1.0.8 ist anschließend mit reproduzierbarer CI-
+Toolchainkorrektur gebaut und geprüft worden. Die API läuft gesund hinter
+Pangolin und Authentik; die Datenbankmigration schützt
 aktive Periodenbereiche nun atomar gegen Überschneidungen. Eine installierbare
 Production-Debug-APK und eine bewusst unsignierte Release-APK wurden
 tatsächlich erzeugt und geprüft. Dieser Bericht trennt bestätigte Ergebnisse
 von nicht ausgeführten Prüfungen.
 
-## Release 1.0.7 – Ergebnis
+## Server 1.0.7 / Android 1.0.8 – Ergebnis
 
 Die Tracker-App unterstützt jetzt drei zusammenhängende Wege:
 
@@ -62,8 +64,9 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
   exakt-einmal Offline-Sync einschließlich Wiederverwendung abgelaufener Keys
 - OpenAPI-Snapshot und generierter Kotlin-Client reproduzierbar neu erzeugt;
   Hashprüfung erfolgreich
-- Android: 27/27 JVM-Suites, 132/132 Tests, 0 Fehler und 0 übersprungen
-- Android-Lint: Local 0 Fehler/38 Warnungen, Production 0 Fehler/37 Warnungen
+- Android 1.0.8: Local und Production jeweils 27/27 JVM-Suites, 132/132
+  Tests, 0 Fehler und 0 übersprungen
+- Android-Lint: Local 0 Fehler/39 Warnungen, Production 0 Fehler/38 Warnungen
 - Production-Instrumentierung erfolgreich kompiliert; mangels Emulator oder
   Gerät nicht ausgeführt
 - Production-Debug- und Production-Release-APK tatsächlich gebaut. Ein zu eng
@@ -88,14 +91,16 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
 
 ### APK-Artefakte
 
-- `artifacts/lunara-debug.apk`: 24.531.305 Bytes, installierbar und gültig
+- `artifacts/lunara-debug.apk`: 24.531.309 Bytes, installierbar und gültig
   APK-v2-debugsigniert; SHA-256
-  `db0985b59c561062fb499e82eb70f4efad281b8075a2280bfb4bc13d054dfb70`
-- `artifacts/lunara-release-unsigned.apk`: 19.841.579 Bytes, erwartungsgemäß
+  `66098c59fadc58c84d463e68447b325435aa84d45e13c2bb27761283b958191d`
+- `artifacts/lunara-release-unsigned.apk`: 19.841.583 Bytes, erwartungsgemäß
   nicht signiert; SHA-256
-  `42367bdd22488d00a6b4a21dc511b619c79129099c78386986b5dcc2387550e3`
-- beide: VersionCode 8, VersionName 1.0.7, minSdk 26, target/compileSdk 37 und
-  fehlerfreie ZIP-Struktur
+  `caa4575e6e782cdeb2639b83a17d475b0f319a6e2a9fd260a30583daef8749f1`
+- beide: VersionCode 9, VersionName 1.0.8, minSdk 26, targetSdk 36,
+  compileSdk 37 und fehlerfreie ZIP-Struktur. Die Debug-APK nutzt weiterhin
+  dasselbe nicht eingecheckte Debug-Zertifikat wie 1.0.7 und ist dadurch als
+  Update installierbar.
 
 ### Bewusst nicht ausgeführt / bekannte Grenze
 
@@ -114,6 +119,12 @@ die vorhandenen Registrierungskonkurrenztests in einer separaten App-Instanz
 isoliert. Erst der danach vollständig erfolgreiche Lauf wird oben als Erfolg
 gezählt. Die temporären PostgreSQL-Container und ihr Tmpfs wurden anschließend
 beendet; Produktionsdaten waren davon nicht betroffen.
+
+Ein erster Android-1.0.8-Versuch mit compileSdk 36 scheiterte korrekt an der
+AAR-Metadatenprüfung: fünf aktuell gepinnte AndroidX-Abhängigkeiten verlangen
+compileSdk 37. Der erfolgreiche Build trennt deshalb compileSdk 37 vom stabilen
+targetSdk 36. GitHub installiert das Preview-Compile-Paket ausdrücklich als
+`platforms;android-37.0`; Android-17-Laufzeitverhalten wird nicht aktiviert.
 
 Die folgenden Abschnitte dokumentieren zusätzlich die bereits verifizierten
 älteren Ausbaustufen und bleiben als historische Nachweise erhalten.

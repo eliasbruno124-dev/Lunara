@@ -2,11 +2,11 @@
 
 Erfolgsaussagen beziehen sich ausschließlich auf tatsächlich ausgeführte
 Befehle. Die endgültigen Ergebnisse, Artefaktgrößen, Prüfsummen, Image-IDs und
-Live-Prüfungen des Release 1.0.7 stehen in `FINAL_REPORT.md`. Diese Datei
-beschreibt die verbindliche Prüfmatrix und behauptet nicht allein aufgrund
-vorhandener Dateien einen erfolgreichen Build.
+Live-Prüfungen von Server 1.0.7 und Android 1.0.8 stehen in
+`FINAL_REPORT.md`. Diese Datei beschreibt die verbindliche Prüfmatrix und
+behauptet nicht allein aufgrund vorhandener Dateien einen erfolgreichen Build.
 
-## Tatsächlich ausgeführter Release 1.0.7
+## Tatsächlich ausgeführter Server 1.0.7 / Android 1.0.8
 
 Backend:
 
@@ -37,19 +37,20 @@ Backend:
 
 Android:
 
-- `testLocalDebugUnitTest`: 27 Suites, 132 Tests, 0 Fehler, 0 übersprungen
-- `lintLocalDebug`: erfolgreich, 0 Fehler und 38 Warnungen
+- `testLocalDebugUnitTest` und `testProductionDebugUnitTest`: jeweils 27
+  Suites, 132 Tests, 0 Fehler, 0 übersprungen
+- `lintLocalDebug`: erfolgreich, 0 Fehler und 39 Warnungen
 - `lintProductionDebug` mit bereits im Local-Lint geprüften Testanalysen
-  ausgeschlossen: erfolgreich, 0 Fehler und 37 Warnungen
+  ausgeschlossen: erfolgreich, 0 Fehler und 38 Warnungen
 - `compileProductionDebugAndroidTestKotlin`: erfolgreich; die Compose-
   Gerätetests wurden mangels Emulator/Gerät kompiliert, aber nicht ausgeführt
 - `assembleProductionDebug`: erfolgreich
 - `assembleProductionRelease` nach ehrlich fehlgeschlagenen ressourcenarmen
   D8-/`lintVital`-Läufen im gezielten Wiederholungslauf erfolgreich; der
   vollständige Production-Lint war zuvor separat erfolgreich
-- APK-Prüfung: VersionCode 8, VersionName 1.0.7, minSdk 26, target/compileSdk
-  37, fehlerfreie ZIP-Struktur; Debug gültig v2-signiert, Release erwartbar
-  unsigned
+- APK-Prüfung: VersionCode 9, VersionName 1.0.8, minSdk 26, targetSdk 36,
+  compileSdk 37, fehlerfreie ZIP-Struktur; Debug mit demselben Zertifikat wie
+  1.0.7 gültig v2-signiert, Release erwartbar unsigned
 
 Live:
 

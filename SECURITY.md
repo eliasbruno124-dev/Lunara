@@ -151,7 +151,7 @@ getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
 ## HTTP, Zertifikate und Serveradresse
 
-Android 1.0.7 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
+Android 1.0.8 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
 eine HTTPS-URL mit Userinfo enthalten: Gateway-Benutzer, Doppelpunkt und
 App-Passwort stehen dabei vor `@` und dem Server-Host.
 Sonderzeichen müssen URL-kodiert sein. Die App extrahiert das Credential,

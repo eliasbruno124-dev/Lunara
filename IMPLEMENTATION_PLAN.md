@@ -50,7 +50,8 @@ fixiert. Ausgangspins nach Prüfung der offiziellen Release-Quellen:
 - Prisma / Prisma Client / PostgreSQL-Adapter 7.9.1
 - PostgreSQL 18.4
 - TypeScript 5.9.x
-- Android compileSdk/targetSdk 37, minSdk 26
+- Android compileSdk 37 (von den gepinnten AndroidX-Versionen vorausgesetzt),
+  targetSdk 36 (stabiler Laufzeitkanal), minSdk 26
 - Android Gradle Plugin 9.1.1, Gradle 9.3.1, JDK 17
 - Kotlin und Compose-Compiler-Plugin 2.4.10
 - Compose BOM 2026.06.01
