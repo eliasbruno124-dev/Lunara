@@ -87,7 +87,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["npm", "run", "prisma:migrate:deploy", "--prefix", "services/api"]
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy", "--config", "services/api/prisma/prisma.config.ts"]
     networks:
       - app_internal
     read_only: true

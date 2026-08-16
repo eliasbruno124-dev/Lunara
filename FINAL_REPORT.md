@@ -72,8 +72,12 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
   beziehungsweise redundantem `lintVital` scheiterten ehrlich; die
   korrigierten, ausreichend begrenzten Wiederholungsläufe waren erfolgreich
 - Multi-Stage-Image `lunara-api:1.0.7` gebaut: Image-ID
-  `sha256:33e9705d3d9ed7b4aa5390f3a151ae8b4de560a73d71df7bf6332ba12644a9c5`,
-  Runtime UID/GID `10001:10001`
+  `sha256:3e3105eb24b805c1df621b5ec5c5910ba1db4f9adc5f54937faa67f27de7f439`,
+  618.951.392 Bytes, Runtime UID/GID `10001:10001`
+- Gehärtetes Runtime-Image ohne npm, npx oder Corepack; Node 24.18.0,
+  Argon2 und der direkte Prisma-Migrationsbefehl real geprüft. Lokaler
+  Trivy-0.72.0-Lauf meldet 0 fixbare HIGH/CRITICAL-Funde; nicht reparierbare
+  Debian-Befunde werden mit `ignore-unfixed` getrennt behandelt
 - Vor Migration validierter PostgreSQL-Custom-Dump:
   `/var/backups/lunara/lunara-pre-1.0.7-period-overlap-20260816T181900Z.dump`
 - Live: Migration, Constraint und Erweiterung vorhanden; API healthy,

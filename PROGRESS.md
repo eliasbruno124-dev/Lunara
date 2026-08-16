@@ -50,7 +50,9 @@ Stand: 16. August 2026, Android und Server 1.0.7
   ersetzt.
 - [x] Live verifiziert: Migration/Constraint/Extension vorhanden, API non-root
   und read-only, `/health`, `/ready` und Meta jeweils 200, Version 1.0.7,
-  Authentik-Gateway vollständig geschützt. Fremddienste blieben unverändert.
+  Authentik-Gateway vollständig geschützt. Finale npm-freie Runtime lokal mit
+  0 fixbaren HIGH/CRITICAL-Trivy-Funden geprüft. Fremddienste blieben
+  unverändert.
 
 ## Implementiert
 

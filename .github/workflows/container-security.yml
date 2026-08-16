@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: container-security-${{ github.workflow }}-${{ github.ref }}
@@ -44,9 +45,10 @@ jobs:
       - name: Scan source and Git history
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
           GITLEAKS_ENABLE_SUMMARY: "false"
-        with:
-          args: --redact --no-banner
 
   npm-audit:
     name: npm dependency audit
@@ -107,7 +109,10 @@ jobs:
           version: v0.72.0
           format: table
           exit-code: "1"
-          ignore-unfixed: false
+          # Keep blocking every fixable HIGH/CRITICAL finding. Debian findings
+          # without an available package fix are tracked through pinned base-
+          # image updates but cannot be remediated by this application build.
+          ignore-unfixed: true
           vuln-type: os,library
           severity: HIGH,CRITICAL
 

@@ -21,12 +21,15 @@ COPY services/api/prisma ./services/api/prisma
 RUN npm ci --omit=dev \
     && npm run prisma:generate --workspace=@lunara/api
 
-FROM base AS runtime
+FROM debian:bookworm-slim@sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241 AS runtime
 ENV NODE_ENV=production \
     PORT=3000
-RUN groupadd --gid 10001 lunara \
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends openssl ca-certificates libstdc++6 \
+    && groupadd --gid 10001 lunara \
     && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin lunara
 WORKDIR /app
+COPY --from=base /usr/local/bin/node /usr/local/bin/node
 COPY --from=production-dependencies --chown=lunara:lunara /workspace/node_modules ./node_modules
 COPY --from=build --chown=lunara:lunara /workspace/services/api/dist ./services/api/dist
 COPY --from=build --chown=lunara:lunara /workspace/services/api/package.json ./services/api/package.json

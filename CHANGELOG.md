@@ -37,6 +37,9 @@
   OpenAPI-Metadaten auf 1.0.7 angehoben.
 - Der vollständige Kernablauf wurde nach allen sieben Migrationen gegen eine
   echte frische PostgreSQL-18-Datenbank erfolgreich ausgeführt.
+- Das produktive Runtime-Image basiert auf einer minimalen Debian-Stufe mit
+  ausschließlich kopiertem Node-Binary; npm, npx und Corepack sind nicht mehr
+  enthalten. Migrationen laufen direkt über die gepinnte Prisma-CLI.
 
 ## 1.0.6 – 2026-08-14
 

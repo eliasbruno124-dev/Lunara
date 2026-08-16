@@ -176,7 +176,9 @@ Dokumentation oder Cloudflare-Konfiguration.
 Helmet, Body-Limit, DTO-Validierung und restriktives CORS sind aktiv. Tokens,
 Passwörter, Header, Freitextnotizen und Gesundheitswerte werden nicht
 protokolliert. Der API-Container läuft als UID 10001, ohne Capabilities, mit
-read-only Root-Dateisystem und `no-new-privileges`.
+read-only Root-Dateisystem und `no-new-privileges`. Die produktive Runtime
+enthält weder npm, npx noch Corepack; Migrationen verwenden den direkt aus den
+fixierten Produktionsabhängigkeiten kopierten Prisma-CLI-Einstiegspunkt.
 
 ## Lokale Benachrichtigungen
 

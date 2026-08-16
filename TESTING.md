@@ -65,8 +65,13 @@ Live:
   anonyme Root-/Health-/OpenAPI-/Meta-/Login-Zugriffe bleiben durch Authentik
   gesperrt
 - final neu gebautes und ausgerolltes API-Image:
-  `sha256:33e9705d3d9ed7b4aa5390f3a151ae8b4de560a73d71df7bf6332ba12644a9c5`;
+  `sha256:3e3105eb24b805c1df621b5ec5c5910ba1db4f9adc5f54937faa67f27de7f439`;
   Healthcheck healthy, RestartCount 0
+- npm-freie Runtime, Node/Argon2 und direkter Prisma-CLI-Aufruf geprüft;
+  sieben Migrationen mit diesem finalen Runtime-Image auf einer frischen
+  PostgreSQL-18-Datenbank erfolgreich angewendet
+- Trivy 0.72.0 gegen das finale Image mit HIGH/CRITICAL und
+  `ignore-unfixed`: 0 fixbare Funde
 
 ## Tatsächlich ausgeführte Android-1.0.6-Ergänzung
 
