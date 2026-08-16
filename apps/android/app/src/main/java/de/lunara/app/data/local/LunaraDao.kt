@@ -24,6 +24,9 @@ interface PeriodDao {
     @Query("SELECT * FROM period_events WHERE userId = :userId AND startDate = :startDate AND deletedAt IS NULL LIMIT 1")
     suspend fun findByStartDate(userId: String, startDate: String): PeriodEntity?
 
+    @Query("SELECT * FROM period_events WHERE userId = :userId AND deletedAt IS NULL ORDER BY startDate")
+    suspend fun activeForUser(userId: String): List<PeriodEntity>
+
     @Query("UPDATE period_events SET deletedAt = :deletedAt, updatedAt = :updatedAt, version = :version, syncState = 'SYNCED' WHERE id = :id")
     suspend fun applyDelete(id: String, deletedAt: String, updatedAt: String, version: Long)
 

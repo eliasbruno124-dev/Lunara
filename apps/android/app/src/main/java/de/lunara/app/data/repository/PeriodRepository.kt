@@ -74,121 +74,175 @@ class PeriodRepository @Inject constructor(
         conflicts.size
     }
 
-    suspend fun startPeriod(userId: String, date: LocalDate = LocalDate.now(Clock.systemDefaultZone())): String =
-        ProcessSyncGate.serialized {
-            ensureCurrentTracker(userId)
-            require(!date.isAfter(LocalDate.now(Clock.systemDefaultZone()))) { "A period cannot start in the future" }
-            database.periodDao().findByStartDate(userId, date.toString())?.let { existing ->
-                if (SyncEditPolicy.isBlocked(existing.syncState)) throw PeriodSyncConflictException()
-                return@serialized existing.id
-            }
-            val entityId = UUID.randomUUID().toString()
-            val mutationId = UUID.randomUUID().toString()
-            val now = nextMutationTime()
-            val entityTimestamp = now.toString()
-            val mutationTimestamp = MutationTimestampPolicy.format(now)
-            val period = PeriodEntity(
-                id = entityId,
-                userId = userId,
-                startDate = date.toString(),
-                createdAt = entityTimestamp,
-                updatedAt = entityTimestamp,
-            )
-            val mutation = MutationEntity(
-                id = UUID.randomUUID().toString(),
-                clientMutationId = mutationId,
-                entityType = PERIOD_ENTITY_TYPE,
-                entityId = entityId,
-                operation = "UPSERT",
-                payloadJson = gson.toJson(
-                    mapOf(
-                        "id" to entityId,
-                        "startDate" to date.toString(),
-                        "source" to "MANUAL",
-                    ),
-                ),
-                baseVersion = 0,
-                createdAt = mutationTimestamp,
-                nextAttemptAt = mutationTimestamp,
-            )
-            database.withTransaction {
-                database.periodDao().insert(period)
-                check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
-            }
-            syncScheduler.requestAfterMutation()
-            entityId
+    suspend fun startPeriod(
+        userId: String,
+        date: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
+    ): String = createPeriod(userId, date, null)
+
+    /**
+     * Creates one complete optimistic period record and exactly one offline mutation. Historical
+     * periods therefore never need a follow-up update merely to attach their known end date.
+     */
+    suspend fun createPeriod(
+        userId: String,
+        startDate: LocalDate,
+        endDate: LocalDate? = null,
+    ): String = ProcessSyncGate.serialized {
+        ensureCurrentTracker(userId)
+        val today = LocalDate.now(Clock.systemDefaultZone())
+        PeriodDatePolicy.requireValid(
+            startDate,
+            endDate,
+            today,
+        )
+        database.periodDao().findByStartDate(userId, startDate.toString())?.let { existing ->
+            if (SyncEditPolicy.isBlocked(existing.syncState)) throw PeriodSyncConflictException()
+            if (existing.endDate == endDate?.toString()) return@serialized existing.id
+            throw DuplicatePeriodDateException()
         }
+        if (
+            PeriodOverlapPolicy.hasOverlap(
+                database.periodDao().activeForUser(userId),
+                startDate,
+                endDate,
+                today,
+            )
+        ) {
+            throw OverlappingPeriodException()
+        }
+        val entityId = UUID.randomUUID().toString()
+        val mutationId = UUID.randomUUID().toString()
+        val now = nextMutationTime()
+        val entityTimestamp = now.toString()
+        val mutationTimestamp = MutationTimestampPolicy.format(now)
+        val period = PeriodEntity(
+            id = entityId,
+            userId = userId,
+            startDate = startDate.toString(),
+            endDate = endDate?.toString(),
+            createdAt = entityTimestamp,
+            updatedAt = entityTimestamp,
+        )
+        val mutation = MutationEntity(
+            id = UUID.randomUUID().toString(),
+            clientMutationId = mutationId,
+            entityType = PERIOD_ENTITY_TYPE,
+            entityId = entityId,
+            operation = "UPSERT",
+            payloadJson = periodCreatePayload(period),
+            baseVersion = 0,
+            createdAt = mutationTimestamp,
+            nextAttemptAt = mutationTimestamp,
+        )
+        database.withTransaction {
+            database.periodDao().insert(period)
+            check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
+        }
+        syncScheduler.requestAfterMutation()
+        entityId
+    }
 
     suspend fun updatePeriodDates(
         userId: String,
         periodId: String,
         startDate: LocalDate,
         endDate: LocalDate?,
-    ): String =
-        ProcessSyncGate.serialized {
-            ensureCurrentTracker(userId)
-            PeriodDatePolicy.requireValid(startDate, endDate, LocalDate.now(Clock.systemDefaultZone()))
-            val now = nextMutationTime()
-            val entityTimestamp = now.toString()
-            val mutationTimestamp = MutationTimestampPolicy.format(now)
-            database.withTransaction {
-                val current = requireOwnedActivePeriod(userId, periodId)
-                if (!PeriodMutationPolicy.datesChanged(current, startDate, endDate)) {
-                    return@withTransaction
-                }
-                database.periodDao().findByStartDate(userId, startDate.toString())
-                    ?.takeIf { it.id != periodId }
-                    ?.let { throw DuplicatePeriodDateException() }
+    ): String = ProcessSyncGate.serialized {
+        updatePeriodDatesLocked(userId, periodId, startDate, endDate)
+    }
 
-                val queued = database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
-                if (queued.any { it.state == "CONFLICT" }) throw PeriodSyncConflictException()
-                database.mutationDao().reviveFailedForEntity(PERIOD_ENTITY_TYPE, periodId, mutationTimestamp)
-                val normalizedQueue = if (queued.any { it.state == "FAILED" }) {
-                    database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
-                } else queued
-                val tail = PeriodMutationPolicy.replaceableTail(normalizedQueue)
-                val baseVersion = tail?.baseVersion
-                    ?: PeriodMutationPolicy.predictedServerVersion(current.version, normalizedQueue)
-                val payloadJson = if (baseVersion > 0L) {
-                    PeriodPayloadPolicy.update(gson, periodId, startDate, endDate, baseVersion)
-                } else ""
-                val pendingPeriod = current.copy(
-                    startDate = startDate.toString(),
-                    endDate = endDate?.toString(),
-                    updatedAt = entityTimestamp,
-                    syncState = "PENDING",
-                )
-                database.periodDao().upsertAll(
-                    listOf(
-                        pendingPeriod,
-                    ),
-                )
-                if (baseVersion == 0L) {
-                    val unsentCreate = tail ?: throw PeriodSyncConflictException()
-                    check(
-                        database.mutationDao().replaceUnattempted(
-                            unsentCreate.id,
-                            "UPSERT",
-                            periodCreatePayload(pendingPeriod),
-                            0,
-                            mutationTimestamp,
-                        ) == 1,
-                    ) { "Queued period creation changed unexpectedly" }
-                } else {
-                    enqueueOrReplacePeriodMutation(
-                        tail = tail,
-                        entityId = periodId,
-                        operation = "UPSERT",
-                        payloadJson = payloadJson,
-                        baseVersion = baseVersion,
-                        now = mutationTimestamp,
-                        dependencies = normalizedQueue,
-                    )
-                }
+    /** Reads the current start under the same process gate and only changes the end date. */
+    suspend fun endPeriod(
+        userId: String,
+        periodId: String,
+        endDate: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
+    ): Boolean = ProcessSyncGate.serialized {
+        ensureCurrentTracker(userId)
+        val current = requireOwnedActivePeriod(userId, periodId)
+        if (!PeriodMutationPolicy.canEnd(current)) return@serialized false
+        updatePeriodDatesLocked(userId, periodId, LocalDate.parse(current.startDate), endDate)
+        true
+    }
+
+    private suspend fun updatePeriodDatesLocked(
+        userId: String,
+        periodId: String,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+    ): String {
+        ensureCurrentTracker(userId)
+        val today = LocalDate.now(Clock.systemDefaultZone())
+        PeriodDatePolicy.requireValid(startDate, endDate, today)
+        val now = nextMutationTime()
+        val entityTimestamp = now.toString()
+        val mutationTimestamp = MutationTimestampPolicy.format(now)
+        var changed = false
+        database.withTransaction {
+            val current = requireOwnedActivePeriod(userId, periodId)
+            if (!PeriodMutationPolicy.datesChanged(current, startDate, endDate)) {
+                return@withTransaction
             }
-            syncScheduler.requestAfterMutation()
-            periodId
+            database.periodDao().findByStartDate(userId, startDate.toString())
+                ?.takeIf { it.id != periodId }
+                ?.let { throw DuplicatePeriodDateException() }
+            if (
+                PeriodOverlapPolicy.hasOverlap(
+                    database.periodDao().activeForUser(userId),
+                    startDate,
+                    endDate,
+                    today,
+                    excludingId = periodId,
+                )
+            ) {
+                throw OverlappingPeriodException()
+            }
+
+            val queued = database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
+            if (queued.any { it.state == "CONFLICT" }) throw PeriodSyncConflictException()
+            database.mutationDao().reviveFailedForEntity(PERIOD_ENTITY_TYPE, periodId, mutationTimestamp)
+            val normalizedQueue = if (queued.any { it.state == "FAILED" }) {
+                database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
+            } else queued
+            val tail = PeriodMutationPolicy.replaceableTail(normalizedQueue)
+            val baseVersion = tail?.baseVersion
+                ?: PeriodMutationPolicy.predictedServerVersion(current.version, normalizedQueue)
+            val payloadJson = if (baseVersion > 0L) {
+                PeriodPayloadPolicy.update(gson, periodId, startDate, endDate, baseVersion)
+            } else ""
+            val pendingPeriod = current.copy(
+                startDate = startDate.toString(),
+                endDate = endDate?.toString(),
+                updatedAt = entityTimestamp,
+                syncState = "PENDING",
+            )
+            database.periodDao().upsertAll(listOf(pendingPeriod))
+            if (baseVersion == 0L) {
+                val unsentCreate = tail ?: throw PeriodSyncConflictException()
+                check(
+                    database.mutationDao().replaceUnattempted(
+                        unsentCreate.id,
+                        "UPSERT",
+                        periodCreatePayload(pendingPeriod),
+                        0,
+                        mutationTimestamp,
+                    ) == 1,
+                ) { "Queued period creation changed unexpectedly" }
+            } else {
+                enqueueOrReplacePeriodMutation(
+                    tail = tail,
+                    entityId = periodId,
+                    operation = "UPSERT",
+                    payloadJson = payloadJson,
+                    baseVersion = baseVersion,
+                    now = mutationTimestamp,
+                    dependencies = normalizedQueue,
+                )
+            }
+            changed = true
         }
+        if (changed) syncScheduler.requestAfterMutation()
+        return periodId
+    }
 
     suspend fun deletePeriod(userId: String, periodId: String) = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
@@ -362,13 +416,12 @@ class PeriodRepository @Inject constructor(
         return period
     }
 
-    private fun periodCreatePayload(period: PeriodEntity): String = gson.toJson(
-        linkedMapOf<String, Any?>(
-            "id" to period.id,
-            "startDate" to period.startDate,
-            "endDate" to period.endDate,
-            "source" to period.source,
-        ),
+    private fun periodCreatePayload(period: PeriodEntity): String = PeriodPayloadPolicy.create(
+        gson = gson,
+        id = period.id,
+        startDate = LocalDate.parse(period.startDate),
+        endDate = period.endDate?.let(LocalDate::parse),
+        source = period.source,
     )
 
     private suspend fun enqueueOrReplacePeriodMutation(
@@ -436,6 +489,7 @@ class PeriodRepository @Inject constructor(
 internal class SessionChangedException : IllegalStateException("Session changed while saving local data")
 internal class PeriodNotFoundException : IllegalStateException("Period entry is unavailable")
 internal class DuplicatePeriodDateException : IllegalArgumentException("A period already starts on this date")
+internal class OverlappingPeriodException : IllegalArgumentException("Period ranges must not overlap")
 internal class InvalidPeriodRangeException : IllegalArgumentException("The period end would precede its start")
 internal class PeriodDateInFutureException : IllegalArgumentException("Period dates cannot be in the future")
 internal class PeriodSyncConflictException : IllegalStateException("Resolve the existing sync conflict first")
@@ -452,6 +506,22 @@ internal object DailyLogPayloadPolicy {
 }
 
 internal object PeriodPayloadPolicy {
+    /** A historical period is created in one mutation, including its already known end date. */
+    fun create(
+        gson: Gson,
+        id: String,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+        source: String = "MANUAL",
+    ): String = gson.newBuilder().serializeNulls().create().toJson(
+        linkedMapOf<String, Any?>(
+            "id" to id,
+            "startDate" to startDate.toString(),
+            "endDate" to endDate?.toString(),
+            "source" to source,
+        ),
+    )
+
     /** Explicit null is required to remove a previously stored end date through PATCH. */
     fun update(
         gson: Gson,
@@ -478,6 +548,32 @@ internal object PeriodDatePolicy {
     }
 }
 
+internal object PeriodOverlapPolicy {
+    /** Open periods extend through today until an explicit local end date is recorded. */
+    fun hasOverlap(
+        periods: List<PeriodEntity>,
+        startDate: LocalDate,
+        endDate: LocalDate?,
+        today: LocalDate,
+        excludingId: String? = null,
+    ): Boolean {
+        val candidateEnd = endDate ?: today
+        return periods.asSequence()
+            .filter { it.id != excludingId && it.deletedAt == null }
+            .mapNotNull { period ->
+                val existingStart = runCatching { LocalDate.parse(period.startDate) }.getOrNull()
+                    ?: return@mapNotNull null
+                val existingEnd = period.endDate
+                    ?.let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
+                    ?: today
+                existingStart to existingEnd
+            }
+            .any { (existingStart, existingEnd) ->
+                !candidateEnd.isBefore(existingStart) && !existingEnd.isBefore(startDate)
+            }
+    }
+}
+
 internal object MutationTimestampPolicy {
     private val formatter = DateTimeFormatterBuilder().appendInstant(9).toFormatter()
 
@@ -486,6 +582,8 @@ internal object MutationTimestampPolicy {
 }
 
 internal object PeriodMutationPolicy {
+    fun canEnd(current: PeriodEntity): Boolean = current.endDate == null
+
     fun datesChanged(current: PeriodEntity, startDate: LocalDate, endDate: LocalDate?): Boolean =
         current.startDate != startDate.toString() || current.endDate != endDate?.toString()
 

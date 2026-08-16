@@ -5,9 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PeriodEvent, Prisma, SyncOperation } from '@prisma/client';
+import { lockUserPeriods } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  isPeriodOverlapConstraintError,
+  PERIOD_OVERLAP_MESSAGE,
+} from './period-constraints.js';
 import { CreatePeriodDto, UpdatePeriodDto } from './periods.dto.js';
 
 @Injectable()
@@ -26,139 +31,181 @@ export class PeriodsService {
     return periods.map((period) => this.serialize(period));
   }
 
-  async create(user: AuthenticatedUser, dto: CreatePeriodDto) {
-    await this.validateRangeForUser(user.userId, dto.startDate, dto.endDate);
-    const existing = await this.prisma.periodEvent.findUnique({ where: { id: dto.id } });
-    if (existing) {
-      if (
-        existing.userId !== user.userId ||
-        this.localDate(existing.startDate) !== dto.startDate ||
-        (existing.endDate ? this.localDate(existing.endDate) : null) !== (dto.endDate ?? null) ||
-        existing.source !== (dto.source ?? 'MANUAL')
-      ) {
-        throw new ConflictException('Client identifier is already in use');
+  async create(
+    user: AuthenticatedUser,
+    dto: CreatePeriodDto,
+    transaction?: Prisma.TransactionClient,
+  ) {
+    const operation = async (tx: Prisma.TransactionClient): Promise<PeriodEvent> => {
+      await lockUserPeriods(tx, user.userId);
+      await this.validateRangeForUser(
+        tx,
+        user.userId,
+        dto.startDate,
+        dto.endDate,
+      );
+      const existing = await tx.periodEvent.findUnique({ where: { id: dto.id } });
+      if (existing) {
+        this.assertMatchingCreate(existing, user.userId, dto);
+        // A matching row can be the committed half of an older sync request
+        // whose prediction refresh failed. Refresh before acknowledging it.
+        await this.predictions.recalculateAndCache(user.userId, tx);
+        return existing;
       }
-      return this.serialize(existing);
-    }
 
-    let period: PeriodEvent;
-    try {
-      period = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.periodEvent.create({
-          data: {
-            id: dto.id,
-            userId: user.userId,
-            startDate: this.parseDate(dto.startDate),
-            endDate: dto.endDate ? this.parseDate(dto.endDate) : null,
-            source: dto.source,
-          },
-        });
-        await tx.syncChange.create({
-          data: {
-            householdId: user.householdId,
-            ownerUserId: user.userId,
-            entityType: 'PeriodEvent',
-            entityId: created.id,
-            operation: SyncOperation.UPSERT,
-            entityVersion: created.version,
-          },
-        });
-        return created;
+      await this.assertNoOverlap(
+        tx,
+        user.userId,
+        dto.startDate,
+        dto.endDate ?? null,
+      );
+      const created = await tx.periodEvent.create({
+        data: {
+          id: dto.id,
+          userId: user.userId,
+          startDate: this.parseDate(dto.startDate),
+          endDate: dto.endDate ? this.parseDate(dto.endDate) : null,
+          source: dto.source,
+        },
       });
+      await tx.syncChange.create({
+        data: {
+          householdId: user.householdId,
+          ownerUserId: user.userId,
+          entityType: 'PeriodEvent',
+          entityId: created.id,
+          operation: SyncOperation.UPSERT,
+          entityVersion: created.version,
+        },
+      });
+      await this.predictions.recalculateAndCache(user.userId, tx);
+      return created;
+    };
+
+    try {
+      const period = transaction
+        ? await operation(transaction)
+        : await this.prisma.$transaction(operation);
+      return this.serialize(period);
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
-        // PostgreSQL/Prisma does not reliably expose the name of a partial
-        // unique index in P2002 metadata. Re-read the client UUID instead:
-        // concurrent delivery of the same mutation remains idempotent, while
-        // a different UUID for the same active local date is a date conflict.
-        const concurrent = await this.prisma.periodEvent.findUnique({
-          where: { id: dto.id },
-        });
-        if (concurrent) {
-          if (
-            concurrent.userId === user.userId &&
-            this.localDate(concurrent.startDate) === dto.startDate &&
-            (concurrent.endDate ? this.localDate(concurrent.endDate) : null) ===
-              (dto.endDate ?? null) &&
-            concurrent.source === (dto.source ?? 'MANUAL')
-          ) {
-            return this.serialize(concurrent);
-          }
-          throw new ConflictException('Client identifier is already in use');
-        }
         throw new ConflictException(
           'An active period entry already exists for this date',
         );
       }
-      throw error;
-    }
-    await this.predictions.recalculateAndCache(user.userId);
-    return this.serialize(period);
-  }
-
-  async update(user: AuthenticatedUser, id: string, dto: UpdatePeriodDto) {
-    const current = await this.prisma.periodEvent.findFirst({
-      where: { id, userId: user.userId, deletedAt: null },
-    });
-    if (!current) throw new NotFoundException('Period entry not found');
-    const startDate = dto.startDate ?? this.localDate(current.startDate);
-    const endDate = dto.endDate === undefined
-      ? current.endDate
-        ? this.localDate(current.endDate)
-        : null
-      : dto.endDate;
-    await this.validateRangeForUser(user.userId, startDate, endDate);
-
-    let updated: PeriodEvent;
-    try {
-      updated = await this.prisma.$transaction(async (tx) => {
-        const result = await tx.periodEvent.updateMany({
-          where: { id, userId: user.userId, version: dto.version, deletedAt: null },
-          data: {
-            ...(dto.startDate !== undefined ? { startDate: this.parseDate(dto.startDate) } : {}),
-            ...(dto.endDate !== undefined
-              ? { endDate: dto.endDate ? this.parseDate(dto.endDate) : null }
-              : {}),
-            version: { increment: 1 },
-          },
-        });
-        if (result.count !== 1) {
-          throw new ConflictException({
-            message: 'Period entry was changed on another device',
-            expectedVersion: dto.version,
-            currentVersion: current.version,
-          });
-        }
-        const entity = await tx.periodEvent.findUniqueOrThrow({ where: { id } });
-        await tx.syncChange.create({
-          data: {
-            householdId: user.householdId,
-            ownerUserId: user.userId,
-            entityType: 'PeriodEvent',
-            entityId: entity.id,
-            operation: SyncOperation.UPSERT,
-            entityVersion: entity.version,
-          },
-        });
-        return entity;
-      });
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException('An active period entry already exists for this date');
+      if (isPeriodOverlapConstraintError(error)) {
+        throw new ConflictException(PERIOD_OVERLAP_MESSAGE);
       }
       throw error;
     }
-    await this.predictions.recalculateAndCache(user.userId);
-    return this.serialize(updated);
   }
 
-  async remove(user: AuthenticatedUser, id: string, version: number): Promise<void> {
-    const changed = await this.prisma.$transaction(async (tx) => {
+  async update(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdatePeriodDto,
+    transaction?: Prisma.TransactionClient,
+  ) {
+    const operation = async (tx: Prisma.TransactionClient): Promise<PeriodEvent> => {
+      await lockUserPeriods(tx, user.userId);
+      const current = await tx.periodEvent.findFirst({
+        where: { id, userId: user.userId, deletedAt: null },
+      });
+      if (!current) throw new NotFoundException('Period entry not found');
+      if (current.version !== dto.version) {
+        throw new ConflictException({
+          message: 'Period entry was changed on another device',
+          expectedVersion: dto.version,
+          currentVersion: current.version,
+        });
+      }
+
+      const startDate = dto.startDate ?? this.localDate(current.startDate);
+      const endDate =
+        dto.endDate === undefined
+          ? current.endDate
+            ? this.localDate(current.endDate)
+            : null
+          : dto.endDate;
+      await this.validateRangeForUser(tx, user.userId, startDate, endDate);
+      await this.assertNoOverlap(tx, user.userId, startDate, endDate, id);
+      const result = await tx.periodEvent.updateMany({
+        where: {
+          id,
+          userId: user.userId,
+          version: dto.version,
+          deletedAt: null,
+        },
+        data: {
+          ...(dto.startDate !== undefined
+            ? { startDate: this.parseDate(dto.startDate) }
+            : {}),
+          ...(dto.endDate !== undefined
+            ? { endDate: dto.endDate ? this.parseDate(dto.endDate) : null }
+            : {}),
+          version: { increment: 1 },
+        },
+      });
+      if (result.count !== 1) {
+        throw new ConflictException({
+          message: 'Period entry was changed on another device',
+          expectedVersion: dto.version,
+          currentVersion: current.version,
+        });
+      }
+      const entity = await tx.periodEvent.findUniqueOrThrow({ where: { id } });
+      await tx.syncChange.create({
+        data: {
+          householdId: user.householdId,
+          ownerUserId: user.userId,
+          entityType: 'PeriodEvent',
+          entityId: entity.id,
+          operation: SyncOperation.UPSERT,
+          entityVersion: entity.version,
+        },
+      });
+      await this.predictions.recalculateAndCache(user.userId, tx);
+      return entity;
+    };
+
+    try {
+      const updated = transaction
+        ? await operation(transaction)
+        : await this.prisma.$transaction(operation);
+      return this.serialize(updated);
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'An active period entry already exists for this date',
+        );
+      }
+      if (isPeriodOverlapConstraintError(error)) {
+        throw new ConflictException(PERIOD_OVERLAP_MESSAGE);
+      }
+      throw error;
+    }
+  }
+
+  async remove(
+    user: AuthenticatedUser,
+    id: string,
+    version: number,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const operation = async (tx: Prisma.TransactionClient): Promise<void> => {
+      await lockUserPeriods(tx, user.userId);
       const result = await tx.periodEvent.updateMany({
         where: { id, userId: user.userId, version, deletedAt: null },
         data: { deletedAt: new Date(), version: { increment: 1 } },
       });
-      if (result.count !== 1) return false;
+      if (result.count !== 1) {
+        const existing = await tx.periodEvent.findFirst({
+          where: { id, userId: user.userId },
+          select: { id: true },
+        });
+        if (!existing) throw new NotFoundException('Period entry not found');
+        throw new ConflictException('Period entry was changed on another device');
+      }
       await tx.syncChange.create({
         data: {
           householdId: user.householdId,
@@ -169,17 +216,17 @@ export class PeriodsService {
           entityVersion: version + 1,
         },
       });
-      return true;
-    });
-    if (!changed) {
-      const exists = await this.prisma.periodEvent.count({ where: { id, userId: user.userId } });
-      if (exists === 0) throw new NotFoundException('Period entry not found');
-      throw new ConflictException('Period entry was changed on another device');
+      await this.predictions.recalculateAndCache(user.userId, tx);
+    };
+
+    if (transaction) {
+      await operation(transaction);
+    } else {
+      await this.prisma.$transaction(operation);
     }
-    await this.predictions.recalculateAndCache(user.userId);
   }
 
-  private serialize(period: PeriodEvent) {
+  serialize(period: PeriodEvent) {
     return {
       id: period.id,
       startDate: this.localDate(period.startDate),
@@ -200,12 +247,13 @@ export class PeriodsService {
   }
 
   private async validateRangeForUser(
+    database: Prisma.TransactionClient,
     userId: string,
     startDate: string,
     endDate?: string | null,
   ): Promise<void> {
     this.validateRange(startDate, endDate);
-    const profile = await this.prisma.cycleProfile.findUnique({
+    const profile = await database.cycleProfile.findUnique({
       where: { userId },
       select: { timezone: true },
     });
@@ -238,6 +286,59 @@ export class PeriodsService {
 
   private localDate(value: Date): string {
     return value.toISOString().slice(0, 10);
+  }
+
+  matchesCreateRequest(
+    period: PeriodEvent,
+    userId: string,
+    dto: CreatePeriodDto,
+  ): boolean {
+    return (
+      period.userId === userId &&
+      this.localDate(period.startDate) === dto.startDate &&
+      (period.endDate ? this.localDate(period.endDate) : null) ===
+        (dto.endDate ?? null) &&
+      period.source === (dto.source ?? 'MANUAL')
+    );
+  }
+
+  private assertMatchingCreate(
+    period: PeriodEvent,
+    userId: string,
+    dto: CreatePeriodDto,
+  ): void {
+    if (!this.matchesCreateRequest(period, userId, dto)) {
+      throw new ConflictException('Client identifier is already in use');
+    }
+  }
+
+  private async assertNoOverlap(
+    database: Prisma.TransactionClient,
+    userId: string,
+    startDate: string,
+    endDate: string | null,
+    excludingId?: string,
+  ): Promise<void> {
+    const overlap = await database.periodEvent.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+        ...(excludingId ? { id: { not: excludingId } } : {}),
+        ...(endDate ? { startDate: { lte: this.parseDate(endDate) } } : {}),
+        OR: [
+          { endDate: null },
+          { endDate: { gte: this.parseDate(startDate) } },
+        ],
+      },
+      select: { startDate: true },
+    });
+    if (!overlap) return;
+    if (this.localDate(overlap.startDate) === startDate) {
+      throw new ConflictException(
+        'An active period entry already exists for this date',
+      );
+    }
+    throw new ConflictException(PERIOD_OVERLAP_MESSAGE);
   }
 
   private isUniqueConstraintError(

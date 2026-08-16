@@ -1,14 +1,118 @@
-# Lunara – Abschlussbericht (Server 1.0.5 / Android 1.0.6)
+# Lunara – Abschlussbericht 1.0.7
 
-Stand: 14. August 2026
+Stand: 16. August 2026
 
-Lunara 1.0.5 ist als selbst gehosteter Kernablauf implementiert, gebaut,
-getestet und auf dem produktiven Server ausgerollt. Die API läuft gesund hinter
-Pangolin und Authentik. Eine installierbare Debug-APK sowie eine unsignierte
-Release-APK wurden tatsächlich erzeugt. Android 1.0.6 ergänzt lokal geplante,
-konfigurierbare Benachrichtigungen, ohne den Serverstand oder produktive
-Container zu verändern. Dieser Bericht trennt bestätigte Ergebnisse von
-bewusst offenen Funktionen.
+Lunara 1.0.7 ist gebaut, geprüft und auf dem produktiven Server ausgerollt. Die
+API läuft gesund hinter Pangolin und Authentik; die Datenbankmigration schützt
+aktive Periodenbereiche nun atomar gegen Überschneidungen. Eine installierbare
+Production-Debug-APK und eine bewusst unsignierte Release-APK wurden
+tatsächlich erzeugt und geprüft. Dieser Bericht trennt bestätigte Ergebnisse
+von nicht ausgeführten Prüfungen.
+
+## Release 1.0.7 – Ergebnis
+
+Die Tracker-App unterstützt jetzt drei zusammenhängende Wege:
+
+1. Auf „Periode begonnen“ tippen; der lokale Room-Eintrag erscheint sofort und
+   die Aktion wechselt bei einer offenen Periode zu „Periode heute beenden“.
+2. Im Kalender einen heutigen oder vergangenen freien Tag antippen und Start
+   sowie optionales Ende rückwirkend eintragen.
+3. Einen vorhandenen Periodentag antippen, Zeitraum korrigieren oder nach
+   Bestätigung löschen.
+
+Alle drei Wege verwenden clientseitige UUIDs, eine atomare Room-Transaktion und
+die idempotente Offline-Mutation-Queue. Die UI bestätigt die lokale Speicherung
+per Snackbar und zeigt Pending-, Konflikt- und letzten Sync-Zustand. Automatische
+Übertragung erfolgt nach lokaler Mutation und Anmeldung, regelmäßig während
+der geöffneten App sowie netzwerkgebunden über WorkManager; der manuelle
+„Jetzt synchronisieren“-Weg bleibt erhalten. Partner haben weder in der UI noch
+serverseitig Schreibrechte auf Perioden.
+
+Kalenderentwürfe und laufende Aktionen überleben eine Activity-Neuerstellung.
+Während Create, Update oder Delete auf die bestätigende Room-Änderung wartet,
+sind Eingaben, Dismiss und erneutes Absenden gesperrt. Bei einem Fehler bleibt
+der Entwurf erhalten und wird gezielt wieder freigegeben; dadurch entstehen
+weder doppelte Mutationen noch widersprüchliche Erfolgs-/Fehlermeldungen.
+
+Serverseitig serialisiert ein PostgreSQL-Advisory-Lock Periodenänderungen pro
+Tracker. Zusätzlich erzwingt eine partielle GiST-Exclusion-Constraint
+nichtüberlappende inklusive Datumsbereiche für aktive Einträge; offene Perioden
+reichen bis zu ihrem expliziten Ende, Soft Deletes sind ausgenommen. Direkte
+REST- und `/sync`-Mutationen laufen durch denselben Servicepfad und erhalten bei
+Überschneidung HTTP 409.
+
+Für `/sync` liegen Idempotenz-Receipt, Perioden- oder Tageslogmutation,
+`SyncChange` und bei Perioden auch die Prognoseneuberechnung jetzt in derselben
+PostgreSQL-Transaktion. Ein Antwortverlust kann deshalb keinen nur halb
+bestätigten neuen Vorgang mehr hinterlassen. Alte Pending-Receipts werden nur
+bei exakt passendem, benutzergebundenem Endzustand und passendem SyncChange
+wiederhergestellt. Abgelaufene Receipts können per atomarem Compare-and-swap
+für eine neue Mutation wiederverwendet werden; aktive fremde Mutationen bleiben
+ein Konflikt. Der Import plant Überschneidungen bereits in der Vorschau, prüft
+den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
+
+### Tatsächlich ausgeführte Prüfungen
+
+- Backend: 20/20 Suites, 105/105 Tests, TypeScript-Typecheck, vollständiges
+  Backend-ESLint, Prisma-Validierung und Nest-Build erfolgreich
+- Echte PostgreSQL-18-E2E-Prüfung auf einer frischen temporären Datenbank:
+  sieben Migrationen sowie 1/1 durchgehender Test erfolgreich. Geprüft wurden
+  unter anderem Setup, getrennte Beziehungen, Einladung, Rollen/Isolation,
+  Perioden und Prognose, Freigabeentzug, Import/Export, Passwortwechsel und
+  exakt-einmal Offline-Sync einschließlich Wiederverwendung abgelaufener Keys
+- OpenAPI-Snapshot und generierter Kotlin-Client reproduzierbar neu erzeugt;
+  Hashprüfung erfolgreich
+- Android: 27/27 JVM-Suites, 132/132 Tests, 0 Fehler und 0 übersprungen
+- Android-Lint: Local 0 Fehler/38 Warnungen, Production 0 Fehler/37 Warnungen
+- Production-Instrumentierung erfolgreich kompiliert; mangels Emulator oder
+  Gerät nicht ausgeführt
+- Production-Debug- und Production-Release-APK tatsächlich gebaut. Ein zu eng
+  begrenzter JVM-Testlauf, der erste Instrumentation-Compile mit einem
+  überflüssigen Import sowie Release-Läufe mit zu kleinem D8-Heap
+  beziehungsweise redundantem `lintVital` scheiterten ehrlich; die
+  korrigierten, ausreichend begrenzten Wiederholungsläufe waren erfolgreich
+- Multi-Stage-Image `lunara-api:1.0.7` gebaut: Image-ID
+  `sha256:33e9705d3d9ed7b4aa5390f3a151ae8b4de560a73d71df7bf6332ba12644a9c5`,
+  Runtime UID/GID `10001:10001`
+- Vor Migration validierter PostgreSQL-Custom-Dump:
+  `/var/backups/lunara/lunara-pre-1.0.7-period-overlap-20260816T181900Z.dump`
+- Live: Migration, Constraint und Erweiterung vorhanden; API healthy,
+  RestartCount 0, read-only und non-root; Health, Readiness und Meta HTTP 200;
+  Meta meldet 1.0.7 und abgeschlossenen Bootstrap
+- Gateway-Test erfolgreich: technischer Header-Auth-Zugang funktioniert und
+  alle geprüften anonymen Pfade bleiben durch Authentik gesperrt
+
+### APK-Artefakte
+
+- `artifacts/lunara-debug.apk`: 24.531.305 Bytes, installierbar und gültig
+  APK-v2-debugsigniert; SHA-256
+  `db0985b59c561062fb499e82eb70f4efad281b8075a2280bfb4bc13d054dfb70`
+- `artifacts/lunara-release-unsigned.apk`: 19.841.579 Bytes, erwartungsgemäß
+  nicht signiert; SHA-256
+  `42367bdd22488d00a6b4a21dc511b619c79129099c78386986b5dcc2387550e3`
+- beide: VersionCode 8, VersionName 1.0.7, minSdk 26, target/compileSdk 37 und
+  fehlerfreie ZIP-Struktur
+
+### Bewusst nicht ausgeführt / bekannte Grenze
+
+- Compose-UI-Gerätetests sind kompiliert, aber ohne Emulator oder physisches
+  Android-Gerät nicht ausgeführt.
+- Der Server bietet SSE an; Android aktualisiert aktuell zuverlässig über
+  sofortigen Queue-Sync, WorkManager und Vordergrund-Sync statt über eine
+  dauerhafte SSE-Verbindung. Hintergrundausführung kann durch Androids
+  Energiesparregeln verzögert werden.
+
+Der erste neue PostgreSQL-E2E-Lauf deckte einen Fehler bei einem abgelaufenen
+Idempotenz-Key auf und schlug deshalb korrekt fehl. Nach der Behebung zeigte
+ein weiterer Lauf eine gemeinsam ausgeschöpfte In-Memory-Login-Rate-Bucket im
+langen Test; die abschließenden Passwort-Login-Prüfungen wurden daraufhin wie
+die vorhandenen Registrierungskonkurrenztests in einer separaten App-Instanz
+isoliert. Erst der danach vollständig erfolgreiche Lauf wird oben als Erfolg
+gezählt. Die temporären PostgreSQL-Container und ihr Tmpfs wurden anschließend
+beendet; Produktionsdaten waren davon nicht betroffen.
+
+Die folgenden Abschnitte dokumentieren zusätzlich die bereits verifizierten
+älteren Ausbaustufen und bleiben als historische Nachweise erhalten.
 
 ## Android 1.0.6 – Benachrichtigungsergänzung
 
@@ -358,8 +462,9 @@ Beziehung erhält.
 - Der Android-Tageslog umfasst die Kernerfassung, aber Notiz,
   Basaltemperatur, Ovulationstest sowie Tageslog-Korrektur/-Löschung sind noch
   nicht vollständig in der UI verfügbar.
-- Periodenkorrektur und -löschung funktionieren in „Heute“ und „Verlauf“;
-  Kalender-Direktaktionen und Monatwechsel sind noch offen.
+- Periodenkorrektur und -löschung funktionieren in „Heute“, „Verlauf“ und
+  direkt im navigierbaren Monatskalender. Tiefere Statistiken und Charts sind
+  noch offen.
 - Lokale Benachrichtigungen sind in Android 1.0.6 umgesetzt. ntfy, Biometrie,
   Widget, Demo-Modus, SSE-Client und reduzierte Bewegungen sind weiterhin
   nicht vollständig umgesetzt.

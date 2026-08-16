@@ -41,3 +41,11 @@ export async function lockRelationship(
 ): Promise<void> {
   await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`lunara:relationship:${householdId}`}, 0))`;
 }
+
+/** Serializes period-range validation and writes for one tracker across devices. */
+export async function lockUserPeriods(
+  database: Prisma.TransactionClient,
+  userId: string,
+): Promise<void> {
+  await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`lunara:periods:${userId}`}, 0))`;
+}

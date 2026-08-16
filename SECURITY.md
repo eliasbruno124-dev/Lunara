@@ -108,6 +108,26 @@ Version 1 aber nicht für jeden einzelnen mutierenden REST-Endpoint
 serverseitig persistiert. Solche Aufrufe dürfen daher nicht blind wiederholt
 werden; die Android-Offlineschicht verwendet den Sync-Endpoint.
 
+Für neue Perioden- und Tageslog-Syncs werden Idempotenz-Receipt, fachliche
+Mutation und SyncChange in derselben PostgreSQL-Transaktion geschrieben; bei
+Perioden gehört auch die Prognoseneuberechnung dazu. Ein Prozess- oder
+Antwortausfall kann damit keinen neuen halb bestätigten Schreibvorgang
+hinterlassen. Pending-Receipts älterer Versionen werden nur bei exakt
+passendem Eigentümer, Mandantenbezug, gewünschtem Endzustand, Folgeversion und
+SyncChange übernommen. Unklare Zustände bleiben ein Konflikt und werden nicht
+erraten.
+
+Periodenänderungen werden pro Tracker transaktional serialisiert. Eine
+partielle PostgreSQL-GiST-Exclusion-Constraint verhindert zusätzlich
+überlappende aktive Datumsbereiche, auch wenn zwei Geräte gleichzeitig
+synchronisieren. Die zugehörige Migration verändert problematische
+Bestandsdaten nicht heimlich, sondern bricht bei ungültigen oder bereits
+überlappenden Bereichen kontrolliert ab.
+
+Der Periodenimport verwendet dieselbe Sperre, erstellt den Plan beim Commit
+erneut und bricht bei Überschneidungen vollständig ab. Vorschau- oder
+Fehlermeldungen enthalten nur Anzahlen und keine Gesundheitsinhalte.
+
 ## Verschlüsselung und Schlüssel
 
 `APP_MASTER_KEY` ist ein 32-Byte-Base64-Schlüssel und muss über die gesamte
@@ -131,7 +151,7 @@ getestet, aber noch nicht auf einem realen Android-Gerät instrumentiert worden.
 
 ## HTTP, Zertifikate und Serveradresse
 
-Android 1.0.6 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
+Android 1.0.7 startet mit leerem Serverfeld. Die erste Eingabe darf einmalig
 eine HTTPS-URL mit Userinfo enthalten: Gateway-Benutzer, Doppelpunkt und
 App-Passwort stehen dabei vor `@` und dem Server-Host.
 Sonderzeichen müssen URL-kodiert sein. Die App extrahiert das Credential,

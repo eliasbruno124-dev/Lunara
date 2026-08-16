@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.0.7 – 2026-08-16
+
+- Im Kalender können Tracker vergangene Perioden vollständig mit Start- und
+  optionalem Enddatum nachtragen. Ein vorhandener Zeitraum lässt sich durch
+  Antippen korrigieren oder nach Bestätigung löschen; Partner bleiben
+  vollständig schreibgeschützt.
+- Die Hauptaktion reagiert auf den tatsächlichen lokalen Zustand: „Periode
+  begonnen“, während einer offenen Periode „Periode heute beenden“ und nach
+  dem Abschluss eine sichtbare Bestätigung. Snackbar und Sync-Status bestätigen
+  Speicherung beziehungsweise ausstehende Übertragung.
+- Historische Zeiträume werden atomar als ein Room-Datensatz und eine einzige
+  idempotente Offline-Mutation angelegt. Automatischer WorkManager-/Foreground-
+  Sync, Cursor-Pull, Backoff und manueller Sync bleiben aktiv.
+- Kalenderdialoge behalten Entwürfe bei Activity-Neuerstellung, sperren
+  Mehrfach-Submit während der lokalen Transaktion und schließen erst nach der
+  tatsächlich beobachteten Room-Änderung. Fehler lassen den Entwurf für einen
+  bewussten Wiederholungsversuch geöffnet.
+- Kalenderdarstellung auf konstante Speichernutzung gehärtet: Auch extrem alte
+  offene Datensätze werden nicht mehr Tag für Tag materialisiert.
+- Überschneidende aktive Perioden werden nun auch serverseitig pro Tracker
+  transaktional serialisiert und mit HTTP 409 abgewiesen. Eine partielle
+  PostgreSQL-GiST-Exclusion-Constraint schützt zusätzlich gegen konkurrierende
+  Geräte und direkte Datenbank-Races; Soft Deletes bleiben ausgenommen.
+- Idempotenz-Receipt, Offline-Mutation, SyncChange und Prognosecache werden für
+  Perioden und Tageslogs atomar abgeschlossen. Alte Pending-Receipts lassen
+  sich nur bei exakt passendem Eigentümer, Endzustand, Version und SyncChange
+  sicher wiederherstellen.
+- Abgelaufene Idempotenz-Keys werden atomar und race-sicher neu beansprucht,
+  auch wenn sie zu einem früheren Request oder Haushalt gehörten. Aktive Keys
+  bleiben geschützt; ein nachweislich bereits ausgeführter alter Request wird
+  vor einer Wiederholung wiederhergestellt.
+- Periodenimporte erkennen Überschneidungen in Vorschau und Commit, planen
+  unter demselben Tracker-Lock erneut und aktualisieren die Prognose atomar.
+- Android auf VersionCode 8/VersionName 1.0.7 und Server, Container sowie
+  OpenAPI-Metadaten auf 1.0.7 angehoben.
+- Der vollständige Kernablauf wurde nach allen sieben Migrationen gegen eine
+  echte frische PostgreSQL-18-Datenbank erfolgreich ausgeführt.
+
 ## 1.0.6 – 2026-08-14
 
 - Lokale Android-Benachrichtigungen als ausdrückliches Opt-in ergänzt; keine

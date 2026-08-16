@@ -97,7 +97,7 @@ async function bootstrap(): Promise<void> {
       app,
       new DocumentBuilder()
         .setTitle(process.env.APP_NAME || 'Lunara')
-        .setVersion(process.env.APP_VERSION || '1.0.5')
+        .setVersion(process.env.APP_VERSION || '1.0.7')
         .addBearerAuth()
         .addApiKey({ type: 'apiKey', in: 'header', name: 'X-Lunara-Authorization' }, 'gatewayBearer')
         .build(),

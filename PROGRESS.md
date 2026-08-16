@@ -1,6 +1,56 @@
 # Lunara – Fortschritt
 
-Stand: 14. August 2026, Android-Quellstand 1.0.6 / Server 1.0.5
+Stand: 16. August 2026, Android und Server 1.0.7
+
+## Verifizierter Release 1.0.7
+
+- [x] Rückwirkende Periodenerfassung direkt im Monatskalender mit Start- und
+  optionalem Enddatum; vorhandene Zeiträume antippbar, korrigierbar und nach
+  Bestätigung löschbar. Partnerkalender bleibt ohne Schreibaktionen.
+- [x] Tracker-Hauptaktion wechselt aus lokalem Room-Zustand zwischen „Periode
+  begonnen“, „Periode heute beenden“ und der bestätigten Endzustandsanzeige.
+  Speicherung, Pending-Zustand und erfolgreiche Synchronisierung bleiben
+  sichtbar; Dialoge schließen erst nach tatsächlich erfolgreicher lokaler
+  Transaktion.
+- [x] Historischer Zeitraum wird atomar als genau ein lokaler Datensatz und
+  genau eine idempotente Mutation gespeichert. Bestehender automatischer Sync
+  nach Mutation/Anmeldung, im Vordergrund und über WorkManager bleibt aktiv.
+- [x] Dialogentwürfe und Pending-Zustand rotationsfest; Mehrfach-Submit,
+  Dismiss und Bearbeitung während Create/Update/Delete gesperrt. Nach Fehlern
+  bleibt der Entwurf erhalten, nach Erfolg schließt er erst mit der Room-
+  Bestätigung.
+- [x] Clientseitige Überschneidungsprüfung und konstante Kalender-
+  Speichernutzung ergänzt; sehr alte offene Bereiche erzeugen keine
+  materialisierte Liste hunderttausender Tage.
+- [x] Serverweite Perioden-Invariante ergänzt: Advisory-Lock pro Tracker,
+  409-Konfliktantwort sowie partielle PostgreSQL-GiST-Exclusion-Constraint für
+  aktive inklusive Datumsbereiche. Direkte API und `/sync` nutzen denselben
+  geschützten Servicepfad.
+- [x] Sync-Receipt, Perioden-/Tageslogmutation, SyncChange und notwendige
+  Prognoseneuberechnung atomar in einer PostgreSQL-Transaktion; sichere
+  Recovery alter Pending-Receipts, race-sichere Wiederverwendung abgelaufener
+  Keys und importseitige Überschneidungsprüfung.
+- [x] Android final: 27 Suites, 132 Tests, 0 Fehler/0 übersprungen;
+  `lintLocalDebug` 0 Fehler/38 Warnungen, Production-Lint 0 Fehler/37
+  Warnungen; Production-Instrumentierung kompiliert, mangels Gerät nicht
+  ausgeführt.
+- [x] Backend final: 20 Suites und 105 Tests erfolgreich, TypeScript-Typecheck,
+  vollständiges ESLint, Prisma-Validierung, Nest-/OpenAPI-Build und echtes
+  Docker-Image erfolgreich.
+- [x] PostgreSQL 18 final: sieben Migrationen auf frischer temporärer
+  Tmpfs-Datenbank und 1/1 vollständiger E2E-Kernablauf erfolgreich; der Test
+  bestätigt unter anderem Beziehungstrennung, Partnerfreigaben und genau einen
+  Datensatz nach wiederholtem Offline-Sync.
+- [x] Debug-APK (24.531.305 Bytes) und unsigned Release-APK (19.841.579 Bytes)
+  tatsächlich gebaut, ZIP/Manifest/SDK/Version/Signaturstatus und SHA-256
+  geprüft.
+- [x] Eng benanntes und mit `pg_restore --list` validiertes Live-Backup
+  erstellt; Bestandsprüfung ergab keine ungültigen oder überlappenden aktiven
+  Perioden. Migration angewendet und ausschließlich die Lunara-API auf 1.0.7
+  ersetzt.
+- [x] Live verifiziert: Migration/Constraint/Extension vorhanden, API non-root
+  und read-only, `/health`, `/ready` und Meta jeweils 200, Version 1.0.7,
+  Authentik-Gateway vollständig geschützt. Fremddienste blieben unverändert.
 
 ## Implementiert
 
@@ -56,7 +106,7 @@ Stand: 14. August 2026, Android-Quellstand 1.0.6 / Server 1.0.5
 - [x] Getrennte Partnerfreigabe für das geschätzte fruchtbare Fenster;
   Aktivierung nur bei persönlichem Opt-in und atomarer Widerruf beim
   Deaktivieren.
-- [x] Android-Quellstand auf 1.0.6/VersionCode 7 angehoben; Serverfeld beim
+- [x] Android-Quellstand auf 1.0.7/VersionCode 8 angehoben; Serverfeld beim
   ersten Start wirklich leer und ohne fest eingebaute Produktionsdomain.
 - [x] Einmalige HTTPS-Userinfo-Eingabe implementiert. Gateway-Credential wird
   von der Basisadresse getrennt, Keystore-gestützt gespeichert und nie in
@@ -154,7 +204,6 @@ vollständig belegt.
   reduzierte Bewegungen. Lokale Benachrichtigungen sind umgesetzt.
 - [ ] Generischen CSV-Zuordnungsassistenten, Import-Rollback und direkten
   Import verschlüsselter Backupdateien ergänzen.
-- [ ] Monatwechsel und direkte Korrektur/Löschung in der Kalenderansicht sowie
-  tiefere Statistiken und Charts ergänzen.
+- [ ] Tiefere Statistiken und Charts ergänzen.
 - [ ] Vollständige Umbenennbarkeit von Package-ID, Übersetzungstexten und
   Vektor-Assets über einen einzigen Generator.

@@ -19,7 +19,7 @@ const tracker: AuthenticatedUser = {
   preferredLanguage: PreferredLanguage.DE,
 };
 
-describe('PeriodsService client identifier idempotency', () => {
+describe('PeriodsService period mutation safety', () => {
   it('returns 409 when an existing client UUID is reused with a different payload', async () => {
     const existing = {
       id: '4a2da013-22b7-46ba-a9b3-5545b7df67ce',
@@ -32,10 +32,18 @@ describe('PeriodsService client identifier idempotency', () => {
       deletedAt: null,
       version: 1,
     };
-    const prisma = {
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
+      },
       periodEvent: { findUnique: jest.fn().mockResolvedValue(existing) },
-      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
-      $transaction: jest.fn(),
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     };
     const predictions = { recalculateAndCache: jest.fn() };
     const service = new PeriodsService(prisma as never, predictions as never);
@@ -50,7 +58,196 @@ describe('PeriodsService client identifier idempotency', () => {
 
     expect(error).toBeInstanceOf(ConflictException);
     expect((error as ConflictException).getStatus()).toBe(409);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+  });
+
+  it('creates a complete historical range and its sync change in one transaction', async () => {
+    const historical = {
+      id: '59f57ca1-c980-47ea-8e84-e1b17eab0779',
+      userId: tracker.userId,
+      startDate: new Date('2026-07-01T00:00:00.000Z'),
+      endDate: new Date('2026-07-05T00:00:00.000Z'),
+      source: PeriodSource.MANUAL,
+      createdAt: new Date('2026-08-10T12:00:00.000Z'),
+      updatedAt: new Date('2026-08-10T12:00:00.000Z'),
+      deletedAt: null,
+      version: 1,
+    };
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
+      },
+      periodEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(historical),
+      },
+      syncChange: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn().mockResolvedValue({}) };
+    const service = new PeriodsService(prisma as never, predictions as never);
+
+    await expect(
+      service.create(tracker, {
+        id: historical.id,
+        startDate: '2026-07-01',
+        endDate: '2026-07-05',
+        source: PeriodSource.MANUAL,
+      }),
+    ).resolves.toMatchObject({
+      id: historical.id,
+      startDate: '2026-07-01',
+      endDate: '2026-07-05',
+      version: 1,
+    });
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction.periodEvent.create).toHaveBeenCalledWith({
+      data: {
+        id: historical.id,
+        userId: tracker.userId,
+        startDate: historical.startDate,
+        endDate: historical.endDate,
+        source: PeriodSource.MANUAL,
+      },
+    });
+    expect(transaction.syncChange.create).toHaveBeenCalledTimes(1);
+    expect(predictions.recalculateAndCache).toHaveBeenCalledWith(
+      tracker.userId,
+      transaction,
+    );
+  });
+
+  it('rejects an overlapping historical range before writing', async () => {
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
+      },
+      periodEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue({
+          startDate: new Date('2026-07-01T00:00:00.000Z'),
+        }),
+        create: jest.fn(),
+      },
+      syncChange: { create: jest.fn() },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn() };
+    const service = new PeriodsService(prisma as never, predictions as never);
+
+    const error: unknown = await service
+      .create(tracker, {
+        id: '94cfc8a7-e10e-4fca-988b-8b7484156e93',
+        startDate: '2026-07-03',
+        endDate: '2026-07-07',
+      })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ConflictException);
+    expect((error as ConflictException).getStatus()).toBe(409);
+    expect((error as Error).message).toBe(
+      'Period range overlaps an existing period entry',
+    );
+    expect(transaction.periodEvent.create).not.toHaveBeenCalled();
+    expect(transaction.syncChange.create).not.toHaveBeenCalled();
+    expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+  });
+
+  it('maps the PostgreSQL exclusion constraint to a clean 409 response', async () => {
+    const overlapError = new Prisma.PrismaClientKnownRequestError(
+      'Exclusion constraint failed',
+      {
+        code: 'P2004',
+        clientVersion: '7.9.1',
+        meta: {
+          database_error: {
+            code: '23P01',
+            constraint: 'PeriodEvent_userId_active_range_excl',
+          },
+        },
+      },
+    );
+    const prisma = {
+      $transaction: jest.fn().mockRejectedValue(overlapError),
+    };
+    const predictions = { recalculateAndCache: jest.fn() };
+    const service = new PeriodsService(prisma as never, predictions as never);
+
+    await expect(
+      service.create(tracker, {
+        id: 'f817feac-c0bd-4d6a-84f8-5de2eb47e535',
+        startDate: '2026-07-03',
+        endDate: '2026-07-07',
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: 'Period range overlaps an existing period entry',
+    });
+    expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+  });
+
+  it('rejects an update that would extend into another active period', async () => {
+    const current = {
+      id: '6ddd82c5-9419-464d-bb0c-f8ce24f0ead7',
+      userId: tracker.userId,
+      startDate: new Date('2026-07-01T00:00:00.000Z'),
+      endDate: new Date('2026-07-05T00:00:00.000Z'),
+      source: PeriodSource.MANUAL,
+      createdAt: new Date('2026-08-10T12:00:00.000Z'),
+      updatedAt: new Date('2026-08-10T12:00:00.000Z'),
+      deletedAt: null,
+      version: 2,
+    };
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
+      },
+      periodEvent: {
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(current)
+          .mockResolvedValueOnce({
+            startDate: new Date('2026-07-08T00:00:00.000Z'),
+          }),
+        updateMany: jest.fn(),
+      },
+      syncChange: { create: jest.fn() },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn() };
+    const service = new PeriodsService(prisma as never, predictions as never);
+
+    await expect(
+      service.update(tracker, current.id, {
+        version: current.version,
+        endDate: '2026-07-10',
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: 'Period range overlaps an existing period entry',
+    });
+    expect(transaction.periodEvent.updateMany).not.toHaveBeenCalled();
+    expect(transaction.syncChange.create).not.toHaveBeenCalled();
     expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
   });
 
@@ -64,10 +261,6 @@ describe('PeriodsService client identifier idempotency', () => {
       },
     );
     const prisma = {
-      periodEvent: {
-        findUnique: jest.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(null),
-      },
-      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
       $transaction: jest.fn().mockRejectedValue(uniqueDateError),
     };
     const predictions = { recalculateAndCache: jest.fn() };
@@ -90,7 +283,7 @@ describe('PeriodsService client identifier idempotency', () => {
     expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
   });
 
-  it('returns the committed row when the same client mutation races itself', async () => {
+  it('refreshes the prediction before acknowledging a committed matching create', async () => {
     const concurrent = {
       id: '71160745-d546-47ea-b7c3-573fdc42de65',
       userId: tracker.userId,
@@ -102,21 +295,20 @@ describe('PeriodsService client identifier idempotency', () => {
       deletedAt: null,
       version: 1,
     };
-    const uniqueError = new Prisma.PrismaClientKnownRequestError(
-      'Unique constraint failed',
-      { code: 'P2002', clientVersion: '7.9.1' },
-    );
-    const prisma = {
-      periodEvent: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(concurrent),
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
-      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
-      $transaction: jest.fn().mockRejectedValue(uniqueError),
+      periodEvent: { findUnique: jest.fn().mockResolvedValue(concurrent) },
     };
-    const predictions = { recalculateAndCache: jest.fn() };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn().mockResolvedValue({}) };
     const service = new PeriodsService(prisma as never, predictions as never);
 
     await expect(
@@ -126,14 +318,25 @@ describe('PeriodsService client identifier idempotency', () => {
         source: PeriodSource.SYNC,
       }),
     ).resolves.toMatchObject({ id: concurrent.id, version: 1 });
-    expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+    expect(predictions.recalculateAndCache).toHaveBeenCalledWith(
+      tracker.userId,
+      transaction,
+    );
   });
 
   it('rejects future period dates at the API boundary in the profile timezone', async () => {
-    const prisma = {
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
+      },
       periodEvent: { findUnique: jest.fn() },
-      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
-      $transaction: jest.fn(),
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     };
     const predictions = { recalculateAndCache: jest.fn() };
     const service = new PeriodsService(prisma as never, predictions as never);
@@ -145,8 +348,8 @@ describe('PeriodsService client identifier idempotency', () => {
         source: PeriodSource.MANUAL,
       }),
     ).rejects.toThrow('Period dates must not be in the future');
-    expect(prisma.periodEvent.findUnique).not.toHaveBeenCalled();
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(transaction.periodEvent.findUnique).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
   });
 
@@ -171,8 +374,6 @@ describe('PeriodsService client identifier idempotency', () => {
       },
     );
     const prisma = {
-      periodEvent: { findFirst: jest.fn().mockResolvedValue(current) },
-      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
       $transaction: jest.fn().mockRejectedValue(uniqueDateError),
     };
     const predictions = { recalculateAndCache: jest.fn() };

@@ -8,10 +8,18 @@ import {
 import { AuditEventType, PeriodSource, Prisma, SyncOperation, UserRole } from '@prisma/client';
 import { createCipheriv, pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
-import { lockRelationship } from '../common/database/database-coordination.js';
+import {
+  lockRelationship,
+  lockUserPeriods,
+} from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { EncryptionService } from '../common/security/encryption.service.js';
 import { DailyLogsService } from '../daily-logs/daily-logs.service.js';
+import {
+  isPeriodOverlapConstraintError,
+  PERIOD_OVERLAP_MESSAGE,
+} from '../periods/period-constraints.js';
+import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeleteAccountDto, ExportDto, ExportFormatDto, ImportDto } from './data-management.dto.js';
 
@@ -34,12 +42,31 @@ interface ImportDailyLog {
   note?: string | null;
 }
 
+interface StoredPeriodRange {
+  id: string;
+  startDate: Date;
+  endDate: Date | null;
+  deletedAt: Date | null;
+}
+
+interface PeriodImportPlan {
+  create: ImportPeriod[];
+  duplicates: number;
+  conflicts: number;
+}
+
+interface DailyLogImportPlan {
+  create: ImportDailyLog[];
+  duplicates: number;
+}
+
 @Injectable()
 export class DataManagementService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logs: DailyLogsService,
     private readonly encryption: EncryptionService,
+    private readonly predictions: PredictionService,
   ) {}
 
   async export(user: AuthenticatedUser, dto: ExportDto) {
@@ -90,76 +117,133 @@ export class DataManagementService {
   async import(user: AuthenticatedUser, dto: ImportDto) {
     const periods = this.parsePeriods(dto.data.periods);
     const dailyLogs = this.parseDailyLogs(dto.data.dailyLogs);
-    const existingPeriods = await this.prisma.periodEvent.findMany({
-      where: { userId: user.userId, deletedAt: null },
-      select: { id: true, startDate: true },
-    });
-    const existingLogs = await this.prisma.dailyLog.findMany({
-      where: { userId: user.userId, deletedAt: null },
-      select: { id: true, localDate: true },
-    });
-    const existingPeriodIds = new Set(existingPeriods.map((item) => item.id));
-    const existingPeriodDates = new Set(existingPeriods.map((item) => this.date(item.startDate)));
-    const existingLogIds = new Set(existingLogs.map((item) => item.id));
-    const existingLogDates = new Set(existingLogs.map((item) => this.date(item.localDate)));
-    const newPeriods = periods.filter(
-      (item) => !(item.id && existingPeriodIds.has(item.id)) && !existingPeriodDates.has(item.startDate),
-    );
-    const newLogs = dailyLogs.filter(
-      (item) => !(item.id && existingLogIds.has(item.id)) && !existingLogDates.has(item.localDate),
-    );
-    const preview = {
-      periods: { supplied: periods.length, create: newPeriods.length, duplicates: periods.length - newPeriods.length },
-      dailyLogs: { supplied: dailyLogs.length, create: newLogs.length, duplicates: dailyLogs.length - newLogs.length },
-    };
-    if (dto.preview !== false) return { preview: true, ...preview };
+    if (dto.preview !== false) {
+      const [existingPeriods, existingLogs] = await Promise.all([
+        this.prisma.periodEvent.findMany({
+          where: { userId: user.userId },
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true,
+            deletedAt: true,
+          },
+        }),
+        this.prisma.dailyLog.findMany({
+          where: { userId: user.userId, deletedAt: null },
+          select: { id: true, localDate: true },
+        }),
+      ]);
+      const periodPlan = this.planPeriodImport(periods, existingPeriods);
+      const logPlan = this.planDailyLogImport(dailyLogs, existingLogs);
+      return {
+        preview: true,
+        ...this.importPreview(periods, dailyLogs, periodPlan, logPlan),
+      };
+    }
 
-    const batch = await this.prisma.$transaction(async (tx) => {
-      const createdBatch = await tx.importBatch.create({
-        data: {
-          userId: user.userId,
-          householdId: user.householdId,
-          sourceFormat: 'LUNARA_JSON',
-          recordsCreated: newPeriods.length + newLogs.length,
-          recordsSkipped: periods.length + dailyLogs.length - newPeriods.length - newLogs.length,
-          reversibleUntil: new Date(Date.now() + 24 * 60 * 60_000),
-        },
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Preview is advisory. The authoritative plan is always rebuilt while
+        // holding the same per-user lock as normal period mutations.
+        await lockUserPeriods(tx, user.userId);
+        const [existingPeriods, existingLogs] = await Promise.all([
+          tx.periodEvent.findMany({
+            where: { userId: user.userId },
+            select: {
+              id: true,
+              startDate: true,
+              endDate: true,
+              deletedAt: true,
+            },
+          }),
+          tx.dailyLog.findMany({
+            where: { userId: user.userId, deletedAt: null },
+            select: { id: true, localDate: true },
+          }),
+        ]);
+        const periodPlan = this.planPeriodImport(periods, existingPeriods);
+        const logPlan = this.planDailyLogImport(dailyLogs, existingLogs);
+        const preview = this.importPreview(
+          periods,
+          dailyLogs,
+          periodPlan,
+          logPlan,
+        );
+        if (periodPlan.conflicts > 0) {
+          throw new ConflictException({
+            message:
+              'Imported period ranges overlap existing or supplied active periods',
+            conflicts: periodPlan.conflicts,
+          });
+        }
+
+        const createdBatch = await tx.importBatch.create({
+          data: {
+            userId: user.userId,
+            householdId: user.householdId,
+            sourceFormat: 'LUNARA_JSON',
+            recordsCreated: periodPlan.create.length + logPlan.create.length,
+            recordsSkipped:
+              periodPlan.duplicates + logPlan.duplicates,
+            reversibleUntil: new Date(Date.now() + 24 * 60 * 60_000),
+          },
+        });
+        for (const item of periodPlan.create) {
+          const id = item.id ?? randomUUID();
+          await tx.periodEvent.create({
+            data: {
+              id,
+              userId: user.userId,
+              startDate: this.parseDate(item.startDate),
+              endDate: item.endDate ? this.parseDate(item.endDate) : null,
+              source: PeriodSource.IMPORT,
+            },
+          });
+          await this.importChange(tx, user, 'PeriodEvent', id);
+        }
+        for (const item of logPlan.create) {
+          const id = item.id ?? randomUUID();
+          await tx.dailyLog.create({
+            data: {
+              id,
+              userId: user.userId,
+              localDate: this.parseDate(item.localDate),
+              flowLevel: item.flowLevel,
+              painLevel: item.painLevel,
+              mood: item.mood?.slice(0, 64),
+              energy: item.energy,
+              sleepQuality: item.sleepQuality,
+              bodyTemperature: item.bodyTemperature,
+              customSymptoms: item.customSymptoms ?? [],
+              encryptedNote: item.note
+                ? this.encryption.encrypt(item.note)
+                : null,
+            },
+          });
+          await this.importChange(tx, user, 'DailyLog', id);
+        }
+        if (periodPlan.create.length > 0) {
+          await this.predictions.recalculateAndCache(user.userId, tx);
+        }
+        return { batch: createdBatch, preview };
       });
-      for (const item of newPeriods) {
-        const id = item.id ?? randomUUID();
-        await tx.periodEvent.create({
-          data: {
-            id,
-            userId: user.userId,
-            startDate: this.parseDate(item.startDate),
-            endDate: item.endDate ? this.parseDate(item.endDate) : null,
-            source: PeriodSource.IMPORT,
-          },
-        });
-        await this.importChange(tx, user, 'PeriodEvent', id);
+      return { preview: false, batchId: result.batch.id, ...result.preview };
+    } catch (error) {
+      if (isPeriodOverlapConstraintError(error)) {
+        throw new ConflictException(
+          `Import conflict: ${PERIOD_OVERLAP_MESSAGE}`,
+        );
       }
-      for (const item of newLogs) {
-        const id = item.id ?? randomUUID();
-        await tx.dailyLog.create({
-          data: {
-            id,
-            userId: user.userId,
-            localDate: this.parseDate(item.localDate),
-            flowLevel: item.flowLevel,
-            painLevel: item.painLevel,
-            mood: item.mood?.slice(0, 64),
-            energy: item.energy,
-            sleepQuality: item.sleepQuality,
-            bodyTemperature: item.bodyTemperature,
-            customSymptoms: item.customSymptoms ?? [],
-            encryptedNote: item.note ? this.encryption.encrypt(item.note) : null,
-          },
-        });
-        await this.importChange(tx, user, 'DailyLog', id);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Import conflicts with data that already exists; refresh the preview and retry',
+        );
       }
-      return createdBatch;
-    });
-    return { preview: false, batchId: batch.id, ...preview };
+      throw error;
+    }
   }
 
   async deleteAccount(user: AuthenticatedUser, dto: DeleteAccountDto): Promise<void> {
@@ -240,6 +324,109 @@ export class DataManagementService {
       })),
       dailyLogs: logs.map((log) => this.logs.serialize(log)),
     };
+  }
+
+  private importPreview(
+    periods: ImportPeriod[],
+    dailyLogs: ImportDailyLog[],
+    periodPlan: PeriodImportPlan,
+    logPlan: DailyLogImportPlan,
+  ) {
+    return {
+      periods: {
+        supplied: periods.length,
+        create: periodPlan.create.length,
+        duplicates: periodPlan.duplicates,
+        conflicts: periodPlan.conflicts,
+      },
+      dailyLogs: {
+        supplied: dailyLogs.length,
+        create: logPlan.create.length,
+        duplicates: logPlan.duplicates,
+      },
+    };
+  }
+
+  private planPeriodImport(
+    periods: ImportPeriod[],
+    stored: StoredPeriodRange[],
+  ): PeriodImportPlan {
+    const knownIds = new Set(stored.map((item) => item.id));
+    const active = stored
+      .filter((item) => item.deletedAt === null)
+      .map((item) => ({
+        startDate: this.date(item.startDate),
+        endDate: item.endDate ? this.date(item.endDate) : null,
+      }));
+    const knownStarts = new Set(active.map((item) => item.startDate));
+    const incomingIds = new Set<string>();
+    const incomingStarts = new Set<string>();
+    const create: ImportPeriod[] = [];
+    let duplicates = 0;
+    let conflicts = 0;
+
+    for (const period of periods) {
+      if (
+        (period.id &&
+          (knownIds.has(period.id) || incomingIds.has(period.id))) ||
+        knownStarts.has(period.startDate) ||
+        incomingStarts.has(period.startDate)
+      ) {
+        duplicates += 1;
+        continue;
+      }
+      if (period.id) incomingIds.add(period.id);
+      incomingStarts.add(period.startDate);
+      if (active.some((existing) => this.periodRangesOverlap(existing, period))) {
+        conflicts += 1;
+        continue;
+      }
+      create.push(period);
+      active.push({
+        startDate: period.startDate,
+        endDate: period.endDate ?? null,
+      });
+    }
+    return { create, duplicates, conflicts };
+  }
+
+  private planDailyLogImport(
+    logs: ImportDailyLog[],
+    stored: Array<{ id: string; localDate: Date }>,
+  ): DailyLogImportPlan {
+    const knownIds = new Set(stored.map((item) => item.id));
+    const knownDates = new Set(
+      stored.map((item) => this.date(item.localDate)),
+    );
+    const create: ImportDailyLog[] = [];
+    let duplicates = 0;
+    for (const log of logs) {
+      if (
+        (log.id && knownIds.has(log.id)) ||
+        knownDates.has(log.localDate)
+      ) {
+        duplicates += 1;
+        continue;
+      }
+      if (log.id) knownIds.add(log.id);
+      knownDates.add(log.localDate);
+      create.push(log);
+    }
+    return { create, duplicates };
+  }
+
+  private periodRangesOverlap(
+    left: { startDate: string; endDate?: string | null },
+    right: { startDate: string; endDate?: string | null },
+  ): boolean {
+    return (
+      (left.endDate === null ||
+        left.endDate === undefined ||
+        right.startDate <= left.endDate) &&
+      (right.endDate === null ||
+        right.endDate === undefined ||
+        left.startDate <= right.endDate)
+    );
   }
 
   private parsePeriods(value: unknown): ImportPeriod[] {

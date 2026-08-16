@@ -41,10 +41,14 @@ export class PredictionService {
     return profile;
   }
 
-  async calculateForUser(userId: string): Promise<PredictionResult | UnavailablePrediction> {
+  async calculateForUser(
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<PredictionResult | UnavailablePrediction> {
+    const database = transaction ?? this.prisma;
     const [profile, periods] = await Promise.all([
-      this.prisma.cycleProfile.findUnique({ where: { userId } }),
-      this.prisma.periodEvent.findMany({
+      database.cycleProfile.findUnique({ where: { userId } }),
+      database.periodEvent.findMany({
         where: { userId, deletedAt: null },
         orderBy: { startDate: 'asc' },
         select: { startDate: true, endDate: true },
@@ -65,9 +69,12 @@ export class PredictionService {
     });
   }
 
-  async recalculateAndCache(userId: string): Promise<PredictionResult | UnavailablePrediction> {
-    const prediction = await this.calculateForUser(userId);
-    await this.prisma.$transaction(async (tx) => {
+  async recalculateAndCache(
+    userId: string,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<PredictionResult | UnavailablePrediction> {
+    const prediction = await this.calculateForUser(userId, transaction);
+    const updateCache = async (tx: Prisma.TransactionClient): Promise<void> => {
       await tx.prediction.deleteMany({ where: { userId } });
       if (!prediction.available) return;
       await tx.prediction.create({
@@ -96,7 +103,12 @@ export class PredictionService {
           variationDays: prediction.variationDays,
         },
       });
-    });
+    };
+    if (transaction) {
+      await updateCache(transaction);
+    } else {
+      await this.prisma.$transaction(updateCache);
+    }
     return prediction;
   }
 

@@ -177,7 +177,7 @@ Zugangsdaten gehören weder in DNS-Werte noch Cloudflare-Regeln.
 
 ## 6. Android-App mit Header Auth verbinden
 
-Das Serverfeld ist in Android 1.0.5 beim Erststart leer. Der Betreiber
+Das Serverfeld ist in Android 1.0.7 beim Erststart leer. Der Betreiber
 übermittelt die vom Authentik-Skript erzeugte Header-Auth-Adresse einmalig über
 einen sicheren Kanal. Ihr allgemeines Schema ist HTTPS, gefolgt von Gateway-
 Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die echten Bestandteile
@@ -300,3 +300,13 @@ Datenbankconstraint erlaubt pro Benutzer und lokalem Startdatum höchstens einen
 nicht gelöschten Periodenstart und bricht bei widersprüchlichem Altbestand ab,
 statt Daten still zu verändern. Ein Restore muss den ServerState-Datensatz und
 den passenden `APP_MASTER_KEY` gemeinsam erhalten.
+
+Seit 1.0.7 verhindert zusätzlich eine partielle GiST-Exclusion-Constraint
+überschneidende aktive Periodenbereiche pro Tracker. Ein fehlendes Enddatum
+gilt dabei als offen; Soft Deletes sind ausgenommen. Vor
+`20260816120000_period_overlap_exclusion` müssen bestehende Daten read-only auf
+ungültige oder überlappende aktive Bereiche geprüft und ein validierter
+PostgreSQL-Custom-Dump angelegt werden. Die Migration ändert problematische
+Gesundheitsdaten niemals automatisch, sondern bricht in diesem Fall bewusst
+ab. Erst nach erfolgreicher Migration ausschließlich die Lunara-API ersetzen
+und anschließend Constraint, `/ready`, Meta-Version und Gateway prüfen.

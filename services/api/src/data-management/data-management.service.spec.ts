@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { PreferredLanguage, UserRole } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
@@ -37,7 +38,12 @@ describe('DataManagementService CSV export', () => {
         .mockImplementationOnce(() => dailyLog('log-5', formulaValues[4]))
         .mockImplementationOnce(() => dailyLog('log-6', formulaValues[5])),
     };
-    const service = new DataManagementService(prisma as never, logs as never, {} as never);
+    const service = new DataManagementService(
+      prisma as never,
+      logs as never,
+      {} as never,
+      {} as never,
+    );
 
     const result = await service.export(tracker, { format: ExportFormatDto.DAILY_LOGS_CSV });
 
@@ -51,6 +57,168 @@ describe('DataManagementService CSV export', () => {
     expect(csv).not.toContain(',+1+1');
     expect(csv).not.toContain(',-1+1');
     expect(csv).not.toContain(',@SUM(A1)');
+  });
+});
+
+describe('DataManagementService period import safety', () => {
+  const existingPeriod = {
+    id: '1ded543f-acf1-4451-b0fc-cb92b5c06483',
+    startDate: new Date('2026-07-01T00:00:00.000Z'),
+    endDate: new Date('2026-07-05T00:00:00.000Z'),
+    deletedAt: null,
+  };
+
+  it('reports overlaps with existing rows and within the supplied batch in preview', async () => {
+    const prisma = {
+      periodEvent: { findMany: jest.fn().mockResolvedValue([existingPeriod]) },
+      dailyLog: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      service.import(tracker, {
+        data: {
+          periods: [
+            { startDate: '2026-07-04', endDate: '2026-07-08' },
+            { startDate: '2026-08-01', endDate: '2026-08-05' },
+            { startDate: '2026-08-04', endDate: '2026-08-07' },
+          ],
+        },
+      }),
+    ).resolves.toEqual({
+      preview: true,
+      periods: { supplied: 3, create: 1, duplicates: 0, conflicts: 2 },
+      dailyLogs: { supplied: 0, create: 0, duplicates: 0 },
+    });
+  });
+
+  it('rebuilds the plan under the period lock and refreshes prediction atomically', async () => {
+    const periodId = '86178311-8f06-409e-b2cf-99e83c362327';
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      periodEvent: {
+        findMany: jest.fn().mockResolvedValue([existingPeriod]),
+        create: jest.fn().mockResolvedValue({ id: periodId }),
+      },
+      dailyLog: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+      },
+      importBatch: {
+        create: jest.fn().mockResolvedValue({ id: 'import-batch-id' }),
+      },
+      syncChange: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn().mockResolvedValue({}) };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      { encrypt: jest.fn() } as never,
+      predictions as never,
+    );
+
+    await expect(
+      service.import(tracker, {
+        preview: false,
+        data: {
+          periods: [
+            {
+              id: periodId,
+              startDate: '2026-06-01',
+              endDate: '2026-06-05',
+            },
+          ],
+        },
+      }),
+    ).resolves.toEqual({
+      preview: false,
+      batchId: 'import-batch-id',
+      periods: { supplied: 1, create: 1, duplicates: 0, conflicts: 0 },
+      dailyLogs: { supplied: 0, create: 0, duplicates: 0 },
+    });
+    expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.periodEvent.findMany.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(predictions.recalculateAndCache).toHaveBeenCalledWith(
+      tracker.userId,
+      tx,
+    );
+    expect(tx.periodEvent.create).toHaveBeenCalledTimes(1);
+    expect(tx.syncChange.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a plan that became overlapping before commit without writing', async () => {
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      periodEvent: { findMany: jest.fn().mockResolvedValue([existingPeriod]), create: jest.fn() },
+      dailyLog: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn() },
+      importBatch: { create: jest.fn() },
+      syncChange: { create: jest.fn() },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const predictions = { recalculateAndCache: jest.fn() };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      predictions as never,
+    );
+
+    await expect(
+      service.import(tracker, {
+        preview: false,
+        data: {
+          periods: [{ startDate: '2026-07-03', endDate: '2026-07-06' }],
+        },
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(tx.importBatch.create).not.toHaveBeenCalled();
+    expect(tx.periodEvent.create).not.toHaveBeenCalled();
+    expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+  });
+
+  it('maps an adapter-level exclusion violation without exposing range details', async () => {
+    const databaseError = Object.assign(
+      new Error(
+        'conflicting key value violates exclusion constraint "PeriodEvent_userId_active_range_excl"',
+      ),
+      {
+        cause: {
+          kind: 'postgres',
+          code: '23P01',
+          detail: 'sensitive range detail',
+        },
+      },
+    );
+    const prisma = { $transaction: jest.fn().mockRejectedValue(databaseError) };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const error = await service
+      .import(tracker, { preview: false, data: { periods: [] } })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ConflictException);
+    expect((error as ConflictException).getStatus()).toBe(409);
+    expect((error as Error).message).not.toContain('sensitive range detail');
   });
 });
 
@@ -82,6 +250,7 @@ describe('DataManagementService relationship deletion', () => {
     };
     const service = new DataManagementService(
       prisma as never,
+      {} as never,
       {} as never,
       {} as never,
     );

@@ -37,9 +37,13 @@ describe('DailyLogsService client identifier idempotency', () => {
       deletedAt: null,
       version: 1,
     };
-    const prisma = {
+    const tx = {
       dailyLog: { findUnique: jest.fn().mockResolvedValue(existing) },
-      $transaction: jest.fn(),
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
     };
     const encryption = { encrypt: jest.fn(), decrypt: jest.fn() };
     const service = new DailyLogsService(prisma as never, encryption as never);
@@ -54,7 +58,7 @@ describe('DailyLogsService client identifier idempotency', () => {
 
     expect(error).toBeInstanceOf(ConflictException);
     expect((error as ConflictException).getStatus()).toBe(409);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('persists explicit nulls and an explicit empty symptom list', async () => {
@@ -199,9 +203,13 @@ describe('DailyLogsService client identifier idempotency', () => {
       deletedAt: null,
       version: 1,
     };
-    const prisma = {
+    const tx = {
       dailyLog: { findUnique: jest.fn().mockResolvedValue(existing) },
-      $transaction: jest.fn(),
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
     };
     const service = new DailyLogsService(
       prisma as never,
@@ -215,7 +223,7 @@ describe('DailyLogsService client identifier idempotency', () => {
         mood: '   ',
       }),
     ).resolves.toEqual(expect.objectContaining({ id, mood: null }));
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('accepts and preserves explicit nulls for nullable scalar DTO fields', async () => {

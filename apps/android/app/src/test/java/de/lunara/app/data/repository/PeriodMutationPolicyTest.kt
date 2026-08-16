@@ -14,6 +14,15 @@ import java.time.LocalDate
 
 class PeriodMutationPolicyTest {
     @Test
+    fun `only an open period can be ended by the primary action`() {
+        assertTrue(PeriodMutationPolicy.canEnd(period("open", "2026-08-10", null)))
+        assertEquals(
+            false,
+            PeriodMutationPolicy.canEnd(period("closed", "2026-08-10", "2026-08-12")),
+        )
+    }
+
+    @Test
     fun `an end-only edit is treated as a real period change`() {
         val current = PeriodEntity(
             id = "period",
@@ -128,6 +137,57 @@ class PeriodMutationPolicyTest {
     }
 
     @Test
+    fun `period create carries a known historical end date in the single create payload`() {
+        val payload = JsonParser.parseString(
+            PeriodPayloadPolicy.create(
+                Gson(),
+                "period-1",
+                LocalDate.parse("2026-07-10"),
+                LocalDate.parse("2026-07-14"),
+            ),
+        ).asJsonObject
+
+        assertEquals("period-1", payload.get("id").asString)
+        assertEquals("2026-07-10", payload.get("startDate").asString)
+        assertEquals("2026-07-14", payload.get("endDate").asString)
+        assertEquals("MANUAL", payload.get("source").asString)
+        assertEquals(false, payload.has("version"))
+    }
+
+    @Test
+    fun `open period create explicitly retains a null end date`() {
+        val payload = JsonParser.parseString(
+            PeriodPayloadPolicy.create(
+                Gson(),
+                "period-open",
+                LocalDate.parse("2026-08-13"),
+                null,
+            ),
+        ).asJsonObject
+
+        assertTrue(payload.has("endDate"))
+        assertTrue(payload.get("endDate").isJsonNull)
+    }
+
+    @Test
+    fun `ending an unattempted create can replace it with one complete create payload`() {
+        val create = mutation(operation = "UPSERT", baseVersion = 0)
+        val replaceable = PeriodMutationPolicy.replaceableTail(listOf(create))
+        val completedPayload = JsonParser.parseString(
+            PeriodPayloadPolicy.create(
+                Gson(),
+                "period-open",
+                LocalDate.parse("2026-08-10"),
+                LocalDate.parse("2026-08-13"),
+            ),
+        ).asJsonObject
+
+        assertEquals(create, replaceable)
+        assertEquals("2026-08-13", completedPayload.get("endDate").asString)
+        assertEquals(false, completedPayload.has("version"))
+    }
+
+    @Test
     fun `repository date policy rejects future and reversed periods`() {
         val today = LocalDate.parse("2026-08-13")
 
@@ -153,6 +213,73 @@ class PeriodMutationPolicyTest {
         }
     }
 
+    @Test
+    fun `period overlap policy accepts adjacent closed ranges but rejects shared boundary days`() {
+        val existing = period("existing", "2026-07-10", "2026-07-14")
+        val today = LocalDate.parse("2026-08-16")
+
+        assertEquals(
+            false,
+            PeriodOverlapPolicy.hasOverlap(
+                listOf(existing),
+                LocalDate.parse("2026-07-15"),
+                LocalDate.parse("2026-07-18"),
+                today,
+            ),
+        )
+        assertTrue(
+            PeriodOverlapPolicy.hasOverlap(
+                listOf(existing),
+                LocalDate.parse("2026-07-14"),
+                LocalDate.parse("2026-07-18"),
+                today,
+            ),
+        )
+    }
+
+    @Test
+    fun `open periods overlap through today and block a second open range`() {
+        val existing = period("open", "2026-08-10", null)
+        val today = LocalDate.parse("2026-08-16")
+
+        assertTrue(
+            PeriodOverlapPolicy.hasOverlap(
+                listOf(existing),
+                LocalDate.parse("2026-08-12"),
+                null,
+                today,
+            ),
+        )
+        assertEquals(
+            false,
+            PeriodOverlapPolicy.hasOverlap(
+                listOf(existing),
+                LocalDate.parse("2026-07-01"),
+                LocalDate.parse("2026-07-05"),
+                today,
+            ),
+        )
+    }
+
+    @Test
+    fun `period overlap policy excludes the edited record and ignores invalid or deleted data`() {
+        val current = period("current", "2026-08-10", null)
+        val malformed = period("malformed", "not-a-date", null)
+        val deleted = period("deleted", "2026-08-12", null).copy(deletedAt = "2026-08-13T00:00:00Z")
+        val today = LocalDate.parse("2026-08-16")
+
+        assertEquals(
+            false,
+            PeriodOverlapPolicy.hasOverlap(
+                listOf(current, malformed, deleted),
+                LocalDate.parse("2026-08-10"),
+                null,
+                today,
+                excludingId = "current",
+            ),
+        )
+    }
+
     private fun mutation(
         id: String = "mutation",
         operation: String,
@@ -171,5 +298,15 @@ class PeriodMutationPolicyTest {
         attemptCount = attemptCount,
         nextAttemptAt = "2026-08-13T00:00:00Z",
         state = state,
+    )
+
+    private fun period(id: String, startDate: String, endDate: String?) = PeriodEntity(
+        id = id,
+        userId = "tracker",
+        startDate = startDate,
+        endDate = endDate,
+        createdAt = "",
+        updatedAt = "",
+        syncState = "SYNCED",
     )
 }

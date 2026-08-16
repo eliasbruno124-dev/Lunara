@@ -1896,7 +1896,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },

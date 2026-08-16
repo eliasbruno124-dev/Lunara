@@ -36,6 +36,9 @@ OpenAPI-Dokumentation.
   Sicherheitshinweis; niemals als Ovulationsbestätigung oder Verhütung
 - verschlüsselte Freitextnotizen, Soft Deletes, Cursor-Sync, optimistische
   Versionskonflikte und idempotente Offline-Mutationen
+- atomarer Serverabschluss von Idempotenz-Receipt, Perioden-/Tageslogmutation,
+  SyncChange und erforderlicher Prognoseneuberechnung; sicherer Retry auch bei
+  Antwortverlust
 - automatische Synchronisierung nach Anmeldung und lokalen Änderungen, beim
   Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; ein manueller
   Sync bleibt zusätzlich verfügbar
@@ -44,11 +47,18 @@ OpenAPI-Dokumentation.
   Tracker-Eingaben und Partner-Tipps; ohne Firebase oder externe Push-Dienste
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
   `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.6 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+- native Compose-App 1.0.7 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
   rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
   Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
-- nachträgliche Korrektur und Löschung eines Periodenstarts über dieselbe
-  offlinefähige, automatisch synchronisierte Mutation Queue
+- rückwirkende Erfassung vollständiger Perioden direkt im Kalender sowie
+  nachträgliche Korrektur und bestätigtes Löschen über dieselbe offlinefähige,
+  automatisch synchronisierte Mutation Queue
+- rotationsfeste Kalenderentwürfe und gesperrte Doppelaktionen bis Room die
+  lokale Änderung tatsächlich bestätigt
+- zustandsabhängige Hauptaktion „Periode begonnen“/„Periode heute beenden“ mit
+  sichtbarer Bestätigung und lokalem Pending-/Sync-Status
+- transaktionaler Server- und PostgreSQL-Schutz vor überlappenden aktiven
+  Perioden, auch bei konkurrierenden Offline-Geräten
 - gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
   Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
 - versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
@@ -62,7 +72,7 @@ Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
 ## Verbindung und Authentifizierung
 
-Das Serverfeld ist beim ersten Start von Android 1.0.6 absichtlich leer. Für
+Das Serverfeld ist beim ersten Start von Android 1.0.7 absichtlich leer. Für
 die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
 Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
 Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
@@ -135,9 +145,9 @@ artifacts/lunara-debug.apk
 ```
 
 Im privaten GitHub-Repository kann sie nach Anmeldung direkt über den
-[Release Lunara 1.0.6](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.6)
+[Release Lunara 1.0.7](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.7)
 oder als
-[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.6/lunara-debug.apk)
+[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.7/lunara-debug.apk)
 heruntergeladen werden.
 
 Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:

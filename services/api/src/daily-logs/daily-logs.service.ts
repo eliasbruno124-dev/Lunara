@@ -32,30 +32,53 @@ export class DailyLogsService {
     return logs.map((log) => this.serialize(log));
   }
 
-  async create(user: AuthenticatedUser, dto: CreateDailyLogDto) {
-    const existing = await this.prisma.dailyLog.findUnique({ where: { id: dto.id } });
-    if (existing) {
-      if (existing.userId !== user.userId || !this.matchesCreateRequest(existing, dto)) {
-        throw new ConflictException('Client identifier is in use for another daily log payload');
+  async create(
+    user: AuthenticatedUser,
+    dto: CreateDailyLogDto,
+    transaction?: Prisma.TransactionClient,
+  ) {
+    const operation = async (tx: Prisma.TransactionClient): Promise<DailyLog> => {
+      const existing = await tx.dailyLog.findUnique({ where: { id: dto.id } });
+      if (existing) {
+        if (
+          existing.userId !== user.userId ||
+          !this.matchesCreateRequest(existing, dto)
+        ) {
+          throw new ConflictException(
+            'Client identifier is in use for another daily log payload',
+          );
+        }
+        return existing;
       }
-      return this.serialize(existing);
-    }
-    const sameDate = await this.prisma.dailyLog.findUnique({
-      where: { userId_localDate: { userId: user.userId, localDate: this.parseDate(dto.localDate) } },
-    });
-    if (sameDate) throw new ConflictException('A daily log already exists for this date');
-
-    const log = await this.prisma.$transaction(async (tx) => {
+      const sameDate = await tx.dailyLog.findUnique({
+        where: {
+          userId_localDate: {
+            userId: user.userId,
+            localDate: this.parseDate(dto.localDate),
+          },
+        },
+      });
+      if (sameDate) {
+        throw new ConflictException('A daily log already exists for this date');
+      }
       const created = await tx.dailyLog.create({ data: this.createData(user.userId, dto) });
       await this.recordChange(tx, user, created, SyncOperation.UPSERT);
       return created;
-    });
+    };
+    const log = transaction
+      ? await operation(transaction)
+      : await this.prisma.$transaction(operation);
     return this.serialize(log);
   }
 
-  async update(user: AuthenticatedUser, id: string, dto: UpdateDailyLogDto) {
+  async update(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateDailyLogDto,
+    transaction?: Prisma.TransactionClient,
+  ) {
     if (dto.id !== id) throw new ConflictException('Body id must match path id');
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const operation = async (tx: Prisma.TransactionClient): Promise<DailyLog> => {
       const result = await tx.dailyLog.updateMany({
         where: { id, userId: user.userId, version: dto.version, deletedAt: null },
         data: {
@@ -77,12 +100,20 @@ export class DailyLogsService {
       const log = await tx.dailyLog.findUniqueOrThrow({ where: { id } });
       await this.recordChange(tx, user, log, SyncOperation.UPSERT);
       return log;
-    });
+    };
+    const updated = transaction
+      ? await operation(transaction)
+      : await this.prisma.$transaction(operation);
     return this.serialize(updated);
   }
 
-  async remove(user: AuthenticatedUser, id: string, version: number): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  async remove(
+    user: AuthenticatedUser,
+    id: string,
+    version: number,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const operation = async (tx: Prisma.TransactionClient): Promise<void> => {
       const result = await tx.dailyLog.updateMany({
         where: { id, userId: user.userId, version, deletedAt: null },
         data: { deletedAt: new Date(), version: { increment: 1 } },
@@ -90,7 +121,12 @@ export class DailyLogsService {
       if (result.count !== 1) throw new ConflictException('Daily log changed or no longer exists');
       const log = await tx.dailyLog.findUniqueOrThrow({ where: { id } });
       await this.recordChange(tx, user, log, SyncOperation.DELETE);
-    });
+    };
+    if (transaction) {
+      await operation(transaction);
+    } else {
+      await this.prisma.$transaction(operation);
+    }
   }
 
   async findOwned(userId: string, id: string): Promise<DailyLog> {
@@ -136,7 +172,7 @@ export class DailyLogsService {
     };
   }
 
-  private matchesCreateRequest(log: DailyLog, dto: CreateDailyLogDto): boolean {
+  matchesCreateRequest(log: DailyLog, dto: CreateDailyLogDto): boolean {
     const symptoms = Array.isArray(log.customSymptoms) ? log.customSymptoms : [];
     const requestedSymptoms = dto.customSymptoms ?? [];
     const sameSymptoms =
@@ -154,6 +190,30 @@ export class DailyLogsService {
       log.ovulationTestResult === (dto.ovulationTestResult ?? null) &&
       sameSymptoms &&
       (log.encryptedNote ? this.encryption.decrypt(log.encryptedNote) : null) === (dto.note || null)
+    );
+  }
+
+  matchesUpdateRequest(log: DailyLog, dto: UpdateDailyLogDto): boolean {
+    const symptoms = Array.isArray(log.customSymptoms) ? log.customSymptoms : [];
+    const requestedSymptoms = dto.customSymptoms ?? symptoms;
+    const sameSymptoms =
+      symptoms.length === requestedSymptoms.length &&
+      symptoms.every((value, index) => value === requestedSymptoms[index]);
+    const note = log.encryptedNote ? this.encryption.decrypt(log.encryptedNote) : null;
+    return (
+      log.localDate.toISOString().slice(0, 10) === dto.localDate &&
+      (dto.flowLevel === undefined || log.flowLevel === dto.flowLevel) &&
+      (dto.painLevel === undefined || log.painLevel === dto.painLevel) &&
+      (dto.mood === undefined || log.mood === (dto.mood?.trim() || null)) &&
+      (dto.energy === undefined || log.energy === dto.energy) &&
+      (dto.sleepQuality === undefined || log.sleepQuality === dto.sleepQuality) &&
+      (dto.bodyTemperature === undefined ||
+        (log.bodyTemperature === null ? null : Number(log.bodyTemperature)) ===
+          dto.bodyTemperature) &&
+      (dto.ovulationTestResult === undefined ||
+        log.ovulationTestResult === dto.ovulationTestResult) &&
+      sameSymptoms &&
+      (dto.note === undefined || note === (dto.note || null))
     );
   }
 

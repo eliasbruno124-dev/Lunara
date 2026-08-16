@@ -1,6 +1,27 @@
 # Lunara – Implementierungsplan
 
-Stand: 13. August 2026
+Stand: 16. August 2026
+
+## 0. Ergänzung 1.0.7 – ausgeführt
+
+- Kalender als echte Bearbeitungsoberfläche erweitert: vergangene Periode mit
+  Start/Ende erfassen, vorhandenen Zeitraum korrigieren oder bestätigt löschen.
+- Tracker-Hauptaktion an offenen beziehungsweise heute beendeten Zeitraum
+  gekoppelt und lokale Speicherung sichtbar bestätigt.
+- Atomaren historischen Room-/Mutation-Queue-Pfad sowie Client- und
+  Serverprüfung gegen Überschneidungen ergänzt.
+- Serverseitige Race-Sicherheit durch per-Tracker Advisory-Lock und partielle
+  PostgreSQL-GiST-Exclusion-Constraint umgesetzt.
+- Sync-Receipt, Perioden-/Tageslogmutation, SyncChange und Prognosecache in
+  einer Transaktion zusammengeführt; sichere Recovery früherer Pending-
+  Receipts, race-sichere Wiederverwendung abgelaufener Keys sowie
+  lockgeschützten Importplan ergänzt.
+- Kalenderentwürfe und Pending-Zustände rotationsfest gemacht und sämtliche
+  Doppelaktionen bis zur Room-Bestätigung gesperrt.
+- Android-, Backend-, Container- und Live-Prüfung einzeln unter überwachten
+  Ressourcenlimits ausgeführt; zusätzlich alle sieben Migrationen und den
+  Kernablauf gegen eine frische echte PostgreSQL-18-Datenbank verifiziert.
+  Ergebnisse stehen in `TESTING.md` und `FINAL_REPORT.md`.
 
 ## 1. Ausgangslage und Leitplanken
 

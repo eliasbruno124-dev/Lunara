@@ -516,19 +516,20 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       foreignPeriodId,
     );
 
-    const periodStarts = [
-      '2026-04-01',
-      '2026-05-01',
-      '2026-05-31',
-      '2026-06-30',
+    const periodRanges = [
+      { startDate: '2026-04-01', endDate: '2026-04-05' },
+      { startDate: '2026-05-01', endDate: '2026-05-05' },
+      { startDate: '2026-05-31', endDate: '2026-06-04' },
+      { startDate: '2026-06-30', endDate: '2026-07-04' },
     ];
+    const periodStarts = periodRanges.map(({ startDate }) => startDate);
     const createdPeriods = [] as Array<{ id: string; version: number }>;
-    for (const startDate of periodStarts) {
+    for (const { startDate, endDate } of periodRanges) {
       const created = await request(app.getHttpServer())
         .post('/api/v1/periods')
         .set('X-Lunara-Authorization', `Bearer ${trackerAccess}`)
         .set('Authorization', 'Basic Z2F0ZXdheTpwYXNzd29yZA==')
-        .send({ id: randomUUID(), startDate })
+        .send({ id: randomUUID(), startDate, endDate })
         .expect(201);
       createdPeriods.push({
         id: created.body.id as string,
@@ -542,13 +543,36 @@ describe('Lunara core flow (real PostgreSQL)', () => {
     await request(app.getHttpServer())
       .patch(`/api/v1/periods/${firstCreatedPeriod.id}`)
       .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({ version: firstCreatedPeriod.version, endDate: '2026-05-02' })
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body.message).toBe(
+          'Period range overlaps an existing period entry',
+        ),
+      );
+    const unchangedAfterOverlap =
+      await prisma.periodEvent.findUniqueOrThrow({
+        where: { id: firstCreatedPeriod.id },
+      });
+    expect(unchangedAfterOverlap.endDate?.toISOString().slice(0, 10)).toBe(
+      '2026-04-05',
+    );
+    expect(unchangedAfterOverlap.version).toBe(firstCreatedPeriod.version);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/periods/${firstCreatedPeriod.id}`)
+      .set('Authorization', `Bearer ${trackerAccess}`)
       .send({ version: 99, endDate: '2026-04-05' })
       .expect(409);
 
     await request(app.getHttpServer())
       .patch(`/api/v1/periods/${firstCreatedPeriod.id}`)
       .set('Authorization', `Bearer ${trackerAccess}`)
-      .send({ version: firstCreatedPeriod.version, startDate: periodStarts[1] })
+      .send({
+        version: firstCreatedPeriod.version,
+        startDate: periodRanges[1]?.startDate,
+        endDate: periodRanges[1]?.endDate,
+      })
       .expect(409)
       .expect(({ body }) =>
         expect(body.message).toBe(
@@ -562,6 +586,25 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         })
       ).startDate.toISOString().slice(0, 10),
     ).toBe(periodStarts[0]);
+
+    const directOverlapId = randomUUID();
+    await request(app.getHttpServer())
+      .post('/api/v1/periods')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send({
+        id: directOverlapId,
+        startDate: '2026-04-04',
+        endDate: '2026-04-08',
+      })
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body.message).toBe(
+          'Period range overlaps an existing period entry',
+        ),
+      );
+    expect(
+      await prisma.periodEvent.count({ where: { id: directOverlapId } }),
+    ).toBe(0);
 
     const concurrentPeriodDate = '2026-07-15';
     const concurrentPeriodResponses = await Promise.all(
@@ -992,6 +1035,285 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       1,
     );
 
+    const historicalPeriodId = randomUUID();
+    const historicalPeriodStart = '2025-02-03';
+    const historicalPeriodInitialEnd = '2025-02-07';
+    const historicalPeriodEnd = '2025-02-08';
+    const periodCreateMutationId = randomUUID();
+    const periodCreateSyncBody = {
+      cursor: initialSyncPush.body.cursor as string,
+      mutations: [
+        {
+          clientMutationId: periodCreateMutationId,
+          entityType: 'PERIOD',
+          operation: 'UPSERT',
+          payload: {
+            id: historicalPeriodId,
+            startDate: historicalPeriodStart,
+            endDate: historicalPeriodInitialEnd,
+            source: 'MANUAL',
+          },
+        },
+      ],
+    };
+    const periodCreateSync = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodCreateSyncBody)
+      .expect(201);
+    expect(periodCreateSync.body.results).toEqual([
+      expect.objectContaining({
+        clientMutationId: periodCreateMutationId,
+        entityType: 'PERIOD',
+        entity: expect.objectContaining({
+          id: historicalPeriodId,
+          startDate: historicalPeriodStart,
+          endDate: historicalPeriodInitialEnd,
+          version: 1,
+        }),
+      }),
+    ]);
+
+    const periodCreateRetry = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodCreateSyncBody)
+      .expect(201);
+    expect(periodCreateRetry.body.results).toEqual(
+      periodCreateSync.body.results,
+    );
+    expect(
+      await prisma.periodEvent.count({ where: { id: historicalPeriodId } }),
+    ).toBe(1);
+    expect(
+      await prisma.idempotencyKey.count({
+        where: { userId: trackerUserId, key: periodCreateMutationId },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.syncChange.count({
+        where: {
+          ownerUserId: trackerUserId,
+          entityId: historicalPeriodId,
+        },
+      }),
+    ).toBe(1);
+
+    const periodUpdateMutationId = randomUUID();
+    const periodUpdateSyncBody = {
+      cursor: periodCreateSync.body.cursor as string,
+      mutations: [
+        {
+          clientMutationId: periodUpdateMutationId,
+          entityType: 'PERIOD',
+          operation: 'UPSERT',
+          payload: {
+            id: historicalPeriodId,
+            version: 1,
+            startDate: historicalPeriodStart,
+            endDate: historicalPeriodEnd,
+          },
+        },
+      ],
+    };
+    const periodUpdateSync = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodUpdateSyncBody)
+      .expect(201);
+    expect(periodUpdateSync.body.results).toEqual([
+      expect.objectContaining({
+        clientMutationId: periodUpdateMutationId,
+        entityType: 'PERIOD',
+        entity: expect.objectContaining({
+          id: historicalPeriodId,
+          startDate: historicalPeriodStart,
+          endDate: historicalPeriodEnd,
+          version: 2,
+        }),
+      }),
+    ]);
+
+    const periodUpdateRetry = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodUpdateSyncBody)
+      .expect(201);
+    expect(periodUpdateRetry.body.results).toEqual(
+      periodUpdateSync.body.results,
+    );
+    const closedHistoricalPeriod = await prisma.periodEvent.findUniqueOrThrow({
+      where: { id: historicalPeriodId },
+    });
+    expect(closedHistoricalPeriod.endDate?.toISOString().slice(0, 10)).toBe(
+      historicalPeriodEnd,
+    );
+    expect(closedHistoricalPeriod.version).toBe(2);
+    expect(
+      await prisma.idempotencyKey.count({
+        where: { userId: trackerUserId, key: periodUpdateMutationId },
+      }),
+    ).toBe(1);
+
+    const periodDeleteMutationId = randomUUID();
+    const periodDeleteSyncBody = {
+      cursor: periodUpdateSync.body.cursor as string,
+      mutations: [
+        {
+          clientMutationId: periodDeleteMutationId,
+          entityType: 'PERIOD',
+          operation: 'DELETE',
+          payload: { id: historicalPeriodId, version: 2 },
+        },
+      ],
+    };
+    const periodDeleteSync = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodDeleteSyncBody)
+      .expect(201);
+    expect(periodDeleteSync.body.results).toEqual([
+      expect.objectContaining({
+        clientMutationId: periodDeleteMutationId,
+        entityType: 'PERIOD',
+        id: historicalPeriodId,
+        deleted: true,
+      }),
+    ]);
+
+    const periodDeleteRetry = await request(app.getHttpServer())
+      .post('/api/v1/sync')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .send(periodDeleteSyncBody)
+      .expect(201);
+    expect(periodDeleteRetry.body.results).toEqual(
+      periodDeleteSync.body.results,
+    );
+    const deletedHistoricalPeriod = await prisma.periodEvent.findUniqueOrThrow({
+      where: { id: historicalPeriodId },
+    });
+    expect(deletedHistoricalPeriod.deletedAt).toBeInstanceOf(Date);
+    expect(deletedHistoricalPeriod.version).toBe(3);
+    expect(
+      await prisma.idempotencyKey.count({
+        where: { userId: trackerUserId, key: periodDeleteMutationId },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.syncChange.findMany({
+        where: {
+          ownerUserId: trackerUserId,
+          entityId: historicalPeriodId,
+        },
+        orderBy: { cursor: 'asc' },
+        select: { operation: true, entityVersion: true },
+      }),
+    ).toEqual([
+      { operation: 'UPSERT', entityVersion: 1 },
+      { operation: 'UPSERT', entityVersion: 2 },
+      { operation: 'DELETE', entityVersion: 3 },
+    ]);
+    expect(
+      await prisma.periodEvent.count({
+        where: {
+          userId: trackerUserId,
+          startDate: new Date(`${historicalPeriodStart}T00:00:00.000Z`),
+          deletedAt: null,
+        },
+      }),
+    ).toBe(0);
+
+    const overlapDeviceLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        username: 'tracker-e2e',
+        password: 'A secure tracker password 2026!',
+        deviceName: 'Concurrent period device',
+      })
+      .expect(201);
+    const concurrentPeriodIds = [randomUUID(), randomUUID()];
+    const concurrentPeriodMutationIds = [randomUUID(), randomUUID()];
+    const concurrentPeriodBodies = [
+      {
+        cursor: periodDeleteSync.body.cursor as string,
+        mutations: [
+          {
+            clientMutationId: concurrentPeriodMutationIds[0],
+            entityType: 'PERIOD',
+            operation: 'UPSERT',
+            payload: {
+              id: concurrentPeriodIds[0],
+              startDate: '2025-03-10',
+              endDate: '2025-03-14',
+              source: 'MANUAL',
+            },
+          },
+        ],
+      },
+      {
+        cursor: periodDeleteSync.body.cursor as string,
+        mutations: [
+          {
+            clientMutationId: concurrentPeriodMutationIds[1],
+            entityType: 'PERIOD',
+            operation: 'UPSERT',
+            payload: {
+              id: concurrentPeriodIds[1],
+              startDate: '2025-03-12',
+              endDate: '2025-03-16',
+              source: 'MANUAL',
+            },
+          },
+        ],
+      },
+    ];
+    const concurrentPeriodSyncResponses = await Promise.all([
+      request(app.getHttpServer())
+        .post('/api/v1/sync')
+        .set('Authorization', `Bearer ${trackerAccess}`)
+        .send(concurrentPeriodBodies[0]),
+      request(app.getHttpServer())
+        .post('/api/v1/sync')
+        .set(
+          'Authorization',
+          `Bearer ${overlapDeviceLogin.body.accessToken}`,
+        )
+        .send(concurrentPeriodBodies[1]),
+    ]);
+    expect(
+      concurrentPeriodSyncResponses.map(({ status }) => status).sort(),
+    ).toEqual([201, 409]);
+    expect(
+      concurrentPeriodSyncResponses.find(({ status }) => status === 409)?.body
+        .message,
+    ).toBe('Period range overlaps an existing period entry');
+    expect(
+      await prisma.periodEvent.count({
+        where: {
+          id: { in: concurrentPeriodIds },
+          userId: trackerUserId,
+          deletedAt: null,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.syncChange.count({
+        where: {
+          ownerUserId: trackerUserId,
+          entityId: { in: concurrentPeriodIds },
+          operation: 'UPSERT',
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await prisma.idempotencyKey.count({
+        where: {
+          userId: trackerUserId,
+          key: { in: concurrentPeriodMutationIds },
+        },
+      }),
+    ).toBe(1);
+
     await request(app.getHttpServer())
       .delete(
         `/api/v1/periods/${firstCreatedPeriod.id}?version=${firstCreatedPeriod.version}`,
@@ -1159,7 +1481,11 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         },
       }),
     ).toBe(1);
-    await request(app.getHttpServer())
+    // Use a fresh in-memory rate-limit bucket for the final password-login
+    // assertions. Earlier deliberate invalid-login checks already exercise the
+    // production limiter on the primary test application.
+    const passwordLoginApp = await createTestApplication();
+    await request(passwordLoginApp.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
         username: 'tracker-e2e',
@@ -1167,7 +1493,7 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         deviceName: 'Old password must fail',
       })
       .expect(401);
-    const newPasswordLogin = await request(app.getHttpServer())
+    const newPasswordLogin = await request(passwordLoginApp.getHttpServer())
       .post('/api/v1/auth/login')
       .send({
         username: 'tracker-e2e',
@@ -1175,6 +1501,7 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         deviceName: 'New password succeeds',
       })
       .expect(201);
+    await passwordLoginApp.close();
     const currentRefreshAfterChange = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: passwordChangeSession.refreshToken })

@@ -68,10 +68,15 @@ data class MainUiState(
     val cycleProfile: CycleProfileDto? = null,
     val carePreferences: CarePreferencesDto? = null,
     val passwordChangeStatus: PasswordChangeStatus = PasswordChangeStatus.IDLE,
+    /** Advances after a period mutation fails so an open editor can safely unlock. */
+    val periodFailureRevision: Long = 0L,
 )
 
 sealed interface MainEvent {
+    /** Kept for compatibility with older UI collectors; new creates emit [PeriodAdded]. */
     data object PeriodSaved : MainEvent
+    data object PeriodAdded : MainEvent
+    data object PeriodEnded : MainEvent
     data object PeriodUpdated : MainEvent
     data object PeriodDeleted : MainEvent
     data object PeriodChangeFailed : MainEvent
@@ -92,6 +97,7 @@ private data class SessionUiExtras(
     val cycleProfile: CycleProfileDto?,
     val carePreferences: CarePreferencesDto?,
     val passwordChangeStatus: PasswordChangeStatus,
+    val periodFailureRevision: Long,
 )
 
 @HiltViewModel
@@ -118,6 +124,7 @@ class MainViewModel @Inject constructor(
     private val cycleProfile = MutableStateFlow<CycleProfileDto?>(null)
     private val carePreferences = MutableStateFlow<CarePreferencesDto?>(null)
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
+    private val periodFailureRevision = MutableStateFlow(0L)
     private val sessionOwnerId = MutableStateFlow<String?>(null)
     private var sessionOperations: CoroutineScope? = null
     private var invitationRevision = 0L
@@ -150,7 +157,7 @@ class MainViewModel @Inject constructor(
     ) { partner, unavailable -> partner to unavailable }
     private val sessionExtras = combine(
         checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
-        trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus,
+        trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, periodFailureRevision,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
@@ -164,6 +171,7 @@ class MainViewModel @Inject constructor(
             cycleProfile = values[8] as CycleProfileDto?,
             carePreferences = values[9] as CarePreferencesDto?,
             passwordChangeStatus = values[10] as PasswordChangeStatus,
+            periodFailureRevision = values[11] as Long,
         )
     }
     val state: StateFlow<MainUiState> = combine(
@@ -191,6 +199,7 @@ class MainViewModel @Inject constructor(
                 cycleProfile = extra.cycleProfile,
                 carePreferences = extra.carePreferences,
                 passwordChangeStatus = extra.passwordChangeStatus,
+                periodFailureRevision = extra.periodFailureRevision,
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MainUiState())
@@ -277,6 +286,7 @@ class MainViewModel @Inject constructor(
         carePreferences.value = null
         carePreferencesRevision += 1
         passwordChangeStatus.value = PasswordChangeStatus.IDLE
+        periodFailureRevision.value = 0L
     }
 
     fun startPeriod(userId: String) {
@@ -284,7 +294,33 @@ class MainViewModel @Inject constructor(
         launchForSession(userId) {
             runSessionOperation { periodRepository.startPeriod(userId) }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodSaved) } }
-                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
+                .onFailure { reportPeriodFailure(userId) }
+        }
+    }
+
+    fun createPeriod(
+        userId: String,
+        startDate: LocalDate,
+        endDate: LocalDate? = null,
+    ) {
+        if (!canManagePeriod(userId)) return
+        launchForSession(userId) {
+            runSessionOperation { periodRepository.createPeriod(userId, startDate, endDate) }
+                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodAdded) } }
+                .onFailure { reportPeriodFailure(userId) }
+        }
+    }
+
+    fun endPeriod(userId: String, periodId: String) {
+        if (!canManagePeriod(userId)) return
+        launchForSession(userId) {
+            runSessionOperation { periodRepository.endPeriod(userId, periodId) }
+                .onSuccess { changed ->
+                    if (changed) {
+                        ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodEnded) }
+                    }
+                }
+                .onFailure { reportPeriodFailure(userId) }
         }
     }
 
@@ -298,7 +334,7 @@ class MainViewModel @Inject constructor(
         launchForSession(userId) {
             runSessionOperation { periodRepository.updatePeriodDates(userId, periodId, startDate, endDate) }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) } }
-                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
+                .onFailure { reportPeriodFailure(userId) }
         }
     }
 
@@ -307,7 +343,14 @@ class MainViewModel @Inject constructor(
         launchForSession(userId) {
             runSessionOperation { periodRepository.deletePeriod(userId, periodId) }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodDeleted) } }
-                .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodChangeFailed) } }
+                .onFailure { reportPeriodFailure(userId) }
+        }
+    }
+
+    private fun reportPeriodFailure(userId: String) {
+        ifCurrentSession(userId) {
+            periodFailureRevision.value += 1
+            _events.tryEmit(MainEvent.PeriodChangeFailed)
         }
     }
 

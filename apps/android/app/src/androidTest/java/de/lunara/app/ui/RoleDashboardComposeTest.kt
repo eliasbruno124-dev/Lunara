@@ -1,7 +1,11 @@
 package de.lunara.app.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -43,6 +47,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = { starts++ },
+                    onPeriodEnded = {},
                     onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = {},
@@ -51,8 +56,51 @@ class RoleDashboardComposeTest {
                 )
             }
         }
-        compose.onNodeWithText("Periode gestartet").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Periode begonnen").assertIsDisplayed().performClick()
         assertEquals(1, starts)
+    }
+
+    @Test
+    fun trackerPrimaryActionEndsAnOngoingPeriodAndThenConfirmsCompletion() {
+        var ended: String? = null
+        val start = LocalDate.now().minusDays(2)
+        val ongoing = PeriodEntity(
+            id = "ongoing",
+            userId = "tracker",
+            startDate = start.toString(),
+            createdAt = "",
+            updatedAt = "",
+        )
+        var visiblePeriods by mutableStateOf(listOf(ongoing))
+        compose.setContent {
+            LunaraTheme {
+                TrackerDashboard(
+                    displayName = "Alex",
+                    periods = visiblePeriods,
+                    dailyLogs = emptyList(),
+                    prediction = null,
+                    pendingMutations = 1,
+                    conflictMutations = 0,
+                    lastSyncAt = null,
+                    onPeriodStarted = {},
+                    onPeriodEnded = { id ->
+                        ended = id
+                        visiblePeriods = listOf(
+                            ongoing.copy(endDate = LocalDate.now().toString(), syncState = "PENDING"),
+                        )
+                    },
+                    onPeriodUpdated = { _, _, _ -> },
+                    onPeriodDeleted = {},
+                    onDailyLog = {},
+                    onSync = {},
+                    onDiscardConflicts = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("period-end").assertIsDisplayed().performClick()
+        assertEquals("ongoing", ended)
+        compose.onNodeWithTag("period-done").assertIsDisplayed().assertIsNotEnabled()
     }
 
     @Test
@@ -69,6 +117,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = {},
+                    onPeriodEnded = {},
                     onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = { draft = it },
@@ -109,6 +158,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 0,
                     lastSyncAt = null,
                     onPeriodStarted = {},
+                    onPeriodEnded = {},
                     onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = { draft = it },
@@ -202,6 +252,7 @@ class RoleDashboardComposeTest {
                     0,
                     null,
                     {},
+                    {},
                     { id, start, end -> updated = Triple(id, start, end) },
                     { id -> deleted = id },
                     {},
@@ -233,6 +284,7 @@ class RoleDashboardComposeTest {
                     0,
                     0,
                     null,
+                    {},
                     {},
                     { id, start, end -> updated = Triple(id, start, end) },
                     {},
@@ -277,6 +329,7 @@ class RoleDashboardComposeTest {
                     0,
                     null,
                     {},
+                    {},
                     { id, start, end -> updated = Triple(id, start, end) },
                     {},
                     {},
@@ -307,6 +360,7 @@ class RoleDashboardComposeTest {
                     conflictMutations = 1,
                     lastSyncAt = null,
                     onPeriodStarted = {},
+                    onPeriodEnded = {},
                     onPeriodUpdated = { _, _, _ -> },
                     onPeriodDeleted = {},
                     onDailyLog = {},

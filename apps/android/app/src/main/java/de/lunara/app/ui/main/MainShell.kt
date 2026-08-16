@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,6 +67,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -125,6 +127,7 @@ import de.lunara.app.ui.components.QrCode
 import de.lunara.app.ui.theme.LunaraTheme
 import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -144,6 +147,8 @@ fun MainShell(
     val selected = backStack?.destination?.route ?: MainDestination.TODAY.route
     val snackbar = remember { SnackbarHostState() }
     val periodSavedMessage = stringResource(R.string.period_saved_offline)
+    val periodAddedMessage = stringResource(R.string.period_added_offline)
+    val periodEndedMessage = stringResource(R.string.period_ended_offline)
     val periodUpdatedMessage = stringResource(R.string.period_updated_offline)
     val periodDeletedMessage = stringResource(R.string.period_deleted_offline)
     val periodChangeFailedMessage = stringResource(R.string.period_change_failed)
@@ -156,6 +161,8 @@ fun MainShell(
             snackbar.showSnackbar(
                 when (event) {
                     MainEvent.PeriodSaved -> periodSavedMessage
+                    MainEvent.PeriodAdded -> periodAddedMessage
+                    MainEvent.PeriodEnded -> periodEndedMessage
                     MainEvent.PeriodUpdated -> periodUpdatedMessage
                     MainEvent.PeriodDeleted -> periodDeletedMessage
                     MainEvent.PeriodChangeFailed -> periodChangeFailedMessage
@@ -210,6 +217,9 @@ fun MainShell(
                         conflictMutations = state.conflictMutations,
                         lastSyncAt = state.lastSyncAt,
                         onPeriodStarted = { viewModel.startPeriod(session.userId) },
+                        onPeriodEnded = { id ->
+                            viewModel.endPeriod(session.userId, id)
+                        },
                         onPeriodUpdated = { id, start, end ->
                             viewModel.updatePeriodDates(session.userId, id, start, end)
                         },
@@ -227,6 +237,7 @@ fun MainShell(
                         },
                         onSync = viewModel::syncNow,
                         onDiscardConflicts = viewModel::discardConflictsAndReload,
+                        periodFailureRevision = state.periodFailureRevision,
                     )
                 } else {
                     PartnerDashboard(
@@ -242,10 +253,22 @@ fun MainShell(
             }
             composable(MainDestination.CALENDAR.route) {
                 CalendarScreen(
-                    state.periods,
-                    session.role,
-                    if (session.role == UserRole.TRACKER) state.trackerPrediction else state.partnerDashboard?.prediction,
-                    state.partnerDashboard?.periodDates.orEmpty(),
+                    periods = state.periods,
+                    role = session.role,
+                    prediction = if (session.role == UserRole.TRACKER) {
+                        state.trackerPrediction
+                    } else {
+                        state.partnerDashboard?.prediction
+                    },
+                    sharedPeriodDates = state.partnerDashboard?.periodDates.orEmpty(),
+                    onPeriodAdded = { start, end ->
+                        viewModel.createPeriod(session.userId, start, end)
+                    },
+                    onPeriodUpdated = { id, start, end ->
+                        viewModel.updatePeriodDates(session.userId, id, start, end)
+                    },
+                    onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
+                    periodFailureRevision = state.periodFailureRevision,
                 )
             }
             composable(MainDestination.HISTORY.route) {
@@ -256,6 +279,7 @@ fun MainShell(
                         viewModel.updatePeriodDates(session.userId, id, start, end)
                     },
                     onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
+                    periodFailureRevision = state.periodFailureRevision,
                 )
             }
             composable(MainDestination.SUPPORT.route) {
@@ -328,18 +352,22 @@ fun TrackerDashboard(
     conflictMutations: Int,
     lastSyncAt: String?,
     onPeriodStarted: () -> Unit,
+    onPeriodEnded: (String) -> Unit,
     onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
     onDailyLog: (TodayLogDraft) -> Unit,
     onSync: () -> Unit,
     onDiscardConflicts: () -> Unit,
+    periodFailureRevision: Long = 0L,
 ) {
     val haptics = LocalHapticFeedback.current
     var showTodayLog by remember { mutableStateOf(false) }
     var showDiscardConflicts by remember { mutableStateOf(false) }
     val today = LocalDate.now().toString()
     val todayLog = dailyLogs.firstOrNull { it.localDate == today }
-    val periodStartResolving = periods.any { it.startDate == today && it.syncState == "RESOLVING" }
+    val periodAction = remember(periods, today) {
+        PeriodPrimaryActionPolicy.resolve(periods, LocalDate.parse(today))
+    }
     val dailyLogResolving = dailyLogs.any { it.localDate == today && it.syncState == "RESOLVING" }
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp),
@@ -381,14 +409,66 @@ fun TrackerDashboard(
             Button(
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                    onPeriodStarted()
+                    when (periodAction.type) {
+                        PeriodPrimaryActionType.START -> onPeriodStarted()
+                        PeriodPrimaryActionType.END -> {
+                            val periodId = periodAction.periodId ?: return@Button
+                            onPeriodEnded(periodId)
+                        }
+                        PeriodPrimaryActionType.DONE -> Unit
+                    }
                 },
-                enabled = !periodStartResolving,
-                modifier = Modifier.fillMaxWidth().height(60.dp).semantics { role = Role.Button }.testTag("period-start"),
+                enabled = periodAction.enabled && periodAction.type != PeriodPrimaryActionType.DONE,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .semantics { role = Role.Button }
+                    .testTag(
+                        when (periodAction.type) {
+                            PeriodPrimaryActionType.START -> "period-start"
+                            PeriodPrimaryActionType.END -> "period-end"
+                            PeriodPrimaryActionType.DONE -> "period-done"
+                        },
+                    ),
             ) {
-                Icon(Icons.Rounded.AddCircle, contentDescription = null)
-                Text(stringResource(R.string.period_start_action), Modifier.padding(start = 10.dp))
+                Icon(
+                    if (periodAction.type == PeriodPrimaryActionType.START) {
+                        Icons.Rounded.AddCircle
+                    } else {
+                        Icons.Rounded.DateRange
+                    },
+                    contentDescription = null,
+                )
+                Text(
+                    stringResource(
+                        when (periodAction.type) {
+                            PeriodPrimaryActionType.START -> R.string.period_start_action
+                            PeriodPrimaryActionType.END -> R.string.period_end_action
+                            PeriodPrimaryActionType.DONE -> R.string.period_ended_today
+                        },
+                    ),
+                    Modifier.padding(start = 10.dp),
+                )
             }
+        }
+        when (periodAction.type) {
+            PeriodPrimaryActionType.END -> periodAction.startDate?.let { startDate ->
+                item {
+                    Text(
+                        stringResource(R.string.period_active_since, formatDate(startDate.toString())),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            PeriodPrimaryActionType.DONE -> item {
+                Text(
+                    stringResource(R.string.period_ended_today_confirmation),
+                    color = MaterialTheme.colorScheme.tertiary,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            PeriodPrimaryActionType.START -> Unit
         }
         item {
             OutlinedButton(
@@ -426,7 +506,12 @@ fun TrackerDashboard(
         if (periods.isNotEmpty()) {
             item { Text(stringResource(R.string.history), style = MaterialTheme.typography.titleLarge) }
             items(periods.take(3), key = { it.id }) { period ->
-                EditablePeriodRow(period, onPeriodUpdated, onPeriodDeleted)
+                EditablePeriodRow(
+                    period = period,
+                    onUpdate = onPeriodUpdated,
+                    onDelete = onPeriodDeleted,
+                    periodFailureRevision = periodFailureRevision,
+                )
             }
         }
         item { Spacer(Modifier.height(16.dp)) }
@@ -754,46 +839,129 @@ private fun FertilitySafetyNotice() {
 }
 
 @Composable
-private fun CalendarScreen(
+internal fun CalendarScreen(
     periods: List<PeriodEntity>,
     role: UserRole,
     prediction: PredictionDto?,
     sharedPeriodDates: List<Map<String, Any?>>,
+    onPeriodAdded: (LocalDate, LocalDate?) -> Unit,
+    onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
+    onPeriodDeleted: (String) -> Unit,
+    periodFailureRevision: Long = 0L,
 ) {
-    val month = remember { java.time.YearMonth.now() }
+    val today = LocalDate.now()
+    val currentMonth = YearMonth.from(today)
+    var visibleMonthValue by rememberSaveable { mutableStateOf(currentMonth.toString()) }
+    val month = remember(visibleMonthValue, currentMonth) {
+        runCatching { YearMonth.parse(visibleMonthValue) }
+            .getOrDefault(currentMonth)
+            .coerceAtMost(currentMonth)
+    }
+    var selectedNewStart by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedPeriodId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingNewStartDate by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingNewEndDate by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingNewFailureRevision by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingUpdatedStartDate by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingUpdatedEndDate by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingDeletePeriodId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingEditorFailureRevision by rememberSaveable { mutableStateOf<Long?>(null) }
+    val selectedPeriod = periods.firstOrNull { it.id == selectedPeriodId }
+    val createSubmitting = pendingNewStartDate != null
+    val editorSubmitting = pendingUpdatedStartDate != null || pendingDeletePeriodId != null
     val locale = LocalLocale.current.platformLocale
     val first = month.atDay(1)
     val leading = first.dayOfWeek.value - 1
     val cells = List(leading) { null } + (1..month.lengthOfMonth()).map(month::atDay)
-    val periodDays = remember(periods, sharedPeriodDates) {
-        val ownDays = periods.flatMap { period ->
-            val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: return@flatMap emptyList()
-            val end = runCatching { LocalDate.parse(period.endDate ?: period.startDate) }.getOrDefault(start)
-            generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toList()
-        }
-        val sharedDays = sharedPeriodDates.flatMap { period ->
-            val rawStart = period["startDate"] as? String ?: return@flatMap emptyList()
-            val start = runCatching { LocalDate.parse(rawStart) }.getOrNull() ?: return@flatMap emptyList()
-            val end = runCatching { LocalDate.parse(period["endDate"] as? String ?: rawStart) }.getOrDefault(start)
-            generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toList()
-        }
-        (ownDays + sharedDays).toSet()
-    }
-    val predictionDays = remember(prediction) {
-        val start = prediction?.predictedStartFrom?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        val end = prediction?.predictedStartTo?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        if (start == null || end == null || prediction.available.not()) emptySet() else
-            generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toSet()
-    }
     val fertilityRange = remember(prediction) { PredictionPresentationPolicy.fertileWindow(prediction) }
-    val fertilityDays = remember(fertilityRange) {
-        val start = fertilityRange?.from?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        val end = fertilityRange?.to?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        if (start == null || end == null) emptySet() else
-            generateSequence(start) { current -> current.plusDays(1).takeIf { !it.isAfter(end) } }.toSet()
+    LaunchedEffect(periods, pendingNewStartDate, pendingNewEndDate) {
+        val pendingStart = pendingNewStartDate ?: return@LaunchedEffect
+        if (
+            periods.any {
+                it.deletedAt == null &&
+                    it.startDate == pendingStart &&
+                    it.endDate == pendingNewEndDate
+            }
+        ) {
+            pendingNewStartDate = null
+            pendingNewEndDate = null
+            pendingNewFailureRevision = null
+            selectedNewStart = null
+        }
+    }
+    LaunchedEffect(selectedPeriod, pendingUpdatedStartDate, pendingUpdatedEndDate) {
+        val pendingStart = pendingUpdatedStartDate ?: return@LaunchedEffect
+        if (
+            selectedPeriod != null &&
+            selectedPeriod.startDate == pendingStart &&
+            selectedPeriod.endDate == pendingUpdatedEndDate
+        ) {
+            pendingUpdatedStartDate = null
+            pendingUpdatedEndDate = null
+            pendingEditorFailureRevision = null
+            selectedPeriodId = null
+        }
+    }
+    LaunchedEffect(periods, pendingDeletePeriodId) {
+        val pendingId = pendingDeletePeriodId ?: return@LaunchedEffect
+        if (periods.none { it.id == pendingId && it.deletedAt == null }) {
+            pendingDeletePeriodId = null
+            pendingEditorFailureRevision = null
+            selectedPeriodId = null
+        }
+    }
+    LaunchedEffect(periodFailureRevision, pendingNewFailureRevision) {
+        val submittedAt = pendingNewFailureRevision ?: return@LaunchedEffect
+        if (periodFailureRevision != submittedAt) {
+            pendingNewStartDate = null
+            pendingNewEndDate = null
+            pendingNewFailureRevision = null
+        }
+    }
+    LaunchedEffect(periodFailureRevision, pendingEditorFailureRevision) {
+        val submittedAt = pendingEditorFailureRevision ?: return@LaunchedEffect
+        if (periodFailureRevision != submittedAt) {
+            pendingUpdatedStartDate = null
+            pendingUpdatedEndDate = null
+            pendingDeletePeriodId = null
+            pendingEditorFailureRevision = null
+        }
     }
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { LunaraHeader(title = stringResource(R.string.calendar), body = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))) }
+        item {
+            LunaraHeader(
+                title = stringResource(R.string.calendar),
+                body = stringResource(
+                    if (role == UserRole.TRACKER) {
+                        R.string.calendar_tracker_hint
+                    } else {
+                        R.string.privacy_guard
+                    },
+                ),
+            )
+        }
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = { visibleMonthValue = month.minusMonths(1).toString() },
+                    modifier = Modifier.testTag("calendar-previous-month"),
+                ) { Text(stringResource(R.string.previous_month)) }
+                Text(
+                    month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                TextButton(
+                    onClick = { visibleMonthValue = month.plusMonths(1).toString() },
+                    enabled = month < currentMonth,
+                    modifier = Modifier.testTag("calendar-next-month"),
+                ) { Text(stringResource(R.string.next_month)) }
+            }
+        }
         item {
             Row(Modifier.fillMaxWidth()) {
                 java.time.DayOfWeek.entries.forEach { day ->
@@ -805,13 +973,59 @@ private fun CalendarScreen(
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
                     if (date == null) Spacer(Modifier.weight(1f).height(52.dp))
-                    else DayCell(
-                        date,
-                        date in periodDays,
-                        date in predictionDays,
-                        date in fertilityDays,
-                        Modifier.weight(1f),
-                    )
+                    else {
+                        val selectable = role == UserRole.TRACKER && !date.isAfter(today)
+                        val ownPeriod = periodForDate(periods, date, today)
+                        val existing = if (selectable) ownPeriod else null
+                        val editable = selectable &&
+                            (existing == null || !SyncEditPolicy.isBlocked(existing.syncState))
+                        DayCell(
+                            date = date,
+                            actual = ownPeriod != null || sharedPeriodDates.any {
+                                calendarRangeContains(
+                                    date = date,
+                                    startDate = it["startDate"] as? String,
+                                    endDate = it["endDate"] as? String,
+                                    today = today,
+                                )
+                            },
+                            predicted = prediction?.available == true && calendarRangeContains(
+                                date = date,
+                                startDate = prediction.predictedStartFrom,
+                                endDate = prediction.predictedStartTo,
+                                today = today,
+                                extendOpenRange = false,
+                            ),
+                            fertileEstimate = fertilityRange?.let {
+                                calendarRangeContains(
+                                    date = date,
+                                    startDate = it.from,
+                                    endDate = it.to,
+                                    today = today,
+                                    extendOpenRange = false,
+                                )
+                            } == true,
+                            actionDescription = if (!editable) {
+                                null
+                            } else if (existing != null) {
+                                stringResource(R.string.calendar_edit_day)
+                            } else {
+                                stringResource(R.string.calendar_add_day)
+                            },
+                            onClick = if (!editable) {
+                                null
+                            } else {
+                                {
+                                    if (existing != null) {
+                                        selectedPeriodId = existing.id
+                                    } else {
+                                        selectedNewStart = date.toString()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f).testTag("calendar-day-$date"),
+                        )
+                    }
                 }
                 repeat(7 - week.size) { Spacer(Modifier.weight(1f).height(52.dp)) }
             }
@@ -820,15 +1034,71 @@ private fun CalendarScreen(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.calendar_actual_marker), style = MaterialTheme.typography.bodyMedium)
                 Text(stringResource(R.string.calendar_prediction_marker), style = MaterialTheme.typography.bodyMedium)
-                if (fertilityDays.isNotEmpty()) {
+                if (fertilityRange != null) {
                     Text(stringResource(R.string.calendar_fertility_marker), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
-        if (fertilityDays.isNotEmpty()) {
+        if (fertilityRange != null) {
             item { FertilitySafetyNotice() }
         }
-        if (role == UserRole.PARTNER) item { Text(stringResource(R.string.privacy_guard), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (month != currentMonth) {
+            item {
+                TextButton(
+                    onClick = { visibleMonthValue = currentMonth.toString() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.current_month)) }
+            }
+        }
+    }
+
+    selectedNewStart?.let { rawStart ->
+        PeriodCreateDialog(
+            initialStartDate = runCatching { LocalDate.parse(rawStart) }.getOrDefault(LocalDate.now()),
+            submitting = createSubmitting,
+            onCreate = { start, end ->
+                if (pendingNewStartDate == null) {
+                    pendingNewStartDate = start.toString()
+                    pendingNewEndDate = end?.toString()
+                    pendingNewFailureRevision = periodFailureRevision
+                    onPeriodAdded(start, end)
+                }
+            },
+            onDismiss = {
+                pendingNewStartDate = null
+                pendingNewEndDate = null
+                pendingNewFailureRevision = null
+                selectedNewStart = null
+            },
+        )
+    }
+    selectedPeriod?.let { period ->
+        PeriodEditorDialog(
+            period = period,
+            submitting = editorSubmitting,
+            onUpdate = { start, end ->
+                if (pendingUpdatedStartDate == null && pendingDeletePeriodId == null) {
+                    pendingUpdatedStartDate = start.toString()
+                    pendingUpdatedEndDate = end?.toString()
+                    pendingEditorFailureRevision = periodFailureRevision
+                    onPeriodUpdated(period.id, start, end)
+                }
+            },
+            onDelete = {
+                if (pendingUpdatedStartDate == null && pendingDeletePeriodId == null) {
+                    pendingDeletePeriodId = period.id
+                    pendingEditorFailureRevision = periodFailureRevision
+                    onPeriodDeleted(period.id)
+                }
+            },
+            onDismiss = {
+                pendingUpdatedStartDate = null
+                pendingUpdatedEndDate = null
+                pendingDeletePeriodId = null
+                pendingEditorFailureRevision = null
+                selectedPeriodId = null
+            },
+        )
     }
 }
 
@@ -839,6 +1109,8 @@ private fun DayCell(
     predicted: Boolean,
     fertileEstimate: Boolean,
     modifier: Modifier = Modifier,
+    actionDescription: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     val description = when {
         actual -> stringResource(R.string.calendar_day_period, date.dayOfMonth)
@@ -846,8 +1118,19 @@ private fun DayCell(
         fertileEstimate -> stringResource(R.string.calendar_day_fertility, date.dayOfMonth)
         else -> date.dayOfMonth.toString()
     }
+    val cardModifier = modifier
+        .padding(2.dp)
+        .height(52.dp)
+        .semantics { contentDescription = listOfNotNull(description, actionDescription).joinToString(". ") }
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(role = Role.Button, onClick = onClick)
+            } else {
+                Modifier
+            },
+        )
     Card(
-        modifier.padding(2.dp).height(52.dp).semantics { contentDescription = description },
+        cardModifier,
         colors = CardDefaults.cardColors(
             containerColor = when {
                 actual -> MaterialTheme.colorScheme.secondaryContainer
@@ -866,12 +1149,44 @@ private fun DayCell(
     }
 }
 
+internal fun periodForDate(
+    periods: List<PeriodEntity>,
+    date: LocalDate,
+    today: LocalDate = LocalDate.now(),
+): PeriodEntity? = periods
+    .asSequence()
+    .mapNotNull { period ->
+        if (period.deletedAt != null) return@mapNotNull null
+        val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: return@mapNotNull null
+        val end = period.endDate
+            ?.let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
+            ?: maxOf(start, today)
+        period.takeIf { !date.isBefore(start) && !date.isAfter(end) }
+    }
+    .maxByOrNull { it.startDate }
+
+/** Constant-memory calendar range check, including deliberately open period records. */
+internal fun calendarRangeContains(
+    date: LocalDate,
+    startDate: String?,
+    endDate: String?,
+    today: LocalDate = LocalDate.now(),
+    extendOpenRange: Boolean = true,
+): Boolean {
+    val start = startDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return false
+    val end = endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        ?: if (extendOpenRange) maxOf(start, today) else return false
+    if (end.isBefore(start)) return false
+    return !date.isBefore(start) && !date.isAfter(end)
+}
+
 @Composable
 private fun HistoryScreen(
     periods: List<PeriodEntity>,
     prediction: PredictionDto?,
     onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
+    periodFailureRevision: Long = 0L,
 ) {
     val starts = periods.mapNotNull { runCatching { LocalDate.parse(it.startDate) }.getOrNull() }.distinct().sorted()
     val lengths = starts.zipWithNext { first, second -> java.time.temporal.ChronoUnit.DAYS.between(first, second).toInt() }
@@ -909,7 +1224,12 @@ private fun HistoryScreen(
             }
         }
         items(periods, key = { it.id }) { period ->
-            EditablePeriodRow(period, onPeriodUpdated, onPeriodDeleted)
+            EditablePeriodRow(
+                period = period,
+                onUpdate = onPeriodUpdated,
+                onDelete = onPeriodDeleted,
+                periodFailureRevision = periodFailureRevision,
+            )
         }
     }
 }
@@ -974,9 +1294,36 @@ private fun EditablePeriodRow(
     period: PeriodEntity,
     onUpdate: (String, LocalDate, LocalDate?) -> Unit,
     onDelete: (String) -> Unit,
+    periodFailureRevision: Long = 0L,
 ) {
-    var showEditor by remember(period.id) { mutableStateOf(false) }
+    var showEditor by rememberSaveable(period.id) { mutableStateOf(false) }
+    var pendingUpdatedStartDate by rememberSaveable(period.id) { mutableStateOf<String?>(null) }
+    var pendingUpdatedEndDate by rememberSaveable(period.id) { mutableStateOf<String?>(null) }
+    var pendingDelete by rememberSaveable(period.id) { mutableStateOf(false) }
+    var pendingFailureRevision by rememberSaveable(period.id) { mutableStateOf<Long?>(null) }
+    val submitting = pendingUpdatedStartDate != null || pendingDelete
     val editable = !SyncEditPolicy.isBlocked(period.syncState)
+    LaunchedEffect(period.startDate, period.endDate, pendingUpdatedStartDate, pendingUpdatedEndDate) {
+        val pendingStart = pendingUpdatedStartDate ?: return@LaunchedEffect
+        if (
+            period.startDate == pendingStart &&
+            period.endDate == pendingUpdatedEndDate
+        ) {
+            pendingUpdatedStartDate = null
+            pendingUpdatedEndDate = null
+            pendingFailureRevision = null
+            showEditor = false
+        }
+    }
+    LaunchedEffect(periodFailureRevision, pendingFailureRevision) {
+        val submittedAt = pendingFailureRevision ?: return@LaunchedEffect
+        if (periodFailureRevision != submittedAt) {
+            pendingUpdatedStartDate = null
+            pendingUpdatedEndDate = null
+            pendingDelete = false
+            pendingFailureRevision = null
+        }
+    }
     Card(
         onClick = { showEditor = true },
         enabled = editable,
@@ -1012,15 +1359,29 @@ private fun EditablePeriodRow(
     if (showEditor) {
         PeriodEditorDialog(
             period = period,
+            submitting = submitting,
             onUpdate = { start, end ->
-                onUpdate(period.id, start, end)
-                showEditor = false
+                if (pendingUpdatedStartDate == null && !pendingDelete) {
+                    pendingUpdatedStartDate = start.toString()
+                    pendingUpdatedEndDate = end?.toString()
+                    pendingFailureRevision = periodFailureRevision
+                    onUpdate(period.id, start, end)
+                }
             },
             onDelete = {
-                onDelete(period.id)
+                if (pendingUpdatedStartDate == null && !pendingDelete) {
+                    pendingDelete = true
+                    pendingFailureRevision = periodFailureRevision
+                    onDelete(period.id)
+                }
+            },
+            onDismiss = {
+                pendingUpdatedStartDate = null
+                pendingUpdatedEndDate = null
+                pendingDelete = false
+                pendingFailureRevision = null
                 showEditor = false
             },
-            onDismiss = { showEditor = false },
         )
     }
 }
@@ -1031,10 +1392,11 @@ internal fun PeriodEditorDialog(
     onUpdate: (LocalDate, LocalDate?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
+    submitting: Boolean = false,
 ) {
-    var rawStartDate by remember(period.id, period.startDate) { mutableStateOf(period.startDate) }
-    var rawEndDate by remember(period.id, period.endDate) { mutableStateOf(period.endDate.orEmpty()) }
-    var confirmDelete by remember(period.id) { mutableStateOf(false) }
+    var rawStartDate by rememberSaveable(period.id) { mutableStateOf(period.startDate) }
+    var rawEndDate by rememberSaveable(period.id) { mutableStateOf(period.endDate.orEmpty()) }
+    var confirmDelete by rememberSaveable(period.id) { mutableStateOf(false) }
     val validation = remember(rawStartDate, rawEndDate) {
         PeriodEditValidation.validateRange(rawStartDate, rawEndDate)
     }
@@ -1046,24 +1408,31 @@ internal fun PeriodEditorDialog(
 
     if (confirmDelete) {
         AlertDialog(
-            onDismissRequest = { confirmDelete = false },
+            onDismissRequest = { if (!submitting) confirmDelete = false },
             title = { Text(stringResource(R.string.delete_period_start)) },
             text = { Text(stringResource(R.string.delete_period_confirmation, formatDate(period.startDate))) },
             confirmButton = {
-                TextButton(onClick = onDelete, modifier = Modifier.testTag("period-delete-confirm")) {
+                TextButton(
+                    onClick = onDelete,
+                    enabled = !submitting,
+                    modifier = Modifier.testTag("period-delete-confirm"),
+                ) {
                     Icon(Icons.Rounded.Delete, contentDescription = null)
                     Text(stringResource(R.string.delete), Modifier.padding(start = 6.dp))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) }
+                TextButton(
+                    onClick = { confirmDelete = false },
+                    enabled = !submitting,
+                ) { Text(stringResource(R.string.cancel)) }
             },
         )
         return
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!submitting) onDismiss() },
         title = { Text(stringResource(R.string.edit_period_dates)) },
         text = {
             Column(
@@ -1083,6 +1452,7 @@ internal fun PeriodEditorDialog(
                         else Text(stringResource(R.string.period_date_format))
                     },
                     isError = validationError == PeriodDateValidationError.INVALID_START,
+                    enabled = !submitting,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth().testTag("period-start-input"),
@@ -1101,6 +1471,7 @@ internal fun PeriodEditorDialog(
                     },
                     isError = validationError == PeriodDateValidationError.INVALID_END ||
                         validationError == PeriodDateValidationError.END_BEFORE_START,
+                    enabled = !submitting,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth().testTag("period-end-input"),
@@ -1108,11 +1479,13 @@ internal fun PeriodEditorDialog(
                 if (rawEndDate.isNotBlank()) {
                     TextButton(
                         onClick = { rawEndDate = "" },
+                        enabled = !submitting,
                         modifier = Modifier.align(Alignment.End).testTag("period-end-clear"),
                     ) { Text(stringResource(R.string.remove_period_end)) }
                 }
                 TextButton(
                     onClick = { confirmDelete = true },
+                    enabled = !submitting,
                     modifier = Modifier.align(Alignment.End).testTag("period-delete"),
                 ) {
                     Icon(Icons.Rounded.Delete, contentDescription = null)
@@ -1123,11 +1496,104 @@ internal fun PeriodEditorDialog(
         confirmButton = {
             TextButton(
                 onClick = { validDates?.let { onUpdate(it.startDate, it.endDate) } },
-                enabled = changed,
+                enabled = changed && !submitting,
                 modifier = Modifier.testTag("period-update-confirm"),
             ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !submitting) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+internal fun PeriodCreateDialog(
+    initialStartDate: LocalDate,
+    onCreate: (LocalDate, LocalDate?) -> Unit,
+    onDismiss: () -> Unit,
+    submitting: Boolean = false,
+) {
+    var rawStartDate by rememberSaveable(initialStartDate.toString()) {
+        mutableStateOf(initialStartDate.toString())
+    }
+    var rawEndDate by rememberSaveable(initialStartDate.toString()) { mutableStateOf("") }
+    val validation = remember(rawStartDate, rawEndDate) {
+        PeriodEditValidation.validateRange(rawStartDate, rawEndDate)
+    }
+    val validationError = (validation as? PeriodDateValidationResult.Invalid)?.error
+    val validDates = (validation as? PeriodDateValidationResult.Valid)?.dates
+
+    AlertDialog(
+        onDismissRequest = { if (!submitting) onDismiss() },
+        title = { Text(stringResource(R.string.add_past_period)) },
+        text = {
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    stringResource(R.string.add_past_period_notice),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = rawStartDate,
+                    onValueChange = { rawStartDate = PeriodEditValidation.sanitizeDateInput(it) },
+                    label = { Text(stringResource(R.string.period_start_date)) },
+                    supportingText = {
+                        if (validationError == PeriodDateValidationError.INVALID_START) {
+                            Text(stringResource(R.string.period_start_invalid))
+                        } else {
+                            Text(stringResource(R.string.period_date_format))
+                        }
+                    },
+                    isError = validationError == PeriodDateValidationError.INVALID_START,
+                    enabled = !submitting,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.fillMaxWidth().testTag("period-create-start-input"),
+                )
+                OutlinedTextField(
+                    value = rawEndDate,
+                    onValueChange = { rawEndDate = PeriodEditValidation.sanitizeDateInput(it) },
+                    label = { Text(stringResource(R.string.period_end_date_optional)) },
+                    supportingText = {
+                        when (validationError) {
+                            PeriodDateValidationError.INVALID_END ->
+                                Text(stringResource(R.string.period_end_invalid))
+                            PeriodDateValidationError.END_BEFORE_START ->
+                                Text(stringResource(R.string.period_end_before_start))
+                            else -> Text(stringResource(R.string.period_end_optional_hint))
+                        }
+                    },
+                    isError = validationError == PeriodDateValidationError.INVALID_END ||
+                        validationError == PeriodDateValidationError.END_BEFORE_START,
+                    enabled = !submitting,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    modifier = Modifier.fillMaxWidth().testTag("period-create-end-input"),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { validDates?.let { onCreate(it.startDate, it.endDate) } },
+                enabled = validDates != null && !submitting,
+                modifier = Modifier.testTag("period-create-confirm"),
+            ) { Text(stringResource(R.string.add_period)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !submitting) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
     )
 }
 
@@ -1872,6 +2338,7 @@ private fun TrackerPreview() = LunaraTheme {
         0,
         null,
         onPeriodStarted = {},
+        onPeriodEnded = {},
         onPeriodUpdated = { _, _, _ -> },
         onPeriodDeleted = {},
         onDailyLog = {},

@@ -2,10 +2,71 @@
 
 Erfolgsaussagen beziehen sich ausschließlich auf tatsächlich ausgeführte
 Befehle. Die endgültigen Ergebnisse, Artefaktgrößen, Prüfsummen, Image-IDs und
-Live-Prüfungen des Server-Release 1.0.5 und der Android-Ergänzung 1.0.6 stehen
-in `FINAL_REPORT.md`. Diese Datei
+Live-Prüfungen des Release 1.0.7 stehen in `FINAL_REPORT.md`. Diese Datei
 beschreibt die verbindliche Prüfmatrix und behauptet nicht allein aufgrund
 vorhandener Dateien einen erfolgreichen Build.
+
+## Tatsächlich ausgeführter Release 1.0.7
+
+Backend:
+
+- 20/20 Jest-Suites und 105/105 Unit-Tests erfolgreich; zusätzliche Tests decken
+  atomare Sync-Receipts, Legacy-Pending-Recovery für Perioden und Tageslogs
+  sowie abgelaufene/race-sicher neu beanspruchte Receipts,
+  Importüberschneidungen, Lock und Prognoseneuberechnung ab
+- TypeScript-Gesamtprüfung inklusive erweiterter E2E-Datei erfolgreich
+- vollständiges ESLint der Backend-Quellen erfolgreich; ein vorheriger
+  vollständiger Lint-Versuch im 768-MiB-
+  Testcontainer endete ausschließlich mit V8-Heap-OOM und zählt nicht als
+  Erfolg
+- Prisma-Schema validiert, Nest-Build und reproduzierbarer OpenAPI-/Kotlin-
+  Client-Hashcheck erfolgreich; Multi-Stage-Image `lunara-api:1.0.7`
+  tatsächlich gebaut und als UID/GID `10001:10001` ausgeführt
+- PostgreSQL 18: sieben Migrationen auf einer frischen temporären Tmpfs-
+  Datenbank erfolgreich angewendet; 1/1 E2E-Suite und 1/1 durchgehender Test
+  erfolgreich. Der Lauf deckt Setup, Registrierung mehrerer isolierter
+  Beziehungen, Einladung/Partner, Rollen, Perioden/Prognose, Freigabefilter,
+  Import/Export, Passwortwechsel, Soft Deletes, konkurrierende
+  Überschneidungen und exakt-einmal Sync-Retries ab.
+- Zwei vorherige E2E-Versuche werden nicht als Erfolg gezählt: Der erste fand
+  den anschließend behobenen Ablauf-Key-Konflikt; der zweite erreichte im
+  langen Test bewusst das gemeinsame Login-Rate-Limit. Die abschließenden
+  Passwort-Login-Assertions verwenden nun eine eigene Test-App-Instanz mit
+  frischem In-Memory-Bucket, während der primäre Ablauf das Produktionslimit
+  weiterhin prüft.
+
+Android:
+
+- `testLocalDebugUnitTest`: 27 Suites, 132 Tests, 0 Fehler, 0 übersprungen
+- `lintLocalDebug`: erfolgreich, 0 Fehler und 38 Warnungen
+- `lintProductionDebug` mit bereits im Local-Lint geprüften Testanalysen
+  ausgeschlossen: erfolgreich, 0 Fehler und 37 Warnungen
+- `compileProductionDebugAndroidTestKotlin`: erfolgreich; die Compose-
+  Gerätetests wurden mangels Emulator/Gerät kompiliert, aber nicht ausgeführt
+- `assembleProductionDebug`: erfolgreich
+- `assembleProductionRelease` nach ehrlich fehlgeschlagenen ressourcenarmen
+  D8-/`lintVital`-Läufen im gezielten Wiederholungslauf erfolgreich; der
+  vollständige Production-Lint war zuvor separat erfolgreich
+- APK-Prüfung: VersionCode 8, VersionName 1.0.7, minSdk 26, target/compileSdk
+  37, fehlerfreie ZIP-Struktur; Debug gültig v2-signiert, Release erwartbar
+  unsigned
+
+Live:
+
+- aggregierte Vorprüfung: ein aktiver, gültiger offener Zeitraum und keine
+  Überschneidungspaare; keine Gesundheitsinhalte ausgegeben
+- PostgreSQL-Custom-Dump vor Migration erstellt und per `pg_restore --list`
+  validiert
+- Migration `20260816120000_period_overlap_exclusion`, GiST-Constraint und
+  `btree_gist` erfolgreich geprüft
+- API 1.0.7: `/health`, `/ready`, `/api/v1/meta` jeweils HTTP 200, Healthcheck
+  healthy, RestartCount 0, non-root und read-only
+- Gateway-Prüfung erfolgreich: technischer Header-Auth-Zugang funktioniert,
+  anonyme Root-/Health-/OpenAPI-/Meta-/Login-Zugriffe bleiben durch Authentik
+  gesperrt
+- final neu gebautes und ausgerolltes API-Image:
+  `sha256:33e9705d3d9ed7b4aa5390f3a151ae8b4de560a73d71df7bf6332ba12644a9c5`;
+  Healthcheck healthy, RestartCount 0
 
 ## Tatsächlich ausgeführte Android-1.0.6-Ergänzung
 
