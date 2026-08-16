@@ -11,9 +11,9 @@ Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
 - [x] GitHub-Runner installieren das benötigte Preview-Compile-SDK explizit;
   PostgreSQL-E2E läuft mit der gepinnten Node-Version des Runners statt in
   einem internen Container ohne erreichbaren Prisma-Engine-Download.
-- [x] Der Gitleaks-Fehlalarm ist auf den exakten, bereits veröffentlichten
-  OpenAPI-Snapshot-Hash begrenzt; alle übrigen Regeln und Dateien bleiben im
-  Historien-Scan aktiv.
+- [x] Der Gitleaks-Fehlalarm ist über seinen exakten Finding-Fingerprint
+  begrenzt; alle übrigen Regeln, Commits und Dateien bleiben im Historien-Scan
+  aktiv.
 - [x] Android 1.0.8 lokal real gebaut und geprüft: beide Varianten jeweils
   27 Suites/132 Tests ohne Fehler, Local-Lint 0 Fehler/39 Warnungen,
   Production-Lint 0 Fehler/38 Warnungen und Instrumentierung kompiliert.

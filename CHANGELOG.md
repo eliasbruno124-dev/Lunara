@@ -11,9 +11,9 @@
 - GitHub-CI richtet das benötigte Preview-Compile-SDK nun explizit ein;
   Backend-E2E verwendet Node 24.18.0 auf dem Runner gegen eine zufällig und nur
   an `127.0.0.1` gebundene PostgreSQL-18-Testinstanz.
-- Die geheime Historienprüfung erlaubt exakt einen dokumentierten,
-  veröffentlichten OpenAPI-SHA-256-Wert, ohne andere Regeln oder Dateien von
-  der Suche auszunehmen.
+- Die geheime Historienprüfung ignoriert exakt den Fingerprint eines
+  dokumentierten, veröffentlichten OpenAPI-SHA-256-Fehlalarms, ohne andere
+  Regeln, Commits oder Dateien von der Suche auszunehmen.
 
 ## 1.0.7 – 2026-08-16
 

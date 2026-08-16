@@ -1,9 +1,0 @@
-[extend]
-useDefault = true
-
-[[allowlists]]
-description = "Published OpenAPI snapshot checksum (not a credential)"
-regexTarget = "secret"
-regexes = [
-  '''(ecc509078317b295)(69d3d0917f332efd)(9ea1d7b90e85e77d)(370f07f0ae930003)''',
-]
