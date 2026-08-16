@@ -39,6 +39,6 @@ docker run --rm --network "${test_network}" \
   -v "${project_dir}:/workspace" \
   -w /workspace \
   node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d \
-  sh -ceu 'npm run prisma:migrate:deploy --workspace=@lunara/api && npm run test:e2e --workspace=@lunara/api'
+  sh -ceu 'npm run prisma:generate --workspace=@lunara/api && npm run prisma:migrate:deploy --workspace=@lunara/api && npm run test:e2e --workspace=@lunara/api'
 
 echo "Isolierter PostgreSQL-18-E2E-Ablauf erfolgreich."

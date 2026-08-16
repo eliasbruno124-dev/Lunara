@@ -39,7 +39,7 @@ jobs:
       AUTH_SIGNING_KEY: ci-only-signing-key-not-used-outside-tests
       REFRESH_TOKEN_PEPPER: ci-only-refresh-pepper-not-used-outside-tests
       BOOTSTRAP_TOKEN: ci-only-bootstrap-token-not-used-in-production
-      APP_MASTER_KEY: ci-only-application-master-key-not-production
+      APP_MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       REGISTRATION_ENABLED: "false"
     steps:
       - name: Check out source
@@ -55,14 +55,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=@lunara/api
+
       - name: Lint backend
         run: npm run lint --workspace=@lunara/api -- --no-error-on-unmatched-pattern
 
       - name: Validate Prisma schema
         run: npm run prisma:validate --workspace=@lunara/api
-
-      - name: Generate Prisma client
-        run: npm run prisma:generate --workspace=@lunara/api
 
       - name: Run backend unit tests
         run: npm run test --workspace=@lunara/api -- --ci
@@ -80,6 +80,16 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.18.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
 
       - name: Run isolated core flow
         run: ./scripts/e2e.sh
