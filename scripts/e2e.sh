@@ -6,6 +6,13 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 compose_file="${project_dir}/infra/docker/docker-compose.test.yml"
 project_name="lunara-e2e-$RANDOM-$$"
+db_port="${LUNARA_E2E_DB_PORT:-55432}"
+
+if [[ ! "${db_port}" =~ ^[0-9]+$ ]] || (( db_port < 1024 || db_port > 65535 )); then
+  echo "LUNARA_E2E_DB_PORT muss ein freier Port zwischen 1024 und 65535 sein." >&2
+  exit 1
+fi
+export LUNARA_E2E_DB_PORT="${db_port}"
 
 cleanup() {
   # Tests create only this uniquely named ephemeral project. Removal is explicit
@@ -22,13 +29,6 @@ for attempt in {1..30}; do
   fi
   sleep 1
 done
-
-db_endpoint="$(docker compose --project-name "${project_name}" -f "${compose_file}" port postgres-test 5432)"
-db_port="${db_endpoint##*:}"
-if [[ ! "${db_port}" =~ ^[0-9]+$ ]]; then
-  echo "Der zufaellige PostgreSQL-Testport konnte nicht ermittelt werden." >&2
-  exit 1
-fi
 
 export NODE_ENV=test
 export DATABASE_URL="postgresql://lunara_test:integration-only-password@127.0.0.1:${db_port}/lunara_test?schema=public"

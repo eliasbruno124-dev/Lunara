@@ -10,7 +10,8 @@ Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
   1.0.8 angehoben und bleibt mit Server/API 1.0.7 kompatibel.
 - [x] GitHub-Runner installieren das benötigte Preview-Compile-SDK explizit;
   PostgreSQL-E2E läuft mit der gepinnten Node-Version des Runners statt in
-  einem internen Container ohne erreichbaren Prisma-Engine-Download.
+  einem internen Container ohne erreichbaren Prisma-Engine-Download. Der
+  Testport bleibt ausschließlich an Loopback gebunden und ist überschreibbar.
 - [x] Der Gitleaks-Fehlalarm ist über seinen exakten Finding-Fingerprint
   begrenzt; alle übrigen Regeln, Commits und Dateien bleiben im Historien-Scan
   aktiv.

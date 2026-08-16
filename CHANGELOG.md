@@ -9,8 +9,9 @@
 - Android auf VersionCode 9/VersionName 1.0.8 angehoben. Die App bleibt mit
   der unveränderten Lunara-API v1 und dem produktiven Server 1.0.7 kompatibel.
 - GitHub-CI richtet das benötigte Preview-Compile-SDK nun explizit ein;
-  Backend-E2E verwendet Node 24.18.0 auf dem Runner gegen eine zufällig und nur
-  an `127.0.0.1` gebundene PostgreSQL-18-Testinstanz.
+  Backend-E2E verwendet Node 24.18.0 auf dem Runner gegen eine ausschließlich
+  an `127.0.0.1` gebundene PostgreSQL-18-Testinstanz. Der Testport ist lokal
+  überschreibbar und im isolierten GitHub-Runner fest definiert.
 - Die geheime Historienprüfung ignoriert exakt den Fingerprint eines
   dokumentierten, veröffentlichten OpenAPI-SHA-256-Fehlalarms, ohne andere
   Regeln, Commits oder Dateien von der Suche auszunehmen.
