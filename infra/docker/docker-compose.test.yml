@@ -49,4 +49,4 @@ services:
 
 networks:
   test_internal:
-    internal: true
+    driver: bridge

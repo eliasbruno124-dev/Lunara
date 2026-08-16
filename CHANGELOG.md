@@ -11,7 +11,9 @@
 - GitHub-CI richtet das benötigte Preview-Compile-SDK nun explizit ein;
   Backend-E2E verwendet Node 24.18.0 auf dem Runner gegen eine ausschließlich
   an `127.0.0.1` gebundene PostgreSQL-18-Testinstanz. Der Testport ist lokal
-  überschreibbar und im isolierten GitHub-Runner fest definiert.
+  überschreibbar und im isolierten GitHub-Runner fest definiert. Das flüchtige
+  Test-Bridge-Netz erlaubt dabei ausschließlich den benötigten Runner-Zugriff
+  über diese Loopback-Bindung.
 - Die geheime Historienprüfung ignoriert exakt den Fingerprint eines
   dokumentierten, veröffentlichten OpenAPI-SHA-256-Fehlalarms, ohne andere
   Regeln, Commits oder Dateien von der Suche auszunehmen.
