@@ -89,6 +89,12 @@ Workflow-Ausführung:
 - Android-, Backend- und Container-Sicherheitsworkflows sind so dedupliziert,
   dass Feature-Branches über den Pull Request geprüft werden, Push-Läufe nur
   auf `main` stattfinden und Release-Tags keine zweite identische Runde starten.
+- Der erste Container-Sicherheitslauf vom 20. August erkannte eine am selben
+  Tag aktiv gewordene HIGH-Meldung für die transitive Prisma-Abhängigkeit
+  `deepmerge-ts` 7.1.5. Nach dem Pin auf 8.0.1 wurden lokal `npm ci`,
+  `npm audit --omit=dev --audit-level=high` (0 Funde), Prisma-Generierung und
+  -Validierung, Backend-Lint, 20 Suites/105 Tests, Backend-Build, API-Image-
+  Build und Trivy 0.72.0 mit HIGH/CRITICAL (0 Funde) erfolgreich ausgeführt.
 
 ## Tatsächlich ausgeführte Android-1.0.6-Ergänzung
 

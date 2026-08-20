@@ -91,6 +91,13 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
   nur noch über Pull Requests; Push-Läufe sind auf `main` begrenzt, damit
   derselbe Feature-Commit nicht doppelte Workflow-Läufe und Benachrichtigungen
   auslöst
+- Der erste 1.0.9-Sicherheitslauf erkannte eine neu aktivierte HIGH-Meldung für
+  `deepmerge-ts` 7.1.5 aus Prismas Konfigurationswerkzeugen. Die Abhängigkeit ist
+  im Root-Lockfile auf 8.0.1 überschrieben. Danach waren `npm ci`, Produktions-
+  Audit, Prisma-Generierung/-Validierung, Backend-Lint, 20 Suites/105 Tests,
+  Backend- und Container-Build erfolgreich; Trivy 0.72.0 meldete 0 fixbare
+  HIGH/CRITICAL-Funde. Der produktive 1.0.7-Container wurde dafür nicht
+  verändert oder neu gestartet.
 - Multi-Stage-Image `lunara-api:1.0.7` gebaut: Image-ID
   `sha256:3e3105eb24b805c1df621b5ec5c5910ba1db4f9adc5f54937faa67f27de7f439`,
   618.951.392 Bytes, Runtime UID/GID `10001:10001`

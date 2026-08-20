@@ -28,6 +28,7 @@
     },
     "@prisma/streams-local": {
       "ajv": "8.20.0"
-    }
+    },
+    "deepmerge-ts": "8.0.1"
   }
 }

@@ -36,6 +36,12 @@ Stand: 20. August 2026, Android 1.0.9 und Server 1.0.7
   Request geprüft, Push-Prüfungen laufen nur auf `main`, und Release-Tags lösen
   keine zweite identische Runde aus. Android 1.0.9 ist im privaten Repository
   als Release mit beiden APKs und Prüfsummendatei veröffentlicht.
+- [x] Eine beim ersten 1.0.9-PR-Lauf neu gemeldete HIGH-Schwachstelle in der
+  transitiven Prisma-Abhängigkeit `deepmerge-ts` wurde durch einen zentralen
+  Pin auf 8.0.1 behoben. `npm ci`, Produktions-Audit (0 Funde), Prisma-
+  Generierung/-Validierung, Backend-Lint, 20 Suites/105 Tests, API-Image-Build
+  und Trivy HIGH/CRITICAL (0 Funde) wurden lokal erfolgreich wiederholt; der
+  produktive Servercontainer blieb unverändert und gesund.
 
 ## Android-Buildkorrektur 1.0.8 (historischer Nachweis)
 

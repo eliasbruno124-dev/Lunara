@@ -15,6 +15,10 @@
 - GitHub-Validierungsworkflows laufen bei Feature-Branches nur noch über den
   Pull Request und bei Pushes nur auf `main`. Release-Tags starten dadurch
   keine zweite identische Prüfrunde und erzeugen deutlich weniger Meldungen.
+- Die von Prisma transitiv verwendete Bibliothek `deepmerge-ts` ist nach einer
+  neu veröffentlichten HIGH-Sicherheitsmeldung zentral auf 8.0.1 fixiert.
+  Lockfile-Installation, npm-Audit, Prisma, Backend-Tests, Container-Build und
+  Trivy-Scan wurden mit der korrigierten Version erneut erfolgreich geprüft.
 
 ## 1.0.8 – 2026-08-16
 
