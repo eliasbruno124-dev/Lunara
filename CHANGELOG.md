@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.9 – 2026-08-20
+
+- Periodenzeiträume werden ohne fehleranfällige Datumstexteingabe gewählt:
+  erster Kalendertag = Beginn, zweiter Kalendertag = Ende. Derselbe Tag ist
+  für eine eintägige Periode möglich; ein früherer zweiter Tap setzt den
+  Beginn verständlich neu.
+- Der neue visuelle Bereichswähler markiert Start, alle Zwischentage und Ende,
+  zeigt die inklusive Dauer, unterstützt Monatswechsel und bietet eine
+  ausdrücklich bezeichnete Aktion für eine noch laufende Periode.
+- Erstellen und Bearbeiten verwenden denselben kalenderbasierten Ablauf.
+  Überschneidungen werden vor dem Speichern angezeigt und blockiert; beim
+  Bearbeiten wird der eigene Datensatz korrekt von der Prüfung ausgenommen.
+- GitHub-Validierungsworkflows laufen bei Feature-Branches nur noch über den
+  Pull Request und bei Pushes nur auf `main`. Release-Tags starten dadurch
+  keine zweite identische Prüfrunde und erzeugen deutlich weniger Meldungen.
+
 ## 1.0.8 – 2026-08-16
 
 - Android-Zielverhalten auf den im stabilen SDK-Kanal verfügbaren API-Level

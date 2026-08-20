@@ -2,11 +2,11 @@
 
 Erfolgsaussagen beziehen sich ausschließlich auf tatsächlich ausgeführte
 Befehle. Die endgültigen Ergebnisse, Artefaktgrößen, Prüfsummen, Image-IDs und
-Live-Prüfungen von Server 1.0.7 und Android 1.0.8 stehen in
+Live-Prüfungen von Server 1.0.7 und Android 1.0.9 stehen in
 `FINAL_REPORT.md`. Diese Datei beschreibt die verbindliche Prüfmatrix und
 behauptet nicht allein aufgrund vorhandener Dateien einen erfolgreichen Build.
 
-## Tatsächlich ausgeführter Server 1.0.7 / Android 1.0.8
+## Tatsächlich ausgeführter Server 1.0.7 / Android 1.0.9
 
 Backend:
 
@@ -37,20 +37,27 @@ Backend:
 
 Android:
 
-- `testLocalDebugUnitTest` und `testProductionDebugUnitTest`: jeweils 27
-  Suites, 132 Tests, 0 Fehler, 0 übersprungen
-- `lintLocalDebug`: erfolgreich, 0 Fehler und 39 Warnungen
-- `lintProductionDebug` mit bereits im Local-Lint geprüften Testanalysen
-  ausgeschlossen: erfolgreich, 0 Fehler und 38 Warnungen
+- `testLocalDebugUnitTest` und `testProductionDebugUnitTest`: jeweils 28
+  Suites, 143 Tests, 0 Fehler, 0 übersprungen
+- die neuen Tests prüfen insbesondere die Zwei-Tipp-Auswahl 18 bis 22, einen
+  einzelnen Tag, einen früheren neuen Start, Zustandswiederherstellung,
+  Monatswechsel, offene Perioden, Überschneidungserkennung und den Ausschluss
+  des gerade bearbeiteten Datensatzes
+- `lintLocalDebug`: erfolgreich, 0 Fehler und 56 Warnungen
+- `lintProductionDebug`: erfolgreich, 0 Fehler und 55 Warnungen
 - `compileProductionDebugAndroidTestKotlin`: erfolgreich; die Compose-
   Gerätetests wurden mangels Emulator/Gerät kompiliert, aber nicht ausgeführt
 - `assembleProductionDebug`: erfolgreich
-- `assembleProductionRelease` nach ehrlich fehlgeschlagenen ressourcenarmen
-  D8-/`lintVital`-Läufen im gezielten Wiederholungslauf erfolgreich; der
-  vollständige Production-Lint war zuvor separat erfolgreich
-- APK-Prüfung: VersionCode 9, VersionName 1.0.8, minSdk 26, targetSdk 36,
-  compileSdk 37, fehlerfreie ZIP-Struktur; Debug mit demselben Zertifikat wie
-  1.0.7 gültig v2-signiert, Release erwartbar unsigned
+- `assembleProductionRelease` einschließlich `lintVital`: erfolgreich
+- APK-Prüfung: VersionCode 10, VersionName 1.0.9, minSdk 26, targetSdk 36,
+  compileSdk 37 und fehlerfreie ZIP-Struktur
+- `artifacts/lunara-debug.apk`: 24.856.219 Bytes, gültig v2-signiert; SHA-256
+  `c90413fb5a3dbcd478bf549b498d88a286a9a56de3ea17381fd3376d7fffb7a7`
+- `artifacts/lunara-release-unsigned.apk`: 19.845.271 Bytes, erwartungsgemäß
+  nicht signiert; SHA-256
+  `39f3b7df2f68f2f75229d283c384ecb388d773c8c9cad18411cbb9b287058c23`
+- Die geprüften Artefakte wurden anschließend unverändert im privaten
+  GitHub-Release `v1.0.9` veröffentlicht.
 
 Live:
 
@@ -73,6 +80,15 @@ Live:
   PostgreSQL-18-Datenbank erfolgreich angewendet
 - Trivy 0.72.0 gegen das finale Image mit HIGH/CRITICAL und
   `ignore-unfixed`: 0 fixbare Funde
+- Während der finalen Android-Test-, Lint- und Buildläufe blieben die
+  Produktionsdienste gesund; es gab weder Restarts noch OOM-Ereignisse und
+  keinen erforderlichen Eingriff in den produktiven Stack.
+
+Workflow-Ausführung:
+
+- Android-, Backend- und Container-Sicherheitsworkflows sind so dedupliziert,
+  dass Feature-Branches über den Pull Request geprüft werden, Push-Läufe nur
+  auf `main` stattfinden und Release-Tags keine zweite identische Runde starten.
 
 ## Tatsächlich ausgeführte Android-1.0.6-Ergänzung
 
@@ -165,8 +181,9 @@ Die Backend-Suites prüfen insbesondere:
 ./scripts/e2e.sh
 ```
 
-Das Skript verwendet einen zufälligen Compose-Projektnamen, ein internes
-Testnetz und `tmpfs`. Es bildet in einer zusammenhängenden echten
+Das Skript verwendet einen zufälligen Compose-Projektnamen, ein kurzlebiges
+Bridge-Netz, einen ausschließlich an Loopback veröffentlichten Datenbankport
+und `tmpfs`. Es bildet in einer zusammenhängenden echten
 PostgreSQL-18-Strecke ab:
 
 1. frischen Server und einmalige persistente Bootstrap-Sperre
@@ -182,7 +199,7 @@ PostgreSQL-18-Strecke ab:
 11. Isolation fremder Beziehungs-IDs über direkte API- und Sync-Aufrufe
 12. weiterhin gesperrten Bootstrap nach Löschung der letzten Beziehung
 
-Der finale 1.0.5-E2E-Lauf wurde tatsächlich erfolgreich beendet. Der
+Der finale 1.0.7-E2E-Lauf wurde tatsächlich erfolgreich beendet. Der
 detaillierte Ergebnisnachweis steht in `FINAL_REPORT.md`.
 
 ## Android
@@ -196,7 +213,7 @@ cd apps/android
 ./gradlew --no-daemon --max-workers=1 assembleProductionRelease
 ```
 
-Für Android 1.0.5 umfasst die JVM-Prüfung zusätzlich zu Offline-Sync,
+Für Android 1.0.9 umfasst die Android-Prüfmatrix zusätzlich zu Offline-Sync,
 Navigation, Wipe und Passwortwechsel insbesondere:
 
 - ein wirklich leeres Serverfeld beim ersten Start
@@ -218,6 +235,12 @@ Navigation, Wipe und Passwortwechsel insbesondere:
 - Laden und gezieltes Patchen der acht Care-Preferences-Schalter in deutschen
   und englischen Einstellungen
 - Korrektur und Löschung eines Periodenstarts über die Offline-Queue
+- Zwei-Tipp-Auswahl eines inklusiven Periodenzeitraums wie 18 bis 22, Auswahl
+  desselben Tages, früherer neuer Start und rotationsfeste Wiederherstellung
+- Monatswechsel, bewusste Speicherung einer offenen Periode, „Neu auswählen“
+  und „Ende entfernen“ beim Bearbeiten sowie clientseitige Overlap-Sperre
+- semantischer TalkBack-Auswahlzustand, Live-Region der Zusammenfassung und ein
+  vollständig schreibgeschützter Partnerkalender
 - automatische Synchronisierung nach Mutation, beim Öffnen, im Vordergrund und
   mit WorkManager einschließlich begrenztem Backoff
 
@@ -236,7 +259,7 @@ unzip -t artifacts/lunara-debug.apk
 sha256sum artifacts/lunara-debug.apk
 ```
 
-Zusätzlich sind Manifestwerte, `versionName` 1.0.5, `versionCode` 6 und APK-v2-
+Zusätzlich sind Manifestwerte, `versionName` 1.0.9, `versionCode` 10 und APK-v2-
 Signatur mit Android-Buildtools zu prüfen. Die konkreten Werte gehören in
 `FINAL_REPORT.md` und `artifacts/SHA256SUMS`.
 

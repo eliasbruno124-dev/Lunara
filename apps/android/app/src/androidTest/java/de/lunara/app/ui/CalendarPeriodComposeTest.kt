@@ -8,7 +8,6 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.mutableStateOf
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.local.PeriodEntity
@@ -47,8 +46,9 @@ class CalendarPeriodComposeTest {
 
         compose.onNodeWithTag("calendar-previous-month").performClick()
         compose.onNodeWithTag("calendar-day-$start").assertIsDisplayed().performClick()
-        compose.onNodeWithTag("period-create-start-input").assertIsDisplayed()
-        compose.onNodeWithTag("period-create-end-input").performTextInput(end.toString())
+        compose.onNodeWithTag("period-range-picker").assertIsDisplayed()
+        compose.onNodeWithTag("period-picker-day-$end").performClick()
+        compose.onNodeWithTag("period-range-summary").assertTextContains("5 Tage ausgewählt")
         compose.onNodeWithTag("period-create-confirm").performClick()
 
         assertEquals(start to end, created)
@@ -84,8 +84,9 @@ class CalendarPeriodComposeTest {
 
         compose.onNodeWithTag("calendar-previous-month").performClick()
         compose.onNodeWithTag("calendar-day-${start.plusDays(2)}").performClick()
-        compose.onNodeWithTag("period-start-input").assertIsDisplayed()
-        compose.onNodeWithTag("period-end-input").assertIsDisplayed()
+        compose.onNodeWithTag("period-range-picker").assertIsDisplayed()
+        compose.onNodeWithTag("period-picker-day-$start").assertIsDisplayed()
+        compose.onNodeWithTag("period-picker-day-$end").assertIsDisplayed()
     }
 
     @Test
@@ -133,7 +134,7 @@ class CalendarPeriodComposeTest {
 
         compose.onNodeWithTag("calendar-previous-month").performClick()
         compose.onNodeWithTag("calendar-day-$start").performClick()
-        compose.onNodeWithTag("period-create-end-input").performTextInput(end.toString())
+        compose.onNodeWithTag("period-picker-day-$end").performClick()
         compose.onNodeWithTag("period-create-confirm").performClick()
 
         compose.onNodeWithTag("period-create-confirm").assertIsNotEnabled()
@@ -179,15 +180,14 @@ class CalendarPeriodComposeTest {
 
         compose.onNodeWithTag("calendar-previous-month").performClick()
         compose.onNodeWithTag("calendar-day-$start").performClick()
-        compose.onNodeWithTag("period-create-end-input").performTextInput(end.toString())
+        compose.onNodeWithTag("period-picker-day-$end").performClick()
         compose.onNodeWithTag("period-create-confirm").performClick()
         compose.onNodeWithTag("period-create-confirm").assertIsNotEnabled()
 
         compose.runOnIdle { failureRevision.value += 1 }
 
-        compose.onNodeWithTag("period-create-end-input")
-            .assertIsDisplayed()
-            .assertTextContains(end.toString())
+        compose.onNodeWithTag("period-range-picker").assertIsDisplayed()
+        compose.onNodeWithTag("period-range-summary").assertTextContains("5 Tage ausgewählt")
         compose.onNodeWithTag("period-create-confirm").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(2, createCalls) }
     }

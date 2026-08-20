@@ -47,12 +47,18 @@ OpenAPI-Dokumentation.
   Tracker-Eingaben und Partner-Tipps; ohne Firebase oder externe Push-Dienste
 - JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
   `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.8 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
+- native Compose-App 1.0.9 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
   rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
   Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
-- rückwirkende Erfassung vollständiger Perioden direkt im Kalender sowie
-  nachträgliche Korrektur und bestätigtes Löschen über dieselbe offlinefähige,
+- Booking-artige, rückwirkende Erfassung ohne Datumstexteingabe: Starttag und
+  Endtag im Kalender antippen, den sichtbaren Zeitraum prüfen und speichern;
+  eine noch laufende Periode ist als eigene Aktion eindeutig beschriftet
+- nachträgliche Korrektur über „Neu auswählen“ beziehungsweise „Ende
+  entfernen“ und bestätigtes Löschen über dieselbe offlinefähige,
   automatisch synchronisierte Mutation Queue
+- inklusiver lokaler Überschneidungsschutz vor dem Speichern, vollständige
+  TalkBack-Beschreibungen und angekündigte Auswahlzustände; der
+  Partnerkalender bleibt strikt schreibgeschützt
 - rotationsfeste Kalenderentwürfe und gesperrte Doppelaktionen bis Room die
   lokale Änderung tatsächlich bestätigt
 - zustandsabhängige Hauptaktion „Periode begonnen“/„Periode heute beenden“ mit
@@ -61,6 +67,8 @@ OpenAPI-Dokumentation.
   Perioden, auch bei konkurrierenden Offline-Geräten
 - gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
   Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
+- deduplizierte GitHub-Workflows: Feature-Branches werden über den Pull Request
+  geprüft, während der Push-Lauf nur auf `main` erfolgt
 - versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
   die Android-App nutzt zur Laufzeit ihre typisierten Retrofit-Schnittstellen
 
@@ -72,7 +80,7 @@ Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
 
 ## Verbindung und Authentifizierung
 
-Das Serverfeld ist beim ersten Start von Android 1.0.8 absichtlich leer. Für
+Das Serverfeld ist beim ersten Start von Android 1.0.9 absichtlich leer. Für
 die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
 Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
 Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
@@ -144,10 +152,10 @@ Die tatsächlich erzeugte, installierbare Production-Debug-APK liegt hier:
 artifacts/lunara-debug.apk
 ```
 
-Im privaten GitHub-Repository kann sie nach Anmeldung direkt über den
-[Release Lunara Android 1.0.8](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.8)
+Im privaten GitHub-Repository kann sie nach Anmeldung über den
+[Release Lunara Android 1.0.9](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.9)
 oder als
-[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.8/lunara-debug.apk)
+[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.9/lunara-debug.apk)
 heruntergeladen werden.
 
 Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:

@@ -1,34 +1,46 @@
-# Lunara – Abschlussbericht Server 1.0.7 / Android 1.0.8
+# Lunara – Abschlussbericht Server 1.0.7 / Android 1.0.9
 
-Stand: 16. August 2026
+Stand: 20. August 2026
 
 Lunara Server 1.0.7 ist gebaut, geprüft und auf dem produktiven Server
-ausgerollt; Android 1.0.8 ist anschließend mit reproduzierbarer CI-
-Toolchainkorrektur gebaut und geprüft worden. Die API läuft gesund hinter
+ausgerollt; Android 1.0.9 ist anschließend mit der reproduzierbaren Build-
+Toolchain gebaut und geprüft worden. Die API und zugehörigen Dienste laufen
+weiterhin gesund hinter
 Pangolin und Authentik; die Datenbankmigration schützt
 aktive Periodenbereiche nun atomar gegen Überschneidungen. Eine installierbare
 Production-Debug-APK und eine bewusst unsignierte Release-APK wurden
 tatsächlich erzeugt und geprüft. Dieser Bericht trennt bestätigte Ergebnisse
-von nicht ausgeführten Prüfungen.
+von nicht ausgeführten Prüfungen. Die geprüften Artefakte sind im privaten
+GitHub-Release `v1.0.9` veröffentlicht.
 
-## Server 1.0.7 / Android 1.0.8 – Ergebnis
+## Server 1.0.7 / Android 1.0.9 – Ergebnis
 
 Die Tracker-App unterstützt jetzt drei zusammenhängende Wege:
 
 1. Auf „Periode begonnen“ tippen; der lokale Room-Eintrag erscheint sofort und
    die Aktion wechselt bei einer offenen Periode zu „Periode heute beenden“.
-2. Im Kalender einen heutigen oder vergangenen freien Tag antippen und Start
-   sowie optionales Ende rückwirkend eintragen.
-3. Einen vorhandenen Periodentag antippen, Zeitraum korrigieren oder nach
-   Bestätigung löschen.
+2. Im Kalender einen heutigen oder vergangenen freien Starttag und danach den
+   Endtag antippen, den inklusiven Zeitraum prüfen und speichern. Es gibt keine
+   fehleranfällige Datumstexteingabe mehr; „Als laufende Periode speichern“ ist
+   eine eigene, eindeutige Aktion.
+3. Einen vorhandenen Periodentag antippen und den Zeitraum über „Neu
+   auswählen“ korrigieren, mit „Ende entfernen“ wieder öffnen oder nach einer
+   zweiten Bestätigung löschen.
 
 Alle drei Wege verwenden clientseitige UUIDs, eine atomare Room-Transaktion und
 die idempotente Offline-Mutation-Queue. Die UI bestätigt die lokale Speicherung
 per Snackbar und zeigt Pending-, Konflikt- und letzten Sync-Zustand. Automatische
 Übertragung erfolgt nach lokaler Mutation und Anmeldung, regelmäßig während
 der geöffneten App sowie netzwerkgebunden über WorkManager; der manuelle
-„Jetzt synchronisieren“-Weg bleibt erhalten. Partner haben weder in der UI noch
-serverseitig Schreibrechte auf Perioden.
+„Jetzt synchronisieren“-Weg bleibt erhalten. Ein inklusiver lokaler
+Überschneidungsschutz sperrt die Speicherung eines kollidierenden Entwurfs;
+die bestehende server- und datenbankseitige Prüfung bleibt die autoritative
+zweite Schutzschicht. Partner haben weder in der Kalender-UI noch serverseitig
+Schreibrechte auf Perioden.
+
+Start, Mitte, Ende und eintägige Zeiträume sind nicht nur farblich markiert.
+TalkBack erhält das vollständige lokale Datum, Verfügbarkeit und Auswahlrolle;
+die aktualisierte Zusammenfassung wird als höfliche Live-Region angekündigt.
 
 Kalenderentwürfe und laufende Aktionen überleben eine Activity-Neuerstellung.
 Während Create, Update oder Delete auf die bestätigende Room-Änderung wartet,
@@ -64,16 +76,21 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
   exakt-einmal Offline-Sync einschließlich Wiederverwendung abgelaufener Keys
 - OpenAPI-Snapshot und generierter Kotlin-Client reproduzierbar neu erzeugt;
   Hashprüfung erfolgreich
-- Android 1.0.8: Local und Production jeweils 27/27 JVM-Suites, 132/132
+- Android 1.0.9: Local und Production jeweils 28/28 JVM-Suites, 143/143
   Tests, 0 Fehler und 0 übersprungen
-- Android-Lint: Local 0 Fehler/39 Warnungen, Production 0 Fehler/38 Warnungen
+- Android-Lint: Local 0 Fehler/56 Warnungen, Production 0 Fehler/55 Warnungen
 - Production-Instrumentierung erfolgreich kompiliert; mangels Emulator oder
   Gerät nicht ausgeführt
-- Production-Debug- und Production-Release-APK tatsächlich gebaut. Ein zu eng
-  begrenzter JVM-Testlauf, der erste Instrumentation-Compile mit einem
-  überflüssigen Import sowie Release-Läufe mit zu kleinem D8-Heap
-  beziehungsweise redundantem `lintVital` scheiterten ehrlich; die
-  korrigierten, ausreichend begrenzten Wiederholungsläufe waren erfolgreich
+- Production-Debug- und Production-Release-APK tatsächlich gebaut; beide
+  Artefakte besitzen eine fehlerfreie ZIP-Struktur
+- Ein erster zu eng begrenzter JVM-Lauf scheiterte ehrlich an zu wenig
+  Metaspace. Der abschließende, auf einen CPU-Kern und feste Speichergrenzen
+  gedrosselte Gesamtlauf war mit ausreichendem Metaspace vollständig
+  erfolgreich; produktive Dienste wurden dabei nicht neu gestartet.
+- Android-, Backend- und Container-Sicherheitsworkflows prüfen Feature-Branches
+  nur noch über Pull Requests; Push-Läufe sind auf `main` begrenzt, damit
+  derselbe Feature-Commit nicht doppelte Workflow-Läufe und Benachrichtigungen
+  auslöst
 - Multi-Stage-Image `lunara-api:1.0.7` gebaut: Image-ID
   `sha256:3e3105eb24b805c1df621b5ec5c5910ba1db4f9adc5f54937faa67f27de7f439`,
   618.951.392 Bytes, Runtime UID/GID `10001:10001`
@@ -91,16 +108,18 @@ den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
 
 ### APK-Artefakte
 
-- `artifacts/lunara-debug.apk`: 24.531.309 Bytes, installierbar und gültig
+- `artifacts/lunara-debug.apk`: 24.856.219 Bytes, installierbar und gültig
   APK-v2-debugsigniert; SHA-256
-  `66098c59fadc58c84d463e68447b325435aa84d45e13c2bb27761283b958191d`
-- `artifacts/lunara-release-unsigned.apk`: 19.841.583 Bytes, erwartungsgemäß
+  `c90413fb5a3dbcd478bf549b498d88a286a9a56de3ea17381fd3376d7fffb7a7`
+- `artifacts/lunara-release-unsigned.apk`: 19.845.271 Bytes, erwartungsgemäß
   nicht signiert; SHA-256
-  `caa4575e6e782cdeb2639b83a17d475b0f319a6e2a9fd260a30583daef8749f1`
-- beide: VersionCode 9, VersionName 1.0.8, minSdk 26, targetSdk 36,
-  compileSdk 37 und fehlerfreie ZIP-Struktur. Die Debug-APK nutzt weiterhin
-  dasselbe nicht eingecheckte Debug-Zertifikat wie 1.0.7 und ist dadurch als
-  Update installierbar.
+  `39f3b7df2f68f2f75229d283c384ecb388d773c8c9cad18411cbb9b287058c23`
+- beide: VersionCode 10, VersionName 1.0.9, minSdk 26, targetSdk 36,
+  compileSdk 37 und fehlerfreie ZIP-Struktur
+- Debug-Zertifikat SHA-256:
+  `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`;
+  damit bleibt die Debug-APK als Update der bisherigen, mit demselben lokalen
+  Debugschlüssel signierten Installation geeignet
 
 ### Bewusst nicht ausgeführt / bekannte Grenze
 
@@ -504,23 +523,17 @@ Das private Repository ist:
 https://github.com/eliasbruno124-dev/Lunara
 ```
 
-Die GitHub-Geräteanmeldung des Eigentümers und der private Branch
-`agent/authentik-human-access` bestehen. Der vollständig geprüfte
-Android-1.0.6-Stand einschließlich beider APKs wurde erfolgreich gepusht und
-als Tag `v1.0.6` veröffentlicht. Der zuvor bestätigte Server-/App-Stand 1.0.5
-bleibt in der Historie erhalten.
-
-Der private Release ist:
+Das private Repository und der Branch `agent/authentik-human-access` bestehen.
+Android 1.0.9 wurde mit den oben geprüften Artefakten als privater Release
+veröffentlicht:
 
 ```text
-https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.6
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.9
 ```
 
-GitHub bestätigte `lunara-debug.apk` mit 24.727.376 Bytes und
-`lunara-release-unsigned.apk` mit 19.806.359 Bytes als vollständig hochgeladen.
-Der bestehende Draft-Pull-Request 1 wurde auf Android 1.0.6 aktualisiert. Wegen des
-privaten Repositorys müssen Repository, PR und Downloads mit dem berechtigten
-GitHub-Konto angemeldet geöffnet werden.
+GitHub enthält `lunara-debug.apk`, `lunara-release-unsigned.apk` und
+`SHA256SUMS`. Wegen des privaten Repositorys müssen Repository, Pull Request
+und Downloads mit dem berechtigten GitHub-Konto angemeldet geöffnet werden.
 
 Echte `.env`-Dateien, Authentik-Zugänge, Passwörter, Token, Dumps und
 Serverbackups bleiben ausschließlich auf dem Server.

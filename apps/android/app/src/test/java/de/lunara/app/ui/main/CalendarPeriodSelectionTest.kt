@@ -80,6 +80,52 @@ class CalendarPeriodSelectionTest {
         )
     }
 
+    @Test
+    fun `two tap range exposes start middle end and single day markers`() {
+        val range = PeriodRangeSelection(
+            startDate = LocalDate.parse("2026-08-18"),
+            endDate = LocalDate.parse("2026-08-22"),
+        )
+
+        assertEquals(PeriodRangeDayRole.START, periodRangeDayRole(range, LocalDate.parse("2026-08-18")))
+        assertEquals(PeriodRangeDayRole.MIDDLE, periodRangeDayRole(range, LocalDate.parse("2026-08-20")))
+        assertEquals(PeriodRangeDayRole.END, periodRangeDayRole(range, LocalDate.parse("2026-08-22")))
+        assertEquals(PeriodRangeDayRole.NONE, periodRangeDayRole(range, LocalDate.parse("2026-08-23")))
+        assertEquals(
+            PeriodRangeDayRole.SINGLE,
+            periodRangeDayRole(
+                PeriodRangeSelection(LocalDate.parse("2026-08-18"), LocalDate.parse("2026-08-18")),
+                LocalDate.parse("2026-08-18"),
+            ),
+        )
+    }
+
+    @Test
+    fun `range overlap catches enclosed periods and excludes the edited record`() {
+        val existing = period("existing", "2026-08-20", "2026-08-21")
+        val selection = PeriodRangeSelection(
+            startDate = LocalDate.parse("2026-08-18"),
+            endDate = LocalDate.parse("2026-08-22"),
+        )
+
+        assertEquals(true, periodRangeOverlapsExisting(selection, listOf(existing)))
+        assertEquals(
+            false,
+            periodRangeOverlapsExisting(selection, listOf(existing), excludedPeriodId = "existing"),
+        )
+    }
+
+    @Test
+    fun `open selection checks through today and ignores deleted records`() {
+        val today = LocalDate.parse("2026-08-20")
+        val active = period("active", "2026-08-19", "2026-08-19")
+        val deleted = active.copy(id = "deleted", deletedAt = "2026-08-20T12:00:00Z")
+        val selection = PeriodRangeSelection(startDate = LocalDate.parse("2026-08-18"))
+
+        assertEquals(true, periodRangeOverlapsExisting(selection, listOf(active), today))
+        assertEquals(false, periodRangeOverlapsExisting(selection, listOf(deleted), today))
+    }
+
     private fun period(id: String, startDate: String, endDate: String?) = PeriodEntity(
         id = id,
         userId = "tracker",

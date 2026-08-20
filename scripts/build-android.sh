@@ -47,7 +47,7 @@ docker run --rm \
   -w /workspace/apps/android \
   "${builder_image}" \
   bash -ceu '
-    for task in testLocalDebugUnitTest lintLocalDebug lintProductionDebug compileProductionDebugAndroidTestKotlin assembleProductionDebug; do
+    for task in testLocalDebugUnitTest testProductionDebugUnitTest lintLocalDebug lintProductionDebug compileProductionDebugAndroidTestKotlin assembleProductionDebug; do
       ./gradlew --no-daemon --max-workers=1 \
         "-Dorg.gradle.jvmargs=${LUNARA_GRADLE_JVM_ARGS}" "${task}"
       done

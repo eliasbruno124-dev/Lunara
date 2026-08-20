@@ -77,13 +77,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.testTag
@@ -508,6 +510,7 @@ fun TrackerDashboard(
             items(periods.take(3), key = { it.id }) { period ->
                 EditablePeriodRow(
                     period = period,
+                    allPeriods = periods,
                     onUpdate = onPeriodUpdated,
                     onDelete = onPeriodDeleted,
                     periodFailureRevision = periodFailureRevision,
@@ -1055,6 +1058,7 @@ internal fun CalendarScreen(
     selectedNewStart?.let { rawStart ->
         PeriodCreateDialog(
             initialStartDate = runCatching { LocalDate.parse(rawStart) }.getOrDefault(LocalDate.now()),
+            allPeriods = periods,
             submitting = createSubmitting,
             onCreate = { start, end ->
                 if (pendingNewStartDate == null) {
@@ -1075,6 +1079,7 @@ internal fun CalendarScreen(
     selectedPeriod?.let { period ->
         PeriodEditorDialog(
             period = period,
+            allPeriods = periods,
             submitting = editorSubmitting,
             onUpdate = { start, end ->
                 if (pendingUpdatedStartDate == null && pendingDeletePeriodId == null) {
@@ -1226,6 +1231,7 @@ private fun HistoryScreen(
         items(periods, key = { it.id }) { period ->
             EditablePeriodRow(
                 period = period,
+                allPeriods = periods,
                 onUpdate = onPeriodUpdated,
                 onDelete = onPeriodDeleted,
                 periodFailureRevision = periodFailureRevision,
@@ -1292,6 +1298,7 @@ private fun SupportScreen(
 @Composable
 private fun EditablePeriodRow(
     period: PeriodEntity,
+    allPeriods: List<PeriodEntity>,
     onUpdate: (String, LocalDate, LocalDate?) -> Unit,
     onDelete: (String) -> Unit,
     periodFailureRevision: Long = 0L,
@@ -1359,6 +1366,7 @@ private fun EditablePeriodRow(
     if (showEditor) {
         PeriodEditorDialog(
             period = period,
+            allPeriods = allPeriods,
             submitting = submitting,
             onUpdate = { start, end ->
                 if (pendingUpdatedStartDate == null && !pendingDelete) {
@@ -1389,21 +1397,26 @@ private fun EditablePeriodRow(
 @Composable
 internal fun PeriodEditorDialog(
     period: PeriodEntity,
+    allPeriods: List<PeriodEntity> = emptyList(),
     onUpdate: (LocalDate, LocalDate?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
     submitting: Boolean = false,
 ) {
-    var rawStartDate by rememberSaveable(period.id) { mutableStateOf(period.startDate) }
-    var rawEndDate by rememberSaveable(period.id) { mutableStateOf(period.endDate.orEmpty()) }
+    var savedStartDate by rememberSaveable(period.id) { mutableStateOf<String?>(period.startDate) }
+    var savedEndDate by rememberSaveable(period.id) { mutableStateOf<String?>(period.endDate) }
     var confirmDelete by rememberSaveable(period.id) { mutableStateOf(false) }
-    val validation = remember(rawStartDate, rawEndDate) {
-        PeriodEditValidation.validateRange(rawStartDate, rawEndDate)
+    val selection = remember(savedStartDate, savedEndDate) {
+        PeriodRangeSelectionPolicy.restore(savedStartDate, savedEndDate)
     }
-    val validationError = (validation as? PeriodDateValidationResult.Invalid)?.error
-    val validDates = (validation as? PeriodDateValidationResult.Valid)?.dates
-    val changed = validDates?.let {
-        it.startDate.toString() != period.startDate || it.endDate?.toString() != period.endDate
+    val initialPickerMonth = remember(period.startDate) {
+        runCatching { YearMonth.from(LocalDate.parse(period.startDate)) }.getOrDefault(YearMonth.now())
+    }
+    val overlap = remember(selection, allPeriods, period.id) {
+        periodRangeOverlapsExisting(selection, allPeriods, excludedPeriodId = period.id)
+    }
+    val changed = selection.startDate?.let {
+        it.toString() != period.startDate || selection.endDate?.toString() != period.endDate
     } == true
 
     if (confirmDelete) {
@@ -1439,46 +1452,28 @@ internal fun PeriodEditorDialog(
                 Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(stringResource(R.string.period_date_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedTextField(
-                    value = rawStartDate,
-                    onValueChange = { rawStartDate = PeriodEditValidation.sanitizeDateInput(it) },
-                    label = { Text(stringResource(R.string.period_start_date)) },
-                    placeholder = { Text("2026-08-13") },
-                    supportingText = {
-                        if (validationError == PeriodDateValidationError.INVALID_START) {
-                            Text(stringResource(R.string.period_start_invalid))
-                        }
-                        else Text(stringResource(R.string.period_date_format))
-                    },
-                    isError = validationError == PeriodDateValidationError.INVALID_START,
+                Text(stringResource(R.string.period_picker_edit_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                PeriodRangePicker(
+                    selection = selection,
+                    initialMonth = initialPickerMonth,
                     enabled = !submitting,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().testTag("period-start-input"),
-                )
-                OutlinedTextField(
-                    value = rawEndDate,
-                    onValueChange = { rawEndDate = PeriodEditValidation.sanitizeDateInput(it) },
-                    label = { Text(stringResource(R.string.period_end_date_optional)) },
-                    placeholder = { Text("2026-08-17") },
-                    supportingText = {
-                        when (validationError) {
-                            PeriodDateValidationError.INVALID_END -> Text(stringResource(R.string.period_end_invalid))
-                            PeriodDateValidationError.END_BEFORE_START -> Text(stringResource(R.string.period_end_before_start))
-                            else -> Text(stringResource(R.string.period_end_optional_hint))
-                        }
+                    onSelectionChanged = { updated ->
+                        savedStartDate = updated.savedStartDate
+                        savedEndDate = updated.savedEndDate
                     },
-                    isError = validationError == PeriodDateValidationError.INVALID_END ||
-                        validationError == PeriodDateValidationError.END_BEFORE_START,
-                    enabled = !submitting,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth().testTag("period-end-input"),
                 )
-                if (rawEndDate.isNotBlank()) {
+                PeriodRangeSummary(selection = selection, overlap = overlap)
+                TextButton(
+                    onClick = {
+                        savedStartDate = null
+                        savedEndDate = null
+                    },
+                    enabled = !submitting,
+                    modifier = Modifier.align(Alignment.End).testTag("period-range-reset"),
+                ) { Text(stringResource(R.string.period_picker_reset)) }
+                if (selection.endDate != null) {
                     TextButton(
-                        onClick = { rawEndDate = "" },
+                        onClick = { savedEndDate = null },
                         enabled = !submitting,
                         modifier = Modifier.align(Alignment.End).testTag("period-end-clear"),
                     ) { Text(stringResource(R.string.remove_period_end)) }
@@ -1495,10 +1490,20 @@ internal fun PeriodEditorDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { validDates?.let { onUpdate(it.startDate, it.endDate) } },
-                enabled = changed && !submitting,
+                onClick = { selection.startDate?.let { onUpdate(it, selection.endDate) } },
+                enabled = changed && !overlap && !submitting,
                 modifier = Modifier.testTag("period-update-confirm"),
-            ) { Text(stringResource(R.string.save)) }
+            ) {
+                Text(
+                    stringResource(
+                        if (selection.endDate == null) {
+                            R.string.period_save_open
+                        } else {
+                            R.string.period_save_range
+                        },
+                    ),
+                )
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !submitting) {
@@ -1511,83 +1516,64 @@ internal fun PeriodEditorDialog(
 @Composable
 internal fun PeriodCreateDialog(
     initialStartDate: LocalDate,
+    allPeriods: List<PeriodEntity> = emptyList(),
     onCreate: (LocalDate, LocalDate?) -> Unit,
     onDismiss: () -> Unit,
     submitting: Boolean = false,
 ) {
-    var rawStartDate by rememberSaveable(initialStartDate.toString()) {
-        mutableStateOf(initialStartDate.toString())
+    var savedStartDate by rememberSaveable(initialStartDate.toString()) {
+        mutableStateOf<String?>(initialStartDate.toString())
     }
-    var rawEndDate by rememberSaveable(initialStartDate.toString()) { mutableStateOf("") }
-    val validation = remember(rawStartDate, rawEndDate) {
-        PeriodEditValidation.validateRange(rawStartDate, rawEndDate)
+    var savedEndDate by rememberSaveable(initialStartDate.toString()) {
+        mutableStateOf<String?>(null)
     }
-    val validationError = (validation as? PeriodDateValidationResult.Invalid)?.error
-    val validDates = (validation as? PeriodDateValidationResult.Valid)?.dates
+    val selection = remember(savedStartDate, savedEndDate) {
+        PeriodRangeSelectionPolicy.restore(savedStartDate, savedEndDate)
+    }
+    val overlap = remember(selection, allPeriods) {
+        periodRangeOverlapsExisting(selection, allPeriods)
+    }
 
     AlertDialog(
         onDismissRequest = { if (!submitting) onDismiss() },
-        title = { Text(stringResource(R.string.add_past_period)) },
+        title = { Text(stringResource(R.string.period_picker_title)) },
         text = {
             Column(
                 Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    stringResource(R.string.add_past_period_notice),
+                    stringResource(R.string.period_picker_create_notice),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
-                    value = rawStartDate,
-                    onValueChange = { rawStartDate = PeriodEditValidation.sanitizeDateInput(it) },
-                    label = { Text(stringResource(R.string.period_start_date)) },
-                    supportingText = {
-                        if (validationError == PeriodDateValidationError.INVALID_START) {
-                            Text(stringResource(R.string.period_start_invalid))
-                        } else {
-                            Text(stringResource(R.string.period_date_format))
-                        }
-                    },
-                    isError = validationError == PeriodDateValidationError.INVALID_START,
+                PeriodRangePicker(
+                    selection = selection,
+                    initialMonth = YearMonth.from(initialStartDate),
                     enabled = !submitting,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("period-create-start-input"),
-                )
-                OutlinedTextField(
-                    value = rawEndDate,
-                    onValueChange = { rawEndDate = PeriodEditValidation.sanitizeDateInput(it) },
-                    label = { Text(stringResource(R.string.period_end_date_optional)) },
-                    supportingText = {
-                        when (validationError) {
-                            PeriodDateValidationError.INVALID_END ->
-                                Text(stringResource(R.string.period_end_invalid))
-                            PeriodDateValidationError.END_BEFORE_START ->
-                                Text(stringResource(R.string.period_end_before_start))
-                            else -> Text(stringResource(R.string.period_end_optional_hint))
-                        }
+                    onSelectionChanged = { updated ->
+                        savedStartDate = updated.savedStartDate
+                        savedEndDate = updated.savedEndDate
                     },
-                    isError = validationError == PeriodDateValidationError.INVALID_END ||
-                        validationError == PeriodDateValidationError.END_BEFORE_START,
-                    enabled = !submitting,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("period-create-end-input"),
                 )
+                PeriodRangeSummary(selection = selection, overlap = overlap)
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { validDates?.let { onCreate(it.startDate, it.endDate) } },
-                enabled = validDates != null && !submitting,
+                onClick = { selection.startDate?.let { onCreate(it, selection.endDate) } },
+                enabled = selection.startDate != null && !overlap && !submitting,
                 modifier = Modifier.testTag("period-create-confirm"),
-            ) { Text(stringResource(R.string.add_period)) }
+            ) {
+                Text(
+                    stringResource(
+                        if (selection.endDate == null) {
+                            R.string.period_save_open
+                        } else {
+                            R.string.period_save_range
+                        },
+                    ),
+                )
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !submitting) {
@@ -1595,6 +1581,268 @@ internal fun PeriodCreateDialog(
             }
         },
     )
+}
+
+internal enum class PeriodRangeDayRole {
+    NONE,
+    START,
+    MIDDLE,
+    END,
+    SINGLE,
+}
+
+internal fun periodRangeDayRole(
+    selection: PeriodRangeSelection,
+    date: LocalDate,
+): PeriodRangeDayRole {
+    val start = selection.startDate ?: return PeriodRangeDayRole.NONE
+    val end = selection.endDate
+    if (date == start && date == end) return PeriodRangeDayRole.SINGLE
+    if (date == start) return PeriodRangeDayRole.START
+    if (date == end) return PeriodRangeDayRole.END
+    if (end != null && date.isAfter(start) && date.isBefore(end)) return PeriodRangeDayRole.MIDDLE
+    return PeriodRangeDayRole.NONE
+}
+
+internal fun periodRangeOverlapsExisting(
+    selection: PeriodRangeSelection,
+    periods: List<PeriodEntity>,
+    today: LocalDate = LocalDate.now(),
+    excludedPeriodId: String? = null,
+): Boolean {
+    val selectedStart = selection.startDate ?: return false
+    val selectedEnd = selection.endDate ?: maxOf(selectedStart, today)
+    if (selectedEnd.isBefore(selectedStart)) return true
+
+    return periods.any { period ->
+        if (period.id == excludedPeriodId || period.deletedAt != null) return@any false
+        val existingStart = runCatching { LocalDate.parse(period.startDate) }.getOrNull()
+            ?: return@any false
+        val existingEnd = period.endDate
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?: maxOf(existingStart, today)
+        !selectedEnd.isBefore(existingStart) && !existingEnd.isBefore(selectedStart)
+    }
+}
+
+@Composable
+private fun PeriodRangePicker(
+    selection: PeriodRangeSelection,
+    initialMonth: YearMonth,
+    enabled: Boolean,
+    onSelectionChanged: (PeriodRangeSelection) -> Unit,
+) {
+    val today = LocalDate.now()
+    val currentMonth = YearMonth.from(today)
+    val initialVisibleMonth = remember(initialMonth, currentMonth) { initialMonth.coerceAtMost(currentMonth) }
+    var visibleMonthValue by rememberSaveable(initialVisibleMonth.toString()) {
+        mutableStateOf(initialVisibleMonth.toString())
+    }
+    val month = remember(visibleMonthValue, initialVisibleMonth, currentMonth) {
+        runCatching { YearMonth.parse(visibleMonthValue) }
+            .getOrDefault(initialVisibleMonth)
+            .coerceAtMost(currentMonth)
+    }
+    val locale = LocalLocale.current.platformLocale
+    val first = month.atDay(1)
+    val leading = first.dayOfWeek.value - 1
+    val cells = List<LocalDate?>(leading) { null } +
+        (1..month.lengthOfMonth()).map(month::atDay)
+    val previousMonthDescription = stringResource(R.string.previous_month)
+    val nextMonthDescription = stringResource(R.string.next_month)
+
+    Column(
+        Modifier.fillMaxWidth().testTag("period-range-picker"),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(
+                onClick = { visibleMonthValue = month.minusMonths(1).toString() },
+                enabled = enabled,
+                modifier = Modifier
+                    .testTag("period-picker-previous-month")
+                    .semantics { contentDescription = previousMonthDescription },
+            ) { Text("‹", style = MaterialTheme.typography.titleLarge) }
+            Text(
+                month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            TextButton(
+                onClick = { visibleMonthValue = month.plusMonths(1).toString() },
+                enabled = enabled && month < currentMonth,
+                modifier = Modifier
+                    .testTag("period-picker-next-month")
+                    .semantics { contentDescription = nextMonthDescription },
+            ) { Text("›", style = MaterialTheme.typography.titleLarge) }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            java.time.DayOfWeek.entries.forEach { day ->
+                Text(
+                    day.getDisplayName(java.time.format.TextStyle.NARROW, locale),
+                    Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+        cells.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth()) {
+                week.forEach { date ->
+                    if (date == null) {
+                        Spacer(Modifier.weight(1f).height(48.dp))
+                    } else {
+                        PeriodRangePickerDay(
+                            date = date,
+                            role = periodRangeDayRole(selection, date),
+                            enabled = enabled && !date.isAfter(today),
+                            onClick = {
+                                onSelectionChanged(PeriodRangeSelectionPolicy.select(selection, date))
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                repeat(7 - week.size) { Spacer(Modifier.weight(1f).height(48.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodRangePickerDay(
+    date: LocalDate,
+    role: PeriodRangeDayRole,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val locale = LocalLocale.current.platformLocale
+    val formattedDate = remember(date, locale) {
+        date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale))
+    }
+    val status = stringResource(
+        when {
+            !enabled -> R.string.period_picker_day_unavailable
+            role == PeriodRangeDayRole.START -> R.string.period_picker_day_start
+            role == PeriodRangeDayRole.END -> R.string.period_picker_day_end
+            role == PeriodRangeDayRole.SINGLE -> R.string.period_picker_day_single
+            role == PeriodRangeDayRole.MIDDLE -> R.string.period_picker_day_middle
+            else -> R.string.period_picker_day_available
+        },
+    )
+    val selected = role != PeriodRangeDayRole.NONE
+    Card(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .padding(2.dp)
+            .height(48.dp)
+            .testTag("period-picker-day-$date")
+            .semantics {
+                contentDescription = "$formattedDate. $status"
+                this.selected = selected
+            },
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            Modifier.fillMaxSize().padding(vertical = 3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.bodyMedium)
+            when (role) {
+                PeriodRangeDayRole.START -> Text(
+                    stringResource(R.string.period_picker_marker_start),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                PeriodRangeDayRole.END -> Text(
+                    stringResource(R.string.period_picker_marker_end),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                PeriodRangeDayRole.SINGLE -> Text(
+                    stringResource(R.string.period_picker_marker_single),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                PeriodRangeDayRole.MIDDLE -> Text("•", style = MaterialTheme.typography.labelSmall)
+                PeriodRangeDayRole.NONE -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodRangeSummary(
+    selection: PeriodRangeSelection,
+    overlap: Boolean,
+) {
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .testTag("period-range-summary")
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        colors = CardDefaults.cardColors(
+            containerColor = if (overlap) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            },
+        ),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val start = selection.startDate
+            val end = selection.endDate
+            when {
+                start == null -> Text(stringResource(R.string.period_picker_choose_start))
+                end == null -> {
+                    Text(
+                        stringResource(R.string.period_picker_start_selected, formatDate(start.toString())),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(stringResource(R.string.period_picker_choose_end))
+                }
+                else -> {
+                    val days = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1
+                    Text(
+                        stringResource(
+                            R.string.period_picker_selected_range,
+                            formatDate(start.toString()),
+                            formatDate(end.toString()),
+                        ),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        stringResource(
+                            if (days == 1L) R.string.period_picker_one_day else R.string.period_picker_days,
+                            days,
+                        ),
+                    )
+                    Text(stringResource(R.string.period_picker_restart_hint))
+                }
+            }
+            if (overlap) {
+                Text(
+                    stringResource(R.string.period_picker_overlap),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
 }
 
 @Composable

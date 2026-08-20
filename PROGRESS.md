@@ -1,8 +1,43 @@
 # Lunara – Fortschritt
 
-Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
+Stand: 20. August 2026, Android 1.0.9 und Server 1.0.7
 
-## Android-Buildkorrektur 1.0.8
+## Android-Kalender 1.0.9
+
+- [x] Rückwirkende Perioden werden ohne Datumstexteingabe als Zwei-Tipp-
+  Zeitraum erfasst: Der erste Tap markiert den Beginn, beispielsweise den 18.,
+  und der zweite Tap das inklusive Ende, beispielsweise den 22. Derselbe Tag
+  kann als Start und Ende gewählt werden.
+- [x] Der Bereichswähler unterstützt Monatswechsel, markiert Start,
+  Zwischentage und Ende und zeigt den gewählten Zeitraum sowie seine inklusive
+  Dauer unmittelbar an.
+- [x] Eine noch laufende Periode wird über eine bewusst bezeichnete eigene
+  Speicheraktion angelegt. Beim Bearbeiten stehen „Neu auswählen“ und „Ende
+  entfernen“ zur Verfügung; Löschen bleibt bestätigungspflichtig.
+- [x] Überschneidungen mit anderen aktiven Perioden werden bereits im Dialog
+  verständlich angezeigt und blockieren das Speichern. Der bearbeitete
+  Datensatz wird dabei korrekt aus der Prüfung ausgenommen.
+- [x] Partnerkalender bleiben ohne Schreibaktion. TalkBack erhält vollständige
+  Datums- und Auswahlbeschreibungen, den semantischen Auswahlzustand und eine
+  höfliche Live-Region für die aktualisierte Zusammenfassung.
+- [x] Local und Production jeweils mit 28 JVM-Suites und 143 Tests geprüft:
+  0 Fehler und 0 übersprungene Tests. Local-Lint: 0 Fehler/56 Warnungen;
+  Production-Lint: 0 Fehler/55 Warnungen. Die Instrumentierungsquellen wurden
+  erfolgreich kompiliert, mangels Emulator oder Gerät jedoch nicht ausgeführt.
+- [x] Android auf VersionCode 10/VersionName 1.0.9 angehoben. Installierbare
+  Debug-APK: 24.856.219 Bytes, SHA-256
+  `c90413fb5a3dbcd478bf549b498d88a286a9a56de3ea17381fd3376d7fffb7a7`.
+  Bewusst unsignierte Release-APK: 19.845.271 Bytes, SHA-256
+  `39f3b7df2f68f2f75229d283c384ecb388d773c8c9cad18411cbb9b287058c23`.
+- [x] Während der abschließenden Android-Prüfungen blieben die
+  Produktionsdienste gesund, ohne Restarts oder OOM-Ereignisse; es war kein
+  produktiver Neustart erforderlich.
+- [x] GitHub-Workflows sind dedupliziert: Feature-Branches werden über den Pull
+  Request geprüft, Push-Prüfungen laufen nur auf `main`, und Release-Tags lösen
+  keine zweite identische Runde aus. Android 1.0.9 ist im privaten Repository
+  als Release mit beiden APKs und Prüfsummendatei veröffentlicht.
+
+## Android-Buildkorrektur 1.0.8 (historischer Nachweis)
 
 - [x] targetSdk auf den tatsächlich im stabilen SDK-Kanal verfügbaren
   API-Level 36 korrigiert. compileSdk bleibt wegen der gepinnten aktuellen
@@ -111,8 +146,9 @@ Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
   bewusst bei 12 bis 128 Zeichen.
 - [x] Unicode-Länge zwischen Android, API und OpenAPI explizit auf Codepoints
   vereinheitlicht und mit Variationsselektoren an Minimum und Maximum getestet.
-- [x] Periodenstart nachträglich ändern oder bestätigt löschen; beide Aktionen
-  laufen offlinefähig über die automatische Mutation Queue.
+- [x] Periodenzeiträume nachträglich über den Kalender ändern oder bestätigt
+  löschen; beide Aktionen laufen offlinefähig über die automatische Mutation
+  Queue.
 - [x] Granulare Partnerfreigaben, Freigabepause, privater Tag und
   serverseitige fail-closed Projektion. Private Tage verbergen Phase,
   tatsächliche Periodendaten und Fertilitätsangaben.
@@ -131,8 +167,8 @@ Stand: 16. August 2026, Android 1.0.8 und Server 1.0.7
 - [x] Getrennte Partnerfreigabe für das geschätzte fruchtbare Fenster;
   Aktivierung nur bei persönlichem Opt-in und atomarer Widerruf beim
   Deaktivieren.
-- [x] Android-Quellstand auf 1.0.7/VersionCode 8 angehoben; Serverfeld beim
-  ersten Start wirklich leer und ohne fest eingebaute Produktionsdomain.
+- [x] Aktueller Android-Quellstand 1.0.9/VersionCode 10; Serverfeld beim ersten
+  Start wirklich leer und ohne fest eingebaute Produktionsdomain.
 - [x] Einmalige HTTPS-Userinfo-Eingabe implementiert. Gateway-Credential wird
   von der Basisadresse getrennt, Keystore-gestützt gespeichert und nie in
   Server- oder Einladungs-QRs übernommen.

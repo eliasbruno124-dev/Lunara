@@ -2,6 +2,8 @@ name: Container and dependency security
 
 on:
   push:
+    branches:
+      - main
     paths:
       - ".github/workflows/container-security.yml"
       - "infra/docker/api.Dockerfile"
@@ -13,6 +15,9 @@ on:
       - "package-lock.json"
       - "services/api/**"
   pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
     paths:
       - ".github/workflows/container-security.yml"
       - "infra/docker/api.Dockerfile"

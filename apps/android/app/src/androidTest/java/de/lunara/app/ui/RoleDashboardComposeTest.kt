@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
@@ -296,13 +295,13 @@ class RoleDashboardComposeTest {
         }
 
         compose.onNodeWithTag("period-manage-period-1").performClick()
-        compose.onNodeWithTag("period-start-input").performTextClearance()
-        compose.onNodeWithTag("period-start-input").performTextInput("2026-08-09")
-        compose.onNodeWithTag("period-end-input").performTextInput("2026-08-12")
+        compose.onNodeWithTag("period-range-reset").performClick()
+        compose.onNodeWithTag("period-picker-day-2026-08-11").performClick()
+        compose.onNodeWithTag("period-picker-day-2026-08-12").performClick()
         compose.onNodeWithTag("period-update-confirm").performClick()
 
         assertEquals(
-            Triple("period-1", LocalDate.parse("2026-08-09"), LocalDate.parse("2026-08-12")),
+            Triple("period-1", LocalDate.parse("2026-08-11"), LocalDate.parse("2026-08-12")),
             updated,
         )
     }
