@@ -1,0 +1,19 @@
+services:
+  api:
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${PROXY_NETWORK:-proxy}
+      traefik.http.routers.lunara-direct.rule: Host(`${PUBLIC_HOST:?Set PUBLIC_HOST}`)
+      traefik.http.routers.lunara-direct.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.lunara-direct.tls: "true"
+      traefik.http.routers.lunara-direct.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
+      traefik.http.routers.lunara-direct.middlewares: lunara-direct-security
+      traefik.http.routers.lunara-direct.service: lunara-direct
+      traefik.http.services.lunara-direct.loadbalancer.server.port: "3000"
+      traefik.http.middlewares.lunara-direct-security.headers.contenttypenosniff: "true"
+      traefik.http.middlewares.lunara-direct-security.headers.referrerpolicy: no-referrer
+      traefik.http.middlewares.lunara-direct-security.headers.stsseconds: "63072000"
+      traefik.http.middlewares.lunara-direct-security.headers.stsincludesubdomains: "true"
+      traefik.http.middlewares.lunara-direct-security.headers.forcestsheader: "true"
+      traefik.http.middlewares.lunara-direct-security.headers.customresponseheaders.Server: ""
+      traefik.http.middlewares.lunara-direct-security.headers.customresponseheaders.X-Powered-By: ""

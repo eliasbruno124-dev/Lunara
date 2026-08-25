@@ -1,235 +1,216 @@
 # Lunara
 
-Lunara ist eine private, selbst gehostete Zyklus- und Perioden-App für
-zyklustrackende Personen und ihre Partnerpersonen. Beide verwenden dieselbe
-native Android-App mit eigenen Konten, unterschiedlichen Rollenansichten und
-serverseitig erzwungenen Freigaben. Eine Instanz kann mehrere voneinander
-isolierte Beziehungen aufnehmen.
+Lunara ist eine private Zyklus- und Perioden-App mit drei klar getrennten
+Betriebsarten:
+
+- **Solo:** auf Android mit SQLCipher/Keystore oder in der PWA mit einem
+  passphrasenverschlüsselten lokalen Vault, jeweils ohne Konto oder Server;
+- **Self-hosted als Paar:** Android und installierbare Web-App nutzen dieselbe
+  eigene API, aber getrennte Konten mit den Rollen `TRACKER` und `PARTNER`;
+- **Self-hosted mit Authentik:** optionaler persönlicher OIDC-Login vor derselben
+  Lunara-API. Ohne Authentik bleibt Lunara vollständig funktionsfähig.
 
 Lunara enthält keine Werbung, Telemetrie, Analyse-SDKs, Firebase- oder
-Google-Play-Services-Pflicht für Kernfunktionen. Die Anwendung ist kein
-Medizinprodukt, stellt keine Diagnose, bestätigt keine Ovulation und darf nicht
-als Verhütungsmethode verwendet werden.
-
-Der Quellcode liegt im privaten Repository
-[`eliasbruno124-dev/Lunara`](https://github.com/eliasbruno124-dev/Lunara). Der
-Produktionsstack läuft getrennt unter `/docker/lunara`; Authentik und Pangolin
-bilden den einzigen öffentlichen HTTPS-Eingang. Die gesamte Domain ist durch
-Authentik geschützt, einschließlich `/api/v1`, `/health`, `/ready` und der
-OpenAPI-Dokumentation.
-
-## Umgesetzter Kern
-
-- NestJS-/Prisma-API mit PostgreSQL, Argon2id, kurzen Access-Tokens,
-  rotierenden gehashten Refresh-Tokens und getrennten Gerätesitzungen
-- sicherer Erstserver-Bootstrap mit dauerhaftem Datenbankstatus sowie optional
-  öffentliche Tracker-Registrierung; pro interner Beziehungsgrenze gibt es
-  genau einmal `TRACKER` und einmal `PARTNER`
-- permanente, einmal verwendbare und jederzeit widerrufbare Partner-
-  Einladungen; der QR-Code enthält ausschließlich den Einladungscode
-- Perioden, Tageslogs, vordefinierte und eigene Symptome, nachvollziehbare
-  Bereichsprognosen, granulare Freigaben und Check-ins
-- 71 sorgfältig formulierte Partner-Tipps auf Deutsch und Englisch; Auswahl
-  anhand freigegebener Daten, geschätzter Phase, Care Preferences und Feedback
-- optionale Schätzung des fruchtbaren Fensters nur nach ausdrücklichem Opt-in,
-  mit mindestens drei vollständigen Zyklen und ständig sichtbarem
-  Sicherheitshinweis; niemals als Ovulationsbestätigung oder Verhütung
-- verschlüsselte Freitextnotizen, Soft Deletes, Cursor-Sync, optimistische
-  Versionskonflikte und idempotente Offline-Mutationen
-- atomarer Serverabschluss von Idempotenz-Receipt, Perioden-/Tageslogmutation,
-  SyncChange und erforderlicher Prognoseneuberechnung; sicherer Retry auch bei
-  Antwortverlust
-- automatische Synchronisierung nach Anmeldung und lokalen Änderungen, beim
-  Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; ein manueller
-  Sync bleibt zusätzlich verfügbar
-- lokale, pro Gerät konfigurierbare Benachrichtigungen für den geschätzten
-  Periodenzeitraum, das optional grob geschätzte fruchtbare Fenster,
-  Tracker-Eingaben und Partner-Tipps; ohne Firebase oder externe Push-Dienste
-- JSON-/CSV-Export und ein per AES-256-GCM passwortgeschütztes
-  `.lunarabackup`-JSON-Format
-- native Compose-App 1.0.9 mit Deutsch/Englisch, Room/SQLCipher, Keystore,
-  rollenabhängigen Ansichten, Kalender, Verlauf, vollständigen Freigaben,
-  Care-Preferences-Einstellungen, Passwortwechsel und `FLAG_SECURE`
-- Booking-artige, rückwirkende Erfassung ohne Datumstexteingabe: Starttag und
-  Endtag im Kalender antippen, den sichtbaren Zeitraum prüfen und speichern;
-  eine noch laufende Periode ist als eigene Aktion eindeutig beschriftet
-- nachträgliche Korrektur über „Neu auswählen“ beziehungsweise „Ende
-  entfernen“ und bestätigtes Löschen über dieselbe offlinefähige,
-  automatisch synchronisierte Mutation Queue
-- inklusiver lokaler Überschneidungsschutz vor dem Speichern, vollständige
-  TalkBack-Beschreibungen und angekündigte Auswahlzustände; der
-  Partnerkalender bleibt strikt schreibgeschützt
-- rotationsfeste Kalenderentwürfe und gesperrte Doppelaktionen bis Room die
-  lokale Änderung tatsächlich bestätigt
-- zustandsabhängige Hauptaktion „Periode begonnen“/„Periode heute beenden“ mit
-  sichtbarer Bestätigung und lokalem Pending-/Sync-Status
-- transaktionaler Server- und PostgreSQL-Schutz vor überlappenden aktiven
-  Perioden, auch bei konkurrierenden Offline-Geräten
-- gehärtete Multi-Stage-Container, PostgreSQL 18, Backup-/Restore-/Update- und
-  Admin-Skripte sowie additive Authentik-/Pangolin-Konfiguration
-- deduplizierte GitHub-Workflows: Feature-Branches werden über den Pull Request
-  geprüft, während der Push-Lauf nur auf `main` erfolgt
-- versionierte OpenAPI-Spezifikation und daraus erzeugter Kotlin-Referenzclient;
-  die Android-App nutzt zur Laufzeit ihre typisierten Retrofit-Schnittstellen
-
-Der tatsächlich verifizierte Build- und Live-Stand, ausgeführte Befehle,
-Prüfsummen und bewusst offene Erweiterungen stehen in
-[`FINAL_REPORT.md`](FINAL_REPORT.md), [`TESTING.md`](TESTING.md) und
-[`PROGRESS.md`](PROGRESS.md). Diese Dateien sind die maßgebliche Quelle für
-Erfolgsaussagen; ein vorhandener Dateiname allein gilt nicht als Buildnachweis.
-
-## Verbindung und Authentifizierung
-
-Das Serverfeld ist beim ersten Start von Android 1.0.9 absichtlich leer. Für
-die erste Verbindung wird die vom Betreiber separat und sicher übermittelte
-Header-Auth-Adresse einmalig eingegeben. Ihr Schema ist HTTPS, gefolgt von
-Gateway-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die konkreten
-Bestandteile liefert ausschließlich der Betreiber über einen sicheren Kanal.
-
-Sonderzeichen in Benutzername oder App-Passwort müssen URL-kodiert sein. Die
-App akzeptiert eingebettete Gateway-Zugangsdaten ausschließlich über HTTPS,
-trennt sie sofort von der Basisadresse und legt sie Keystore-gestützt ab. In
-der sichtbaren und dauerhaft gespeicherten Serveradresse bleibt danach nur:
-
-```text
-https://<server-host>
-```
-
-Es existiert genau ein gemeinsamer, nicht ablaufender technischer Authentik-
-App-Zugang für alle Lunara-App-Installationen. Er authentifiziert nur den
-äußeren Proxyzugang mit `Authorization: Basic …`. Persönliche Lunara-Konten,
-Rollen und Datensicht bleiben getrennt: Nach dem Login sendet die App den
-persönlichen Lunara-Access-Token als
-`X-Lunara-Authorization: Bearer …`. Der äußere Header ist für jeden öffentlichen
-Domainaufruf erforderlich; persönliche geschützte API-Aufrufe benötigen danach
-zusätzlich das Lunara-Token.
-
-Der gemeinsame Zugang ist ein Infrastrukturgeheimnis. Seine URL darf weder in
-Git, Dokumentation, Chat, Cloudflare, Screenshots noch einen QR-Code gelangen.
-Server- und Einladungs-QR-Codes enthalten keine Passwörter. Wird der gemeinsame
-App-Zugang manuell in Authentik rotiert und neu ausgerollt, müssen alle
-autorisierten App-Installationen einmalig die neue Header-Auth-Adresse
-erhalten; die persönlichen Lunara-Passwörter bleiben davon unberührt.
-Menschliche Authentik-Konten sind nicht für Lunara freigeschaltet.
-
-Neue Lunara-Kontopasswörter müssen 8 bis 128 Unicode-Zeichen lang sein. Es
-gibt keine vorgeschriebenen Großbuchstaben, Ziffern oder Sonderzeichen; eine
-lange, nur für Lunara verwendete Passphrase bleibt empfehlenswert. Bei Login,
-Kontolöschung und der Eingabe des aktuellen Passworts akzeptiert die API aus
-Kompatibilitätsgründen bestehende Passwörter mit 1 bis 128 Zeichen. Neue oder
-geänderte Passwörter müssen immer die aktuelle Mindestlänge erfüllen. Die
-Passphrase für einen verschlüsselten Export ist davon getrennt und bleibt auf
-12 bis 128 Zeichen begrenzt.
-
-Der Bootstrap ist ausschließlich für das erste `TRACKER`-Konto einer noch nie
-eingerichteten Instanz bestimmt. Sein erfolgreicher Abschluss wird dauerhaft
-in PostgreSQL gespeichert. Danach kann der `BOOTSTRAP_TOKEN` entfernt werden.
-Bei `REGISTRATION_ENABLED=true` können weitere Tracker jeweils eine neue,
-unsichtbar abgegrenzte Beziehung beginnen. „Haushalt“ ist kein sichtbares
-Produktkonzept; die interne Datenstruktur dient nur als Mandanten- und
-Autorisierungsgrenze.
-
-## Lokale Benachrichtigungen
-
-Unter **Einstellungen → Benachrichtigungen** werden Hinweise pro Android-Gerät
-bewusst aktiviert. Wählbar sind der Beginn des geschätzten Periodenzeitraums am
-Folgetag, das ausschließlich grob geschätzte fruchtbare Fenster am Folgetag,
-eine Tracker-Eingabeerinnerung beziehungsweise ein Partner-Tipp. Zusätzlich
-lassen sich Wunschzeit, Ruhezeit, maximal ein bis drei Hinweise pro Tag und die
-neutrale Sperrbildschirmvorschau festlegen.
-
-Die Erinnerungen laufen lokal über WorkManager und benötigen weder Firebase
-noch einen externen Push-Dienst. Android kann Hintergrundarbeit zum
-Energiesparen verzögern; die Uhrzeit ist daher kein exakter Wecker. Angaben zum
-fruchtbaren Fenster bestätigen keine Ovulation und dürfen nicht zur Verhütung
+Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
+nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## APK
+## Release 1.1.0
 
-Die tatsächlich erzeugte, installierbare Production-Debug-APK liegt hier:
+Version 1.1.0 ergänzt den bisherigen Server-/Android-Kern um:
+
+- einen echten lokalen Android-Solomodus mit SQLCipher, Android Keystore,
+  lokaler Prognose, Kalender, Verlauf und lokalen Benachrichtigungen;
+- ein portables, passphrasenverschlüsseltes Solo-Backup zum Gerätewechsel;
+- eine installierbare PWA für moderne iOS-, Android- und Desktop-Browser mit
+  Self-hosting- und passphrasengeschütztem lokalen Solomodus;
+- optionalen Authentik-OIDC-Login über Authorization Code und PKCE S256 mit
+  einem festen Android-verifizierten Publisher-App-Link, unabhängig von der
+  gewählten Self-hosting-API-Domain;
+- einen direkt über Traefik betreibbaren Modus ohne Authentik;
+- einen wischbaren Monatskalender bis fünf Jahre in die Zukunft mit eindeutig
+  unterscheidbaren tatsächlichen und geschätzten Periodentagen;
+- den robusten, deterministischen Prognosealgorithmus `lunara-robust-v2`.
+
+Der bestehende Kern bleibt erhalten: PostgreSQL/Prisma, Argon2id, kurze
+Access-Tokens, rotierende gehashte Refresh-Tokens, Gerätesitzungen,
+idempotenter Cursor-Sync, Soft Deletes, strikte Mandantenisolation, granulare
+Partnerfreigaben, 71 deutsch/englische Partner-Tipps, Care Preferences,
+Check-ins, lokale Erinnerungen sowie JSON-/CSV-Export.
+
+## Solo nutzen und auf ein neues Handy übertragen
+
+Beim ersten Android-Start kann **Nur auf diesem Gerät** gewählt werden. Dieser
+Modus erzeugt kein Serverkonto und führt keine Netzwerk-Synchronisierung aus.
+Die Room-Datenbank ist mit SQLCipher verschlüsselt; ihr Schlüssel ist an den
+Android Keystore des Geräts gebunden.
+
+Für einen Gerätewechsel wird unter **Einstellungen → Portables Backup** eine
+`.lunara`-Datei erstellt. Sie enthält Profil, Einstellungen, Perioden und
+Tageslogs und ist mit PBKDF2-HMAC-SHA256 und AES-256-GCM geschützt. Über den
+Android-Systemdateidialog kann als Ziel auch ein installierter Anbieter wie
+Google Drive, Nextcloud, USB-Speicher oder ein lokaler Ordner gewählt werden.
+Lunara integriert dafür kein Google-SDK und erhält keinen allgemeinen Zugriff
+auf das Cloudkonto.
+
+Auf dem neuen Gerät wird erneut der Solomodus gewählt und die Datei über
+**Backup importieren** geöffnet. Ein Import-Journal vollendet einen nach dem
+Room-Commit unterbrochenen Einstellungsimport beim nächsten Start idempotent.
+Die Passphrase wird nicht gespeichert und kann nicht wiederhergestellt werden.
+Android-Cloudbackup und automatische Gerät-zu-Gerät-Übertragung sind bewusst
+deaktiviert, damit kein unbrauchbarer lokaler Zustand ohne den nicht
+exportierbaren Keystore-Schlüssel entsteht.
+
+## Self-hosted Architektur
 
 ```text
-artifacts/lunara-debug.apk
+Android / PWA
+      |
+      | HTTPS
+      v
+Traefik direkt  ODER  Traefik/Pangolin -> Authentik Proxy
+      |
+      v
+NestJS API + ausgelieferte PWA
+      |
+      v
+PostgreSQL 18 (nur internes Docker-Netz)
 ```
 
-Im privaten GitHub-Repository kann sie nach Anmeldung über den
-[Release Lunara Android 1.0.9](https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.9)
-oder als
-[direkter APK-Download](https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.0.9/lunara-debug.apk)
-heruntergeladen werden.
+Eine Serverinstanz kann beliebig viele voneinander isolierte Beziehungen
+aufnehmen. Intern bildet `Household` die UUID-basierte Autorisierungsgrenze;
+dieses technische Modell wird in der Oberfläche nicht als „Haushalt“
+präsentiert. Jede Beziehung besitzt in Version 1 genau einen `TRACKER` und
+einen über einen einmal verwendbaren Einladungscode verbundenen `PARTNER`.
 
-Zusätzlich wurde eine noch selbst zu signierende Release-APK erzeugt:
+## Gateway- und Anmeldemodi
+
+| Modus | Öffentlicher Weg | Persönliche Anmeldung |
+| --- | --- | --- |
+| `direct` | Traefik leitet direkt zur API/PWA | Lunara-Benutzername und -Passwort |
+| `authentik` | Traefik/Pangolin leitet über den Authentik-Proxy | Authentik-OIDC oder weiterhin bewusst aktivierter Lunara-Passwortweg |
+
+Das Serverfeld bleibt leer und erwartet nur eine credentialfreie HTTPS-Adresse,
+beispielsweise:
 
 ```text
-artifacts/lunara-release-unsigned.apk
+https://lunara.example.com
 ```
 
-Vor Installation immer Version, Signatur und die zugehörige Prüfsumme aus
-`FINAL_REPORT.md` beziehungsweise `artifacts/SHA256SUMS` vergleichen:
+Im Authentik-Modus sind nur `/api/v1/meta` und
+`/.well-known/assetlinks.json` anonym erreichbar. Meta enthält keine Konto-
+oder Gesundheitsdaten und teilt dem Client mit, ob OIDC angeboten wird. Nach
+dem Browserlogin sendet der Client auf exakt denselben Ursprung:
+
+- außen `Authorization: Bearer <Authentik-Access-Token>` für den Proxy;
+- innen `X-Lunara-Authorization: Bearer <Lunara-Access-Token>` für Konto,
+  Rolle, Eigentum und Freigaben.
+
+Die beiden Tokens sind nicht austauschbar. OIDC legt kein Lunara-Konto anhand
+von E-Mail oder Benutzername automatisch an. Ein bestehendes Konto muss nach
+erneuter Passwortprüfung in den Einstellungen oder gezielt über die Admin-CLI
+mit exakt geprüftem Issuer und Subject verknüpft werden. Der frühere technische
+Basic-Header bleibt nur als kontrollierte Kompatibilitätsmöglichkeit erhalten;
+neue Installationen verwenden die normale Serveradresse und OIDC.
+
+## Schnellstart ohne Authentik
+
+Voraussetzungen sind Debian 12, Docker Engine, das Compose Plugin, Traefik 3,
+ein externes Proxy-Netz und eine HTTPS-Domain.
 
 ```bash
-cd artifacts
-sha256sum -c SHA256SUMS
+cp .env.example .env
+chmod 0600 .env
+# Secrets und PUBLIC_BASE_URL/PUBLIC_HOST in .env setzen,
+# dann GATEWAY_MODE=direct wählen.
+./scripts/compose.sh config --quiet
+./scripts/compose.sh build api
+./scripts/compose.sh up -d
+./scripts/compose.sh ps --all
 ```
 
-Der Debugschlüssel liegt lokal und Git-ausgeschlossen. Ein eigener
-Release-Build ist in [`docs/ANDROID_SIGNING.md`](docs/ANDROID_SIGNING.md)
-beschrieben; private Signierschlüssel gehören nicht ins Repository.
+Für Authentik gelten die zusätzlichen, fail-closed Schritte in
+[`DEPLOYMENT.md`](DEPLOYMENT.md). Das Wrapper-Skript `scripts/compose.sh`
+verhindert, dass versehentlich die falsche Compose-Kombination für den
+gewählten Gateway-Modus verwendet wird.
 
-## Entwicklung und Prüfung
-
-Der E2E-Befehl startet ausschließlich eine zufällig benannte, kurzlebige
-PostgreSQL-Testumgebung:
-
-```bash
-./scripts/e2e.sh
-```
-
-Weitere Befehle:
+## Entwicklung
 
 ```bash
 npm ci
+npm run prisma:generate
+npm run prisma:validate
 npm run lint
 npm test
 npm run build
-npm run prisma:validate
 npm run openapi:check
+./scripts/e2e.sh
 
 cd apps/android
-./gradlew testLocalDebugUnitTest
+./gradlew testLocalDebugUnitTest testProductionDebugUnitTest
 ./gradlew lintLocalDebug lintProductionDebug
 ./gradlew compileProductionDebugAndroidTestKotlin
-./gradlew assembleProductionDebug
+./gradlew assembleProductionDebug assembleProductionRelease
+./gradlew bundleProductionRelease
 ```
 
-Die Produktionskonfiguration veröffentlicht weder API- noch Datenbankports.
-Verwende für einen produktiven Start ausschließlich
-[`DEPLOYMENT.md`](DEPLOYMENT.md), nicht den Test-Stack.
+Die tatsächlich ausgeführte Prüfmatrix steht in [`TESTING.md`](TESTING.md)
+und [`FINAL_REPORT.md`](FINAL_REPORT.md). Kompilierte Instrumentierung ist dort
+ausdrücklich nicht als auf einem Gerät ausgeführter Test ausgewiesen.
+
+## Android-Artefakte
+
+Erfolgreich gebaute Release-1.1.0-Artefakte liegen unter `artifacts/`:
+
+- `lunara-debug.apk` – Production-Debug/Testinstallation mit Debugsignatur und
+  HTTPS-only; sie kann Passwort-/Headerauth testen, ihr Debugzertifikat erfüllt
+  den Production-App-Link jedoch nicht und sie ist kein universeller OIDC-
+  Testbuild;
+- `lunara-release.apk` – empfohlene Nutzerinstallation, mit einem
+  ausschließlich serverlokalen Upload-Key signiert und für den konfigurierten
+  HTTPS App Link gebaut;
+- `lunara-release-unsigned.apk` – bewusst unsignierte Release-APK;
+- `lunara-play-upload.aab` – mit dem Upload-Key signiertes Bundle für Play;
+- `lunara-release-unsigned.aab` – bewusst unsigniertes Referenz-Bundle.
+
+Prüfsummen stehen ausschließlich in `artifacts/SHA256SUMS`. Keystore, Alias,
+Passwörter und private Schlüssel liegen nicht im Repository. Für Google Play
+ist zusätzlich Play App Signing vorgesehen; Details und noch offene
+Publisher-/Policy-Schritte stehen in
+[`docs/GOOGLE_PLAY_RELEASE.md`](docs/GOOGLE_PLAY_RELEASE.md).
 
 ## Projektstruktur
 
 ```text
-apps/android/             native Android-App
-services/api/             NestJS-/Prisma-API
-packages/openapi-client/  OpenAPI-Spezifikation und generierter Kotlin-Client
-infra/docker/             Containerfiles und isolierte Testkonfiguration
-infra/traefik/            Proxy-Beispiele
-scripts/                  Betrieb, Backup, Restore, Update, Gateway und E2E
-docs/                     ergänzende Dokumentation und Tippkatalog
-artifacts/                erfolgreich erzeugte installierbare APKs
+apps/android/             native Kotlin-/Compose-App
+apps/web/                 installierbare TypeScript-PWA
+services/api/             NestJS-/Prisma-API und PWA-Auslieferung
+packages/openapi-client/  OpenAPI-Snapshot und Kotlin-Referenzclient
+infra/docker/             Container und Compose-Ergänzungen
+infra/traefik/            direkte und Authentik-bezogene Beispiele
+scripts/                  Betrieb, Backup, Restore, Update, Admin und E2E
+docs/                     Release-, Store- und Produktdokumentation
+artifacts/                tatsächlich gebaute Android-Artefakte
 ```
 
-## Weiterführende Dokumentation
+## Dokumentation
 
-- [`DEPLOYMENT.md`](DEPLOYMENT.md): Debian 12, Docker, Authentik, Pangolin,
-  Cloudflare, Bootstrap, Backup und Updates
-- [`SECURITY.md`](SECURITY.md): Bedrohungsmodell, Schlüssel, Gateway-Credential,
-  Gerätesicherheit und bekannte Grenzen
-- [`PRIVACY.md`](PRIVACY.md): gespeicherte und freigegebene Daten
-- [`ALGORITHM.md`](ALGORITHM.md): deterministische Prognose
-- [`TESTING.md`](TESTING.md): ausgeführte und noch nicht ausführbare Tests
+- [`DEPLOYMENT.md`](DEPLOYMENT.md) – Direct-/Authentik-Betrieb, Migrationen,
+  Backup und Update
+- [`SECURITY.md`](SECURITY.md) – Bedrohungsmodell, OIDC, Schlüssel und Grenzen
+- [`PRIVACY.md`](PRIVACY.md) – Solo-, PWA- und Serverdaten
+- [`ALGORITHM.md`](ALGORITHM.md) – exakte Prognoseberechnung
+- [`TESTING.md`](TESTING.md) – reale Prüfungen und nicht ausgeführte Tests
+- [`docs/GOOGLE_PLAY_RELEASE.md`](docs/GOOGLE_PLAY_RELEASE.md) – Signierung,
+  Play App Signing, App Links und Einreichungscheckliste
+- [`docs/STORE_LISTING_DE.md`](docs/STORE_LISTING_DE.md) und
+  [`docs/STORE_LISTING_EN.md`](docs/STORE_LISTING_EN.md) – vorbereitete,
+  vor Einreichung abzugleichende Storetexte
+- [`docs/COMMERCIAL_READINESS.md`](docs/COMMERCIAL_READINESS.md) – Self-hosting
+  und Vermarktungsgrenzen
 
 ## Lizenz
 
-Nicht zur öffentlichen Weitergabe lizenziert. Alle Rechte verbleiben beim
-Repository-Eigentümer.
+Derzeit ist keine Weitergabelizenz festgelegt. Alle Rechte verbleiben beim
+Repository-Eigentümer. Vor einer öffentlichen oder kommerziellen Distribution
+muss bewusst ein Lizenzmodell gewählt werden.

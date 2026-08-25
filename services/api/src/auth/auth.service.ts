@@ -11,6 +11,7 @@ import {
   AuditEventType,
   PreferredLanguage,
   Prisma,
+  SessionAuthMethod,
   UserRole,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -23,6 +24,7 @@ import {
 import {
   isServerBootstrapped,
   lockBootstrap,
+  lockUserAuthentication,
   markServerBootstrapped,
 } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
@@ -33,6 +35,10 @@ import {
   RegisterDto,
   SetupDto,
 } from './auth.dto.js';
+import {
+  OidcTokenVerifier,
+  VerifiedOidcIdentity,
+} from './oidc-token-verifier.js';
 
 const PASSWORD_OPTIONS = {
   type: argon2.argon2id,
@@ -51,6 +57,16 @@ const PASSWORD_CHANGE_FORBIDDEN_MESSAGE =
   'Password change could not be authorized';
 
 class PasswordChangeRaceError extends Error {}
+
+export async function verifyAccountPassword(
+  passwordHash: string | null | undefined,
+  password: string,
+): Promise<boolean> {
+  const passwordMatches = await argon2
+    .verify(passwordHash ?? DUMMY_PASSWORD_HASH, password)
+    .catch(() => false);
+  return Boolean(passwordHash && passwordMatches);
+}
 
 type DatabaseClient = PrismaService | Prisma.TransactionClient;
 
@@ -85,6 +101,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
+    private readonly oidcVerifier: OidcTokenVerifier,
   ) {}
 
   async setup(dto: SetupDto): Promise<AuthResponse> {
@@ -285,11 +302,10 @@ export class AuthService {
       where: { username },
       include: { memberships: { take: 1, orderBy: { createdAt: 'asc' } } },
     });
-    const candidateHash =
-      user && !user.disabledAt ? user.passwordHash : DUMMY_PASSWORD_HASH;
-    const passwordMatches = await argon2
-      .verify(candidateHash, dto.password)
-      .catch(() => false);
+    const passwordMatches = await verifyAccountPassword(
+      user && !user.disabledAt ? user.passwordHash : null,
+      dto.password,
+    );
     const valid = Boolean(user && !user.disabledAt && passwordMatches);
     if (!valid || !user || !user.memberships[0]) {
       await this.prisma.auditEvent.create({
@@ -300,7 +316,7 @@ export class AuthService {
 
     const refreshToken = this.createOpaqueToken();
     const result = await this.prisma.$transaction(async (tx) => {
-      await this.lockUserAuthentication(tx, user.id);
+      await lockUserAuthentication(tx, user.id);
       // Password verification is intentionally done before taking the database
       // lock. Rechecking the exact Argon2 hash under the lock prevents a login
       // that verified the old password from creating a session after a password
@@ -362,23 +378,62 @@ export class AuthService {
     );
   }
 
-  async refresh(rawToken: string): Promise<AuthResponse> {
+  async refresh(
+    rawToken: string,
+    oidcAccessToken?: string,
+  ): Promise<AuthResponse> {
     const tokenHash = this.hashToken(rawToken);
     const replacementToken = this.createOpaqueToken();
-    const result = await this.prisma.$transaction(async (tx) => {
-      const initialTokenRecord = await tx.deviceSession.findUnique({
-        where: { refreshTokenHash: tokenHash },
-        select: { id: true, userId: true },
-      });
-      if (!initialTokenRecord) {
+    const initialTokenRecord = await this.prisma.deviceSession.findUnique({
+      where: { refreshTokenHash: tokenHash },
+      select: {
+        id: true,
+        userId: true,
+        authMethod: true,
+        externalIdentityId: true,
+        externalIdentity: { select: { issuer: true, subject: true } },
+      },
+    });
+    if (!initialTokenRecord) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    let oidcProof: VerifiedOidcIdentity | undefined;
+    if (initialTokenRecord.authMethod === SessionAuthMethod.OIDC) {
+      if (
+        !oidcAccessToken ||
+        !initialTokenRecord.externalIdentityId ||
+        !initialTokenRecord.externalIdentity
+      ) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
-      await this.lockUserAuthentication(tx, initialTokenRecord.userId);
+      try {
+        oidcProof = await this.oidcVerifier.verify(oidcAccessToken);
+      } catch {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+      if (
+        oidcProof.issuer !== initialTokenRecord.externalIdentity.issuer ||
+        oidcProof.subject !== initialTokenRecord.externalIdentity.subject
+      ) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await lockUserAuthentication(tx, initialTokenRecord.userId);
       // Re-read after acquiring the per-user lock. A password change or another
       // refresh may have revoked this record while this transaction waited.
       const tokenRecord = await tx.deviceSession.findUnique({
         where: { id: initialTokenRecord.id },
-        select: { id: true, tokenFamilyId: true, revokedAt: true },
+        select: {
+          id: true,
+          tokenFamilyId: true,
+          revokedAt: true,
+          authMethod: true,
+          externalIdentityId: true,
+          externalIdentity: { select: { issuer: true, subject: true } },
+        },
       });
       if (!tokenRecord)
         throw new UnauthorizedException('Invalid or expired refresh token');
@@ -388,6 +443,18 @@ export class AuthService {
           data: { revokedAt: new Date() },
         });
         return { reuseDetected: true as const };
+      }
+      if (
+        tokenRecord.authMethod !== initialTokenRecord.authMethod ||
+        tokenRecord.externalIdentityId !==
+          initialTokenRecord.externalIdentityId ||
+        (tokenRecord.authMethod === SessionAuthMethod.OIDC &&
+          (!oidcProof ||
+            !tokenRecord.externalIdentity ||
+            oidcProof.issuer !== tokenRecord.externalIdentity.issuer ||
+            oidcProof.subject !== tokenRecord.externalIdentity.subject))
+      ) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
       const old = await tx.deviceSession.findUnique({
@@ -428,9 +495,22 @@ export class AuthService {
         old.userId,
         old.deviceName,
         replacementToken,
-        old.id,
-        old.tokenFamilyId,
+        {
+          rotatedFromId: old.id,
+          tokenFamilyId: old.tokenFamilyId,
+          authMethod: old.authMethod,
+          externalIdentityId: old.externalIdentityId ?? undefined,
+        },
       );
+      if (
+        old.authMethod === SessionAuthMethod.OIDC &&
+        old.externalIdentityId
+      ) {
+        await tx.externalIdentity.update({
+          where: { id: old.externalIdentityId },
+          data: { lastUsedAt: new Date() },
+        });
+      }
       return {
         reuseDetected: false as const,
         identity: {
@@ -484,13 +564,10 @@ export class AuthService {
       where: { id: user.userId },
       select: { passwordHash: true, disabledAt: true },
     });
-    const currentHash =
-      account && !account.disabledAt
-        ? account.passwordHash
-        : DUMMY_PASSWORD_HASH;
-    const currentPasswordMatches = await argon2
-      .verify(currentHash, dto.currentPassword)
-      .catch(() => false);
+    const currentPasswordMatches = await verifyAccountPassword(
+      account && !account.disabledAt ? account.passwordHash : null,
+      dto.currentPassword,
+    );
     if (!account || account.disabledAt || !currentPasswordMatches) {
       await this.recordPasswordChangeFailure(user);
       throw new ForbiddenException(PASSWORD_CHANGE_FORBIDDEN_MESSAGE);
@@ -508,7 +585,7 @@ export class AuthService {
     );
     try {
       await this.prisma.$transaction(async (tx) => {
-        await this.lockUserAuthentication(tx, user.userId);
+        await lockUserAuthentication(tx, user.userId);
         // The access-token guard may have authenticated the request immediately
         // before this device rotated its refresh token. Preserve the complete
         // token family, not only the session id embedded in that access token.
@@ -568,6 +645,7 @@ export class AuthService {
         createdAt: true,
         expiresAt: true,
         revokedAt: true,
+        authMethod: true,
       },
     });
     return sessions.map((session) => ({
@@ -603,6 +681,10 @@ export class AuthService {
     database: DatabaseClient,
     identity: SessionIdentity,
     deviceName: string,
+    authentication: {
+      authMethod: SessionAuthMethod;
+      externalIdentityId?: string;
+    } = { authMethod: SessionAuthMethod.PASSWORD },
   ): Promise<AuthResponse> {
     const refreshToken = this.createOpaqueToken();
     const session = await this.persistSession(
@@ -610,6 +692,7 @@ export class AuthService {
       identity.id,
       deviceName,
       refreshToken,
+      authentication,
     );
     return this.buildAuthResponse(identity, session.id, refreshToken);
   }
@@ -650,33 +733,30 @@ export class AuthService {
     });
   }
 
-  private async lockUserAuthentication(
-    database: Prisma.TransactionClient,
-    userId: string,
-  ): Promise<void> {
-    // This transaction-scoped PostgreSQL lock serializes session creation,
-    // refresh rotation and password replacement for one user. The query text is
-    // constant and the UUID is passed as a parameter by Prisma.
-    await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
-  }
-
   private async persistSession(
     database: DatabaseClient,
     userId: string,
     deviceName: string,
     refreshToken: string,
-    rotatedFromId?: string,
-    tokenFamilyId: string = randomUUID(),
+    authentication: {
+      rotatedFromId?: string;
+      tokenFamilyId?: string;
+      authMethod?: SessionAuthMethod;
+      externalIdentityId?: string;
+    } = {},
   ) {
     const ttlDays = this.config.get<number>('lunara.refreshTokenTtlDays', 30);
     return database.deviceSession.create({
       data: {
         userId,
-        tokenFamilyId,
+        tokenFamilyId: authentication.tokenFamilyId ?? randomUUID(),
         deviceName: deviceName.trim(),
         refreshTokenHash: this.hashToken(refreshToken),
         expiresAt: new Date(Date.now() + ttlDays * 86_400_000),
-        rotatedFromId,
+        rotatedFromId: authentication.rotatedFromId,
+        authMethod:
+          authentication.authMethod ?? SessionAuthMethod.PASSWORD,
+        externalIdentityId: authentication.externalIdentityId,
       },
     });
   }

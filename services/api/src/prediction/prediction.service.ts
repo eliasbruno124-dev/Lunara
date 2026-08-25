@@ -60,6 +60,7 @@ export class PredictionService {
         startDate: this.localDate(period.startDate),
         endDate: period.endDate ? this.localDate(period.endDate) : null,
       })),
+      referenceDate: this.localDateInTimeZone(new Date(), profile.timezone),
       typicalCycleLength: profile.typicalCycleLengthOptional,
       typicalPeriodLength: profile.typicalPeriodLengthOptional,
       lutealLength: profile.lutealLengthOptional,
@@ -118,5 +119,17 @@ export class PredictionService {
 
   parseLocalDate(value: string): Date {
     return new Date(`${value}T00:00:00.000Z`);
+  }
+
+  private localDateInTimeZone(value: Date, timeZone: string): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(value);
+    const part = (type: 'year' | 'month' | 'day'): string =>
+      parts.find((item) => item.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
   }
 }

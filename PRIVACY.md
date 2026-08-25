@@ -1,145 +1,192 @@
 # Datenschutz
 
-Lunara speichert Kerndaten ausschließlich auf dem selbst betriebenen Server und
-in der verschlüsselten lokalen Android-Datenbank. Es gibt keine Werbung,
-Telemetrie, externe Nutzungsanalyse, Marketing-SDKs, Firebase- oder
-Google-Play-Services-Pflicht für Kernfunktionen.
+Lunara enthält keine Werbung, Telemetrie, externe Nutzungsanalyse,
+Marketing-SDKs, Firebase- oder Google-Play-Services-Pflicht. Welche Daten ein
+externer Reverse Proxy, Authentik, DNS-/CDN-Anbieter, Google Play, das
+Betriebssystem oder ein vom Benutzer ausgewählter Dateidienst verarbeitet,
+liegt außerhalb des Lunara-Anwendungscodes und muss der jeweilige Betreiber
+gesondert dokumentieren.
 
-## Gespeicherte Daten
+## Betriebsarten und Speicherorte
 
-- Konto: Benutzername, Anzeigename, Sprache, Rolle und Gerätesitzungen
-- Beziehung: eine für Benutzer unsichtbare interne Mandanten-ID,
-  Mitgliedschaften, Einladungen, Freigaben und Care Preferences
-- Gesundheit: Periodenstart/-ende, Tageslogs, Intensitäten, Temperatur,
-  Ovulationstest-Markierung, Symptome und verschlüsselte optionale Notizen
-- abgeleitete Daten: Bereichsprognosen, Statistik, Erklärung sowie nur nach
-  Opt-in eine grobe Schätzung des fruchtbaren Fensters
-- Unterstützung: Tippfeedback, eigene Tipps und zeitlich begrenzte Check-ins
-- Sicherheit: erfolgreiche/fehlgeschlagene Anmeldung, neues Gerät,
-  Sitzungs-/Einladungswiderruf, Freigabeänderung, Export und Kontolöschung
+| Modus | Primärer Speicher | Netzwerkübertragung |
+| --- | --- | --- |
+| Android Solo | SQLCipher-Datenbank und Keystore-geschützte Einstellungen auf einem Gerät | keine Kernübertragung; nur ein vom Benutzer bewusst gewählter Backup-Dateianbieter |
+| Self-hosted Android | verschlüsselter lokaler Cache plus eigene Lunara-Instanz | HTTPS zur konfigurierten Domain |
+| PWA Solo | passphrasenverschlüsselter Vault in origin-gebundenem IndexedDB | keine Kernübertragung |
+| Self-hosted PWA | origin-gebundener Offlinecache plus eigene Lunara-Instanz | HTTPS zur gleichen Origin und optional zu den konfigurierten OIDC-Endpunkten |
 
-Audit-Logs enthalten keine Gesundheitswerte oder Freitextnotizen.
+## Solo auf Android
 
-Bei `REGISTRATION_ENABLED=true` können mehrere Paare dieselbe Serverinstanz
-verwenden. Eine neue öffentliche Registrierung erzeugt ausschließlich ein
-`TRACKER`-Konto in einer neuen, getrennten Beziehung. Das zugehörige
-`PARTNER`-Konto entsteht nur über einen permanenten, einmal verwendbaren und
-widerrufbaren Einladungscode. Pro Beziehung ist jede Rolle höchstens einmal
-belegt; serverseitige Abfragen werden auf diese interne Beziehungs-ID begrenzt.
+Der Solomodus benötigt weder Konto noch Server. Er speichert Perioden,
+Tageslogs, lokale Prognosegrundlage, Profil- und Benachrichtigungseinstellungen
+ausschließlich auf dem Gerät. Die Datenbank ist mit SQLCipher verschlüsselt;
+Schlüssel und weitere Secrets sind an Android Keystore gebunden.
 
-Notizen in Tageslogs sind anwendungsseitig verschlüsselt. Kurze Check-in-
-Prompts und Antworten liegen in Version 1 dagegen als strukturierter Klartext in
-der zugriffsbeschränkten PostgreSQL-Datenbank und deren Backups; dort sollten
-keine ausführlichen Gesundheitsdetails eingetragen werden.
+Automatisches Android-Cloudbackup und systemseitige Gerät-zu-Gerät-
+Übertragung sind vollständig deaktiviert. Insbesondere lädt Lunara keine
+Gesundheitsdaten automatisch in ein Google-Konto.
+
+Für einen freiwilligen Gerätewechsel kann der Benutzer eine
+passphrasenverschlüsselte `.lunara`-Datei erzeugen. Der Android-Systemdateidialog
+zeigt alle vom Benutzer installierten Anbieter, darunter gegebenenfalls lokale
+Ordner, USB, Nextcloud oder Google Drive. Lunara erhält dabei nur Zugriff auf
+die konkret gewählte Datei, integriert kein Google-SDK und kennt keine
+Anmeldedaten des Anbieters. Der Anbieter kann die verschlüsselte Datei nach
+seinen eigenen Bedingungen verarbeiten.
+
+Die Backup-Passphrase wird nicht gespeichert und ist nicht wiederherstellbar.
+Ein Import ersetzt nach strikter Prüfung die vorhandenen Solodaten. Ein
+Import-Journal vollendet unterbrochene Einstellungswiederherstellung beim
+nächsten Start. Vor dem Löschen des alten Geräts müssen Zeitraum, Tageslogs und
+Einstellungen auf dem neuen Gerät geprüft werden.
+
+## Self-hosted gespeicherte Daten
+
+Je nach Verwendung speichert der Server:
+
+- **Konto:** Benutzername, Anzeigename, Sprache, deaktivierter Zustand,
+  Gerätesitzungen und serverseitige Rolle;
+- **interne Beziehungsgrenze:** UUID-Mandant, Mitgliedschaften, Einladungen,
+  Freigaben und Care Preferences;
+- **Gesundheit:** Periodenstart/-ende als lokales Kalenderdatum, Tageslogs,
+  Blutungsstärke, Schmerz, Stimmung, Energie, Schlaf, Temperatur,
+  Ovulationstest-Markierung, Symptome und optionale Notizen;
+- **Ableitungen:** Prognosezeitraum, Statistik, Erklärung und nur nach Opt-in
+  das grob geschätzte fruchtbare Fenster;
+- **Unterstützung:** Tippfeedback, eigene Tipps und zeitlich begrenzte
+  Check-ins;
+- **Sicherheit:** Anmeldung, fehlgeschlagene Anmeldung, neues Gerät,
+  Sitzungs-/Einladungswiderruf, OIDC-Verknüpfung, Freigabeänderung, Export und
+  Kontolöschung.
+
+Audit-Ereignisse enthalten keine Gesundheitswerte oder Notizinhalte.
+Freitextnotizen werden vor dem Schreiben mit dem Server-Master-Key
+verschlüsselt. Daten, Datum, Rolle und sonstige strukturierte Metadaten liegen
+nicht anwendungsseitig verschlüsselt in PostgreSQL. Check-in-Texte sind in
+Version 1 ebenfalls nicht zusätzlich mit dem Master-Key verschlüsselt.
+
+Eine Instanz kann mehrere Paare aufnehmen. Jede öffentliche Tracker-
+Registrierung erzeugt eine neue serverseitig isolierte Beziehungsgrenze. Eine
+Partnerperson tritt ausschließlich über einen einmal verwendbaren Code mit
+eigenem Konto bei. Die technische Entität heißt intern `Household`, ist aber
+kein sichtbares Pflichtkonzept und keine gemeinsame Anmeldung.
+
+## Authentik/OIDC
+
+Authentik ist optional. Ohne Authentik verwendet Lunara nur die eigenen
+Konten. Mit Authentik veröffentlicht `/api/v1/meta` die nicht geheimen OIDC-
+Konfigurationswerte, damit der Client den Login starten kann.
+
+Nach bewusster Verknüpfung speichert Lunara:
+
+- den exakt geprüften OIDC-Issuer;
+- das opaque Subject der Authentik-Identität;
+- Zeitpunkt der Verknüpfung und letzten Nutzung;
+- die Zuordnung zum bestehenden Lunara-Benutzer.
+
+Lunara übernimmt keine E-Mail-Adresse, kein Authentik-Passwort und kein Profil
+automatisch. Ein OIDC-Zugriffstoken wird nur zur Prüfung und zum Öffnen des
+Authentik-Proxys verwendet; Lunara speichert serverseitig keine Klartextkopie
+davon. Authentik selbst kann Login-, IP- und Sicherheitsereignisse nach der
+Konfiguration des Instanzbetreibers protokollieren.
+
+`/api/v1/meta` und `/.well-known/assetlinks.json` sind im Authentik-Modus
+öffentlich. Meta enthält Produkt-/Versions-/Kompatibilitätsdaten, keine
+Konten. Asset Links enthält nur Package-ID und öffentliche
+Zertifikatsfingerprints.
 
 ## Partnerfreigaben
 
-Standardmäßig sieht `PARTNER` nur den erwarteten Zeitraum. Notizen, Symptome,
-Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf, tatsächliche
-Periodendaten, geschätzte Phase und Fruchtbarkeitsdaten sind aus. Partner-
-Endpoints filtern bei jeder Anfrage anhand der aktuellen Freigaben, einer
-globalen Pause und eines optionalen privaten Datums. Wird eine Freigabe
-deaktiviert, erscheint der Wert in der nächsten Serverantwort nicht mehr.
+Standardmäßig sieht `PARTNER` nur den erwarteten Periodenzeitraum. Notizen,
+Symptome, Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf, tatsächliche
+Periodendaten, Phase und Fertilitätsdaten sind aus.
 
-Tipps dürfen gesperrte Symptome weder nennen noch indirekt verraten. Sind Tipps
-deaktiviert oder ist kein Tipp zulässig, zeigt Android nur einen neutralen
-Nullzustand. Die 71 deutschen und englischen Tipps berücksichtigen eine
-geschätzte Phase nur, wenn diese freigegeben ist. Care Preferences und
-symptomabhängige Tipps werden ausschließlich verwendet, wenn die dafür nötigen
-Einstellungen dies erlauben. Ein privater Tag entfernt aktuelle Phase,
-tatsächliche Periodendaten und Fertilitätsangaben aus der Partnerprojektion;
-eine allgemein freigegebene zukünftige Periodenprognose darf bestehen bleiben.
+Bei jeder Partneranfrage filtert der Server anhand:
 
-Die Android-Einstellungsansicht 1.0.7 bietet die Freigaben für Prognose,
-Periodendaten, Phase, Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf,
-Symptome, Notizen, Fertilitätsfenster, Tipps und Check-ins sowie
-symptombasierte Tipps. Die trackende Person kann zudem die Care Preferences
-Wärme, Nähe, Raum, Snacks, Gespräch, Haushaltshilfe, Erinnerungen und „keine
-ungefragten Ratschläge“ direkt pflegen. Freigabepause, permanente
-Einmal-Einladungen samt Widerruf, Lunara-Passwortwechsel und Screenshot-Schutz
-sind ebenfalls integriert. Eine Partner-Trennen- oder Beziehung-verlassen-UI
-ist noch nicht vorhanden.
+- der aktuell aktiven Einzelfreigaben;
+- einer globalen Freigabepause;
+- eines optionalen privaten Tags;
+- des persönlichen Fertilitäts-Opt-ins;
+- der Einstellung für symptomabhängige Tipps.
 
-Die Fertilitätsschätzung ist standardmäßig aus. Sie erfordert ein ausdrückliches
-Opt-in im Zyklusprofil und mindestens drei vollständige Zyklen. Eine getrennte
-Freigabe entscheidet über die Partneransicht; das Deaktivieren der Schätzung
-widerruft diese Freigabe serverseitig. Der Zeitraum ist nur eine statistische
-Schätzung, bestätigt keine Ovulation und eignet sich nicht zur Verhütung.
+Ein Freigabeentzug wirkt auf die nächste Serverantwort und bereinigt den
+autoritativen Partnercache. Er kann keine zuvor außerhalb von Lunara
+gespeicherten Screenshots, Abschriften oder Erinnerungen zurückholen. Tipps
+dürfen gesperrte Symptome weder nennen noch indirekt verraten.
 
-Bereits außerhalb von Lunara gespeicherte Screenshots oder Abschriften können
-nicht nachträglich zurückgerufen werden.
+Das geschätzte fruchtbare Fenster ist standardmäßig deaktiviert, benötigt
+ausreichende Daten und eine getrennte Partnerfreigabe. Es bestätigt keine
+Ovulation und darf nicht zur Verhütung verwendet werden.
 
-## Serveradresse und Authentik
+## PWA und Offline-Speicher
 
-Authentik schützt die gesamte Domain einschließlich aller API-, Meta-, Health-
-und Dokumentationspfade. Genau ein gemeinsamer technischer App-Zugang öffnet
-die äußere Proxy-Schicht mit `Authorization: Basic …`; er ist kein persönliches
-Konto. Persönliche Lunara-Authentifizierung und Rollenprüfung erfolgen separat
-über `X-Lunara-Authorization: Bearer …`.
+Die PWA speichert Perioden, Offline-Mutationen, Sync-Cursor und Sitzungszustand
+in origin-gebundenem IndexedDB. Refresh- und Access-Tokens werden mit Web
+Crypto gekapselt. Im lokalen Solomodus liegt der komplette Vault mit
+AES-256-GCM und einem aus der nicht gespeicherten Solo-Passphrase abgeleiteten
+Schlüssel versiegelt vor; nach einem Seitenneustart ist erneutes Entsperren
+nötig.
 
-Android 1.0.8 startet mit leerem Serverfeld. Eine HTTPS-Adresse mit eingebetteten
-Gateway-Zugangsdaten darf ausschließlich bei der ersten Einrichtung einmalig
-eingegeben werden. Die App trennt die Zugangsdaten sofort von der sichtbaren
-Basisadresse und speichert sie Keystore-gestützt. Die dauerhaft sichtbare
-Serveradresse und sämtliche QR-Codes enthalten keine Credentials. Der
-gemeinsame App-Zugang bleibt dennoch ein Infrastrukturgeheimnis und muss bei
-Verdacht zentral für alle Installationen rotiert werden. Die Header-Auth-Adresse
-darf nicht in Zwischenablagehistorien, Chat, Git, Dokumentation oder Cloudflare-
-DNS gelangen.
+Im Self-hosted Modus können synchronisierte Gesundheitsdaten als normaler
+origin-gebundener Offlinecache gespeichert werden. Dieser Servercache ist
+nicht zusätzlich passphrasenverschlüsselt. Nutzer sollen ein persönliches,
+gesperrtes Browserprofil verwenden und die PWA auf geteilten Geräten
+abmelden.
 
-Neue Lunara-Kontopasswörter sind auf 8 bis 128 Unicode-Zeichen begrenzt und
-benötigen keine vorgeschriebenen Zeichenklassen. Bestehende Passwörter werden
-für Login, Kontolöschung und Passwortänderung mit 1 bis 128 Zeichen geprüft,
-damit ältere Konten nicht allein durch eine neue Richtlinie ausgesperrt werden.
-Passwörter werden nur als Argon2id-Hash gespeichert. Die Passphrase eines
-verschlüsselten Exports ist davon unabhängig und bleibt 12 bis 128 Zeichen
-lang.
+Screenshot-Schutz und Browserbenachrichtigungen sind in der PWA derzeit nicht
+ausführbar. Entsprechende importierte Einstellungen werden nicht verworfen,
+sondern im verschlüsselten Vault erhalten und als im Browser nicht anwendbar
+angezeigt. Der Solo-Vault sperrt bei versteckter Seite, `pagehide` und nach
+spätestens 15 Minuten Inaktivität; danach ist die Passphrase erneut nötig.
+
+Beim Kontoidentitätswechsel oder Logout werden kontogebundene Caches und
+Mutationsqueues bereinigt. Der Service Worker cached keine API-, Health-,
+Ready- oder OpenAPI-Antworten.
 
 ## Benachrichtigungen
 
-Android 1.0.8 bietet ausschließlich lokale, standardmäßig deaktivierte
-Erinnerungen. Nach dem Einschalten fragt die App auf unterstützten
-Android-Versionen ausdrücklich nach der Benachrichtigungsberechtigung. Es gibt
-keine Firebase-, Werbe-, Analyse- oder externe Push-Verbindung; die optionale
-selbst gehostete ntfy-Anbindung ist weiterhin nicht implementiert.
+Android-Erinnerungen sind pro Gerät standardmäßig aus und laufen lokal über
+WorkManager. Es gibt keine Firebase-Verbindung. Konfigurierbar sind unter
+anderem der geschätzte Periodenzeitraum, das nur grob geschätzte fruchtbare
+Fenster, Tracker-Eingabe, Partner-Tipp, Wunschzeit, Ruhezeit und maximale
+Tageshäufigkeit. Der Sperrbildschirmtext ist standardmäßig neutral.
 
-Pro Gerät lassen sich Periodenzeitraum am Folgetag, grob geschätztes
-fruchtbares Fenster am Folgetag, Tracker-Eingabe beziehungsweise Partner-Tipp,
-Uhrzeit, Ruhezeit und maximale Tageshäufigkeit getrennt festlegen. Der
-Sperrbildschirm zeigt standardmäßig nur einen neutralen Hinweis. Android darf
-lokale Arbeit aus Energiespargründen verzögern; die gewählte Uhrzeit ist daher
-ein Wunschzeitpunkt, keine Weckergarantie.
-
-Tracker-Prognosen werden nach erfolgreicher Abfrage Keystore-gestützt
-verschlüsselt zwischengespeichert. Partner-Hinweise verwenden ausschließlich
-eine aktuelle, serverseitig nach Freigaben gefilterte Antwort. Ohne
-Serververbindung werden für Partner weder Prognose-/Fertilitätshinweise noch
-alte Tagestipps erzeugt. Beim sicheren lokalen Löschen werden
-Benachrichtigungen, Zustellzustand und Prognosecache entfernt. `FLAG_SECURE`
-blockiert im aktivierten Datenschutzmodus Screenshots und Vorschauen der App.
+Partnerhinweise benötigen eine aktuelle serverseitig freigabefilterte
+Antwort. Ohne aktuelle Verbindung werden keine alten sensiblen Partnerhinweise
+erzeugt. Android darf WorkManager-Aufgaben aus Energiespargründen verzögern.
 
 ## Export, Import und Löschung
 
-Die API kann folgende Formate exportieren:
+Die Server-API unterstützt JSON, Perioden-CSV, Tageslog-CSV sowie einen
+AES-256-GCM-passwortgeschützten JSON-Export. Der Serverimport validiert Lunara-
+JSON, bietet eine Vorschau und erkennt Duplikate. Ein visueller generischer
+CSV-Zuordnungsassistent und vollständiges Import-Undo sind noch nicht
+implementiert.
 
-- JSON mit Konto-Grunddaten, Zyklusprofil, Freigaben, Care Preferences,
-  Perioden und Tageslogs
-- CSV der Perioden oder Tageslogs
-- dasselbe JSON als passwortverschlüsseltes Lunara-Backupformat
+Die native Solofunktion verwendet das separate portable `.lunara`-Format und
+ist direkt in den Android-Einstellungen verfügbar. Es ersetzt nach Bestätigung
+den lokalen Solo-Datenbestand; Serverkonten werden dadurch nicht importiert.
 
-„Vollständig“ bezieht sich in Version 1 auf diese Tracker-Kerndaten; Beziehungs-
-mitglieder, Geräte, Einladungen, Check-ins, Tippfeedback, eigene Tipps,
-Audit-Ereignisse und Sync-Metadaten sind nicht Teil des Exports.
+Die Kontolöschungs-API verlangt eine erneute persönliche Bestätigung,
+widerruft Sessions und löscht den betroffenen internen Mandanten entsprechend
+der Rolle. Die vollständige Android-Oberfläche für serverseitigen Export,
+Import und Kontolöschung ist noch nicht abgeschlossen. Serverbackups können
+gelöschte Daten bis zum Ablauf der vom Instanzbetreiber festgelegten
+Aufbewahrungsfrist enthalten.
 
-Der Import akzeptiert Perioden und Tageslogs aus einer Lunara-JSON-Struktur,
-validiert Grenzen, zeigt eine Vorschau und überspringt Duplikate. Ein generischer
-CSV-Zuordnungsassistent, direkter Import des verschlüsselten Exportformats und
-ein API-Endpunkt zum Rückgängigmachen eines Import-Batches fehlen noch. Die
-Android-Oberfläche bindet Export, Import und Kontolöschung noch nicht ein.
+## Verantwortlichkeiten
 
-Die Kontolöschungs-API verlangt das Passwort erneut, widerruft durch die
-Datenbanklöschung alle zugehörigen Sitzungen und erzwingt bei der Tracker-Rolle
-eine bewusste Löschung des gesamten internen Beziehungsmandanten. Dieses
-technische Modell ist kein sichtbares Haushaltskonzept, verhindert aber den
-Zugriff anderer Paare. Serverbackups können gelöschte Daten bis zum Ablauf der
-selbst festgelegten Aufbewahrungsfrist enthalten.
+- Der App-Publisher verantwortet APK/AAB, eingebaute SDKs, Store-Angaben und
+  Updatekanal.
+- Der Self-hosting-Betreiber verantwortet Serverstandort, Domain, TLS,
+  Authentik-/Proxy-Logs, Backups, Aufbewahrung und Adminzugriff.
+- Die trackende Person bestimmt die Partnerfreigaben.
+- Die Partnerperson darf nur die serverseitig freigegebene Projektion nutzen.
+- Ein freiwillig gewählter Backup-Dateianbieter verantwortet seine eigene
+  Verarbeitung der verschlüsselten Datei.
+
+Diese technische Datei ersetzt keine auf den konkreten Publisher, Betreiber,
+Zielländer und Aufbewahrungsfristen zugeschnittene öffentliche
+Datenschutzerklärung. Für Google Play werden eine anonym erreichbare
+Datenschutzseite und eine Kontolöschungsseite benötigt.

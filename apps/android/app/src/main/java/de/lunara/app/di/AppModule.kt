@@ -46,6 +46,7 @@ object AppModule {
         val factory = SupportOpenHelperFactory(passphrase)
         return Room.databaseBuilder(context, LunaraDatabase::class.java, "lunara-encrypted.db")
             .openHelperFactory(factory)
+            .addMigrations(LunaraDatabase.MIGRATION_1_2)
             .build()
     }
 }

@@ -10,6 +10,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "tsconfig.json"
+      - "apps/web/**"
       - "services/api/**"
       - "packages/openapi-client/**"
       - "scripts/e2e.sh"
@@ -24,6 +25,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "tsconfig.json"
+      - "apps/web/**"
       - "services/api/**"
       - "packages/openapi-client/**"
       - "scripts/e2e.sh"
@@ -78,6 +80,12 @@ jobs:
 
       - name: Build backend
         run: npm run build --workspace=@lunara/api
+
+      - name: Type-check and build installable web app
+        run: npm run build --workspace=@lunara/web
+
+      - name: Test installable web app
+        run: npm run test --workspace=@lunara/web
 
       - name: Verify generated OpenAPI Kotlin client
         run: npm run check --workspace=@lunara/openapi-client

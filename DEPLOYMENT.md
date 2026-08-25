@@ -1,312 +1,396 @@
 # Deployment
 
-Diese Anleitung richtet sich an Debian 12 mit Docker Engine, Compose Plugin und
-Traefik 3. Auf dem aktuellen Zielserver übernimmt Pangolin die dynamische
-Traefik-Konfiguration; der Portainer-Hauptstack 20 bleibt unangetastet.
+Diese Anleitung gilt für Debian 12, Docker Engine mit Compose Plugin und
+Traefik 3. Lunara veröffentlicht weder PostgreSQL noch die API direkt als
+Host-Port. TLS endet am vorhandenen Reverse Proxy.
 
-## 1. Verzeichnisse und Geheimnisse
+Es gibt zwei unterstützte Gateway-Modi:
 
-Empfohlener Live-Pfad ist `/docker/lunara`. Die echte `.env` muss `root:root`
-gehören und Modus `0600` besitzen. Datenbankdaten liegen im benannten Volume
-`lunara_postgres_data` und werden nicht nach Git oder OneDrive kopiert.
+- `direct`: Traefik leitet direkt zu Lunara; Lunara verwaltet die persönlichen
+  Konten und Tokens selbst.
+- `authentik`: Traefik oder Pangolin leitet über einen Authentik-Proxy. Lunara
+  kann zusätzlich persönlichen OIDC-Login anbieten.
+
+Der Modus wird einmal bewusst gewählt. `scripts/compose.sh` lädt dafür die
+richtigen Compose-Dateien und im Authentik-Modus optional die serverlokale
+`authentik-oidc.env`.
+
+## 1. Verzeichnis, Rechte und Secrets
+
+Empfohlener Pfad:
 
 ```bash
 install -d -m 0750 /docker/lunara
 cd /docker/lunara
 ./scripts/generate-secrets.sh /docker/lunara/.env
-chmod 0600 /docker/lunara/.env
+chmod 0600 .env
 ```
 
-Der Generator zeigt keine Secret-Werte an. `APP_MASTER_KEY` muss über die
-gesamte Lebensdauer der verschlüsselten Daten unverändert bleiben und getrennt
-in einem verschlüsselten Offline-Passwortspeicher gesichert werden. Für die
-Infrastrukturhelfer werden `curl`, `jq`, `python3` und `sqlite3` benötigt.
-
-## 2. Öffentliche Adresse und Netze
-
-In `.env` konfigurieren:
+Der Generator verweigert ein bereits vorhandenes Ziel und überschreibt keine
+Live-Secrets. Seine Beispiel-Domain danach bewusst durch die eigene Domain
+ersetzen. Die echte Datei gehört `root:root` und besitzt Modus `0600`.
+Mindestens diese Werte müssen eindeutig gesetzt sein:
 
 ```dotenv
-PUBLIC_BASE_URL=https://lunara.3li361.de
-PUBLIC_HOST=lunara.3li361.de
-PROXY_NETWORK=pangolin
+PUBLIC_BASE_URL=https://lunara.example.com
+PUBLIC_HOST=lunara.example.com
+GATEWAY_MODE=direct
+PROXY_NETWORK=proxy
+
+POSTGRES_PASSWORD=<zufällig>
+APP_MASTER_KEY=<exakt 32 zufällige Bytes, kanonisch Base64>
+AUTH_SIGNING_KEY=<zufällig, mindestens 32 Zeichen>
+REFRESH_TOKEN_PEPPER=<zufällig, mindestens 32 Zeichen>
+BOOTSTRAP_TOKEN=<einmalig, 20 bis 256 Zeichen>
 ```
 
-Die Werte bleiben auf anderen Installationen frei konfigurierbar. Das externe
-Netz kann mit `docker network inspect pangolin` geprüft und auf einem neuen
-System einmalig mit `docker network create pangolin` angelegt werden. Die
-Datenbank hängt ausschließlich an `lunara_internal`; weder PostgreSQL noch API
-veröffentlichen einen Host-Port.
+`APP_MASTER_KEY` muss getrennt in einem verschlüsselten Offline-
+Passwortspeicher gesichert und über die gesamte Lebensdauer der Daten
+beibehalten werden. Ohne ihn sind verschlüsselte Notizen aus einem
+Datenbankdump nicht lesbar. Echte `.env`, Keystores, Tokens und Dumps gehören
+nie nach GitHub.
 
-## 3. Konfiguration prüfen und starten
+Das externe Proxy-Netz muss bereits existieren:
+
+```bash
+docker network inspect proxy >/dev/null
+# Nur auf einer neuen Installation, falls es wirklich fehlt:
+docker network create proxy
+```
+
+Auf einem Pangolin-System kann das Netz anders heißen; dann
+`PROXY_NETWORK=pangolin` verwenden. PostgreSQL hängt ausschließlich am
+internen Netz `lunara_internal`.
+
+## 2. Direct-Modus
+
+In `.env`:
+
+```dotenv
+GATEWAY_MODE=direct
+OIDC_ENABLED=false
+OPENAPI_ENABLED=false
+OPENAPI_TRUST_AUTHENTIK=false
+```
+
+Dann ausschließlich über den Wrapper prüfen und starten:
 
 ```bash
 ./scripts/secret-scan.sh
-docker compose --env-file .env config --quiet
-docker compose --env-file .env build api
-docker compose --env-file .env up -d
-docker compose --env-file .env ps --all
-docker compose --env-file .env logs --tail=100 migrate api
-docker compose --env-file .env exec -T api \
-  node -e "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+./scripts/compose.sh config --quiet
+./scripts/compose.sh build api
+./scripts/compose.sh up -d
+./scripts/compose.sh ps --all
+./scripts/compose.sh logs --tail=100 migrate api
 ```
 
-Beim ersten Start wartet `api` auf PostgreSQL und den einmaligen,
-nicht-privilegierten `migrate`-Dienst. Ein beendeter Migrator mit Exitcode 0 ist
-erwartet. `/health` prüft den Prozess, `/ready` zusätzlich PostgreSQL.
-`REGISTRATION_ENABLED=false` ist der sichere Standard. Soll eine Instanz
-mehrere getrennte Paare aufnehmen, aktiviert der Betreiber nach dem ersten
-Bootstrap bewusst `REGISTRATION_ENABLED=true`; Partnerkonten entstehen
-weiterhin ausschließlich über Einladungen.
+`infra/docker/docker-compose.direct.yml` aktiviert den Traefik-Router, TLS und
+Sicherheitsheader. Eine alternative dateibasierte Traefik-Konfiguration steht
+in `infra/traefik/dynamic-direct.example.yml`; nicht beide Router parallel
+verwenden.
 
-## 4. Authentik: vollständiger Domain-Schutz
+Im Direct-Modus authentifizieren sich Android und PWA mit Lunara-
+Benutzername/-Passwort. `/api/v1/meta` ist absichtlich öffentlich und
+cachefrei. OpenAPI bleibt standardmäßig aus. Wird sie benötigt, muss sie mit
+einem eigenen langen Dokumentationspasswort geschützt werden.
 
-Authentik ist der einzige öffentliche Proxy. Es gibt keine zweite App- oder
-Header-Auth-Domain und keinen direkten API-Port. Der Proxy schützt ohne
-Pfadausnahme die gesamte Domain, insbesondere:
+## 3. Authentik-Modus
 
-- `/api/v1/meta`, Setup, Registrierung, Login, Refresh und Sync
-- `/health` und `/ready`
-- `/api-docs` und `/api-docs-json`
-- alle übrigen Browser- und API-Pfade
+### 3.1 Sicherheitsvertrag
 
-Der Sollzustand besitzt genau einen neutralen technischen Authentik-Benutzer
-`lunara-native-app` mit genau einem nicht ablaufenden App-Passwort. Nur diese
-Identität ist Mitglied der Lunara-Gateway-Gruppe. Persönliche beziehungsweise
-menschliche Authentik-Konten erhalten keinen Lunara-Zugriff. Der Provider hat
-einen leeren `skip_path_regex`; eine Ausnahme für `/api/v1` darf nicht
-konfiguriert sein.
+Im unterstützten Zielzustand sind genau zwei Endpunkte ohne Authentik-Sitzung
+erreichbar:
 
-Prüfe zunächst die bestehenden Ziele read-only:
+- `/api/v1/meta` für nicht sensible Server-/OIDC-Erkennung;
+- `/.well-known/assetlinks.json` für die Android-Domainverifikation.
+
+PWA, Login, Refresh, Sync, Health, Ready und OpenAPI laufen durch den
+Authentik-Proxy. Moderne Clients führen einmalig den OIDC Authorization Code
+Flow mit PKCE S256, State und Nonce im Systembrowser aus. Danach gelten zwei
+getrennte Schutzschichten:
+
+```text
+Authorization: Bearer <Authentik-Access-Token>
+X-Lunara-Authorization: Bearer <Lunara-Access-Token>
+```
+
+Der äußere Token öffnet nur den Proxy. Der innere Token bestimmt Konto, Rolle,
+Mandant und Freigaben. Ein technischer Basic-App-Zugang bleibt für ältere
+Clients kompatibel, ist aber nicht der empfohlene neue Einrichtungsweg.
+
+### 3.2 Voraussetzung und Vorprüfung
+
+`scripts/configure-authentik-oidc.sh` ist absichtlich fail-closed. Es wurde für
+Authentik 2026.5.3 und einen bereits vorhandenen, exakt geprüften Lunara-
+Proxy-Basisvertrag geschrieben. Es übernimmt keine beliebige fremde
+Authentik-Konfiguration. Bei Abweichung stoppt `--check` ohne Änderung.
+
+Vor jeder Änderung:
 
 ```bash
 docker inspect authentik-server postgresql >/dev/null
-test -f /docker/pangolin/config/db/db.sqlite
 docker network inspect pangolin >/dev/null
+sudo LUNARA_RUNTIME_DIR=/docker/lunara \
+  LUNARA_PUBLIC_HOST=lunara.example.com \
+  AUTHENTIK_PUBLIC_URL=https://auth.example.com \
+  LUNARA_AUTHENTIK_USERS=alice,bob \
+  LUNARA_ANDROID_APP_LINK_HOST=publisher-callback.example.com \
+  AUTHENTIK_CONTAINER=authentik-server \
+  AUTHENTIK_DB_CONTAINER=postgresql \
+  /docker/lunara/scripts/configure-authentik-oidc.sh --check
 ```
 
-Das Konfigurationsskript erkennt den exakten Alt- oder Sollzustand. Vor einer
-Änderung erzeugt es einen validierten Authentik-PostgreSQL-Dump unter
-`/var/backups/lunara/infrastructure`. Alte technische A/B-Zugänge werden bei
-der Migration ungültig; alte lokale Secret-Dateien wandern in ein datiertes,
-auf `0700` begrenztes Archiv. Menschliche Authentik-Konten selbst werden nicht
-gelöscht, sind danach aber nicht mehr für Lunara gebunden.
+Das Skript verlangt, dass alle aufgelisteten Authentik-Nutzer bereits als
+aktive interne Konten existieren. Die Gruppe erhält keine Adminrollen.
+
+### 3.3 Android App Link und Zertifikat
+
+Der Production-Flavor verwendet immer den beim Build konfigurierten,
+verifizierten Callback:
+
+```text
+https://publisher-callback.example.com/auth/android-callback
+```
+
+Dieser Callback ist bewusst unabhängig von der Self-hosting-API- und
+Authentik-Issuer-Domain. Jeder Betreiber registriert exakt die feste
+Publisher-Redirect-URI in seinem OIDC-Provider. Android akzeptiert sie für
+`de.lunara.app` nur, wenn `/.well-known/assetlinks.json` **auf dem Callback-
+Host** den SHA-256-Fingerprint des tatsächlich auf dem Gerät verwendeten
+App-Signing-Zertifikats enthält.
+
+- Bei direkter APK-Verteilung ist der Fingerprint des Release-Zertifikats
+  relevant.
+- Bei Google Play ist nach Aktivierung von Play App Signing der Fingerprint des
+  **Play App Signing Key**, nicht nur der Upload-Key, relevant.
+- Während einer kontrollierten Übergangsphase können bis zu acht eindeutige
+  Fingerprints konfiguriert werden.
+
+Der Production-Provisioner registriert ausschließlich zwei verifizierbare
+HTTPS-Redirects: den festen Publisher-App-Link für Android und den PWA-
+Callback. Er registriert keinerlei Custom Scheme oder Debug-Redirect.
+
+Das paketgebundene Custom Scheme existiert nur im Android-`local`-Flavor für
+einen **getrennten lokalen Entwicklungsprovider mit eigener client_id**. PKCE
+schützt zwar einen abgefangenen Code, authentifiziert aber keinen öffentlichen
+OAuth-Client: Eine fremde App könnte sonst mit derselben öffentlichen client_id
+und eigenem PKCE-Verifier einen eigenen Flow starten. Deshalb darf ein Custom-
+Scheme-Redirect niemals in den Production-Provider aufgenommen werden.
+
+Betreiber einer eigenen App-Distribution setzen beim Build
+`LUNARA_APP_LINK_HOST` auf ihren kontrollierten Callback-Host, hosten dort die
+passende `assetlinks.json` und registrieren ausschließlich diesen HTTPS-
+Redirect. Das Production-Manifest einschließlich `ProductionDebug` enthält
+keinen Custom-Scheme-Intent-Filter. Wer die offizielle/Play-App verwendet,
+nutzt dagegen den festen Publisher-Host auch dann, wenn API und Authentik auf
+einer ganz anderen Domain laufen.
+
+Der Fingerprint ist öffentlich und kein privater Schlüssel. Keystore und
+Passwörter bleiben ausschließlich serverlokal.
+
+### 3.4 Anwenden
+
+Erst nach erfolgreichem Check und einem separat geprüften Fingerprint:
 
 ```bash
 sudo LUNARA_RUNTIME_DIR=/docker/lunara \
-  LUNARA_PUBLIC_HOST=lunara.3li361.de \
+  LUNARA_PUBLIC_HOST=lunara.example.com \
+  AUTHENTIK_PUBLIC_URL=https://auth.example.com \
+  LUNARA_AUTHENTIK_USERS=alice,bob \
+  LUNARA_ANDROID_APP_LINK_HOST=publisher-callback.example.com \
+  LUNARA_ANDROID_APP_PACKAGE=de.lunara.app \
+  LUNARA_ANDROID_CERT_SHA256='<SHA-256-MIT-DOPPELPUNKTEN>' \
   AUTHENTIK_CONTAINER=authentik-server \
   AUTHENTIK_DB_CONTAINER=postgresql \
-  /docker/lunara/scripts/configure-authentik.sh --check
+  /docker/lunara/scripts/configure-authentik-oidc.sh
 ```
 
-Nur wenn der Check ohne Konflikt endet, mit denselben Variablen schreiben:
+Das Skript:
 
-```bash
-sudo LUNARA_RUNTIME_DIR=/docker/lunara \
-  LUNARA_PUBLIC_HOST=lunara.3li361.de \
-  AUTHENTIK_CONTAINER=authentik-server \
-  AUTHENTIK_DB_CONTAINER=postgresql \
-  /docker/lunara/scripts/configure-authentik.sh
+- erzeugt vor einer Authentik-Mutation einen validierten PostgreSQL-Custom-
+  Dump;
+- erstellt einen öffentlichen OIDC-Client ohne Client Secret;
+- erlaubt nur Authorization Code und Refresh Token, `openid` und
+  `offline_access`, asymmetrisches RS256 sowie explizite Zustimmung;
+- bindet ausschließlich die konfigurierte Benutzergruppe;
+- setzt die genau zwei öffentlichen Bypass-Pfade;
+- schreibt nur öffentliche API-/OIDC-Werte als root-only Datei
+  `/docker/lunara/authentik-oidc.env`.
+
+`LUNARA_ANDROID_APP_LINK_HOST` muss exakt dem Host entsprechen, der in der
+installierten Production-APK kompiliert ist; er ist nicht automatisch
+`LUNARA_PUBLIC_HOST`. Bei der offiziellen Distribution ist dies der feste
+Publisher-Callback-Host. Nur wenn Callback- und API-Host identisch sind, kann
+die lokale Lunara-API selbst die maßgebliche `assetlinks.json` ausliefern.
+Andernfalls hostet der Publisher diese Datei zentral auf dem Callback-Host;
+eine zusätzliche Asset-Link-Antwort der Self-hosting-API ist für Android ohne
+Bedeutung.
+
+Danach in `.env` setzen:
+
+```dotenv
+GATEWAY_MODE=authentik
 ```
 
-Erwartete Providerwerte:
-
-- Modus: Proxy
-- External host: `https://lunara.3li361.de`
-- Internal host: `http://lunara-api:3000`
-- Skip path regex: leer
-- Intercept header authentication: aktiviert
-- Anwendung/Gruppe: ausschließlich der technische native App-Zugang
-- Outpost: vorhandener eingebetteter Authentik-Outpost
-
-Das Skript schreibt die einzige Header-Auth-Adresse und eine maschinenlesbare
-Credential-Datei ausschließlich serverlokal, jeweils Modus `0600`. Die Werte
-sind Passwörter: niemals ausgeben, committen, in Tickets kopieren oder in
-Cloudflare hinterlegen. Der Gateway-Test liest die URL lokal und hält sie aus
-Prozessargumenten, temporären Dateien und Standardausgabe heraus:
+und Lunara mit dem Wrapper neu erstellen:
 
 ```bash
-sudo /docker/lunara/scripts/configure-authentik.sh --check
+./scripts/compose.sh config --quiet
+./scripts/compose.sh build api
+./scripts/compose.sh run --rm migrate
+./scripts/compose.sh up -d --no-deps api
+./scripts/compose.sh exec -T api \
+  node -e "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+```
+
+### 3.5 OIDC-Konto verknüpfen
+
+OIDC erstellt nie automatisch anhand von E-Mail, Anzeigename oder Benutzername
+ein Lunara-Konto. Zwei sichere Wege sind vorgesehen:
+
+1. Mit dem bestehenden Lunara-Konto anmelden und in den Einstellungen nach
+   erneuter Eingabe des aktuellen Passworts „Authentik verknüpfen“ wählen.
+2. Eine bestehende Identität administrativ mit exaktem Lunara-UUID, exakt
+   konfiguriertem Issuer, exaktem Authentik-Subject und dem von der CLI
+   erwarteten Bestätigungsfingerprint verknüpfen.
+
+Die zweite Variante ist eine gezielte Migration. `--disable-password true`
+setzt nur den Passwort-Hash dieses Kontos auf `null`, widerruft dessen alte
+Sitzungen und lässt Perioden, Logs, Freigaben, Rolle und Einstellungen
+unverändert. Vorher Datenbankbackup und read-only Datensatzzählung anlegen.
+
+## 4. Öffentliche Verifikation
+
+Unabhängig vom Modus:
+
+```bash
+curl --fail --silent --show-error \
+  https://lunara.example.com/api/v1/meta
+```
+
+Die Antwort muss `version`, `apiVersion`, `setupRequired`,
+`registrationEnabled`, `authenticationMethods` und eine aktuelle `serverTime`
+enthalten. Sie trägt `Cache-Control: no-store`.
+
+Bei aktiviertem App Link:
+
+```bash
+curl --fail --silent --show-error \
+  https://publisher-callback.example.com/.well-known/assetlinks.json
+```
+
+Die Antwort darf nur Package-ID, Relation und öffentliche Zertifikats-
+Fingerprints enthalten. Fehlt eine valide App-Link-Konfiguration, antwortet
+die API absichtlich mit 404.
+
+Im Authentik-Modus zusätzlich:
+
+```bash
+sudo /docker/lunara/scripts/configure-authentik-oidc.sh --check
 sudo /docker/lunara/scripts/verify-gateway.sh
 ```
 
-`verify-gateway.sh` bestätigt sowohl die authentifizierte Meta- und OpenAPI-
-Antwort als auch die Authentik-Sperre für anonyme Zugriffe auf Root, Health,
-OpenAPI, Meta und Login. Eine anonyme `200`-Antwort auf einen dieser Pfade ist
-ein Fehler.
+`verify-gateway.sh` setzt den kompatiblen technischen Credential-Vertrag und
+gegebenenfalls aktivierte OpenAPI-Dokumentation voraus. Es liest Credentials
+nur aus einer eigenen `0600`-Datei und gibt sie nicht aus. Zusätzlich den
+echten OIDC-Login, die App-Link-Rückkehr und beide erlaubten Personen auf einem
+Testgerät prüfen.
 
-## 5. Pangolin und Cloudflare
+## 5. Bootstrap, Registrierung und Partner
 
-Die Pangolin-Ressource leitet ausschließlich zum eingebetteten Authentik-
-Outpost weiter. Bei abweichender Installation müssen Datenbank-, Domain-,
-Site- und Organisations-ID bewusst angepasst werden:
+1. Die leere Instanz meldet über Meta `setupRequired: true`.
+2. Das erste `TRACKER`-Konto wird mit `BOOTSTRAP_TOKEN` angelegt.
+3. Der Server speichert den Bootstrap-Abschluss dauerhaft in PostgreSQL.
+4. Danach Token aus der aktiven Konfiguration entfernen und API neu erstellen.
+5. Mit `REGISTRATION_ENABLED=true` darf jede weitere Tracker-Registrierung eine
+   neue isolierte Beziehung beginnen.
+6. Ein `PARTNER` tritt ausschließlich mit einem einmal verwendbaren,
+   widerrufbaren Einladungscode und eigenem Passwort bei.
 
-```bash
-sudo LUNARA_PUBLIC_HOST=lunara.3li361.de \
-  PANGOLIN_DB=/docker/pangolin/config/db/db.sqlite \
-  PANGOLIN_DOMAIN_ID=domain1 \
-  PANGOLIN_SITE_ID=1 \
-  PANGOLIN_ORG_ID=mannheim \
-  /docker/lunara/scripts/configure-pangolin.sh --check
-```
+Das Löschen aller Konten öffnet Bootstrap nicht erneut. „Household“ bleibt nur
+die interne Autorisierungsgrenze; es ist kein notwendiges Eingabefeld.
 
-Erst danach mit denselben Werten ohne `--check` schreiben. Das Skript prüft die
-verifizierte Domain und aktive Site, verweigert abweichende vorhandene Ziele
-und legt vor der SQLite-Transaktion ein konsistentes Backup an.
-
-Erwartete Ressource:
-
-- Name: `Lunara`
-- Domain: `lunara.3li361.de`
-- Ziel: `http://authentik-server:9000`
-- TLS: Let's Encrypt über den vorhandenen Resolver
-- Pangolin-eigene Basic Auth: deaktiviert; Authentik übernimmt den Schutz
-
-Die Compose-Labels von Lunara sind absichtlich deaktiviert. Es darf keinen
-zweiten Traefik-Router geben, der direkt auf `lunara-api:3000` zeigt.
-
-In Cloudflare wird nur DNS konfiguriert:
-
-1. In der Zone `3li361.de` einen CNAME `lunara` anlegen.
-2. Ziel auf den bestehenden öffentlichen Pangolin-/Traefik-Eingang setzen.
-3. Zunächst entsprechend der Hauptdomain „DNS only“ verwenden.
-4. DNS, Zertifikat und anschließend `verify-gateway.sh` prüfen.
-
-Zugangsdaten gehören weder in DNS-Werte noch Cloudflare-Regeln.
-
-## 6. Android-App mit Header Auth verbinden
-
-Das Serverfeld ist in Android 1.0.8 beim Erststart leer. Der Betreiber
-übermittelt die vom Authentik-Skript erzeugte Header-Auth-Adresse einmalig über
-einen sicheren Kanal. Ihr allgemeines Schema ist HTTPS, gefolgt von Gateway-
-Benutzer, Doppelpunkt, App-Passwort, `@` und Server-Host. Die echten Bestandteile
-stehen ausschließlich in der serverlokalen `0600`-Datei.
-
-Sonderzeichen müssen URL-kodiert sein. Eingebettete Zugangsdaten werden nur
-über HTTPS akzeptiert. Die App trennt sie nach dem erfolgreichen Verbindungstest
-sofort von der Serveradresse und speichert sie Keystore-gestützt. Danach zeigt
-und speichert sie als Basisadresse nur:
-
-```text
-https://<server-host>
-```
-
-Die Header haben getrennte Aufgaben:
-
-1. `Authorization: Basic …` enthält den gemeinsamen technischen Authentik-
-   App-Zugang und öffnet ausschließlich den äußeren Proxy.
-2. `X-Lunara-Authorization: Bearer …` enthält nach persönlichem Login das kurze
-   Lunara-Access-Token. Die API prüft weiterhin Konto, Rolle, Eigentum,
-   Freigaben und interne Beziehungsgrenze.
-
-Die App sendet den Basic Header präemptiv nur an exakt denselben HTTPS-Ursprung
-und folgt keinen Browser-Login-Weiterleitungen. Die gespeicherte Basisadresse,
-Server-QRs und Partner-Einladungs-QRs enthalten keine Zugangsdaten. Insbesondere
-darf die einmalige Header-Auth-Adresse nicht in die Zwischenablagehistorie,
-Screenshots, Chat, Git oder Dokumentation gelangen.
-
-Der technische App-Zugang ist bewusst gemeinsam und nicht ablaufend. Deshalb
-gilt eine Rotation für alle Geräte. Es gibt derzeit keinen automatischen
-`--rotate`-Schalter: Das App-Passwort muss kontrolliert und manuell in Authentik
-ersetzt, die lokale `0600`-Credential-Datei neu erzeugt und die neue Adresse
-allen berechtigten Installationen einmalig sicher bereitgestellt werden. Erst
-nach erfolgreicher Neuausrollung alte lokale Kopien sicher archivieren.
-Persönliche Lunara-Passwörter und Gerätesitzungen sind davon unabhängig.
-
-## 7. Bootstrap, Registrierung und Partnerkonto
-
-1. App öffnen und die einmalige HTTPS-Header-Auth-Adresse eingeben.
-2. Auf einer noch nie eingerichteten Instanz meldet die authentifizierte
-   `/api/v1/meta`-Antwort `setupRequired: true`.
-3. `BOOTSTRAP_TOKEN` lokal aus `.env` verwenden und das erste Konto als
-   `TRACKER` anlegen. Es gibt kein sichtbares Haushaltsfeld.
-4. Danach muss `setupRequired` dauerhaft `false` sein.
-5. Für mehrere Paare `REGISTRATION_ENABLED=true` setzen. Weitere Personen
-   starten dann jeweils eine isolierte Beziehung mit einem `TRACKER`-Konto.
-6. Tracker erzeugt eine permanente, einmal verwendbare und widerrufbare
-   Partner-Einladung. Ein neuer Code widerruft offene ältere Codes derselben
-   Beziehung.
-7. Die Partnerperson legt mit Einladungscode, eigenem Benutzernamen und eigenem
-   Passwort ein `PARTNER`-Konto an.
-8. `BOOTSTRAP_TOKEN` nach erfolgreichem Setup aus der Live-Konfiguration
-   entfernen.
-
-Für Bootstrap, öffentliche Tracker-Registrierung, Partnerbeitritt und
-Passwortänderung gilt dieselbe Kontopasswort-Regel: 8 bis 128 Unicode-Zeichen,
-ohne verpflichtende Großbuchstaben, Ziffern oder Sonderzeichen. Eine lange,
-einzigartige Passphrase ist dennoch vorzuziehen. Die Prüfung eines bereits
-existierenden Passworts bei Login, Kontolöschung und Passwortänderung lässt 1
-bis 128 Zeichen zu, damit ältere Konten nach einer Richtlinienänderung nicht
-ausgesperrt werden. Diese Kompatibilitätsregel senkt nicht die Mindestlänge für
-neu gesetzte Passwörter. Passwortgeschützte Exporte verwenden eine getrennte
-Passphrase mit weiterhin 12 bis 128 Zeichen.
-
-Der Bootstrap-Token ist nur der Besitznachweis für eine frische Datenbank. Der
-Abschluss liegt dauerhaft in `ServerState`; selbst die spätere Löschung aller
-Konten öffnet Setup nicht erneut. Einladungscode und QR enthalten niemals
-Server-, Authentik-, Lunara- oder Bootstrap-Passwörter.
-
-## 8. Fertilität und Partner-Unterstützung einrichten
-
-Die Fertilitätsschätzung ist standardmäßig deaktiviert und muss von der
-trackenden Person ausdrücklich aktiviert werden. Sie wird erst mit mindestens
-drei vollständigen Zyklen verfügbar. Die App bezeichnet den Zeitraum stets als
-„geschätzt“, zeigt, dass er weder tatsächliche Ovulation bestätigt noch zur
-Verhütung geeignet ist, und unterdrückt ihn in ungeeigneten Sondermodi.
-
-Eine getrennte Freigabe entscheidet, ob der Partner das geschätzte Fenster
-sieht. Deaktivieren der persönlichen Fertilitätsschätzung widerruft diese
-Freigabe serverseitig. Partner-Tipps berücksichtigen ausschließlich aktuell
-freigegebene Daten sowie die von der trackenden Person gepflegten Care
-Preferences; nicht freigegebene Symptome dürfen auch indirekt nicht verraten
-werden.
-
-## 9. Backup, Restore und Updates
+## 6. Backup und Restore
 
 ```bash
-sudo LUNARA_ENV_FILE=/docker/lunara/.env /docker/lunara/scripts/backup.sh
-sudo LUNARA_ENV_FILE=/docker/lunara/.env /docker/lunara/scripts/update.sh
+sudo LUNARA_ENV_FILE=/docker/lunara/.env \
+  /docker/lunara/scripts/backup.sh
 ```
 
-Backups enthalten einen PostgreSQL-Custom-Dump und nicht-sensible
-Konfiguration, aber keine Secrets. Ohne den ursprünglichen `APP_MASTER_KEY`
-sind verschlüsselte Notizen nicht wiederherstellbar. Dump und Master-Key
-getrennt verschlüsselt sichern.
+Das Archiv enthält PostgreSQL-Custom-Dump, Prüfsummen und ausschließlich
+nicht sensible Konfigurationswerte. `APP_MASTER_KEY`, Datenbankpasswort,
+Signing-Key und Token sind absichtlich nicht enthalten. Dump und Master-Key
+getrennt verschlüsselt sichern und Restore regelmäßig in einer isolierten
+Testinstanz prüfen.
 
-Ein Restore ist destruktiv, erstellt zuerst ein eng benanntes Vorab-Backup und
-verlangt einen expliziten Schalter. Er betrifft nur Lunara:
+Ein produktiver Restore ersetzt Daten und ist daher nur nach bewusstem
+Wartungsentscheid zulässig:
 
 ```bash
 sudo LUNARA_ENV_FILE=/docker/lunara/.env \
   /docker/lunara/scripts/restore.sh \
   --confirm-replace-lunara-database \
-  /var/backups/lunara/lunara-YYYYMMDDTHHMMSSZ.tar.gz
+  /var/backups/lunara/lunara-YYYYMMDDTHHMMSSZ-XXXXXXXX.tar.gz
 ```
 
-Anschließend `/ready`, relevante Logs und die Entschlüsselung einer bekannten
-Testnotiz prüfen. Restore regelmäßig in einer isolierten Testinstanz erproben.
+`backup.sh`, `update.sh`, `restore.sh` und `lunara-admin.sh` delegieren ihre
+Compose-Aufrufe ebenfalls an `scripts/compose.sh`. Dadurch bleiben der Direct-
+Override beziehungsweise die getrennte `authentik-oidc.env` auch bei
+Wartungsoperationen aktiv. Der Restore bleibt dennoch destruktiv und muss vor
+produktiver Nutzung in einer isolierten Kopie getestet werden.
 
-## 10. Migrationen und Rollback
+## 7. Updates und Migrationen
 
-Migrationen sind vorwärtsgerichtet. `scripts/update.sh` erstellt zuerst ein
-Backup, baut das gemeinsame API-/Migrator-Image, führt den Migrator aus,
-ersetzt nur die API und prüft Readiness. Migrationen müssen nach dem
-Expand/Contract-Verfahren bis zum API-Austausch mit der Vorgängerversion
-kompatibel bleiben.
+Der standardisierte modusbewusste Ablauf ist:
 
-`ServerState` hält den Bootstrap-Abschluss persistent. Der partielle
-Datenbankconstraint erlaubt pro Benutzer und lokalem Startdatum höchstens einen
-nicht gelöschten Periodenstart und bricht bei widersprüchlichem Altbestand ab,
-statt Daten still zu verändern. Ein Restore muss den ServerState-Datensatz und
-den passenden `APP_MASTER_KEY` gemeinsam erhalten.
+```bash
+sudo LUNARA_ENV_FILE=/docker/lunara/.env ./scripts/update.sh
+```
 
-Seit 1.0.7 verhindert zusätzlich eine partielle GiST-Exclusion-Constraint
-überschneidende aktive Periodenbereiche pro Tracker. Ein fehlendes Enddatum
-gilt dabei als offen; Soft Deletes sind ausgenommen. Vor
-`20260816120000_period_overlap_exclusion` müssen bestehende Daten read-only auf
-ungültige oder überlappende aktive Bereiche geprüft und ein validierter
-PostgreSQL-Custom-Dump angelegt werden. Die Migration ändert problematische
-Gesundheitsdaten niemals automatisch, sondern bricht in diesem Fall bewusst
-ab. Erst nach erfolgreicher Migration ausschließlich die Lunara-API ersetzen
-und anschließend Constraint, `/ready`, Meta-Version und Gateway prüfen.
+Das Skript hält eine Wartungssperre, erstellt zuerst ein Backup, baut das Image,
+führt Migrationen aus, ersetzt ausschließlich die API und wartet auf
+Readiness. Für Diagnose und Nachprüfung weiterhin `scripts/compose.sh ps` und
+`scripts/compose.sh logs` verwenden.
+
+Migrationen sind vorwärtsgerichtet. Acht Migrationen gehören zu 1.1.0. Vor
+jeder Migration Dump validieren, danach `/ready`, Meta-Version, relevante
+Logs, OIDC/App Link und einen bekannten verschlüsselten Testdatensatz prüfen.
+Ein Rollback des Images nach bereits angewandter Migration ist nur zulässig,
+wenn die Migration ausdrücklich rückwärtskompatibel ist; sonst Restore in
+einem geplanten Wartungsfenster.
+
+## 8. Google Play und Upload-Key
+
+Der Upload-Key liegt ausschließlich in einem serverlokalen Keystore. Gradle
+liest ihn nur über vier Umgebungsvariablen:
+
+```bash
+export LUNARA_UPLOAD_KEYSTORE=/sicherer/pfad/lunara-upload.p12
+export LUNARA_UPLOAD_KEYSTORE_PASSWORD='<nicht ausgeben>'
+export LUNARA_UPLOAD_KEY_ALIAS='<alias>'
+export LUNARA_UPLOAD_KEY_PASSWORD='<nicht ausgeben>'
+cd apps/android
+./gradlew bundleProductionRelease
+```
+
+Fehlt eine Variable, bricht die Konfiguration ab; fehlen alle vier, entsteht
+bewusst ein unsigniertes Release. Der Keystore liegt nicht in Git. Bei Play
+App Signing signiert der Upload-Key nur das hochgeladene AAB; Google signiert
+die ausgelieferten APKs mit dem getrennten App-Signing-Key. Dessen
+Zertifikatsfingerprint muss anschließend in `assetlinks.json` übernommen und
+der App Link erneut verifiziert werden. Die vollständige Store-Checkliste steht
+in `docs/GOOGLE_PLAY_RELEASE.md`.
+
+## 9. Health und Betrieb
+
+Intern im Container:
+
+- `/health` prüft den Prozess;
+- `/ready` prüft zusätzlich PostgreSQL;
+- `/api/v1/meta` beschreibt Version und kompatible Authmethoden.
+
+Container-Sollzustand: API als UID/GID `10001:10001`, read-only Root-
+Dateisystem, `no-new-privileges`, keine Linux-Capabilities, begrenzte Logs,
+PostgreSQL ohne Host-Port und nur ein bewusst gewählter öffentlicher Router.
+Nach Änderungen immer Health, RestartCount und relevante Logs prüfen; fremde
+Hostdienste oder Portainer-verwaltete Stacks gehören nicht zum Lunara-Update.

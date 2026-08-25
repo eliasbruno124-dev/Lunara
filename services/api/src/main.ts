@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import type { NextFunction, Request, Response } from 'express';
 import type { Express } from 'express';
 import { AppModule } from './app.module.js';
+import { installWebApp } from './web/web-app.js';
 
 function safeEqual(left: string, right: string): boolean {
   const a = Buffer.from(left);
@@ -28,7 +29,41 @@ async function bootstrap(): Promise<void> {
     }
     next();
   });
-  app.use(helmet({ contentSecurityPolicy: process.env.OPENAPI_ENABLED !== 'true' }));
+  const oidcConnectOrigin = (() => {
+    if (process.env.OIDC_ENABLED !== 'true' || !process.env.OIDC_ISSUER) return null;
+    try {
+      return new URL(process.env.OIDC_ISSUER).origin;
+    } catch {
+      return null;
+    }
+  })();
+  const webHeaders = helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        connectSrc: ["'self'", ...(oidcConnectOrigin ? [oidcConnectOrigin] : [])],
+        fontSrc: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        imgSrc: ["'self'", 'data:'],
+        manifestSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
+      },
+    },
+  });
+  const openApiHeaders = helmet({ contentSecurityPolicy: false });
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    const isOpenApi =
+      process.env.OPENAPI_ENABLED === 'true' &&
+      (request.path === '/api-docs' || request.path.startsWith('/api-docs/'));
+    return (isOpenApi ? openApiHeaders : webHeaders)(request, response, next);
+  });
+  installWebApp(express, process.env.WEB_DIST_DIR);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -97,7 +132,7 @@ async function bootstrap(): Promise<void> {
       app,
       new DocumentBuilder()
         .setTitle(process.env.APP_NAME || 'Lunara')
-        .setVersion(process.env.APP_VERSION || '1.0.7')
+        .setVersion(process.env.APP_VERSION || '1.1.0')
         .addBearerAuth()
         .addApiKey({ type: 'apiKey', in: 'header', name: 'X-Lunara-Authorization' }, 'gatewayBearer')
         .build(),

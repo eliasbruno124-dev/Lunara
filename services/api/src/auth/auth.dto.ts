@@ -106,6 +106,17 @@ export class RefreshDto {
   @MinLength(32)
   @MaxLength(256)
   refreshToken!: string;
+
+  @ApiPropertyOptional({
+    writeOnly: true,
+    description:
+      'Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(64, 16_384)
+  @Matches(/^\S+$/u)
+  oidcAccessToken?: string;
 }
 
 export class LogoutDto {
@@ -136,4 +147,42 @@ export class ChangePasswordDto {
   @IsString()
   @IsPasswordCodePointLength(ACCOUNT_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
   newPassword!: string;
+}
+
+export class OidcLoginDto {
+  @ApiProperty({
+    writeOnly: true,
+    description: 'Short-lived OIDC access token issued for the Lunara audience',
+  })
+  @IsString()
+  @Length(64, 16_384)
+  @Matches(/^\S+$/u)
+  accessToken!: string;
+
+  @ApiProperty({ example: 'Pixel 10' })
+  @IsString()
+  @Length(1, 120)
+  @Matches(/\S/u)
+  deviceName!: string;
+}
+
+export class OidcLinkDto {
+  @ApiProperty({
+    writeOnly: true,
+    description: 'Short-lived OIDC access token issued for the Lunara audience',
+  })
+  @IsString()
+  @Length(64, 16_384)
+  @Matches(/^\S+$/u)
+  accessToken!: string;
+
+  @ApiProperty({
+    minLength: EXISTING_PASSWORD_MIN_LENGTH,
+    maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
+    writeOnly: true,
+    description: 'Re-authenticates the existing Lunara account before linking',
+  })
+  @IsString()
+  @IsPasswordCodePointLength(EXISTING_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
+  currentPassword!: string;
 }

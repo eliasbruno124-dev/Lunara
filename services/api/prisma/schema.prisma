@@ -86,6 +86,12 @@ enum AuditEventType {
   ACCOUNT_DISABLED
   PASSWORD_CHANGED
   PASSWORD_CHANGE_FAILED
+  OIDC_IDENTITY_LINKED
+}
+
+enum SessionAuthMethod {
+  PASSWORD
+  OIDC
 }
 
 enum SyncOperation {
@@ -110,7 +116,7 @@ model User {
   id                String            @id @default(uuid()) @db.Uuid
   username          String            @unique @db.VarChar(64)
   displayName       String            @db.VarChar(120)
-  passwordHash      String
+  passwordHash      String?
   preferredLanguage PreferredLanguage @default(DE)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -118,6 +124,7 @@ model User {
 
   memberships       Membership[]
   sessions          DeviceSession[]
+  externalIdentities ExternalIdentity[]
   cycleProfile      CycleProfile?
   periodEvents      PeriodEvent[]
   dailyLogs         DailyLog[]
@@ -182,13 +189,33 @@ model DeviceSession {
   expiresAt        DateTime
   revokedAt        DateTime?
   rotatedFromId    String?         @unique @db.Uuid
+  authMethod       SessionAuthMethod @default(PASSWORD)
+  externalIdentityId String?       @db.Uuid
 
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalIdentity ExternalIdentity? @relation(fields: [externalIdentityId], references: [id], onDelete: SetNull)
   rotatedFrom      DeviceSession?  @relation("SessionRotation", fields: [rotatedFromId], references: [id])
   rotatedTo        DeviceSession?  @relation("SessionRotation")
 
   @@index([userId, revokedAt])
   @@index([tokenFamilyId, revokedAt])
+  @@index([externalIdentityId])
+}
+
+model ExternalIdentity {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  issuer     String    @db.VarChar(512)
+  subject    String    @db.VarChar(255)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions   DeviceSession[]
+
+  @@unique([issuer, subject])
+  @@unique([userId, issuer])
+  @@index([userId])
 }
 
 model CycleProfile {

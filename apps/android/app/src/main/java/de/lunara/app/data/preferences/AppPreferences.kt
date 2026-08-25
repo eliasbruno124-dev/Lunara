@@ -17,8 +17,31 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.UUID
 
 private val Context.lunaraDataStore: DataStore<Preferences> by preferencesDataStore(name = "lunara_preferences")
+
+enum class AppMode { SERVER, LOCAL }
+
+internal object LocalIdentityPolicy {
+    fun resolve(existing: String?, create: () -> UUID = UUID::randomUUID): String = existing
+        ?.let { runCatching { UUID.fromString(it).toString() }.getOrNull() }
+        ?: create().toString()
+}
+
+data class LocalSettingsSnapshot(
+    val displayName: String = "Lunara",
+    val privacyMode: Boolean = true,
+    val useSystemTheme: Boolean = true,
+    val darkMode: Boolean = false,
+    val notifications: NotificationPreferences = NotificationPreferences(),
+    val localFertilityPredictionEnabled: Boolean = false,
+    val localTypicalCycleLength: Int? = null,
+    val localTypicalPeriodLength: Int? = null,
+    val localLutealLength: Int? = null,
+    val localPredictionPaused: Boolean = false,
+    val localSpecialMode: String = "NONE",
+)
 
 data class AppPreferencesState(
     val baseUrl: String? = null,
@@ -30,6 +53,14 @@ data class AppPreferencesState(
     val darkMode: Boolean = false,
     val lastSyncAt: String? = null,
     val notifications: NotificationPreferences = NotificationPreferences(),
+    /** Existing installations without this key are server-backed for backwards compatibility. */
+    val appMode: AppMode = AppMode.SERVER,
+    val localFertilityPredictionEnabled: Boolean = false,
+    val localTypicalCycleLength: Int? = null,
+    val localTypicalPeriodLength: Int? = null,
+    val localLutealLength: Int? = null,
+    val localPredictionPaused: Boolean = false,
+    val localSpecialMode: String = "NONE",
 )
 
 @Singleton
@@ -39,6 +70,9 @@ class AppPreferences @Inject constructor(
     val state: Flow<AppPreferencesState> = context.lunaraDataStore.data.map { values ->
         val role = values[ROLE]?.let { runCatching { UserRole.valueOf(it) }.getOrNull() }
         val userId = values[USER_ID]
+        val appMode = values[APP_MODE]
+            ?.let { runCatching { AppMode.valueOf(it) }.getOrNull() }
+            ?: AppMode.SERVER
         AppPreferencesState(
             baseUrl = values[BASE_URL],
             serverName = values[SERVER_NAME],
@@ -71,11 +105,19 @@ class AppPreferences @Inject constructor(
                 hideSensitiveContent = values[NOTIFICATION_HIDE_SENSITIVE] ?: true,
                 maxPerDay = (values[NOTIFICATION_MAX_PER_DAY] ?: 2).coerceIn(1, 3),
             ),
+            appMode = appMode,
+            localFertilityPredictionEnabled = values[LOCAL_FERTILITY_ENABLED] ?: false,
+            localTypicalCycleLength = values[LOCAL_TYPICAL_CYCLE_LENGTH]?.takeIf { it in 15..90 },
+            localTypicalPeriodLength = values[LOCAL_TYPICAL_PERIOD_LENGTH]?.takeIf { it in 1..14 },
+            localLutealLength = values[LOCAL_LUTEAL_LENGTH]?.takeIf { it in 8..20 },
+            localPredictionPaused = values[LOCAL_PREDICTION_PAUSED] ?: false,
+            localSpecialMode = values[LOCAL_SPECIAL_MODE].orEmpty().ifBlank { "NONE" },
         )
     }
 
     suspend fun saveConnection(baseUrl: String, serverName: String, serverVersion: String) {
         context.lunaraDataStore.edit {
+            it[APP_MODE] = AppMode.SERVER.name
             it[BASE_URL] = baseUrl
             it[SERVER_NAME] = serverName
             it[SERVER_VERSION] = serverVersion
@@ -84,10 +126,74 @@ class AppPreferences @Inject constructor(
 
     suspend fun saveSession(userId: String, username: String, displayName: String, role: UserRole) {
         context.lunaraDataStore.edit {
+            it[APP_MODE] = AppMode.SERVER.name
             it[USER_ID] = userId
             it[USERNAME] = username
             it[DISPLAY_NAME] = displayName
             it[ROLE] = role.name
+        }
+    }
+
+    /**
+     * Creates the single-device tracker identity atomically. Its UUID remains stable across app
+     * restarts and is never derived from a device identifier or account service.
+     */
+    suspend fun activateLocalMode(displayName: String): AppSession {
+        var session: AppSession? = null
+        context.lunaraDataStore.edit { values ->
+            val localUserId = LocalIdentityPolicy.resolve(values[LOCAL_USER_ID])
+            val safeDisplayName = displayName.trim().take(120).ifBlank { "Lunara" }
+            values[LOCAL_USER_ID] = localUserId
+            values[APP_MODE] = AppMode.LOCAL.name
+            values[USER_ID] = localUserId
+            values[USERNAME] = "local"
+            values[DISPLAY_NAME] = safeDisplayName
+            values[ROLE] = UserRole.TRACKER.name
+            values[SERVER_NAME] = "Lunara"
+            values[SERVER_VERSION] = "local"
+            values.remove(BASE_URL)
+            values.remove(LAST_SYNC)
+            session = AppSession(
+                userId = localUserId,
+                displayName = safeDisplayName,
+                role = UserRole.TRACKER,
+                serverName = "Lunara",
+                serverVersion = "local",
+            )
+        }
+        return requireNotNull(session)
+    }
+
+    suspend fun setLocalFertilityPredictionEnabled(expectedUserId: String, enabled: Boolean) {
+        context.lunaraDataStore.edit { values ->
+            if (
+                values[APP_MODE] == AppMode.LOCAL.name &&
+                values[USER_ID] == expectedUserId &&
+                values[ROLE] == UserRole.TRACKER.name
+            ) {
+                values[LOCAL_FERTILITY_ENABLED] = enabled
+            }
+        }
+    }
+
+    suspend fun restoreLocalSettings(expectedUserId: String, snapshot: LocalSettingsSnapshot) {
+        context.lunaraDataStore.edit { values ->
+            check(
+                values[APP_MODE] == AppMode.LOCAL.name &&
+                    values[USER_ID] == expectedUserId &&
+                    values[ROLE] == UserRole.TRACKER.name,
+            ) { "Local session changed while restoring a backup" }
+            values[DISPLAY_NAME] = snapshot.displayName.trim().take(120)
+            values[PRIVACY_MODE] = snapshot.privacyMode
+            values[USE_SYSTEM_THEME] = snapshot.useSystemTheme
+            values[DARK_MODE] = snapshot.darkMode
+            values[LOCAL_FERTILITY_ENABLED] = snapshot.localFertilityPredictionEnabled
+            values.putOrRemove(LOCAL_TYPICAL_CYCLE_LENGTH, snapshot.localTypicalCycleLength)
+            values.putOrRemove(LOCAL_TYPICAL_PERIOD_LENGTH, snapshot.localTypicalPeriodLength)
+            values.putOrRemove(LOCAL_LUTEAL_LENGTH, snapshot.localLutealLength)
+            values[LOCAL_PREDICTION_PAUSED] = snapshot.localPredictionPaused
+            values[LOCAL_SPECIAL_MODE] = snapshot.localSpecialMode
+            values.writeNotificationPreferencesForSession(expectedUserId, snapshot.notifications)
         }
     }
 
@@ -138,6 +244,14 @@ class AppPreferences @Inject constructor(
         val USE_SYSTEM_THEME = booleanPreferencesKey("appearance.system")
         val DARK_MODE = booleanPreferencesKey("appearance.dark")
         val LAST_SYNC = stringPreferencesKey("sync.last_success")
+        val APP_MODE = stringPreferencesKey("app.mode")
+        val LOCAL_USER_ID = stringPreferencesKey("local.user_id")
+        val LOCAL_FERTILITY_ENABLED = booleanPreferencesKey("local.profile.fertility_enabled")
+        val LOCAL_TYPICAL_CYCLE_LENGTH = intPreferencesKey("local.profile.typical_cycle_length")
+        val LOCAL_TYPICAL_PERIOD_LENGTH = intPreferencesKey("local.profile.typical_period_length")
+        val LOCAL_LUTEAL_LENGTH = intPreferencesKey("local.profile.luteal_length")
+        val LOCAL_PREDICTION_PAUSED = booleanPreferencesKey("local.profile.prediction_paused")
+        val LOCAL_SPECIAL_MODE = stringPreferencesKey("local.profile.special_mode")
         val NOTIFICATION_MASTER = booleanPreferencesKey("notifications.master")
         val NOTIFICATION_PERIOD_TOMORROW = booleanPreferencesKey("notifications.period_tomorrow")
         val NOTIFICATION_FERTILE_TOMORROW = booleanPreferencesKey("notifications.fertile_tomorrow")
@@ -152,6 +266,10 @@ class AppPreferences @Inject constructor(
         val NOTIFICATION_HIDE_SENSITIVE = booleanPreferencesKey("notifications.hide_sensitive")
         val NOTIFICATION_MAX_PER_DAY = intPreferencesKey("notifications.max_per_day")
     }
+}
+
+private fun MutablePreferences.putOrRemove(key: Preferences.Key<Int>, value: Int?) {
+    if (value == null) remove(key) else this[key] = value
 }
 
 internal fun MutablePreferences.writeNotificationPreferencesForSession(

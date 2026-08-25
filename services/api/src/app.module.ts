@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { HealthController } from './health/health.controller.js';
 import { MetaController } from './meta/meta.controller.js';
+import { AssetLinksController } from './meta/asset-links.controller.js';
 import { HouseholdModule } from './household/household.module.js';
 import { UsersModule } from './users/users.module.js';
 import { PredictionModule } from './prediction/prediction.module.js';
@@ -49,7 +50,7 @@ import { SymptomsModule } from './symptoms/symptoms.module.js';
     RealtimeModule,
     SymptomsModule,
   ],
-  controllers: [HealthController, MetaController],
+  controllers: [HealthController, MetaController, AssetLinksController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AccessTokenGuard },

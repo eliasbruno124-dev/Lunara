@@ -248,7 +248,9 @@ export class DataManagementService {
 
   async deleteAccount(user: AuthenticatedUser, dto: DeleteAccountDto): Promise<void> {
     const account = await this.prisma.user.findUniqueOrThrow({ where: { id: user.userId } });
-    const valid = await argon2.verify(account.passwordHash, dto.password).catch(() => false);
+    const valid = account.passwordHash
+      ? await argon2.verify(account.passwordHash, dto.password).catch(() => false)
+      : false;
     if (!valid) throw new UnauthorizedException('Password is incorrect');
     if (user.role === UserRole.TRACKER && !dto.deleteHousehold) {
       throw new ConflictException('The tracker must delete the relationship or transfer the role first');

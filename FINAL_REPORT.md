@@ -1,566 +1,390 @@
-# Lunara – Abschlussbericht Server 1.0.7 / Android 1.0.9
+# Lunara 1.1.0 – Abschlussbericht
 
-Stand: 20. August 2026
+Stand: 25. August 2026
 
-Lunara Server 1.0.7 ist gebaut, geprüft und auf dem produktiven Server
-ausgerollt; Android 1.0.9 ist anschließend mit der reproduzierbaren Build-
-Toolchain gebaut und geprüft worden. Die API und zugehörigen Dienste laufen
-weiterhin gesund hinter
-Pangolin und Authentik; die Datenbankmigration schützt
-aktive Periodenbereiche nun atomar gegen Überschneidungen. Eine installierbare
-Production-Debug-APK und eine bewusst unsignierte Release-APK wurden
-tatsächlich erzeugt und geprüft. Dieser Bericht trennt bestätigte Ergebnisse
-von nicht ausgeführten Prüfungen. Die geprüften Artefakte sind im privaten
-GitHub-Release `v1.0.9` veröffentlicht.
-
-## Server 1.0.7 / Android 1.0.9 – Ergebnis
-
-Die Tracker-App unterstützt jetzt drei zusammenhängende Wege:
-
-1. Auf „Periode begonnen“ tippen; der lokale Room-Eintrag erscheint sofort und
-   die Aktion wechselt bei einer offenen Periode zu „Periode heute beenden“.
-2. Im Kalender einen heutigen oder vergangenen freien Starttag und danach den
-   Endtag antippen, den inklusiven Zeitraum prüfen und speichern. Es gibt keine
-   fehleranfällige Datumstexteingabe mehr; „Als laufende Periode speichern“ ist
-   eine eigene, eindeutige Aktion.
-3. Einen vorhandenen Periodentag antippen und den Zeitraum über „Neu
-   auswählen“ korrigieren, mit „Ende entfernen“ wieder öffnen oder nach einer
-   zweiten Bestätigung löschen.
-
-Alle drei Wege verwenden clientseitige UUIDs, eine atomare Room-Transaktion und
-die idempotente Offline-Mutation-Queue. Die UI bestätigt die lokale Speicherung
-per Snackbar und zeigt Pending-, Konflikt- und letzten Sync-Zustand. Automatische
-Übertragung erfolgt nach lokaler Mutation und Anmeldung, regelmäßig während
-der geöffneten App sowie netzwerkgebunden über WorkManager; der manuelle
-„Jetzt synchronisieren“-Weg bleibt erhalten. Ein inklusiver lokaler
-Überschneidungsschutz sperrt die Speicherung eines kollidierenden Entwurfs;
-die bestehende server- und datenbankseitige Prüfung bleibt die autoritative
-zweite Schutzschicht. Partner haben weder in der Kalender-UI noch serverseitig
-Schreibrechte auf Perioden.
-
-Start, Mitte, Ende und eintägige Zeiträume sind nicht nur farblich markiert.
-TalkBack erhält das vollständige lokale Datum, Verfügbarkeit und Auswahlrolle;
-die aktualisierte Zusammenfassung wird als höfliche Live-Region angekündigt.
-
-Kalenderentwürfe und laufende Aktionen überleben eine Activity-Neuerstellung.
-Während Create, Update oder Delete auf die bestätigende Room-Änderung wartet,
-sind Eingaben, Dismiss und erneutes Absenden gesperrt. Bei einem Fehler bleibt
-der Entwurf erhalten und wird gezielt wieder freigegeben; dadurch entstehen
-weder doppelte Mutationen noch widersprüchliche Erfolgs-/Fehlermeldungen.
-
-Serverseitig serialisiert ein PostgreSQL-Advisory-Lock Periodenänderungen pro
-Tracker. Zusätzlich erzwingt eine partielle GiST-Exclusion-Constraint
-nichtüberlappende inklusive Datumsbereiche für aktive Einträge; offene Perioden
-reichen bis zu ihrem expliziten Ende, Soft Deletes sind ausgenommen. Direkte
-REST- und `/sync`-Mutationen laufen durch denselben Servicepfad und erhalten bei
-Überschneidung HTTP 409.
-
-Für `/sync` liegen Idempotenz-Receipt, Perioden- oder Tageslogmutation,
-`SyncChange` und bei Perioden auch die Prognoseneuberechnung jetzt in derselben
-PostgreSQL-Transaktion. Ein Antwortverlust kann deshalb keinen nur halb
-bestätigten neuen Vorgang mehr hinterlassen. Alte Pending-Receipts werden nur
-bei exakt passendem, benutzergebundenem Endzustand und passendem SyncChange
-wiederhergestellt. Abgelaufene Receipts können per atomarem Compare-and-swap
-für eine neue Mutation wiederverwendet werden; aktive fremde Mutationen bleiben
-ein Konflikt. Der Import plant Überschneidungen bereits in der Vorschau, prüft
-den Plan unter demselben Tracker-Lock erneut und aktualisiert Prognosen atomar.
-
-### Tatsächlich ausgeführte Prüfungen
-
-- Backend: 20/20 Suites, 105/105 Tests, TypeScript-Typecheck, vollständiges
-  Backend-ESLint, Prisma-Validierung und Nest-Build erfolgreich
-- Echte PostgreSQL-18-E2E-Prüfung auf einer frischen temporären Datenbank:
-  sieben Migrationen sowie 1/1 durchgehender Test erfolgreich. Geprüft wurden
-  unter anderem Setup, getrennte Beziehungen, Einladung, Rollen/Isolation,
-  Perioden und Prognose, Freigabeentzug, Import/Export, Passwortwechsel und
-  exakt-einmal Offline-Sync einschließlich Wiederverwendung abgelaufener Keys
-- OpenAPI-Snapshot und generierter Kotlin-Client reproduzierbar neu erzeugt;
-  Hashprüfung erfolgreich
-- Android 1.0.9: Local und Production jeweils 28/28 JVM-Suites, 143/143
-  Tests, 0 Fehler und 0 übersprungen
-- Android-Lint: Local 0 Fehler/56 Warnungen, Production 0 Fehler/55 Warnungen
-- Production-Instrumentierung erfolgreich kompiliert; mangels Emulator oder
-  Gerät nicht ausgeführt
-- Production-Debug- und Production-Release-APK tatsächlich gebaut; beide
-  Artefakte besitzen eine fehlerfreie ZIP-Struktur
-- Ein erster zu eng begrenzter JVM-Lauf scheiterte ehrlich an zu wenig
-  Metaspace. Der abschließende, auf einen CPU-Kern und feste Speichergrenzen
-  gedrosselte Gesamtlauf war mit ausreichendem Metaspace vollständig
-  erfolgreich; produktive Dienste wurden dabei nicht neu gestartet.
-- Android-, Backend- und Container-Sicherheitsworkflows prüfen Feature-Branches
-  nur noch über Pull Requests; Push-Läufe sind auf `main` begrenzt, damit
-  derselbe Feature-Commit nicht doppelte Workflow-Läufe und Benachrichtigungen
-  auslöst
-- Der erste 1.0.9-Sicherheitslauf erkannte eine neu aktivierte HIGH-Meldung für
-  `deepmerge-ts` 7.1.5 aus Prismas Konfigurationswerkzeugen. Die Abhängigkeit ist
-  im Root-Lockfile auf 8.0.1 überschrieben. Danach waren `npm ci`, Produktions-
-  Audit, Prisma-Generierung/-Validierung, Backend-Lint, 20 Suites/105 Tests,
-  Backend- und Container-Build erfolgreich; Trivy 0.72.0 meldete 0 fixbare
-  HIGH/CRITICAL-Funde. Der produktive 1.0.7-Container wurde dafür nicht
-  verändert oder neu gestartet.
-- Multi-Stage-Image `lunara-api:1.0.7` gebaut: Image-ID
-  `sha256:3e3105eb24b805c1df621b5ec5c5910ba1db4f9adc5f54937faa67f27de7f439`,
-  618.951.392 Bytes, Runtime UID/GID `10001:10001`
-- Gehärtetes Runtime-Image ohne npm, npx oder Corepack; Node 24.18.0,
-  Argon2 und der direkte Prisma-Migrationsbefehl real geprüft. Lokaler
-  Trivy-0.72.0-Lauf meldet 0 fixbare HIGH/CRITICAL-Funde; nicht reparierbare
-  Debian-Befunde werden mit `ignore-unfixed` getrennt behandelt
-- Vor Migration validierter PostgreSQL-Custom-Dump:
-  `/var/backups/lunara/lunara-pre-1.0.7-period-overlap-20260816T181900Z.dump`
-- Live: Migration, Constraint und Erweiterung vorhanden; API healthy,
-  RestartCount 0, read-only und non-root; Health, Readiness und Meta HTTP 200;
-  Meta meldet 1.0.7 und abgeschlossenen Bootstrap
-- Gateway-Test erfolgreich: technischer Header-Auth-Zugang funktioniert und
-  alle geprüften anonymen Pfade bleiben durch Authentik gesperrt
-
-### APK-Artefakte
-
-- `artifacts/lunara-debug.apk`: 24.856.219 Bytes, installierbar und gültig
-  APK-v2-debugsigniert; SHA-256
-  `c90413fb5a3dbcd478bf549b498d88a286a9a56de3ea17381fd3376d7fffb7a7`
-- `artifacts/lunara-release-unsigned.apk`: 19.845.271 Bytes, erwartungsgemäß
-  nicht signiert; SHA-256
-  `39f3b7df2f68f2f75229d283c384ecb388d773c8c9cad18411cbb9b287058c23`
-- beide: VersionCode 10, VersionName 1.0.9, minSdk 26, targetSdk 36,
-  compileSdk 37 und fehlerfreie ZIP-Struktur
-- Debug-Zertifikat SHA-256:
-  `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`;
-  damit bleibt die Debug-APK als Update der bisherigen, mit demselben lokalen
-  Debugschlüssel signierten Installation geeignet
-
-### Bewusst nicht ausgeführt / bekannte Grenze
-
-- Compose-UI-Gerätetests sind kompiliert, aber ohne Emulator oder physisches
-  Android-Gerät nicht ausgeführt.
-- Der Server bietet SSE an; Android aktualisiert aktuell zuverlässig über
-  sofortigen Queue-Sync, WorkManager und Vordergrund-Sync statt über eine
-  dauerhafte SSE-Verbindung. Hintergrundausführung kann durch Androids
-  Energiesparregeln verzögert werden.
-
-Der erste neue PostgreSQL-E2E-Lauf deckte einen Fehler bei einem abgelaufenen
-Idempotenz-Key auf und schlug deshalb korrekt fehl. Nach der Behebung zeigte
-ein weiterer Lauf eine gemeinsam ausgeschöpfte In-Memory-Login-Rate-Bucket im
-langen Test; die abschließenden Passwort-Login-Prüfungen wurden daraufhin wie
-die vorhandenen Registrierungskonkurrenztests in einer separaten App-Instanz
-isoliert. Erst der danach vollständig erfolgreiche Lauf wird oben als Erfolg
-gezählt. Die temporären PostgreSQL-Container und ihr Tmpfs wurden anschließend
-beendet; Produktionsdaten waren davon nicht betroffen.
-
-Ein erster Android-1.0.8-Versuch mit compileSdk 36 scheiterte korrekt an der
-AAR-Metadatenprüfung: fünf aktuell gepinnte AndroidX-Abhängigkeiten verlangen
-compileSdk 37. Der erfolgreiche Build trennt deshalb compileSdk 37 vom stabilen
-targetSdk 36. GitHub installiert das Preview-Compile-Paket ausdrücklich als
-`platforms;android-37.0`; Android-17-Laufzeitverhalten wird nicht aktiviert.
-
-Die folgenden Abschnitte dokumentieren zusätzlich die bereits verifizierten
-älteren Ausbaustufen und bleiben als historische Nachweise erhalten.
-
-## Android 1.0.6 – Benachrichtigungsergänzung
-
-Umgesetzt sind pro Gerät standardmäßig deaktivierte Hinweise für den Beginn des
-geschätzten Periodenzeitraums am Folgetag, das nur grob geschätzte fruchtbare
-Fenster am Folgetag, die tägliche Tracker-Eingabe und einen Partner-Tipp.
-Uhrzeit, Ruhezeit, Tagesmaximum und neutrale Sperrbildschirmvorschau sind
-einstellbar. Android WorkManager plant jeden Lauf neu an lokaler Uhrzeit; ein
-TIME-/TIMEZONE-Receiver richtet Sommerzeit- und Zeitzonenwechsel neu aus.
-
-Tracker-Prognosen liegen für den Offline-Fallback nutzergebunden und
-Keystore-gestützt verschlüsselt vor. Partner-Hinweise erfordern dagegen immer
-eine aktuelle, serverseitig freigabefilterte Antwort und fallen offline strikt
-geschlossen aus. Zustell-Deduplizierung wird erst nach erfolgreicher Übergabe
-an Androids NotificationManager festgeschrieben. Logout beziehungsweise
-lokaler Wipe entfernt geplante Arbeit, sichtbare Hinweise, Zustellzustand und
-Cache.
-
-Tatsächlich ausgeführte Android-Abnahme:
-
-- 25 JVM-Suites, 114 Tests, 0 Fehler, 0 übersprungen; darin 28 fokussierte
-  Benachrichtigungstests
-- vollständiger `lintLocalDebug` einschließlich Testquellen sowie separater
-  Production-Hauptcode-Lint: jeweils 0 Error/Fatal
-- `compileProductionDebugAndroidTestKotlin`: erfolgreich; kein Emulator oder
-  reales Gerät vorhanden, daher keine Behauptung ausgeführter UI-Tests
-- `assembleProductionDebug`: erfolgreich
-- `assembleProductionRelease`: nach dem bereits erfolgreichen Production-Lint
-  mit ausgeschlossenen redundanten `lintVital*ProductionRelease`-Tasks
-  erfolgreich
-
-Geprüfte Artefakte:
-
-- `artifacts/lunara-debug.apk`: 24.727.376 Bytes; SHA-256:
-  `779dc019ebd534c0a536ac245f8bd90b4dfedb51f1c20959bb593cd93593f27f`
-- `artifacts/lunara-release-unsigned.apk`: 19.806.359 Bytes; SHA-256:
-  `83275de788b89d78aaab8ee60e674987328baa8177ef1ca1d55809f94246c3fa`
-- beide: VersionCode 7, VersionName 1.0.6, minSdk 26, targetSdk 37 und
-  fehlerfreie ZIP-Struktur
-- Debug: gültige APK-v2-Signatur mit dem bestehenden lokalen Android-
-  Debugschlüssel; Release: erwartungsgemäß nicht signiert
-
-Ein kombinierter Sammellauf und kleinere Containerlimits reichten zeitweise
-nicht aus. Die betroffenen Läufe werden nicht als Erfolg gezählt; sie wurden
-kontrolliert beendet und die Prüfschritte anschließend einzeln erfolgreich
-ausgeführt. Während der engmaschigen Überwachung gab es keine Emby-Wiedergabe,
-keinen Encoder, keinen Host-/Produktivdienst-OOM und keinen Dienstneustart. Lunara/PostgreSQL,
-Authentik, Pangolin, Traefik und Emby blieben stabil. Der niedrigste kurzzeitig
-beobachtete Speicherwert im ersten abgebrochenen Lauf lag bei 1.311 MiB; der
-erfolgreiche Production-Release-Einzellauf blieb bei mindestens 2.000 MiB.
+Lunara 1.1.0 ist als Android-/Server-/PWA-Releasekandidat implementiert,
+gebaut und lokal geprüft. Dieser Bericht trennt den tatsächlich bestätigten
+Quell-/Buildstand vom noch ausstehenden finalen 1.1.0-Live-Rollout. Frühere
+produktive 1.0.x-Prüfungen werden nicht als Nachweis für den neuen Release
+umetikettiert.
 
 ## Implementierte Architektur
 
-- Monorepo mit nativer Kotlin-/Jetpack-Compose-App, NestJS-/Prisma-API,
-  PostgreSQL 18, versionierter REST-API und generiertem Kotlin-OpenAPI-Client
-- Docker-Multi-Stage-Image als UID/GID `10001:10001`, read-only Root-Dateisystem,
+```text
+Android (Solo oder Server)          installierbare PWA
+             \                         /
+              \         HTTPS         /
+               Traefik direkt ODER Authentik Proxy
+                            |
+                   NestJS-/Prisma-API
+                     + PWA-Auslieferung
+                            |
+              PostgreSQL 18 im internen Netz
+```
+
+- Monorepo mit Kotlin/Compose, TypeScript-PWA und NestJS-/Prisma-API
+- Docker-Multi-Stage-Image, Non-root UID/GID `10001:10001`, read-only Root,
   Capability-Drop und `no-new-privileges`
-- eine Serverinstanz für beliebig viele voneinander isolierte Beziehungen;
-  intern bleibt eine UUID-Mandantengrenze erhalten, ohne „Haushalt“ in der App
-  anzuzeigen
-- je Beziehung genau ein `TRACKER` und ein `PARTNER`, jeweils mit eigenem
-  Lunara-Konto, eigenem Passwort und serverseitig erzwungener Rolle
-- Room/SQLCipher, Android Keystore, lokale Mutation Queue, clientseitige UUIDs,
-  optimistische Oberfläche und WorkManager-Synchronisierung
-- Pangolin als verwalteter öffentlicher Ressourcenpfad und Authentik als
-  vollständiger vorgeschalteter Schutz für die gesamte Domain
+- eine Instanz für mehrere streng getrennte Beziehungen; je Beziehung genau
+  ein `TRACKER` und ein `PARTNER` mit eigenen Zugangsdaten
+- Direct-Gateway ohne Authentik oder optionaler Authentik-Proxy mit
+  persönlichem OIDC
+- API v1, OpenAPI-Snapshot, PostgreSQL-Transaktionen, Soft Deletes,
+  Cursor-Sync und idempotente Offline-Mutationen
+- Room/SQLCipher, Android Keystore, WorkManager und optimistische lokale UI
 
-## Tatsächlich umgesetzter Produktumfang
+## Tatsächlich umgesetzte Funktionen
 
-Der durchgehende Kernablauf funktioniert:
+### Self-hosted Kernablauf
 
-1. erste oder weitere Tracker-Beziehung anlegen
-2. einmal verwendbare und bis zur Nutzung zeitlich unbegrenzte Einladung
-   erzeugen, anzeigen und widerrufen
-3. Partner mit eigenem Konto verbinden
-4. Periodenstart offline oder online eintragen, Datum und optionales Ende
-   korrigieren oder den Eintrag löschen
-5. deterministische Bereichsprognose neu berechnen
-6. Offline-Mutationen idempotent genau einmal synchronisieren
-7. beim Partner nur ausdrücklich freigegebene Werte darstellen
+Der durchgehende Serverkern umfasst:
 
-Weitere bestätigte Funktionen:
+1. frischen Server mit Bootstrap einmalig initialisieren;
+2. Tracker-Konto beziehungsweise weitere isolierte Beziehung registrieren;
+3. einmal verwendbare Partner-Einladung erstellen;
+4. Partner mit eigenem Konto verbinden;
+5. Periode online oder offline erfassen, korrigieren oder löschen;
+6. robuste Bereichsprognose neu berechnen;
+7. Mutation idempotent genau einmal synchronisieren;
+8. dem Partner ausschließlich aktuell freigegebene Werte liefern.
 
-- automatische Synchronisierung nach Anmeldung und Mutationen, beim Öffnen,
-  regelmäßig im Vordergrund sowie sparsam über WorkManager mit begrenztem
-  Backoff; manueller Sync bleibt zusätzlich verfügbar
-- persönlicher Passwortwechsel in den Android-Einstellungen mit aktuellem
-  Passwort; andere Lunara-Sitzungen werden dabei widerrufen
-- Kontopasswörter mit 8 bis 128 Unicode-Codepoints ohne Pflicht zu
-  Großbuchstaben, Ziffern oder Sonderzeichen; bestehende Zugangsdaten werden
-  zur Kompatibilität mit 1 bis 128 Zeichen verifiziert. Die separate
-  Exportpassphrase bleibt als Verschlüsselungsschlüssel bei 12 bis 128 Zeichen
-- Argon2id, kurze Access-Tokens, rotierende und nur gehasht gespeicherte
-  Refresh-Tokens, Gerätesitzungen, Login-Rate-Limit und generische
-  Login-Fehlermeldungen
-- Perioden, Tageslogs, eigene Symptome, verschlüsselte Freitextnotizen,
-  Soft Deletes, Cursor-Sync, Versionskonflikte und Idempotenz
-- granulare Partnerfreigaben, Freigabepause und privater Tag; private Tage
-  verbergen tatsächliche Periodendaten, Phase, Symptome und Fertilitätsangaben
-- nicht freigegebene Notizen werden serverseitig nicht entschlüsselt; der
-  Android-Partnercache wird nach Freigabeentzug autoritativ bereinigt
-- 71 sorgfältig formulierte Tipps in Deutsch und Englisch, kategorisiert und
-  gewichtet nach freigegebener Phase, freigegebenen Symptomen, Feedback und
-  Care Preferences
-- acht direkt einstellbare Care Preferences: Wärme, Nähe, Raum, Snacks,
-  Gespräch, Haushaltshilfe, Erinnerungen und keine ungefragten Ratschläge
-- Partner-Check-ins, Tageslogs, Profile, Exporte/Importvorschau,
-  Sitzungsverwaltung, sicherheitsrelevante Audits, SSE und Admin-CLI im Backend
+Enthalten sind außerdem Tageslogs, eigene Symptome, verschlüsselte Notizen,
+71 deutsche/englische Partner-Tipps, Care Preferences, Check-ins, Freigabepause,
+privater Tag, Sitzungen, Passwortwechsel, JSON/CSV/verschlüsselter Export,
+Importvorschau, Kontolöschungs-API, Audit, SSE, Admin-CLI und lokale Android-
+Benachrichtigungen ohne Firebase.
 
-### Prognose und geschätztes fruchtbares Fenster
+### Solo auf Android
 
-Die Prognose verwendet keine pauschalen 28 Tage. Sie wertet bevorzugt die
-letzten vollständigen Zyklen robust und mit höherem Gewicht für neuere Zyklen
-aus, zeigt grundsätzlich einen Zeitraum und verbreitert ihn bei hoher
-Streuung. Unter drei vollständigen Zyklen wird die Aussage als unsicher
-gekennzeichnet. Sondermodi und pausierte Prognosen unterdrücken irreführende
-Standardwerte.
+**Nur auf diesem Gerät** funktioniert ohne Konto, Server oder Domain. Die App
+erzeugt eine lokale Trackeridentität und sperrt Partner-, Auth-, Server- und
+Syncpfade. Kalender, Perioden, Tageslogs, Verlauf, lokale Prognose und
+Erinnerungen arbeiten auf der SQLCipher-Datenbank.
 
-Die Fertilitätsschätzung ist standardmäßig aus. Sie erfordert ein persönliches
-Opt-in, eine ausdrückliche Sicherheitsbestätigung und mindestens drei
-vollständige Zyklen. Die Partneranzeige braucht zusätzlich eine eigene
-Freigabe. Beim Abschalten des persönlichen Opt-ins wird die Partnerfreigabe
-atomar widerrufen. Die App bezeichnet das Fenster immer als geschätzt und weist
-darauf hin, dass es weder eine Ovulation bestätigt noch zur Verhütung geeignet
-ist. Dies ist eine vorsichtige Kalenderschätzung, keine medizinische
-Vorhersage.
+Der Gerätewechsel erfolgt über ein portables `.lunara`-Backup:
 
-## Authentik, Header Auth und Pangolin
+- PBKDF2-HMAC-SHA256, 310.000 Iterationen;
+- AES-256-GCM mit authentifiziertem Format;
+- 12 bis 128 Unicode-Codepoints Passphrase;
+- Android Storage Access Framework für eine bewusst gewählte Datei;
+- strikte Validierung und Room-Transaktion;
+- persistentes Import-Journal zur Wiederaufnahme nach Prozessabbruch.
 
-Der produktive Zielzustand wurde nach einem validierten Authentik-Datenbankdump
-erfolgreich eingerichtet:
+Google Drive kann nur als vom Benutzer ausgewählter Android-Dateianbieter
+auftauchen. Lunara integriert kein Google-SDK, kennt kein Google-Konto und
+lädt nichts automatisch hoch. Android-Systembackup und Gerätetransfer sind
+absichtlich vollständig ausgeschlossen.
 
-- genau eine neutrale Serviceidentität `lunara-native-app`
-- genau ein nicht ablaufendes App-Passwort
-- keine Dune-/Elias- oder A-/B-Konten in der Lunara-Gateway-Gruppe
-- leeres `skip_path_regex`: Root, Health, Ready, Meta, Login und OpenAPI sind
-  ohne Authentik-Zugang geschützt
-- alte A-/B-Header-Credentials sind serverseitig ungültig und ihre Dateien in
-  ein root-only Archiv verschoben
-- die Pangolin-Ressource ist weiterhin in der Pangolin-Oberfläche der
-  bestehenden Organisation verwaltbar; es existiert kein paralleler direkter
-  API-Pfad
+### Kalender und Prognose
 
-Die einzige aktive Header-Auth-URL liegt ausschließlich serverlokal in:
+Der Kalender wechselt Monate durch horizontales Wischen, zeigt bis zu fünf
+Jahre Zukunft und unterscheidet tatsächliche, ausgewählte und geschätzte
+Zeiträume nicht nur über Farbe. Vergangene Perioden werden durch Antippen von
+Start und Ende erfasst; vorhandene Bereiche lassen sich neu wählen, öffnen,
+beenden oder nach Bestätigung löschen. Partner bleiben schreibgeschützt.
+
+`lunara-robust-v2` verwendet bis zu zwölf aktuelle vollständige Zyklen,
+gewichtet neuere Daten, nutzt gewichteten Median und MAD, erklärt
+ausgeschlossene Ausreißer und verbreitert unsichere Bereiche. Veraltete
+Beobachtungen und Sondermodi fallen geschlossen aus. Das geschätzte fruchtbare
+Fenster ist standardmäßig aus, benötigt Opt-in und ausreichende Daten und ist
+weder Ovulationsbestätigung noch Verhütung.
+
+### PWA
+
+Die PWA ist installierbar, deutsch/englisch, hell/dunkel und bietet
+rollenabhängige Startseiten, Kalender, Prognose, Partner-Tipp sowie eine
+IndexedDB-Mutation Queue. Zusätzlich besitzt sie einen lokalen Solomodus, der
+Profil, Perioden und Tageslogs als AES-256-GCM-Vault mit 600.000
+PBKDF2-HMAC-SHA256-Iterationen versiegelt; die Passphrase und der abgeleitete
+Schlüssel werden nicht persistiert. Der Vault sperrt bei versteckter Seite,
+`pagehide` oder spätestens 15 Minuten Inaktivität. Kontoidentitätswechsel
+bereinigen Cache und Queue. Der Service Worker cached keine API-/Health-/Ready-/OpenAPI-
+Antworten. Das Web-Bundle wird im API-Container gebaut und ausgeliefert.
+
+### Authentik und Direct-Modus
+
+Ohne Authentik verwendet Lunara die eigenen Konten hinter dem direkten
+Traefik-Router. Mit Authentik bleiben nur Meta und Android Asset Links anonym.
+OIDC verwendet Authorization Code, PKCE S256, State, Nonce, explizite
+Zustimmung und keinen Client Secret.
+
+Moderne authentifizierte Anfragen besitzen:
 
 ```text
-/docker/lunara/lunara-app-headerauth.url
+Authorization: Bearer <Authentik-Access-Token>
+X-Lunara-Authorization: Bearer <Lunara-Access-Token>
 ```
 
-Dateimodus: `0600`. Das Geheimnis wird absichtlich nicht in Git, APK,
-Dokumentation oder Chat ausgegeben.
+Der äußere Token öffnet den Proxy, der innere bestimmt Lunara-Rechte. Beide
+werden nur same-origin gesendet. Der Authentik-Token wird vor Ablaufbedarf
+erneuert; ein OIDC-basierter Lunara-Refresh verlangt einen frischen Token
+derselben externen Identität.
 
-Beim ersten Start ist das Serverfeld leer. Für die einmalige Eingabe gilt:
+OIDC verknüpft nur exakten Issuer und Subject mit einem bestehenden Konto.
+Keine E-Mail-/Benutzernamen-Heuristik und kein Auto-Provisioning sind aktiv.
+Selbstverknüpfung verlangt das aktuelle Passwort; die Adminmigration verlangt
+exakte Werte und einen Bestätigungsfingerprint und kann den alten Passwortweg
+gezielt deaktivieren.
+
+Production-Android nutzt unabhängig von der Self-hosting-API-/Issuer-Domain
+immer den festen BuildConfig-Publisher-App-Link. Der Releasehost
+`lunara.3li361.de` wurde mit dem Release-Zertifikat verifiziert. Der
+Production-Provider registriert ausschließlich den Android-HTTPS- und PWA-
+HTTPS-Callback. Ein Custom Scheme bleibt ausschließlich dem Android-`local`-
+Flavor mit getrenntem Entwicklungsprovider und eigener client_id vorbehalten.
+Production einschließlich Production-Debug enthält keinen Custom-Scheme-
+Intent-Filter und kann damit Production-Authentik bewusst nicht verwenden.
+Eigene Distributionen bauen mit einem
+eigenen App-Link-Host und veröffentlichen dessen Asset Links.
+
+## Ausgeführte Befehlsgruppen und Ergebnisse
+
+### Backend/PWA
+
+Ausgeführt wurden die entsprechenden Releasebefehle für:
 
 ```text
-https://lunara-native-app:APP-PASSWORT@lunara.3li361.de
+npm ci
+Prisma generate + validate
+API-/PWA-Lint und Typecheck
+Jest und Vitest
+Nest-/TypeScript-/Vite-/PWA-Build
+OpenAPI generate/check
+temporärer PostgreSQL-18-E2E-Lauf
+Docker-Multi-Stage-Build
 ```
 
-Die konkrete vollständige Adresse steht in der genannten root-only Datei. Die
-App trennt Benutzer und App-Passwort unmittelbar von der URL, speichert das
-Gateway-Credential Keystore-gestützt und behält als sichtbare Basisadresse nur
-`https://lunara.3li361.de/`. Server- und Einladungs-QRs enthalten niemals
-Authentik- oder Lunara-Passwörter. Redirects mit dem Basic Credential werden
-nicht verfolgt.
+Ergebnisse:
 
-Es gibt damit genau **einen gemeinsamen Header-Auth-Zugang** für die native
-App. Zusätzlich bleibt zwingend das persönliche Lunara-Token erhalten: außen
-`Authorization: Basic …` für Authentik, innen
-`X-Lunara-Authorization: Bearer …` für Konto, Rolle und Datenisolation. Ein
-einziger gemeinsamer Zugang allein dürfte niemals Tracker- und Partnerrechte
-ersetzen.
+- Backend: **26 Suites, 177 Tests**, erfolgreich
+- PWA: **11 Dateien, 39 Tests**, erfolgreich
+- vollständiges und Production-npm-Audit der PWA: jeweils 0 gemeldete
+  Schwachstellen
+- Backend plus PWA: **216 erfolgreiche Unit-/Komponententests**; E2E separat
+- PostgreSQL E2E: **1/1 Core-Flow**, erfolgreich; **acht Migrationen**
+- API-/PWA-Lint, Typecheck und Builds: erfolgreich
+- Multi-Stage-Containerbuild mit PWA: erfolgreich
 
-Tatsächlich ausgeführte öffentliche Prüfungen:
-
-- gemeinsamer Header-Zugang auf Meta und OpenAPI: erfolgreich
-- ohne Header-Zugang: alle geprüften öffentlichen Pfade durch Authentik
-  abgefangen
-- Registrierung mit einem temporären, acht Zeichen langen und ausschließlich
-  kleingeschriebenen Passwort: erfolgreich
-- zusätzlicher Unicode-Grenztest mit vier Herz-Darstellungssequenzen, also
-  acht Codepoints einschließlich Variationsselektoren: erfolgreich; das Konto
-  wurde ebenfalls vollständig gelöscht
-- dieselbe Registrierung mit sieben Zeichen: erwartungsgemäß HTTP 400
-- temporäres Testkonto anschließend über den vorgesehenen Account-Endpunkt
-  gelöscht; Benutzer, Beziehungen/Mandanten, Mitgliedschaften, Sitzungen,
-  Perioden und Tageslogs danach jeweils bei 0
-- Pangolin-Konfigurations- und Eigentumsprüfung: erfolgreich
-
-Dunjas früheres Konto mit dem technischen Benutzernamen `dune` bleibt wie
-beauftragt gelöscht. Es gibt aktuell kein aktives Dunja-Konto und kein aktives
-Dunja-Passwort. Die obsolete Passwortdatei wurde zuvor in ein root-only Archiv
-verschoben und wird nicht mehr als Zugang verwendet.
-
-## Ausgeführte Tests und Builds
-
-### Backend und OpenAPI
-
-Auf dem finalen 1.0.5-Quellstand wurden Prisma-Erzeugung/-Validierung, ESLint,
-Jest, Nest-Build, OpenAPI-Export/-Reproduzierbarkeitsprüfung und Audits
-tatsächlich ausgeführt:
-
-- Jest: **19/19 Suites, 83/83 Tests**, erfolgreich
-- ESLint: erfolgreich
-- Nest-/TypeScript-Build: erfolgreich
-- echter PostgreSQL-18-E2E-Lauf: **1/1 Suite, 1/1 durchgehender Test**,
-  erfolgreich; sechs Migrationen wurden auf der temporären Datenbank angewendet
-- `npm audit` für den vollständigen und den Produktionsbaum: jeweils
-  **0 bekannte Schwachstellen**
-- OpenAPI-Snapshot und generierter Kotlin-Baum: reproduzierbar aktuell
-- OpenAPI-SHA-256:
-  `8618f15f759748bafedc7396e8ce4e4591de82b7f22c22fc4afe95b61eece932`
-- generierter Kotlin-Client: nach einem Abbruch des 1-GiB-Gradle-Daemons mit
-  1,5 GiB erfolgreich kompiliert
-
-Der E2E-Test umfasst Setup/Bootstrap-Sperre, getrennte Beziehungen,
-Einladungen, Rollenprüfung, Perioden, Prognose, Freigabeentzug,
-Notizverschlüsselung, Tipps/Care Preferences, Refresh-Rotation, Sync-Pull und
--Push, Idempotenz, Soft Deletes, Konflikte, Export/Import und direkte
-Cross-Relationship-Angriffsversuche.
+Ein erster E2E-Lauf traf erwartungsgemäß die neu eingeführte stale-
+Prognosegrenze. Der Test verwendete danach eine aktuelle Referenzbeobachtung;
+nur der abschließende vollständige Lauf wird als bestanden gezählt.
 
 ### Android
 
-Die finale Android-Prüfkette wurde tatsächlich ausgeführt:
+Ausgeführt wurden die Releaseaufgaben für beide Unit-Testflavors, beide
+Debug-Lints, Production-Instrumentierungskompilierung, Production-Debug,
+Production-Release und Production-Bundle.
 
-- JVM-Tests: **20/20 Suites, 86/86 Tests**, erfolgreich
-- `lintLocalDebug`: 33 Hinweise, **0 Error/Fatal**
-- `lintProductionDebug`: 32 Hinweise, **0 Error/Fatal**
-- Production-Instrumentierungscode: erfolgreich kompiliert
-- Production-Debug-APK: erfolgreich assembliert
-- unsignierte Release-APK: erfolgreich assembliert
-- beide APK-ZIP-Strukturen: ohne Fehler geprüft
+Ergebnisse:
 
-Die Debug-APK ist installierbar:
+- Local: **36 Suites, 174 Tests**, erfolgreich
+- Production: **36 Suites, 174 Tests**, erfolgreich
+- zusammen **348 Unit-Test-Ausführungen**
+- Local-Lint: **0 Fehler, 64 Warnungen, 1 Information**
+- Production-Lint: **0 Fehler, 63 Warnungen, 1 Information**
+- Production-AndroidTest-Kotlin: erfolgreich kompiliert
+- Instrumentierung mangels Emulator/Gerät **nicht ausgeführt**
+- VersionCode 11, VersionName 1.1.0, minSdk 26, targetSdk 36,
+  compileSdk 37
+- APK-/AAB-Struktur und erwartete Signaturzustände geprüft
 
-```text
-/root/Lunara/artifacts/lunara-debug.apk
-```
+## Android-Buildartefakte
 
-- Paket: `de.lunara.app.debug`
-- `versionName`: 1.0.5; `versionCode`: 6
-- `minSdk`: 26; `targetSdk`/`compileSdk`: 37
-- Größe: 24.406.431 Bytes
-- SHA-256:
-  `193a562553be284f114e932748a14779710367ec8ef8a041e93241296eef48d2`
-- APK-v2-Signatur erfolgreich verifiziert
-- Debug-Zertifikat SHA-256:
-  `f53698206074d4e2b0ff7b6e7b134a58919a358f2054fb7d4ba35df77ac69328`
+Die tatsächlich erzeugten Dateien liegen absolut unter:
 
-Die unsignierte Release-APK liegt unter:
+| Zweck | Pfad | Bytes | Signaturstatus |
+| --- | --- | ---: | --- |
+| Production-Debug/Testinstallation | `/root/Lunara/artifacts/lunara-debug.apk` | 24.846.230 | Debugsignatur verifiziert; HTTPS-only, Passwort/Headerauth-Test, kein verifizierter Production-App-Link |
+| empfohlene Nutzer-/App-Link-APK | `/root/Lunara/artifacts/lunara-release.apk` | 20.129.262 | serverlokaler Upload-Key, verifiziert |
+| Referenz-Release-APK | `/root/Lunara/artifacts/lunara-release-unsigned.apk` | 20.074.290 | erwartungsgemäß unsigniert |
+| Google-Play-Upload | `/root/Lunara/artifacts/lunara-play-upload.aab` | 16.145.883 | serverlokaler Upload-Key, verifiziert |
+| Referenz-Bundle | `/root/Lunara/artifacts/lunara-release-unsigned.aab` | 16.114.856 | erwartungsgemäß unsigniert |
 
-```text
-/root/Lunara/artifacts/lunara-release-unsigned.apk
-```
+Finale Prüfsummen:
 
-- Paket: `de.lunara.app`
-- `versionName`: 1.0.5; `versionCode`: 6
-- Größe: 19.749.539 Bytes
-- SHA-256:
-  `e104ff2f946d732a6157d4a5d712d37167e1aee8898a9fe17bf4da640ecdf508`
-- erwartungsgemäß **nicht signiert** und daher vor Verteilung selbst zu
-  signieren
+`lunara-debug.apk`
 
-Beim separaten generierten OpenAPI-Kotlin-Client endete der erste
-`compileKotlin`-Versuch mit einem Abbruch des auf 1 GiB begrenzten
-Gradle-Daemons. Die Wiederholung mit 1,5 GiB war erfolgreich. Beide Android-
-APKs wurden anschließend tatsächlich gebaut; kein anderer Dienst wurde dafür
-neu gestartet.
+- SHA-256: `d884bf62efe56786fe2acceed52e1ad25a13ebd492eeb9832453ba1afd3f0db8`
 
-Die instrumentierten Compose-Tests wurden mangels angeschlossenem Gerät oder
-Emulator **nur kompiliert, nicht ausgeführt**. Reale Keystore-, SQLCipher-,
-WorkManager-, Accessibility- und UI-Interaktionen sind deshalb noch auf einem
-Android-Gerät zu prüfen.
+`lunara-release.apk`
 
-## Container und produktiver Server
+- SHA-256: `7edeac8b6ffe052c2b6b3ac33ed2db2dc27618c95474d85dc5f21fcb64cf953f`
 
-Vor dem Update wurde dieses eng benannte Backup angelegt:
+`lunara-release-unsigned.apk`
 
-```text
-/var/backups/lunara/release-1.0.5-pre-20260813T232500Z/
-```
+- SHA-256: `177868fab7d37d82b106175c3ffa2d688a5aea6337d76210ce578aec8bff28c9`
 
-- Verzeichnis `0700`, Dateien `0600`
-- PostgreSQL-Custom-Dump: 61.665 Bytes
-- Dump-SHA-256:
-  `aa45ba8940bc0919e91a9bfb137f1ce7af349406f75fe6dff31ac9e6d747858d`
-- Dump mit `pg_restore --list` validiert
-- Compose- und Env-Sicherung enthalten; Secrets werden nicht dokumentiert
+`lunara-play-upload.aab`
 
-Vor der Authentik-Migration wurde zusätzlich ein lesbarer PostgreSQL-Custom-
-Dump unter
-`/var/backups/lunara/infrastructure/authentik-before-lunara-single-app-20260813T181943Z.nS8hcE.dump`
-angelegt. Die alten Header-Dateien liegen in einem `0700`-Archiv. Ein Restore
-der produktiven Datenbanken wurde bewusst nicht ausgeführt, da dies
-destruktiv wäre.
+- SHA-256: `0b9504ce250dacc5066fac9d6b56aebb802197c303144d06465c26339dab0496`
 
-Das finale Image wurde tatsächlich gebaut:
+`lunara-release-unsigned.aab`
+
+- SHA-256: `acb2ed5734f6ccaaf81042bbba2724aa3e6628301ec04fe612def39e85f2ae4f`
+
+Dieselben finalen Werte stehen in
+`/root/Lunara/artifacts/SHA256SUMS`; `sha256sum -c SHA256SUMS` wurde im
+Artefaktverzeichnis für alle fünf Dateien erfolgreich ausgeführt. Ältere
+Hashes aus 1.0.x sind für 1.1.0 ungültig.
+
+Der private Upload-Keystore, Alias und Passwörter liegen nicht im Repository.
+Gradle liest sie nur über:
 
 ```text
-lunara-api:1.0.5
-sha256:fe12d3ecf3473d3df7360d649bd868d0b9f285e69317c14cab8d09baff7e3afe
+LUNARA_UPLOAD_KEYSTORE
+LUNARA_UPLOAD_KEYSTORE_PASSWORD
+LUNARA_UPLOAD_KEY_ALIAS
+LUNARA_UPLOAD_KEY_PASSWORD
 ```
 
-Live bestätigt:
+Für Google Play ist `lunara-play-upload.aab` ein technischer Upload-
+Releasekandidat. Play App Signing muss in der Play Console aktiviert werden;
+Google signiert ausgelieferte APKs mit einem getrennten App-Signing-Key. Nach
+dessen Zuweisung ist der Fingerprint in `assetlinks.json` zu aktualisieren und
+der App Link mit einem internen Play-Build erneut zu prüfen.
 
-- API-Container `f049893c…`: running und healthy
-- `/health`: HTTP 200; `/ready`: HTTP 200
-- `/api/v1/meta`: Version 1.0.5, `setupRequired: false`,
-  `registrationEnabled: true`
-- sechs Prisma-Migrationen angewendet
-- API als `10001:10001`, read-only Root-Dateisystem, Capability-Drop und
-  `no-new-privileges`
-- PostgreSQL ohne veröffentlichten Host-Port, weiterhin healthy
-- eine zehnminütige Beobachtung mit 30 Stichproben zeigte keinen ungesunden
-  Dienst; der freie Arbeitsspeicher lag nie unter rund 1,87 GiB
-- die Container-IDs von PostgreSQL, Authentik, Pangolin, Traefik und Emby
-  blieben während Build und Update unverändert
+## Docker-/Live-Ergebnis
 
-Der Bootstrap wird auf diesem eingerichteten Server nicht mehr benötigt.
-`setupRequired: false` ist persistent; der produktive Bootstrap-Token wurde aus
-der aktiven Lunara-Konfiguration entfernt. Weitere Personen verwenden die
-normale Registrierung, wobei jede Tracker-Registrierung eine eigene isolierte
-Beziehung erhält.
+Der finale 1.1.0-Multi-Stage-Build wurde lokal tatsächlich erstellt. API/PWA-
+Buildstufe, Non-root-Benutzer `10001:10001`, read-only Runtime, Healthcheck,
+Direct-Override und Moduswrapper wurden geprüft. Das produktive Image läuft
+als `lunara-api:1.1.0`, ist gesund und hat `RestartCount=0`.
 
-## Datenschutz- und Sicherheitsgrenzen
+Der erste 1.1.0-Startversuch deckte einen echten Packagingfehler auf: npm hatte
+`jose` als nicht gehobene Workspace-Produktionsabhängigkeit unter
+`services/api/node_modules` abgelegt, während das Runtime-Image zunächst nur
+die Root-Abhängigkeiten kopierte. Dieser Versuch startete nicht. Der
+Dockerfile kopiert nun auch den nicht gehobenen Produktionsbaum; ein gezielter
+Runtime-Require, der erneute Multi-Stage-Build und der anschließende Live-Start
+waren erfolgreich. Der Fehler wird hier bewusst nicht verschwiegen.
 
-- Wer die gemeinsame Header-Auth-URL kennt, kann den äußeren Authentik-Schutz
-  passieren. Gesundheitsdaten bleiben durch das zusätzliche persönliche
-  Lunara-Konto geschützt. Die gemeinsame URL muss trotzdem wie ein Passwort
-  behandelt und bei Verlust in Authentik rotiert werden.
-- Ein kompromittierter Server oder gestohlener `APP_MASTER_KEY` kann
-  serverseitig verschlüsselte Notizen offenlegen. Datenbankbackup und passender
-  Master-Key müssen getrennt, verschlüsselt und gemeinsam wiederherstellbar
-  gesichert werden.
-- Der interne Hop im privaten Docker-Netz ist nicht zusätzlich TLS-verschlüsselt.
-- Kein Zertifikat-Pinning ist erzwungen, damit selbst gehostete Zertifikate
-  erneuert werden können.
-- Die Android-Instrumentierung wurde nicht auf realer Hardware ausgeführt.
-- Die Datei `services/api/core.102` ist ein ignorierter lokaler Core-Dump und
-  kein Produktartefakt. Sie wurde ohne ausdrückliche Löschfreigabe nicht
-  entfernt.
+Vor dem Rollout wurden zwei validierte Sicherungen erstellt:
 
-## Bekannte Funktionsgrenzen
+- Lunara-Archiv im Verzeichnis `/var/backups/lunara/`, Zeitstempel 16:56:53 UTC
+- Authentik-Dump unter `/var/backups/lunara/infrastructure/`, Zeitstempel 16:57:50 UTC
 
-- Android-UIs fehlen noch für aktive Gerätesitzungen, eigene Symptome/Tipps,
-  Check-in-Antworten, vollständigen Export/Import, Kontolöschung und Trennen
-  einer Beziehung.
-- Der Android-Tageslog umfasst die Kernerfassung, aber Notiz,
-  Basaltemperatur, Ovulationstest sowie Tageslog-Korrektur/-Löschung sind noch
-  nicht vollständig in der UI verfügbar.
-- Periodenkorrektur und -löschung funktionieren in „Heute“, „Verlauf“ und
-  direkt im navigierbaren Monatskalender. Tiefere Statistiken und Charts sind
-  noch offen.
-- Lokale Benachrichtigungen sind in Android 1.0.6 umgesetzt. ntfy, Biometrie,
-  Widget, Demo-Modus, SSE-Client und reduzierte Bewegungen sind weiterhin
-  nicht vollständig umgesetzt.
-- Der verschlüsselte Export ist ein AES-256-GCM-geschütztes
-  `.lunarabackup`-JSON-Format, kein ZIP. Generischer CSV-Zuordnungsassistent,
-  direkter Import verschlüsselter Backups und Import-Undo fehlen.
-- Der generierte OpenAPI-Kotlin-Referenzclient wurde reproduzierbar erzeugt;
-  die Android-App nutzt zur Laufzeit ihre eigene typisierte Retrofit-Schicht.
-- Vollständiges Umbenennen erfordert neben zentralen Branding-Tokens weiterhin
-  Anpassungen an Package-ID, Übersetzungen und Vektor-Assets.
+Archivprüfsummen und `pg_restore --list` waren erfolgreich. Der Lunara-Dump
+wurde zusätzlich in einem isolierten temporären PostgreSQL-18-Container
+tatsächlich wiederhergestellt; sieben gesicherte Migrationen sowie ein User,
+drei Perioden und ein Tageslog wurden unverändert nachgewiesen. Der temporäre
+Container wurde anschließend automatisch entfernt. Die achte Migration wurde
+auf Live erfolgreich angewandt.
 
-Lunara ist damit ein stark abgesicherter und ungewöhnlich vollständiger
-self-hosted Kern für Paare. Eine objektive Behauptung, die „beste“ App am Markt
-zu sein, wäre ohne unabhängige Vergleichs-, Usability- und Medizinsicherheits-
-studie nicht seriös.
+Produktiv verifiziert:
 
-## Privates GitHub-Repository
+- ausschließlich die Lunara-API wurde ersetzt; PostgreSQL, Authentik,
+  Pangolin und Traefik wurden nicht neu gestartet und blieben gesund;
+- `/health` und `/ready` antworten intern mit 200;
+- `/api/v1/meta` und `/.well-known/assetlinks.json` antworten ohne Cookie oder
+  Zugangsdaten mit 200, JSON und `Cache-Control: no-store, max-age=0`;
+- `/` und `/api/v1/me` bleiben ohne Authentik-Zugang mit 302 geschützt;
+- der technische Header-Auth-App-Zugang, geschützte OpenAPI-Antwort und die
+  authentifizierte PWA-Shell wurden praktisch geprüft;
+- OIDC-Issuer, Discovery, JWKS/Endpoints, PKCE-S256, exakte HTTPS-Callbacks,
+  Dune/Elias-Gruppe und Authentik-Proxy-Sollzustand wurden nachgeprüft;
+- Pangolin enthält genau die verwaltbare Lunara-Ressource mit gepinntem
+  Authentik-Ziel.
 
-Das private Repository ist:
+Der bestehende Lunara-Benutzer `dunja` wurde nicht gelöscht, sondern
+transaktional mit der externen Identität des Authentik-Benutzers `Dune`
+verknüpft. Passwortlogin wurde deaktiviert und eine alte Gerätesitzung
+widerrufen. Nachgewiesen erhalten blieben TRACKER-Rolle, drei Perioden, ein
+Tageslog, Zyklusprofil, Freigaben und Care Preferences. Ein interaktiver Login
+mit dem persönlichen Authentik-Passwort wurde nicht automatisiert, weil dieses
+Passwort dem Releaseprozess absichtlich nicht vorliegt.
+
+## Bekannte Fehler und Grenzen
+
+- Instrumentierte Android-Tests wurden nicht auf realer Hardware ausgeführt.
+- Der PWA-Solo-Vault ist passphrasenverschlüsselt. Synchronisierte
+  Self-hosted-Daten können jedoch als nicht zusätzlich
+  anwendungsverschlüsselter Offlinecache in IndexedDB liegen; Browserprofil
+  und Betriebssystem bilden dafür die lokale Schutzgrenze.
+- Safari/iOS-/iPadOS-Installations-, Hintergrund- und Upgradeverhalten ist
+  noch nicht über eine vollständige reale Browsermatrix geprüft.
+- Screenshot-Schutz und Browserbenachrichtigungen sind in der PWA nicht
+  ausführbar. Importierte Privacy-/Notification-Einstellungen bleiben im
+  verschlüsselten Vault erhalten und werden als aktuell nicht anwendbar
+  gekennzeichnet.
+- Der PWA-Solo-Vault muss in jedem neuen Browserprozess erneut mit der
+  Passphrase entsperrt werden; Lunara kann eine verlorene Passphrase nicht
+  wiederherstellen.
+- Das ausschließlich lokale Custom-Scheme-OIDC darf nicht mit der Production-
+  client_id provisioniert werden. PKCE verhindert Client-Impersonation bei
+  einem selbst gestarteten fremden Flow nicht; Production verwendet deshalb
+  ausschließlich den verifizierten HTTPS App Link und enthält keinen Custom-
+  Scheme-Intent-Filter.
+- OIDC-Provider, PKCE-Metadaten und die externe Identitätsverknüpfung sind live
+  geprüft. Den ersten interaktiven Dune-/Elias-Login müssen die jeweiligen
+  Kontoinhaber mit ihrem eigenen Authentik-Passwort abschließen.
+- Eine hängende alte Browseranfrage kann einen Logout bis zu ihrem Abschluss
+  verzögern. Generation-Gates verhindern dabei Konten- oder Datenvermischung;
+  ein zusätzlicher Request-Abbruch ist noch nicht implementiert.
+- Biometrische App-Sperre, Widget, ntfy und Android-SSE-Client sind nicht
+  vollständig umgesetzt.
+- Android-UIs fehlen noch für Teile der Gerätesitzungsverwaltung, eigene
+  Symptome/Tipps, Check-in-Antworten sowie vollständigen Serverexport/-import
+  und Kontolöschung.
+- Generischer CSV-Zuordnungsassistent und vollständiges Import-Undo fehlen.
+- Server-Check-in-Texte und Browsergesundheitscache sind nicht mit dem
+  Server-Master-Key verschlüsselt.
+- Ein kompromittierter Root-Host oder entsperrtes kompromittiertes Gerät liegt
+  außerhalb des Schutzmodells.
+- Bluetooth-/WLAN-Peer-to-Peer-Sync ist nicht implementiert. Partner-Sync
+  benötigt die Self-hosted Instanz.
+- Lizenz, Markenfreiheit, Publisher-/Supportmodell, öffentliche Datenschutz-
+  und Löschseiten sowie Play-Erklärungen sind Betreiberentscheidungen vor
+  öffentlicher oder kommerzieller Veröffentlichung.
+
+## Sicherheitsgrenzen
+
+`APP_MASTER_KEY` schützt Notizinhalte in Dumps, nicht Datums-/Rollenmetadaten,
+und muss separat wiederherstellbar sein. Ein OIDC-Login ersetzt nicht die
+Lunara-Rollenprüfung. Partnerfreigaben verhindern künftige API-Ausgabe, können
+aber externe Screenshots nicht zurückholen. Prognosen sind statistische
+Schätzungen, keine Diagnose; das fruchtbare Fenster bestätigt keine Ovulation
+und darf nicht zur Verhütung verwendet werden.
+
+## Erster produktiver Start
+
+1. `.env` als root-only Datei aus `.env.example` erstellen und eindeutige
+   Secrets sowie Domain setzen.
+2. `GATEWAY_MODE=direct` oder `authentik` bewusst wählen.
+3. Im Authentik-Modus `configure-authentik-oidc.sh --check`, validierten
+   App-Signing-Fingerprint und erst danach das Apply ausführen.
+4. `./scripts/compose.sh config --quiet`, Image bauen, Migrator ausführen und
+   Dienste starten.
+5. `/ready`, Meta, Logs und Gatewaypfade prüfen.
+6. Frische Instanz einmal mit Bootstrap initialisieren und Bootstrap-Token
+   danach entfernen.
+7. Trackerfreigaben, Fertilitäts-Opt-in und Benachrichtigungen bewusst
+   konfigurieren; Partner nur über eigenen Einmalcode verbinden.
+8. Serverdump und `APP_MASTER_KEY` getrennt sichern; Restore in einer
+   isolierten Instanz testen.
+9. Für Solo-Geräte sofort ein verschlüsseltes portables Testbackup erstellen
+   und auf einem zweiten Gerät importieren, bevor der Umzugsweg als zuverlässig
+   angesehen wird.
+
+## Repository und Veröffentlichung
+
+Privates Repository:
 
 ```text
 https://github.com/eliasbruno124-dev/Lunara
 ```
 
-Das private Repository und der Branch `agent/authentik-human-access` bestehen.
-Android 1.0.9 wurde mit den oben geprüften Artefakten als privater Release
-veröffentlicht:
+Release 1.1.0:
 
 ```text
-https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.0.9
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.1.0
 ```
 
-GitHub enthält `lunara-debug.apk`, `lunara-release-unsigned.apk` und
-`SHA256SUMS`. Wegen des privaten Repositorys müssen Repository, Pull Request
-und Downloads mit dem berechtigten GitHub-Konto angemeldet geöffnet werden.
+Direkte signierte APK:
 
-Echte `.env`-Dateien, Authentik-Zugänge, Passwörter, Token, Dumps und
-Serverbackups bleiben ausschließlich auf dem Server.
+```text
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.1.0/lunara-release.apk
+```
 
-## Erster App-Start
-
-1. Die geprüfte Debug-APK installieren.
-2. Die vollständige einmalige Header-Auth-Adresse sicher direkt aus
-   `/docker/lunara/lunara-app-headerauth.url` übernehmen. Nicht in Chat,
-   GitHub oder QR-Codes kopieren.
-3. Die App zeigt danach nur noch `https://lunara.3li361.de/` an.
-4. Da Dunjas früheres Konto gelöscht ist, „Registrieren“ wählen und ein neues
-   persönliches Konto anlegen. Das Passwort darf 8 bis 128 Zeichen lang sein;
-   Großbuchstaben, Ziffern und Sonderzeichen sind nicht verpflichtend.
-5. Der Server erzeugt für jede Tracker-Registrierung automatisch eine
-   eigene unsichtbare Beziehungsgrenze; ein Haushaltsname ist nicht nötig.
-6. In den Einstellungen Freigaben, Care Preferences, lokale
-   Benachrichtigungen und die optionalen Fertilitätshinweise bewusst
-   konfigurieren.
-7. Die permanente Partner-Einladung als Code oder passwortfreien QR anzeigen.
-   Sie ist bis zur Verwendung gültig, nur einmal nutzbar und widerrufbar.
-8. Nach dem ersten echten Gerätetest ein aktuelles Backup samt getrennt
-   gesichertem `APP_MASTER_KEY` kontrollieren.
+Repository und Release sind privat; Download und Quellzugriff erfordern ein
+berechtigtes, bei GitHub angemeldetes Konto.

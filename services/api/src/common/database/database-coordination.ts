@@ -49,3 +49,11 @@ export async function lockUserPeriods(
 ): Promise<void> {
   await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${`lunara:periods:${userId}`}, 0))`;
 }
+
+/** Serializes password changes, identity linking and session creation per user. */
+export async function lockUserAuthentication(
+  database: Prisma.TransactionClient,
+  userId: string,
+): Promise<void> {
+  await database.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+}

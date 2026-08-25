@@ -163,11 +163,18 @@
     <string name="privacy_guard">Es werden ausschließlich freigegebene Informationen angezeigt.</string>
     <string name="calendar_actual_marker">P = erfasster Periodentag</string>
     <string name="calendar_prediction_marker">~ = geschätzter Zeitraum</string>
+    <string name="calendar_prediction_start_marker">≈ gestrichelt = möglicher Periodenbeginn, geschätzt</string>
+    <string name="calendar_prediction_duration_marker">≈ leicht hinterlegt = möglicher Periodentag, geschätzt</string>
     <string name="calendar_fertility_marker">F? = Fruchtbarkeit grob geschätzt</string>
     <string name="calendar_day_period">%1$d, erfasster Periodentag</string>
     <string name="calendar_day_prediction">%1$d, geschätzter Zeitraum</string>
     <string name="calendar_day_fertility">%1$d, grob geschätztes fruchtbares Fenster</string>
-    <string name="calendar_tracker_hint">Tippe auf den ersten Periodentag und wähle danach den letzten Tag aus. Vorhandene Zeiträume lassen sich antippen und ändern.</string>
+    <string name="calendar_day_today_status">Heute</string>
+    <string name="calendar_day_recorded_status">Erfasster Periodentag</string>
+    <string name="calendar_day_prediction_start_status">Möglicher Periodenbeginn, geschätzt</string>
+    <string name="calendar_day_prediction_duration_status">Möglicher Periodentag, geschätzt</string>
+    <string name="calendar_day_fertility_status">Grob geschätztes fruchtbares Fenster</string>
+    <string name="calendar_tracker_hint">Wische seitlich zwischen Monaten. Tippe auf den ersten Periodentag und wähle danach den letzten Tag aus. Vorhandene Zeiträume lassen sich antippen und ändern.</string>
     <string name="calendar_add_day">Periode an diesem Tag eintragen</string>
     <string name="calendar_edit_day">Vorhandene Periode bearbeiten</string>
     <string name="previous_month">Zurück</string>
@@ -287,6 +294,44 @@
     <string name="error_registration_unavailable">Auf diesem Server können derzeit keine neuen Beziehungen erstellt werden. Du kannst dich anmelden oder einen Einladungscode verwenden.</string>
     <string name="error_generic">Das hat nicht funktioniert. Prüfe deine Eingaben und versuche es erneut.</string>
     <string name="offline_badge">Offline verfügbar</string>
+    <string name="use_on_this_device">Nur auf diesem Gerät</string>
+    <string name="connect_server_and_partner">Server oder Partner verbinden</string>
+    <string name="local_mode_intro_summary">Ohne Konto und ohne Server. Deine Gesundheitsdaten bleiben verschlüsselt auf diesem Gerät; eine Partnerverbindung ist in diesem Modus nicht verfügbar.</string>
+    <string name="local_mode_badge">Nur lokal</string>
+    <string name="local_mode_title">Privat auf diesem Gerät starten</string>
+    <string name="local_mode_setup_summary">Du kannst Perioden, Tagesprotokolle, Kalender, Verlauf und lokale Erinnerungen allein verwenden.</string>
+    <string name="local_mode_privacy_notice">Kein Serverkonto, keine Cloud und keine Netzwerksynchronisation. Sichere dein Gerät und erstelle regelmäßig ein verschlüsseltes portables Backup.</string>
+    <string name="start_local_mode">Lokal starten</string>
+    <string name="local_storage_title">Lokale verschlüsselte Speicherung</string>
+    <string name="local_storage_summary">Perioden und Tagesprotokolle liegen ausschließlich in der verschlüsselten Lunara-Datenbank dieses Geräts. Es werden keine Gesundheitsdaten an einen Server gesendet.</string>
+    <string name="stored_on_device">Auf diesem Gerät gespeichert</string>
+    <string name="period_saved_local">Periodenbeginn sicher auf diesem Gerät eingetragen.</string>
+    <string name="period_added_local">Zeitraum sicher auf diesem Gerät eingetragen.</string>
+    <string name="period_ended_local">Periodenende sicher auf diesem Gerät eingetragen.</string>
+    <string name="period_updated_local">Zeitraum auf diesem Gerät aktualisiert.</string>
+    <string name="period_deleted_local">Zeitraum auf diesem Gerät gelöscht.</string>
+    <string name="daily_log_saved_local">Heutiger Eintrag sicher auf diesem Gerät gespeichert.</string>
+    <string name="local_delete_and_switch">Zu Servermodus wechseln</string>
+    <string name="local_delete_and_switch_summary">Aus Sicherheitsgründen werden die lokalen Gesundheitsdaten zuerst vollständig gelöscht. Erstelle vorher ein verschlüsseltes Backup.</string>
+    <string name="local_delete_title">Lokale Daten wirklich löschen?</string>
+    <string name="local_delete_confirmation">Alle lokalen Perioden, Tagesprotokolle, Einstellungen und Schlüssel werden unwiderruflich gelöscht. Danach kannst du einen Server verbinden.</string>
+    <string name="local_delete_confirm">Daten löschen</string>
+    <string name="portable_backup_title">Portables verschlüsseltes Backup</string>
+    <string name="portable_backup_summary">Übertrage lokale Daten über eine selbst gewählte Datei, etwa per Google Drive, Nextcloud oder USB. Lunara verwendet AES-256-GCM und speichert die Passphrase niemals.</string>
+    <string name="backup_create">Backup erstellen</string>
+    <string name="backup_restore">Backup wiederherstellen</string>
+    <string name="backup_passphrase">Backup-Passphrase</string>
+    <string name="backup_passphrase_confirm">Passphrase wiederholen</string>
+    <string name="backup_passphrase_length">Verwende mindestens 12 Zeichen. Ohne diese Passphrase kann das Backup nicht wiederhergestellt werden.</string>
+    <string name="backup_passphrase_mismatch">Die Passphrasen stimmen nicht überein.</string>
+    <string name="backup_export_passphrase_notice">Die Datei ist unabhängig vom Android Keystore verschlüsselt und kann auf ein neues Handy übertragen werden. Bewahre die Passphrase getrennt und sicher auf.</string>
+    <string name="backup_import_warning">Die validierten Daten aus diesem Backup ersetzen alle aktuellen lokalen Perioden, Tagesprotokolle und enthaltenen Einstellungen auf diesem Gerät.</string>
+    <string name="backup_busy">Backup wird sicher verarbeitet …</string>
+    <string name="backup_export_success">Das verschlüsselte Backup wurde gespeichert.</string>
+    <string name="backup_import_success">Das Backup wurde vollständig wiederhergestellt.</string>
+    <string name="backup_bad_passphrase">Passphrase falsch oder Datei verändert. Es wurden keine Daten importiert.</string>
+    <string name="backup_invalid">Die Datei ist kein gültiges oder unterstütztes Lunara-Backup. Es wurden keine Daten importiert.</string>
+    <string name="backup_failed">Das Backup konnte nicht verarbeitet werden. Prüfe den freien Speicher und den gewählten Speicherort.</string>
     <string name="estimated_label">Geschätzt</string>
     <string name="confidence_low">niedrig</string>
     <string name="confidence_medium">mittel</string>
@@ -330,4 +375,16 @@
     <string name="notification_log_body">Wenn du möchtest, kannst du deinen heutigen Zykluseintrag in Lunara ergänzen.</string>
     <string name="notification_tip_title">Neuer Unterstützungstipp</string>
     <string name="notification_tip_body">In Lunara wartet ein freigegebener, respektvoller Vorschlag.</string>
+    <string name="sign_in_with_provider">Mit %1$s anmelden</string>
+    <string name="or_use_lunara_account">oder mit Lunara-Benutzername und Passwort</string>
+    <string name="error_oidc_cancelled">Die Anmeldung wurde abgebrochen. Es wurden keine Daten geändert.</string>
+    <string name="error_oidc_not_linked">Authentik ist bestätigt, aber noch keinem Lunara-Konto zugeordnet. Melde dich einmal mit deinem Lunara-Konto an oder wähle „Neu registrieren“ beziehungsweise „Einladung“, und verknüpfe Authentik danach in den Einstellungen.</string>
+    <string name="error_oidc_failed">Die Authentik-Anmeldung konnte nicht sicher abgeschlossen werden. Prüfe die Serverkonfiguration und versuche es erneut.</string>
+    <string name="authentik_connected">Mit %1$s verbunden</string>
+    <string name="authentik_connected_password_available">Du kannst dich mit Authentik oder weiterhin mit deinem Lunara-Passwort anmelden.</string>
+    <string name="authentik_connected_only">Die Anmeldung und Passwortverwaltung erfolgen ausschließlich über Authentik.</string>
+    <string name="connect_authentik">%1$s verknüpfen</string>
+    <string name="connect_authentik_summary">Einmal sicher im Browser anmelden. Danach genügt dieses Authentik-Konto für Lunara.</string>
+    <string name="connect_authentik_confirmation">Bestätige zuerst dein aktuelles Lunara-Passwort. Anschließend öffnet sich die sichere Authentik-Anmeldung im Browser.</string>
+    <string name="authentik_link_failed">Die Verknüpfung wurde nicht abgeschlossen. Prüfe Passwort und Authentik-Anmeldung und versuche es erneut.</string>
 </resources>

@@ -1,5 +1,61 @@
 # Changelog
 
+## 1.1.0 – 2026-08-25
+
+- Vollständig lokalen Android-Solomodus ohne Konto, Domain oder Server
+  ergänzt. Perioden, Tageslogs, lokale Prognose, Verlauf und Erinnerungen
+  bleiben in der SQLCipher-Datenbank des Geräts; Server-, Partner- und
+  Synchronisierungswege fallen im Solomodus geschlossen aus.
+- Portables, mit PBKDF2-HMAC-SHA256 und AES-256-GCM geschütztes
+  `.lunara`-Backup über Android Storage Access Framework ergänzt. Dadurch ist
+  ein bewusster Gerätewechsel über lokalen Speicher, USB oder einen vom
+  Benutzer gewählten Anbieter wie Google Drive/Nextcloud möglich, ohne
+  Google-SDK oder automatisches Cloudbackup. Ein Import-Journal vollendet
+  unterbrochene Einstellungswiederherstellung idempotent.
+- Installierbare TypeScript-PWA mit Deutsch/Englisch, Hell/Dunkel,
+  rollenabhängigen Dashboards, wischbarem Kalender, Offline-Queue,
+  automatischem Sync und portablem Backup ergänzt. Ihr lokaler Solomodus
+  versiegelt Gesundheitsdaten passphrasenbasiert in einem AES-GCM-Vault;
+  Konto-Caches sind isoliert und API-/Health-/OpenAPI-Antworten werden nicht
+  vom Service Worker gecacht.
+- Optionalen persönlichen Authentik-OIDC-Login als Authorization Code Flow mit
+  PKCE S256, State, Nonce und externem Tokenrefresh ergänzt. Das bestehende
+  Lunara-Konto wird nur nach expliziter Reauthentifizierung beziehungsweise
+  bestätigter Adminmigration mit exakt geprüftem Issuer/Subject verknüpft; es
+  gibt kein Auto-Provisioning anhand von E-Mail oder Benutzername.
+- Dualen Authvertrag eingeführt: Authentik-Bearer außen in `Authorization`,
+  persönlicher Lunara-Bearer innen in `X-Lunara-Authorization`. Beide werden
+  nur same-origin gesendet und erfüllen getrennte Aufgaben.
+- Android-Production-OIDC verwendet unabhängig von der Self-hosting-API-Domain
+  immer den festen, beim Build konfigurierten und verifizierten Publisher-App-
+  Link. Der Production-Provider registriert ausschließlich Android-HTTPS und
+  PWA-HTTPS. Ein Custom Scheme existiert ausschließlich im Android-`local`-
+  Flavor für einen getrennten Entwicklungsprovider mit eigener client_id;
+  Production einschließlich Production-Debug enthält keinen solchen Filter.
+- Direct-Gatewaymodus ohne Authentik ergänzt. `scripts/compose.sh` lädt den
+  korrekten Direct-Override beziehungsweise die Authentik-OIDC-Env; Backup,
+  Restore, Update und Admin verwenden denselben Moduswrapper.
+- Authentik-Provisioner ergänzt: öffentliche OIDC-Anwendung ohne Client
+  Secret, eng begrenzte Benutzergruppe, explizite Zustimmung, asymmetrisches
+  RS256, strikte Redirects, öffentliche Meta-/Asset-Link-Ausnahmen und
+  validiertes Infrastrukturbackup vor Änderungen.
+- Öffentlichen `/.well-known/assetlinks.json`-Endpoint mit strikter
+  Package-/Zertifikatsvalidierung ergänzt. Google-Play-App-Signing-Key und
+  serverlokaler Upload-Key sind getrennt dokumentiert.
+- Kalender auf horizontales Monatswischen umgestellt, fünf zukünftige Jahre
+  sichtbar gemacht und geschätzte Periodentage klar von tatsächlichen
+  Einträgen unterschieden.
+- Prognose auf `lunara-robust-v2` gehärtet: bis zu zwölf aktuelle vollständige
+  Zyklen, gewichteter Median, robuste und erklärte Ausreißerbehandlung,
+  Mindestunsicherheit, aktuelle Beobachtungsgrenze und fail-closed Sondermodi.
+- Android-Releasekonfiguration auf VersionCode 11/VersionName 1.1.0
+  aktualisiert. Upload-Signing wird nur mit vollständiger externer
+  `LUNARA_UPLOAD_*`-Konfiguration aktiviert; Secrets und Keystores bleiben
+  außerhalb des Repositorys.
+- Backend/PWA-Multi-Stage-Build, PostgreSQL-18-Migrationen, JVM-/Webtests,
+  Android-Lints, Instrumentierungskompilierung und APK/AAB-Buildmatrix
+  erweitert. Instrumentierte Gerätetests bleiben ausdrücklich noch offen.
+
 ## 1.0.9 – 2026-08-20
 
 - Periodenzeiträume werden ohne fehleranfällige Datumstexteingabe gewählt:

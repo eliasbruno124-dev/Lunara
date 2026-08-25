@@ -163,11 +163,18 @@
     <string name="privacy_guard">Only explicitly shared information is shown.</string>
     <string name="calendar_actual_marker">P = recorded period day</string>
     <string name="calendar_prediction_marker">~ = estimated range</string>
+    <string name="calendar_prediction_start_marker">≈ dashed = possible period start, estimated</string>
+    <string name="calendar_prediction_duration_marker">≈ lightly shaded = possible period day, estimated</string>
     <string name="calendar_fertility_marker">F? = fertility roughly estimated</string>
     <string name="calendar_day_period">%1$d, recorded period day</string>
     <string name="calendar_day_prediction">%1$d, estimated range</string>
     <string name="calendar_day_fertility">%1$d, roughly estimated fertile window</string>
-    <string name="calendar_tracker_hint">Tap the first period day, then select the final day. Tap an existing range to change it.</string>
+    <string name="calendar_day_today_status">Today</string>
+    <string name="calendar_day_recorded_status">Recorded period day</string>
+    <string name="calendar_day_prediction_start_status">Possible period start, estimated</string>
+    <string name="calendar_day_prediction_duration_status">Possible period day, estimated</string>
+    <string name="calendar_day_fertility_status">Roughly estimated fertile window</string>
+    <string name="calendar_tracker_hint">Swipe sideways between months. Tap the first period day, then select the final day. Tap an existing range to change it.</string>
     <string name="calendar_add_day">Add a period on this day</string>
     <string name="calendar_edit_day">Edit the existing period</string>
     <string name="previous_month">Previous</string>
@@ -287,6 +294,44 @@
     <string name="error_registration_unavailable">This server is not currently accepting new relationships. You can sign in or use an invitation code.</string>
     <string name="error_generic">That did not work. Check your input and try again.</string>
     <string name="offline_badge">Available offline</string>
+    <string name="use_on_this_device">Only on this device</string>
+    <string name="connect_server_and_partner">Connect a server or partner</string>
+    <string name="local_mode_intro_summary">No account and no server. Your health data stays encrypted on this device; partner connection is not available in this mode.</string>
+    <string name="local_mode_badge">Local only</string>
+    <string name="local_mode_title">Start privately on this device</string>
+    <string name="local_mode_setup_summary">Use period tracking, daily logs, calendar, history and local reminders on your own.</string>
+    <string name="local_mode_privacy_notice">No server account, cloud or network sync. Protect your device and create an encrypted portable backup regularly.</string>
+    <string name="start_local_mode">Start locally</string>
+    <string name="local_storage_title">Encrypted local storage</string>
+    <string name="local_storage_summary">Periods and daily logs exist only in Lunara’s encrypted database on this device. No health data is sent to a server.</string>
+    <string name="stored_on_device">Stored on this device</string>
+    <string name="period_saved_local">Period start stored securely on this device.</string>
+    <string name="period_added_local">Period range stored securely on this device.</string>
+    <string name="period_ended_local">Period end stored securely on this device.</string>
+    <string name="period_updated_local">Period range updated on this device.</string>
+    <string name="period_deleted_local">Period range deleted on this device.</string>
+    <string name="daily_log_saved_local">Today’s log stored securely on this device.</string>
+    <string name="local_delete_and_switch">Switch to server mode</string>
+    <string name="local_delete_and_switch_summary">For security, local health data is erased completely first. Create an encrypted backup beforehand.</string>
+    <string name="local_delete_title">Erase local data?</string>
+    <string name="local_delete_confirmation">All local periods, daily logs, settings and keys will be erased permanently. You can then connect a server.</string>
+    <string name="local_delete_confirm">Erase data</string>
+    <string name="portable_backup_title">Portable encrypted backup</string>
+    <string name="portable_backup_summary">Transfer local data through a file you choose, such as Google Drive, Nextcloud or USB. Lunara uses AES-256-GCM and never stores the passphrase.</string>
+    <string name="backup_create">Create backup</string>
+    <string name="backup_restore">Restore backup</string>
+    <string name="backup_passphrase">Backup passphrase</string>
+    <string name="backup_passphrase_confirm">Repeat passphrase</string>
+    <string name="backup_passphrase_length">Use at least 12 characters. The backup cannot be restored without this passphrase.</string>
+    <string name="backup_passphrase_mismatch">The passphrases do not match.</string>
+    <string name="backup_export_passphrase_notice">The file is encrypted independently of Android Keystore and can be transferred to a new phone. Keep the passphrase separate and safe.</string>
+    <string name="backup_import_warning">Validated data from this backup replaces all current local periods, daily logs and included settings on this device.</string>
+    <string name="backup_busy">Processing the backup securely…</string>
+    <string name="backup_export_success">The encrypted backup was saved.</string>
+    <string name="backup_import_success">The backup was restored completely.</string>
+    <string name="backup_bad_passphrase">Incorrect passphrase or modified file. No data was imported.</string>
+    <string name="backup_invalid">This is not a valid or supported Lunara backup. No data was imported.</string>
+    <string name="backup_failed">The backup could not be processed. Check free space and the selected storage location.</string>
     <string name="estimated_label">Estimated</string>
     <string name="confidence_low">low</string>
     <string name="confidence_medium">medium</string>
@@ -330,4 +375,16 @@
     <string name="notification_log_body">If you want, you can add today’s cycle entry in Lunara.</string>
     <string name="notification_tip_title">New support tip</string>
     <string name="notification_tip_body">An approved, respectful suggestion is waiting in Lunara.</string>
+    <string name="sign_in_with_provider">Sign in with %1$s</string>
+    <string name="or_use_lunara_account">or use your Lunara username and password</string>
+    <string name="error_oidc_cancelled">Sign-in was cancelled. No data was changed.</string>
+    <string name="error_oidc_not_linked">Authentik is confirmed but is not assigned to a Lunara account yet. Sign in with your Lunara account once, or choose “Register” or “Invitation”, then link Authentik in Settings.</string>
+    <string name="error_oidc_failed">Authentik sign-in could not be completed securely. Check the server configuration and try again.</string>
+    <string name="authentik_connected">Connected to %1$s</string>
+    <string name="authentik_connected_password_available">You can sign in with Authentik or continue using your Lunara password.</string>
+    <string name="authentik_connected_only">Sign-in and password management are handled exclusively by Authentik.</string>
+    <string name="connect_authentik">Connect %1$s</string>
+    <string name="connect_authentik_summary">Sign in securely in the browser once. This Authentik account can then be used for Lunara.</string>
+    <string name="connect_authentik_confirmation">First confirm your current Lunara password. The secure Authentik sign-in will then open in your browser.</string>
+    <string name="authentik_link_failed">Linking was not completed. Check the password and Authentik sign-in, then try again.</string>
 </resources>

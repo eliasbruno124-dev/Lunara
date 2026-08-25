@@ -42,15 +42,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -67,10 +70,15 @@ import com.journeyapps.barcodescanner.ScanOptions
 @Composable
 fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val authentikLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        viewModel.completeAuthentikLogin(result.data)
+    }
     OnboardingScreen(
         state = state,
         onLanguage = viewModel::chooseLanguage,
         onContinue = viewModel::continueFromIntro,
+        onLocalMode = viewModel::beginLocalSetup,
+        onLocalSubmit = viewModel::submitLocalSetup,
         onBack = viewModel::back,
         onServerUrl = viewModel::setServerUrl,
         onScannedServerUrl = viewModel::acceptScannedServerUrl,
@@ -84,6 +92,9 @@ fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
         onDisplayName = viewModel::setDisplayName,
         onBootstrapToken = viewModel::setBootstrapToken,
         onInvitationCode = viewModel::setInvitationCode,
+        onAuthentikLogin = {
+            viewModel.beginAuthentikLogin { authentikLauncher.launch(it) }
+        },
         onSubmit = viewModel::submitAuthentication,
     )
 }
@@ -106,7 +117,10 @@ fun OnboardingScreen(
     onDisplayName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
+    onAuthentikLogin: () -> Unit = {},
     onSubmit: () -> Unit,
+    onLocalMode: () -> Unit = {},
+    onLocalSubmit: () -> Unit = {},
 ) {
     Box(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding(),
@@ -122,11 +136,12 @@ fun OnboardingScreen(
                 }
             }
             when (state.stage) {
-                OnboardingStage.INTRO -> IntroStep(state.language, onLanguage, onContinue)
+                OnboardingStage.INTRO -> IntroStep(state.language, onLanguage, onContinue, onLocalMode)
+                OnboardingStage.LOCAL -> LocalModeStep(state, onDisplayName, onLocalSubmit)
                 OnboardingStage.SERVER -> ServerStep(state, onServerUrl, onScannedServerUrl, onAllowHttp, onTestConnection)
                 OnboardingStage.AUTH -> AuthStep(
                     state, onAuthMode, onUsername, onPassword, onDisplayName,
-                    onBootstrapToken, onInvitationCode, onSubmit,
+                    onBootstrapToken, onInvitationCode, onAuthentikLogin, onSubmit,
                 )
             }
         }
@@ -147,7 +162,12 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun IntroStep(language: String, onLanguage: (String) -> Unit, onContinue: () -> Unit) {
+private fun IntroStep(
+    language: String,
+    onLanguage: (String) -> Unit,
+    onContinue: () -> Unit,
+    onLocalMode: () -> Unit,
+) {
     Spacer(Modifier.height(32.dp))
     Box(
         Modifier.size(88.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
@@ -166,7 +186,50 @@ private fun IntroStep(language: String, onLanguage: (String) -> Unit, onContinue
         FilterChip(language == "en", { onLanguage("en") }, { Text(stringResource(R.string.language_english)) })
     }
     NoticeCard(stringResource(R.string.medical_notice))
-    Button(onContinue, Modifier.fillMaxWidth().height(54.dp)) { Text(stringResource(R.string.continue_label)) }
+    Button(onLocalMode, Modifier.fillMaxWidth().height(54.dp).testTag("local-mode-start")) {
+        Icon(Icons.Rounded.Lock, contentDescription = null)
+        Text(stringResource(R.string.use_on_this_device), Modifier.padding(start = 10.dp))
+    }
+    Text(
+        stringResource(R.string.local_mode_intro_summary),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    OutlinedButton(onContinue, Modifier.fillMaxWidth().height(54.dp)) {
+        Text(stringResource(R.string.connect_server_and_partner))
+    }
+}
+
+@Composable
+private fun LocalModeStep(
+    state: OnboardingUiState,
+    onDisplayName: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
+    LunaraHeader(
+        eyebrow = stringResource(R.string.local_mode_badge),
+        title = stringResource(R.string.local_mode_title),
+        body = stringResource(R.string.local_mode_setup_summary),
+    )
+    NoticeCard(stringResource(R.string.local_mode_privacy_notice))
+    OutlinedTextField(
+        value = state.displayName,
+        onValueChange = onDisplayName,
+        label = { Text(stringResource(R.string.display_name)) },
+        singleLine = true,
+        isError = state.error == OnboardingError.DISPLAY_NAME,
+        modifier = Modifier.fillMaxWidth().testTag("local-display-name"),
+    )
+    ErrorText(state.error)
+    Button(
+        onClick = onSubmit,
+        enabled = !state.isBusy,
+        modifier = Modifier.fillMaxWidth().height(54.dp).testTag("local-mode-confirm"),
+    ) {
+        if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+        else Icon(Icons.Rounded.Lock, contentDescription = null)
+        Text(stringResource(R.string.start_local_mode), Modifier.padding(start = 10.dp))
+    }
 }
 
 @Composable
@@ -263,6 +326,7 @@ private fun AuthStep(
     onDisplayName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
+    onAuthentikLogin: () -> Unit,
     onSubmit: () -> Unit,
 ) {
     val title = when (state.authMode) {
@@ -295,6 +359,27 @@ private fun AuthStep(
                 { Text(stringResource(R.string.use_registration)) },
             )
         }
+    }
+
+    if (state.authMode == AuthMode.LOGIN && state.meta?.oidc != null) {
+        Button(
+            onClick = onAuthentikLogin,
+            enabled = !state.isBusy,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+        ) {
+            Icon(Icons.Rounded.Lock, contentDescription = null)
+            Text(
+                stringResource(R.string.sign_in_with_provider, state.meta.oidc.providerName),
+                Modifier.padding(start = 10.dp),
+            )
+        }
+        Text(
+            stringResource(R.string.or_use_lunara_account),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 
     if (state.authMode != AuthMode.LOGIN) {
@@ -453,6 +538,9 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.PARTNER_ALREADY_CONNECTED -> R.string.error_partner_already_connected
         OnboardingError.INVALID_CREDENTIALS -> R.string.error_invalid_credentials
         OnboardingError.REGISTRATION_UNAVAILABLE -> R.string.error_registration_unavailable
+        OnboardingError.OIDC_CANCELLED -> R.string.error_oidc_cancelled
+        OnboardingError.OIDC_NOT_LINKED -> R.string.error_oidc_not_linked
+        OnboardingError.OIDC_FAILED -> R.string.error_oidc_failed
         OnboardingError.GENERIC -> R.string.error_generic
         null -> return
     }
@@ -467,7 +555,7 @@ private fun IntroPreview() = LunaraTheme {
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},
         onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
-        onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
+        onBootstrapToken = {}, onInvitationCode = {}, onAuthentikLogin = {}, onSubmit = {},
     )
 }
 
@@ -483,6 +571,6 @@ private fun LoginPreview() = LunaraTheme {
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},
         onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
-        onBootstrapToken = {}, onInvitationCode = {}, onSubmit = {},
+        onBootstrapToken = {}, onInvitationCode = {}, onAuthentikLogin = {}, onSubmit = {},
     )
 }

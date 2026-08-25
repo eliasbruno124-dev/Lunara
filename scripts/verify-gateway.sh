@@ -172,6 +172,22 @@ if (
     fail("Header-Auth lieferte keine gültige Lunara-Metaantwort.")
 del meta_body, meta
 
+# Native clients need one non-sensitive discovery endpoint before they know whether
+# Authentik is enabled. It must stay cache-free and expose no account information.
+public_meta_status, _, public_meta_body = request("/api/v1/meta", authenticated=False)
+try:
+    public_meta = json.loads(public_meta_body)
+except (UnicodeError, json.JSONDecodeError):
+    public_meta = None
+if (
+    public_meta_status != 200
+    or not isinstance(public_meta, dict)
+    or public_meta.get("apiVersion") != "v1"
+    or not isinstance(public_meta.get("authenticationMethods"), list)
+):
+    fail("Die absichtlich öffentliche Meta-Erkennung liefert keinen gültigen, nicht sensiblen Vertrag.")
+del public_meta_body, public_meta
+
 docs_status, _, docs_body = request("/api-docs-json", authenticated=True)
 try:
     docs = json.loads(docs_body)
@@ -191,8 +207,8 @@ for protected_path in (
     "/",
     "/health",
     "/api-docs-json",
-    "/api/v1/meta",
     "/api/v1/auth/login",
+    "/api/v1/auth/oidc/login",
 ):
     status_code, redirect_location, body = request(protected_path, authenticated=False)
     if status_code not in (302, 303, 307, 308) or not redirect_location:
@@ -211,8 +227,8 @@ for protected_path in (
 username = ""
 password = ""
 print(
-    "Gateway-Prüfung erfolgreich: Ein technischer App-Zugang funktioniert; "
-    "alle geprüften Lunara-Pfade verlangen Authentik."
+    "Gateway-Prüfung erfolgreich: technischer App-Zugang und öffentliche Meta-Erkennung "
+    "funktionieren; alle übrigen geprüften Lunara-Pfade verlangen Authentik."
 )
 PYTHON
 then

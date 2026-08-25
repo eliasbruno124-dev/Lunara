@@ -831,6 +831,45 @@
         ],
         "type": "object"
       },
+      "OidcLinkDto": {
+        "properties": {
+          "accessToken": {
+            "description": "Short-lived OIDC access token issued for the Lunara audience",
+            "type": "string",
+            "writeOnly": true
+          },
+          "currentPassword": {
+            "description": "Re-authenticates the existing Lunara account before linking",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "accessToken",
+          "currentPassword"
+        ],
+        "type": "object"
+      },
+      "OidcLoginDto": {
+        "properties": {
+          "accessToken": {
+            "description": "Short-lived OIDC access token issued for the Lunara audience",
+            "type": "string",
+            "writeOnly": true
+          },
+          "deviceName": {
+            "example": "Pixel 10",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "deviceName"
+        ],
+        "type": "object"
+      },
       "PartnerDashboardResponse": {
         "additionalProperties": true,
         "properties": {
@@ -1071,6 +1110,11 @@
       },
       "RefreshDto": {
         "properties": {
+          "oidcAccessToken": {
+            "description": "Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity",
+            "type": "string",
+            "writeOnly": true
+          },
           "refreshToken": {
             "type": "string",
             "writeOnly": true
@@ -1896,7 +1940,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.0.7",
+    "version": "1.1.0",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },
@@ -2015,6 +2059,102 @@
             "bearer": []
           }
         ],
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/oidc/link": {
+      "post": {
+        "operationId": "Oidc_link",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcLinkDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Link the signed-in Lunara account to the exact OIDC subject after password re-authentication",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/oidc/login": {
+      "post": {
+        "operationId": "Oidc_login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcLoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Exchange a verified, explicitly linked OIDC identity for a Lunara session",
+        "tags": [
+          "authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/oidc/status": {
+      "get": {
+        "operationId": "Oidc_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericObjectResponse"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Show external sign-in and local password status",
         "tags": [
           "authentication"
         ]

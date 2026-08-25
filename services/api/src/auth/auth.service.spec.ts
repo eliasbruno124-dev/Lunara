@@ -7,6 +7,7 @@ import {
 import {
   AuditEventType,
   PreferredLanguage,
+  SessionAuthMethod,
   UserRole,
 } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -38,7 +39,13 @@ function createService(prisma: Record<string, unknown>): AuthService {
     getOrThrow: jest.fn().mockReturnValue('test-secret'),
   };
   const jwt = { signAsync: jest.fn() };
-  return new AuthService(prisma as never, config as never, jwt as never);
+  const oidcVerifier = { verify: jest.fn() };
+  return new AuthService(
+    prisma as never,
+    config as never,
+    jwt as never,
+    oidcVerifier as never,
+  );
 }
 
 describe('AuthService.changePassword', () => {
@@ -237,6 +244,269 @@ describe('AuthService.changePassword', () => {
       },
     });
   });
+
+  it('fails generically when local password login is disabled', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ passwordHash: null, disabledAt: null }),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn(),
+    };
+    const service = createService(prisma);
+
+    await expect(
+      service.changePassword(authenticatedUser, {
+        currentPassword,
+        newPassword,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.auditEvent.create).toHaveBeenCalledWith({
+      data: {
+        householdId: authenticatedUser.householdId,
+        actorUserId: authenticatedUser.userId,
+        type: AuditEventType.PASSWORD_CHANGE_FAILED,
+        metadata: {},
+      },
+    });
+  });
+});
+
+describe('AuthService.login with an OIDC-only account', () => {
+  it('does dummy password work and returns the normal generic login failure', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: authenticatedUser.userId,
+          username: authenticatedUser.username,
+          passwordHash: null,
+          disabledAt: null,
+          memberships: [{ householdId: authenticatedUser.householdId }],
+        }),
+      },
+      auditEvent: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn(),
+    };
+    const service = createService(prisma);
+
+    const error: unknown = await service
+      .login({
+        username: authenticatedUser.username,
+        password: currentPassword,
+        deviceName: 'Pixel',
+      })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect((error as Error).message).toBe('Invalid username or password');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.refresh OIDC revalidation', () => {
+  const refreshUserId = '77777777-7777-4777-8777-777777777777';
+  const sessionId = '88888888-8888-4888-8888-888888888888';
+  const replacementSessionId = '99999999-9999-4999-8999-999999999999';
+  const externalIdentityId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const tokenFamilyId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const issuer = 'https://auth.example/application/o/lunara/';
+  const subject = 'authentik-subject-123';
+  const refreshToken = 'r'.repeat(64);
+  const oidcAccessToken = 'o'.repeat(128);
+
+  function createRefreshHarness(
+    authMethod: SessionAuthMethod,
+    revokedAt: Date | null = null,
+  ) {
+    const relation =
+      authMethod === SessionAuthMethod.OIDC
+        ? { issuer, subject }
+        : null;
+    const linkedIdentityId =
+      authMethod === SessionAuthMethod.OIDC ? externalIdentityId : null;
+    const initial = {
+      id: sessionId,
+      userId: refreshUserId,
+      authMethod,
+      externalIdentityId: linkedIdentityId,
+      externalIdentity: relation,
+    };
+    const tokenRecord = {
+      id: sessionId,
+      tokenFamilyId,
+      revokedAt,
+      authMethod,
+      externalIdentityId: linkedIdentityId,
+      externalIdentity: relation,
+    };
+    const old = {
+      id: sessionId,
+      userId: refreshUserId,
+      tokenFamilyId,
+      deviceName: 'Pixel',
+      expiresAt: new Date(Date.now() + 60_000),
+      authMethod,
+      externalIdentityId: linkedIdentityId,
+      user: {
+        id: refreshUserId,
+        username: 'tracker-a',
+        displayName: 'Tracker A',
+        preferredLanguage: PreferredLanguage.DE,
+        disabledAt: null,
+        memberships: [
+          { householdId: authenticatedUser.householdId, role: UserRole.TRACKER },
+        ],
+      },
+    };
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      deviceSession: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce(tokenRecord)
+          .mockResolvedValueOnce(old),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        create: jest.fn().mockResolvedValue({ id: replacementSessionId }),
+      },
+      externalIdentity: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      deviceSession: { findUnique: jest.fn().mockResolvedValue(initial) },
+      $transaction: jest.fn(
+        (operation: (database: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const config = {
+      get: jest.fn((_key: string, defaultValue: unknown) => defaultValue),
+      getOrThrow: jest.fn().mockReturnValue('refresh-test-pepper'),
+    };
+    const jwt = { signAsync: jest.fn().mockResolvedValue('access-token') };
+    const oidcVerifier = {
+      verify: jest.fn().mockResolvedValue({
+        issuer,
+        subject,
+        issuedAt: 1_777_000_000,
+        expiresAt: 1_777_000_300,
+      }),
+    };
+    const service = new AuthService(
+      prisma as never,
+      config as never,
+      jwt as never,
+      oidcVerifier as never,
+    );
+    return { service, prisma, tx, oidcVerifier };
+  }
+
+  it('rejects an OIDC refresh without a fresh provider token before rotation', async () => {
+    const harness = createRefreshHarness(SessionAuthMethod.OIDC);
+
+    await expect(harness.service.refresh(refreshToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(harness.oidcVerifier.verify).not.toHaveBeenCalled();
+    expect(harness.prisma.$transaction).not.toHaveBeenCalled();
+    expect(harness.tx.deviceSession.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid OIDC token before rotation', async () => {
+    const harness = createRefreshHarness(SessionAuthMethod.OIDC);
+    harness.oidcVerifier.verify.mockRejectedValueOnce(
+      new UnauthorizedException('invalid provider token'),
+    );
+
+    await expect(
+      harness.service.refresh(refreshToken, oidcAccessToken),
+    ).rejects.toMatchObject({
+      message: 'Invalid or expired refresh token',
+    });
+    expect(harness.prisma.$transaction).not.toHaveBeenCalled();
+    expect(harness.tx.deviceSession.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a valid token belonging to a different exact subject', async () => {
+    const harness = createRefreshHarness(SessionAuthMethod.OIDC);
+    harness.oidcVerifier.verify.mockResolvedValueOnce({
+      issuer,
+      subject: 'another-subject',
+      issuedAt: 1_777_000_000,
+      expiresAt: 1_777_000_300,
+    });
+
+    await expect(
+      harness.service.refresh(refreshToken, oidcAccessToken),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(harness.prisma.$transaction).not.toHaveBeenCalled();
+    expect(harness.tx.deviceSession.create).not.toHaveBeenCalled();
+  });
+
+  it('rotates an OIDC session only after an exact proof and preserves its authentication binding', async () => {
+    const harness = createRefreshHarness(SessionAuthMethod.OIDC);
+
+    await expect(
+      harness.service.refresh(refreshToken, oidcAccessToken),
+    ).resolves.toMatchObject({
+      accessToken: 'access-token',
+      sessionId: replacementSessionId,
+    });
+    expect(harness.oidcVerifier.verify).toHaveBeenCalledWith(oidcAccessToken);
+    expect(harness.tx.deviceSession.updateMany).toHaveBeenCalledWith({
+      where: { id: sessionId, revokedAt: null },
+      data: {
+        revokedAt: expect.any(Date) as Date,
+        lastUsedAt: expect.any(Date) as Date,
+      },
+    });
+    expect(harness.tx.deviceSession.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        authMethod: SessionAuthMethod.OIDC,
+        externalIdentityId,
+        rotatedFromId: sessionId,
+        tokenFamilyId,
+      }) as unknown,
+    });
+    expect(harness.tx.externalIdentity.update).toHaveBeenCalledWith({
+      where: { id: externalIdentityId },
+      data: { lastUsedAt: expect.any(Date) as Date },
+    });
+  });
+
+  it('keeps refresh-token reuse detection for OIDC token families', async () => {
+    const harness = createRefreshHarness(
+      SessionAuthMethod.OIDC,
+      new Date('2026-08-25T12:00:00.000Z'),
+    );
+
+    await expect(
+      harness.service.refresh(refreshToken, oidcAccessToken),
+    ).rejects.toMatchObject({
+      message: 'Refresh token reuse detected; token family revoked',
+    });
+    expect(harness.tx.deviceSession.updateMany).toHaveBeenCalledWith({
+      where: { tokenFamilyId, revokedAt: null },
+      data: { revokedAt: expect.any(Date) as Date },
+    });
+    expect(harness.tx.deviceSession.create).not.toHaveBeenCalled();
+  });
+
+  it('leaves password-session rotation unchanged and ignores OIDC proof', async () => {
+    const harness = createRefreshHarness(SessionAuthMethod.PASSWORD);
+
+    await expect(harness.service.refresh(refreshToken)).resolves.toMatchObject({
+      accessToken: 'access-token',
+      sessionId: replacementSessionId,
+    });
+    expect(harness.oidcVerifier.verify).not.toHaveBeenCalled();
+    expect(harness.tx.deviceSession.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        authMethod: SessionAuthMethod.PASSWORD,
+        externalIdentityId: undefined,
+      }) as unknown,
+    });
+    expect(harness.tx.externalIdentity.update).not.toHaveBeenCalled();
+  });
 });
 
 describe('AuthService.setup', () => {
@@ -270,6 +540,7 @@ describe('AuthService.setup', () => {
     const service = new AuthService(
       prisma as never,
       config as never,
+      {} as never,
       {} as never,
     );
 
@@ -343,6 +614,7 @@ describe('AuthService.setup', () => {
       prisma as never,
       config as never,
       jwt as never,
+      {} as never,
     );
 
     await service.setup({
@@ -402,6 +674,7 @@ describe('AuthService.register', () => {
     const service = new AuthService(
       prisma as never,
       config as never,
+      {} as never,
       {} as never,
     );
 
@@ -481,6 +754,7 @@ describe('AuthService.register', () => {
       prisma as never,
       config as never,
       jwt as never,
+      {} as never,
     );
 
     const result = await service.register({

@@ -8,6 +8,13 @@ import {
   requiredUuid,
   requireConfirmation,
 } from './admin-cli.arguments.js';
+import { lockUserAuthentication } from '../common/database/database-coordination.js';
+import {
+  oidcLinkConfirmation,
+  optionalBoolean,
+  validateOidcIssuer,
+  validateOidcSubject,
+} from './oidc-link.js';
 
 async function main(): Promise<void> {
   const parsed = parseArguments(process.argv.slice(2));
@@ -25,6 +32,8 @@ async function main(): Promise<void> {
       await listUsers(prisma);
     } else if (area === 'users' && action === 'disable') {
       await disableUser(prisma, parsed.options);
+    } else if (area === 'users' && action === 'link-oidc') {
+      await linkOidcIdentity(prisma, parsed.options);
     } else if (area === 'sessions' && action === 'revoke-all') {
       await revokeAllSessions(prisma, parsed.options);
     } else if (area === 'bootstrap' && action === 'status') {
@@ -49,13 +58,117 @@ async function listUsers(prisma: PrismaClient): Promise<void> {
       preferredLanguage: true,
       disabledAt: true,
       createdAt: true,
+      passwordHash: true,
       memberships: {
         select: { householdId: true, role: true, customRoleLabel: true },
       },
-      _count: { select: { sessions: true } },
+      _count: { select: { sessions: true, externalIdentities: true } },
     },
   });
-  output({ users });
+  output({
+    users: users.map(({ passwordHash, ...user }) => ({
+      ...user,
+      passwordLoginEnabled: passwordHash !== null,
+    })),
+  });
+}
+
+async function linkOidcIdentity(
+  prisma: PrismaClient,
+  options: Map<string, string>,
+): Promise<void> {
+  const userId = requiredUuid(options, 'user-id');
+  if (process.env.OIDC_ENABLED?.toLowerCase() !== 'true') {
+    throw new Error('OIDC_ENABLED=true is required before linking identities');
+  }
+  const configuredIssuer = process.env.OIDC_ISSUER?.trim() ?? '';
+  const issuer = validateOidcIssuer(options.get('issuer') ?? '', configuredIssuer);
+  const subject = validateOidcSubject(options.get('subject'));
+  const disablePassword = optionalBoolean(
+    options,
+    'disable-password',
+    false,
+  );
+  requireConfirmation(
+    options,
+    oidcLinkConfirmation(userId, issuer, subject),
+  );
+
+  const result = await prisma.$transaction(async (tx) => {
+    await lockUserAuthentication(tx, userId);
+    const account = await tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        passwordHash: true,
+        disabledAt: true,
+        memberships: { take: 1, select: { householdId: true } },
+      },
+    });
+    if (!account) throw new Error(`User not found: ${userId}`);
+    if (account.disabledAt) throw new Error(`User is disabled: ${userId}`);
+
+    const [bySubject, forUser] = await Promise.all([
+      tx.externalIdentity.findUnique({
+        where: { issuer_subject: { issuer, subject } },
+      }),
+      tx.externalIdentity.findUnique({
+        where: { userId_issuer: { userId, issuer } },
+      }),
+    ]);
+    if (bySubject && bySubject.userId !== userId) {
+      throw new Error('OIDC identity is already linked to another user');
+    }
+    if (forUser && forUser.subject !== subject) {
+      throw new Error('User is already linked to a different subject for this issuer');
+    }
+    const identity =
+      bySubject ??
+      (await tx.externalIdentity.create({
+        data: { userId, issuer, subject },
+      }));
+
+    let sessionsRevoked = 0;
+    let passwordLoginDisabled = false;
+    if (disablePassword && account.passwordHash !== null) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { passwordHash: null },
+      });
+      const revoked = await tx.deviceSession.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      sessionsRevoked = revoked.count;
+      passwordLoginDisabled = true;
+    }
+    const identityCreated = !bySubject;
+    if (identityCreated || passwordLoginDisabled) {
+      await tx.auditEvent.create({
+        data: {
+          householdId: account.memberships[0]?.householdId,
+          type: AuditEventType.OIDC_IDENTITY_LINKED,
+          metadata: {
+            targetUserId: userId,
+            identityId: identity.id,
+            administrative: true,
+            identityCreated,
+            passwordLoginDisabled,
+            sessionsRevoked,
+          },
+        },
+      });
+    }
+    return {
+      identityId: identity.id,
+      identityCreated,
+      passwordLoginEnabled: disablePassword
+        ? false
+        : account.passwordHash !== null,
+      sessionsRevoked,
+    };
+  });
+  output({ userId, ...result });
 }
 
 async function disableUser(
@@ -204,6 +317,7 @@ Read-only:
 
 Targeted writes (exact UUID and confirmation required):
   admin users disable --user-id UUID --confirm DISABLE:UUID
+  admin users link-oidc --user-id UUID --issuer HTTPS_URL --subject EXACT_SUBJECT --disable-password true|false --confirm LINK-OIDC:UUID:FINGERPRINT
   admin sessions revoke-all --user-id UUID --confirm REVOKE-SESSIONS:UUID
   admin invitations revoke --invitation-id UUID --confirm REVOKE-INVITATION:UUID
 `);

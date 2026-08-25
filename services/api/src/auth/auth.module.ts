@@ -3,6 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { OidcController } from './oidc.controller.js';
+import { OidcService } from './oidc.service.js';
+import { OidcTokenVerifier } from './oidc-token-verifier.js';
 
 @Module({
   imports: [
@@ -15,8 +18,8 @@ import { AuthService } from './auth.service.js';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService],
+  controllers: [AuthController, OidcController],
+  providers: [AuthService, OidcService, OidcTokenVerifier],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

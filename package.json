@@ -1,9 +1,10 @@
 {
   "name": "lunara",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "private": true,
   "description": "Private, self-hosted cycle tracking for independent couples",
   "workspaces": [
+    "apps/web",
     "services/*",
     "packages/*"
   ],
@@ -12,15 +13,18 @@
     "npm": ">=11.0.0"
   },
   "scripts": {
-    "build": "npm run build --workspace @lunara/api",
-    "lint": "npm run lint --workspace @lunara/api",
-    "test": "npm run test --workspace @lunara/api",
+    "build": "npm run build --workspace @lunara/api && npm run build --workspace @lunara/web",
+    "lint": "npm run lint --workspace @lunara/api && npm run lint --workspace @lunara/web",
+    "test": "npm run test --workspace @lunara/api && npm run test --workspace @lunara/web",
     "test:e2e": "npm run test:e2e --workspace @lunara/api",
     "openapi:generate": "npm run generate --workspace @lunara/openapi-client",
     "openapi:check": "npm run check --workspace @lunara/openapi-client",
     "prisma:generate": "npm run prisma:generate --workspace @lunara/api",
     "prisma:validate": "npm run prisma:validate --workspace @lunara/api",
-    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace @lunara/api"
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace @lunara/api",
+    "web:dev": "npm run dev --workspace @lunara/web",
+    "web:build": "npm run build --workspace @lunara/web",
+    "web:test": "npm run test --workspace @lunara/web"
   },
   "overrides": {
     "@nestjs/swagger": {

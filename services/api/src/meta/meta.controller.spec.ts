@@ -29,4 +29,63 @@ describe('MetaController', () => {
       expect(prisma.user.count).not.toHaveBeenCalled();
     },
   );
+
+  it('advertises only password login when OIDC is disabled', async () => {
+    const prisma = {
+      serverState: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ bootstrappedAt: new Date() }),
+      },
+    };
+    const config = {
+      get: jest.fn((_key: string, defaultValue: unknown) => defaultValue),
+    };
+    const response = await new MetaController(
+      prisma as never,
+      config as never,
+    ).getMeta();
+
+    expect(response.authenticationMethods).toEqual(['PASSWORD']);
+    expect(response).not.toHaveProperty('oidc');
+  });
+
+  it('publishes only non-secret PKCE discovery settings when OIDC is enabled', async () => {
+    const prisma = {
+      serverState: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ bootstrappedAt: new Date() }),
+      },
+    };
+    const values = new Map<string, unknown>([
+      ['lunara.oidc.enabled', true],
+      ['lunara.oidc.providerName', 'Authentik'],
+      ['lunara.oidc.issuer', 'https://auth.example/application/o/lunara/'],
+      ['lunara.oidc.audience', 'lunara-api'],
+      ['lunara.oidc.clientId', 'lunara-android'],
+      ['lunara.oidc.scopes', ['openid', 'profile']],
+    ]);
+    const config = {
+      get: jest.fn((key: string, defaultValue: unknown) =>
+        values.has(key) ? values.get(key) : defaultValue,
+      ),
+    };
+    const response = await new MetaController(
+      prisma as never,
+      config as never,
+    ).getMeta();
+
+    expect(response.authenticationMethods).toEqual(['PASSWORD', 'OIDC']);
+    expect(response.oidc).toEqual({
+      providerName: 'Authentik',
+      issuer: 'https://auth.example/application/o/lunara/',
+      audience: 'lunara-api',
+      clientId: 'lunara-android',
+      scopes: ['openid', 'profile'],
+      discoveryUrl:
+        'https://auth.example/application/o/lunara/.well-known/openid-configuration',
+    });
+    expect(JSON.stringify(response)).not.toMatch(/secret|jwks/iu);
+  });
 });

@@ -60,6 +60,9 @@ interface DailyLogDao {
     @Query("SELECT * FROM daily_logs WHERE userId = :userId AND localDate = :localDate AND deletedAt IS NULL LIMIT 1")
     suspend fun findByDate(userId: String, localDate: String): DailyLogEntity?
 
+    @Query("SELECT * FROM daily_logs WHERE userId = :userId AND deletedAt IS NULL ORDER BY localDate")
+    suspend fun activeForUser(userId: String): List<DailyLogEntity>
+
     @Query("SELECT * FROM daily_logs WHERE id = :id")
     suspend fun findById(id: String): DailyLogEntity?
 
@@ -187,5 +190,20 @@ interface PartnerDashboardDao {
     suspend fun save(value: PartnerDashboardEntity)
 
     @Query("DELETE FROM partner_dashboard_cache")
+    suspend fun clear()
+}
+
+@Dao
+interface PortableImportJournalDao {
+    @Query("SELECT * FROM portable_import_journal WHERE id = 'pending' LIMIT 1")
+    suspend fun pending(): PortableImportJournalEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(value: PortableImportJournalEntity)
+
+    @Query("DELETE FROM portable_import_journal WHERE id = :id")
+    suspend fun complete(id: String): Int
+
+    @Query("DELETE FROM portable_import_journal")
     suspend fun clear()
 }

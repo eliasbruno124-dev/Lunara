@@ -8,6 +8,10 @@ env_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
 backup_root="${LUNARA_BACKUP_DIR:-/var/backups/lunara}"
 lock_file="${LUNARA_OPERATION_LOCK:-/run/lock/lunara-maintenance.lock}"
 
+lunara_compose() {
+  LUNARA_ENV_FILE="${env_file}" "${script_dir}/compose.sh" "$@"
+}
+
 exec 9>"${lock_file}"
 if ! flock -n 9; then
   echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
@@ -31,14 +35,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-  exec -T postgres sh -ceu \
+lunara_compose exec -T postgres sh -ceu \
   'pg_dump --format=custom --no-owner --no-acl --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"' \
   > "${work_dir}/database.dump"
 
 cp -- "${project_dir}/docker-compose.yml" "${work_dir}/docker-compose.yml"
 awk -F= '
-  /^(APP_NAME|APP_VERSION|PUBLIC_BASE_URL|PUBLIC_HOST|POSTGRES_DB|POSTGRES_USER|REGISTRATION_ENABLED|NTPY_ENABLED|NTPY_BASE_URL|OPENAPI_ENABLED|OPENAPI_TRUST_AUTHENTIK|CORS_ORIGINS|LOG_LEVEL|ACCESS_TOKEN_TTL_SECONDS|REFRESH_TOKEN_TTL_DAYS|INVITATION_TTL_MINUTES|TZ|PROXY_NETWORK)=/ { print }
+  /^(APP_NAME|APP_VERSION|PUBLIC_BASE_URL|PUBLIC_HOST|GATEWAY_MODE|POSTGRES_DB|POSTGRES_USER|REGISTRATION_ENABLED|OIDC_ENABLED|OIDC_PROVIDER_NAME|OIDC_ISSUER|OIDC_AUDIENCE|OIDC_CLIENT_ID|OIDC_SCOPES|OIDC_DISCOVERY_URL|OIDC_JWKS_URL|OIDC_ALLOWED_ALGORITHMS|OIDC_MAX_TOKEN_AGE_SECONDS|OIDC_CLOCK_TOLERANCE_SECONDS|NTPY_ENABLED|NTPY_BASE_URL|OPENAPI_ENABLED|OPENAPI_TRUST_AUTHENTIK|OPENAPI_USERNAME|CORS_ORIGINS|ANDROID_APP_LINK_ENABLED|ANDROID_APP_LINK_PACKAGE|ANDROID_APP_LINK_CERT_SHA256|LOG_LEVEL|ACCESS_TOKEN_TTL_SECONDS|REFRESH_TOKEN_TTL_DAYS|INVITATION_TTL_MINUTES|TZ|PROXY_NETWORK|TRAEFIK_ENTRYPOINT|TRAEFIK_CERT_RESOLVER)=/ { print }
 ' "${env_file}" > "${work_dir}/configuration.public.env"
 
 cat > "${work_dir}/RESTORE-NOTE.txt" <<'NOTE'

@@ -672,14 +672,8 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .send({ id: randomUUID(), startDate: '2026-07-30' })
       .expect(403);
 
-    const prediction = await request(app.getHttpServer())
-      .get('/api/v1/predictions')
-      .set('Authorization', `Bearer ${trackerAccess}`)
-      .expect(200);
-    expect(prediction.body.available).toBe(true);
-    expect(prediction.body.typicalCycleLength).toBe(30);
-    // Phase disclosure is evaluated against today, so anchor this assertion to
-    // a recent completed period instead of a calendar date that will age out.
+    // Keep the newest observation recent. Prediction v2 deliberately fails
+    // closed once a predicted cycle has passed without a new period start.
     const phaseAnchorStart = new Date();
     phaseAnchorStart.setUTCDate(phaseAnchorStart.getUTCDate() - 10);
     const phaseAnchorEnd = new Date(phaseAnchorStart);
@@ -693,6 +687,13 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         endDate: phaseAnchorEnd.toISOString().slice(0, 10),
       })
       .expect(201);
+
+    const prediction = await request(app.getHttpServer())
+      .get('/api/v1/predictions')
+      .set('Authorization', `Bearer ${trackerAccess}`)
+      .expect(200);
+    expect(prediction.body.available).toBe(true);
+    expect(prediction.body.typicalCycleLength).toBe(30);
     await request(app.getHttpServer())
       .patch('/api/v1/sharing')
       .set('Authorization', `Bearer ${trackerAccess}`)

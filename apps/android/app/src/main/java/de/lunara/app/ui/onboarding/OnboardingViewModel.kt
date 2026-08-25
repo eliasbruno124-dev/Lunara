@@ -1,5 +1,6 @@
 package de.lunara.app.ui.onboarding
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
@@ -13,6 +14,7 @@ import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.repository.ConnectionRepository
 import de.lunara.app.security.limitAccountPasswordInput
+import de.lunara.app.security.AuthentikAuthorizationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +25,7 @@ import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.net.ssl.SSLException
 
-enum class OnboardingStage { INTRO, SERVER, AUTH }
+enum class OnboardingStage { INTRO, LOCAL, SERVER, AUTH }
 enum class AuthMode { LOGIN, SETUP, REGISTER, JOIN }
 enum class OnboardingError {
     INVALID_URL,
@@ -50,6 +52,9 @@ enum class OnboardingError {
     PARTNER_ALREADY_CONNECTED,
     INVALID_CREDENTIALS,
     REGISTRATION_UNAVAILABLE,
+    OIDC_CANCELLED,
+    OIDC_NOT_LINKED,
+    OIDC_FAILED,
     GENERIC,
 }
 
@@ -86,8 +91,16 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun continueFromIntro() = _state.update { it.copy(stage = OnboardingStage.SERVER, error = null) }
+    fun beginLocalSetup() = _state.update { it.copy(stage = OnboardingStage.LOCAL, error = null) }
     fun back() = _state.update {
-        it.copy(stage = if (it.stage == OnboardingStage.AUTH) OnboardingStage.SERVER else OnboardingStage.INTRO, error = null)
+        it.copy(
+            stage = when (it.stage) {
+                OnboardingStage.AUTH -> OnboardingStage.SERVER
+                OnboardingStage.LOCAL, OnboardingStage.SERVER -> OnboardingStage.INTRO
+                OnboardingStage.INTRO -> OnboardingStage.INTRO
+            },
+            error = null,
+        )
     }
     fun setServerUrl(value: String) = _state.update {
         it.copy(serverUrl = value, error = null, meta = null, serverChangeConfirmationRequired = false)
@@ -117,6 +130,23 @@ class OnboardingViewModel @Inject constructor(
     fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(120), error = null) }
     fun setBootstrapToken(value: String) = _state.update { it.copy(bootstrapToken = value.take(256), error = null) }
     fun setInvitationCode(value: String) = _state.update { it.copy(invitationCode = value.take(32), error = null) }
+
+    fun submitLocalSetup() {
+        val snapshot = _state.value
+        if (snapshot.isBusy) return
+        if (snapshot.displayName.trim().length !in 1..120) {
+            _state.update { it.copy(error = OnboardingError.DISPLAY_NAME) }
+            return
+        }
+        _state.update { it.copy(isBusy = true, error = null) }
+        viewModelScope.launch {
+            runCatching { connectionRepository.startLocalMode(snapshot.displayName) }
+                .onSuccess { resetForNewSession() }
+                .onFailure {
+                    _state.update { state -> state.copy(isBusy = false, error = OnboardingError.GENERIC) }
+                }
+        }
+    }
 
     fun testConnection(confirmServerChange: Boolean = false) {
         val snapshot = _state.value
@@ -204,6 +234,44 @@ class OnboardingViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun beginAuthentikLogin(onReady: (Intent) -> Unit) {
+        val snapshot = _state.value
+        val oidc = snapshot.meta?.oidc
+        if (snapshot.isBusy || snapshot.authMode != AuthMode.LOGIN || oidc == null) return
+        _state.update { it.copy(isBusy = true, error = null) }
+        viewModelScope.launch {
+            runCatching { connectionRepository.authentikAuthorizationIntent(oidc) }
+                .onSuccess { intent ->
+                    _state.update { it.copy(isBusy = false) }
+                    onReady(intent)
+                }
+                .onFailure {
+                    _state.update { state -> state.copy(isBusy = false, error = OnboardingError.OIDC_FAILED) }
+                }
+        }
+    }
+
+    fun completeAuthentikLogin(result: Intent?) {
+        if (_state.value.isBusy) return
+        _state.update { it.copy(isBusy = true, error = null) }
+        viewModelScope.launch {
+            runCatching { connectionRepository.authentikLogin(result) }
+                .onSuccess { resetForNewSession() }
+                .onFailure { failure ->
+                    _state.update {
+                        it.copy(isBusy = false, error = mapAuthentikError(failure))
+                    }
+                }
+        }
+    }
+
+    private fun mapAuthentikError(error: Throwable): OnboardingError = when {
+        error is AuthentikAuthorizationException &&
+            error.message?.contains("cancel", ignoreCase = true) == true -> OnboardingError.OIDC_CANCELLED
+        error is ApiException && error.status in setOf(401, 404) -> OnboardingError.OIDC_NOT_LINKED
+        else -> OnboardingError.OIDC_FAILED
     }
 
     private fun mapAuthenticationError(error: Throwable, mode: AuthMode): OnboardingError {

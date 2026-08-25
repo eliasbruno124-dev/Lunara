@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.sync.SyncScheduler
 import de.lunara.app.notifications.NotificationScheduleEmissionPolicy
 import de.lunara.app.notifications.NotificationScheduler
@@ -41,7 +42,8 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {
-                    if (preferences.state.first().session != null) {
+                    val state = preferences.state.first()
+                    if (state.session != null && state.appMode == AppMode.SERVER) {
                         syncScheduler.schedulePeriodic()
                         syncScheduler.requestImmediate()
                     }

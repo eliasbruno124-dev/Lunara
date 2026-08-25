@@ -7,6 +7,10 @@ project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 env_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
 lock_file="${LUNARA_OPERATION_LOCK:-/run/lock/lunara-maintenance.lock}"
 
+lunara_compose() {
+  LUNARA_ENV_FILE="${env_file}" "${script_dir}/compose.sh" "$@"
+}
+
 usage() {
   cat >&2 <<'USAGE'
 Verwendung:
@@ -52,12 +56,10 @@ case "$1" in
     LUNARA_ENV_FILE="${env_file}" \
       LUNARA_OPERATION_LOCK="${lock_file}.nested.$$" \
       "${script_dir}/backup.sh"
-    docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-      run --rm migrate
+    lunara_compose run --rm migrate
     ;;
   users|sessions|bootstrap|invitations)
-    docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-      exec -T api node services/api/dist/admin/admin-cli.js "$@"
+    lunara_compose exec -T api node services/api/dist/admin/admin-cli.js "$@"
     ;;
   *)
     usage

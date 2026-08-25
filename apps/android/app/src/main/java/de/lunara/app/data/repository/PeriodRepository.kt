@@ -10,6 +10,7 @@ import de.lunara.app.data.local.DailyLogEntity
 import de.lunara.app.data.sync.SyncScheduler
 import de.lunara.app.data.sync.ProcessSyncGate
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -33,13 +34,18 @@ class PeriodRepository @Inject constructor(
         database.mutationDao().observeCount(),
         database.periodDao().observeResolvingCount(),
         database.dailyLogDao().observeResolvingCount(),
-    ) { mutations, resolvingPeriods, resolvingLogs ->
-        mutations + resolvingPeriods + resolvingLogs
+        preferences.state,
+    ) { mutations, resolvingPeriods, resolvingLogs, prefs ->
+        if (prefs.appMode == AppMode.LOCAL) 0 else mutations + resolvingPeriods + resolvingLogs
     }
-    fun observeConflictCount(): Flow<Int> = database.mutationDao().observeConflictCount()
+    fun observeConflictCount(): Flow<Int> = combine(
+        database.mutationDao().observeConflictCount(),
+        preferences.state,
+    ) { conflicts, prefs -> if (prefs.appMode == AppMode.LOCAL) 0 else conflicts }
     fun observeDailyLogs(): Flow<List<DailyLogEntity>> = database.dailyLogDao().observeActive()
 
     suspend fun retryFailedMutations() = ProcessSyncGate.serialized {
+        if (preferences.state.first().appMode == AppMode.LOCAL) return@serialized
         val now = MutationTimestampPolicy.format(Instant.now())
         database.withTransaction {
             database.mutationDao().resetFailed(now)
@@ -57,6 +63,7 @@ class PeriodRepository @Inject constructor(
      * intentionally never invoked without UI confirmation.
      */
     suspend fun discardConflictsAndReload(): Int = ProcessSyncGate.serialized {
+        if (preferences.state.first().appMode == AppMode.LOCAL) return@serialized 0
         val conflicts = database.mutationDao().conflicts()
             .distinctBy { it.entityType to it.entityId }
         if (conflicts.isEmpty()) return@serialized 0
@@ -89,6 +96,7 @@ class PeriodRepository @Inject constructor(
         endDate: LocalDate? = null,
     ): String = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
+        val localMode = preferences.state.first().appMode == AppMode.LOCAL
         val today = LocalDate.now(Clock.systemDefaultZone())
         PeriodDatePolicy.requireValid(
             startDate,
@@ -122,6 +130,7 @@ class PeriodRepository @Inject constructor(
             endDate = endDate?.toString(),
             createdAt = entityTimestamp,
             updatedAt = entityTimestamp,
+            syncState = if (localMode) "LOCAL" else "PENDING",
         )
         val mutation = MutationEntity(
             id = UUID.randomUUID().toString(),
@@ -136,9 +145,11 @@ class PeriodRepository @Inject constructor(
         )
         database.withTransaction {
             database.periodDao().insert(period)
-            check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
+            if (!localMode) {
+                check(database.mutationDao().enqueue(mutation) != -1L) { "Mutation ID collision" }
+            }
         }
-        syncScheduler.requestAfterMutation()
+        if (!localMode) syncScheduler.requestAfterMutation()
         entityId
     }
 
@@ -171,6 +182,7 @@ class PeriodRepository @Inject constructor(
         endDate: LocalDate?,
     ): String {
         ensureCurrentTracker(userId)
+        val localMode = preferences.state.first().appMode == AppMode.LOCAL
         val today = LocalDate.now(Clock.systemDefaultZone())
         PeriodDatePolicy.requireValid(startDate, endDate, today)
         val now = nextMutationTime()
@@ -195,6 +207,22 @@ class PeriodRepository @Inject constructor(
                 )
             ) {
                 throw OverlappingPeriodException()
+            }
+
+            if (localMode) {
+                database.periodDao().upsertAll(
+                    listOf(
+                        current.copy(
+                            startDate = startDate.toString(),
+                            endDate = endDate?.toString(),
+                            updatedAt = entityTimestamp,
+                            version = current.version + 1,
+                            syncState = "LOCAL",
+                        ),
+                    ),
+                )
+                changed = true
+                return@withTransaction
             }
 
             val queued = database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
@@ -240,18 +268,32 @@ class PeriodRepository @Inject constructor(
             }
             changed = true
         }
-        if (changed) syncScheduler.requestAfterMutation()
+        if (changed && !localMode) syncScheduler.requestAfterMutation()
         return periodId
     }
 
     suspend fun deletePeriod(userId: String, periodId: String) = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
+        val localMode = preferences.state.first().appMode == AppMode.LOCAL
         val now = nextMutationTime()
         val entityTimestamp = now.toString()
         val mutationTimestamp = MutationTimestampPolicy.format(now)
         var mutationQueued = false
         database.withTransaction {
             val current = requireOwnedActivePeriod(userId, periodId)
+            if (localMode) {
+                database.periodDao().upsertAll(
+                    listOf(
+                        current.copy(
+                            deletedAt = entityTimestamp,
+                            updatedAt = entityTimestamp,
+                            version = current.version + 1,
+                            syncState = "LOCAL",
+                        ),
+                    ),
+                )
+                return@withTransaction
+            }
             val queued = database.mutationDao().forEntity(PERIOD_ENTITY_TYPE, periodId)
             if (queued.any { it.state == "CONFLICT" }) throw PeriodSyncConflictException()
 
@@ -309,7 +351,7 @@ class PeriodRepository @Inject constructor(
             }
             mutationQueued = true
         }
-        if (mutationQueued) syncScheduler.requestAfterMutation()
+        if (mutationQueued && !localMode) syncScheduler.requestAfterMutation()
     }
 
     suspend fun logToday(
@@ -322,6 +364,7 @@ class PeriodRepository @Inject constructor(
         symptoms: List<String>,
     ): String = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
+        val localMode = preferences.state.first().appMode == AppMode.LOCAL
         val localDate = LocalDate.now(Clock.systemDefaultZone()).toString()
         val existing = database.dailyLogDao().findByDate(userId, localDate)
         val id = existing?.id ?: UUID.randomUUID().toString()
@@ -351,7 +394,7 @@ class PeriodRepository @Inject constructor(
             createdAt = existing?.createdAt ?: entityTimestamp,
             updatedAt = entityTimestamp,
             version = existing?.version ?: 0,
-            syncState = "PENDING",
+            syncState = if (localMode) "LOCAL" else "PENDING",
         )
         database.withTransaction {
             if (existing != null && SyncEditPolicy.isBlocked(existing.syncState)) {
@@ -359,6 +402,12 @@ class PeriodRepository @Inject constructor(
             }
             val queued = database.mutationDao().forEntity(DAILY_LOG_ENTITY_TYPE, id)
             if (queued.any { it.state == "CONFLICT" }) throw DailyLogSyncConflictException()
+            if (localMode) {
+                database.dailyLogDao().upsertAll(
+                    listOf(log.copy(version = (existing?.version ?: 0) + 1)),
+                )
+                return@withTransaction
+            }
             database.mutationDao().reviveFailedForEntity(DAILY_LOG_ENTITY_TYPE, id, mutationTimestamp)
             val normalizedQueue = if (queued.any { it.state == "FAILED" }) {
                 database.mutationDao().forEntity(DAILY_LOG_ENTITY_TYPE, id)
@@ -397,7 +446,7 @@ class PeriodRepository @Inject constructor(
                 dependencies = normalizedQueue,
             )
         }
-        syncScheduler.requestAfterMutation()
+        if (!localMode) syncScheduler.requestAfterMutation()
         id
     }
 

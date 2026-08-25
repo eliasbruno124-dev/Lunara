@@ -16,6 +16,38 @@ data class MetaDto(
     val registrationEnabled: Boolean = false,
     val serverTime: String,
     val gatewayHeaderName: String? = null,
+    val authenticationMethods: List<String> = listOf("PASSWORD"),
+    val oidc: OidcMetaDto? = null,
+)
+
+data class OidcMetaDto(
+    val providerName: String,
+    val issuer: String,
+    /** Public OAuth client identifier. This is intentionally not a secret. */
+    val clientId: String? = null,
+    /** Accepted access-token audience. Older servers used this as the client identifier too. */
+    val audience: String? = null,
+    val scopes: List<String> = listOf("openid"),
+    val discoveryUrl: String? = null,
+)
+
+data class OidcLoginRequest(
+    val accessToken: String,
+    val deviceName: String,
+)
+
+data class OidcLinkRequest(
+    val accessToken: String,
+    val currentPassword: String,
+)
+
+data class OidcStatusDto(
+    val enabled: Boolean,
+    val providerName: String? = null,
+    val linked: Boolean = false,
+    val linkedAt: String? = null,
+    val lastUsedAt: String? = null,
+    val passwordLoginEnabled: Boolean = true,
 )
 
 data class LoginRequest(
@@ -53,7 +85,11 @@ data class JoinRequest(
     val deviceName: String,
 )
 
-data class RefreshRequest(val refreshToken: String)
+data class RefreshRequest(
+    val refreshToken: String,
+    /** Required by the server only when this Lunara session was created through OIDC. */
+    val oidcAccessToken: String? = null,
+)
 
 data class LogoutRequest(val refreshToken: String)
 
@@ -193,6 +229,8 @@ data class PredictionDto(
     val typicalPeriodLength: Int? = null,
     val variationDays: Int? = null,
     val statistics: Map<String, Any?>? = null,
+    val calculatedAt: String? = null,
+    val algorithmVersion: String? = null,
 )
 
 data class FertilityEstimateDto(

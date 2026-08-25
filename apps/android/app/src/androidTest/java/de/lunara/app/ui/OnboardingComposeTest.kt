@@ -35,8 +35,28 @@ class OnboardingComposeTest {
             }
         }
 
-        compose.onNodeWithText("Weiter").performClick()
+        compose.onNodeWithText("Server oder Partner verbinden").performClick()
         assertEquals(1, continued)
+    }
+
+    @Test
+    fun introductionOffersAnExplicitServerlessLocalMode() {
+        var localSelected = 0
+        compose.setContent {
+            LunaraTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(),
+                    onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {},
+                    onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
+                    onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {}, onUsername = {},
+                    onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
+                    onInvitationCode = {}, onSubmit = {}, onLocalMode = { localSelected++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Nur auf diesem Gerät").assertIsDisplayed().performClick()
+        assertEquals(1, localSelected)
     }
 
     @Test

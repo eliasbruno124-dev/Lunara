@@ -12,6 +12,29 @@ builder_memory="${ANDROID_BUILDER_MEMORY:-2g}"
 builder_memory_swap="${ANDROID_BUILDER_MEMORY_SWAP:-3g}"
 builder_cpus="${ANDROID_BUILDER_CPUS:-1}"
 minimum_available_kib="${ANDROID_MIN_AVAILABLE_KIB:-4194304}"
+upload_keystore="${LUNARA_UPLOAD_KEYSTORE:-}"
+upload_store_password="${LUNARA_UPLOAD_KEYSTORE_PASSWORD:-}"
+upload_key_alias="${LUNARA_UPLOAD_KEY_ALIAS:-}"
+upload_key_password="${LUNARA_UPLOAD_KEY_PASSWORD:-}"
+upload_value_count=0
+for upload_value in \
+  "${upload_keystore}" \
+  "${upload_store_password}" \
+  "${upload_key_alias}" \
+  "${upload_key_password}"; do
+  [[ -n "${upload_value}" ]] && upload_value_count=$((upload_value_count + 1))
+done
+if (( upload_value_count != 0 && upload_value_count != 4 )); then
+  echo "Release-Signierung benötigt alle vier LUNARA_UPLOAD_*-Variablen." >&2
+  exit 2
+fi
+if (( upload_value_count == 4 )); then
+  if [[ "${upload_keystore}" != /* || ! -f "${upload_keystore}" || -L "${upload_keystore}" ]]; then
+    echo "LUNARA_UPLOAD_KEYSTORE muss eine sichere absolute Keystore-Datei sein." >&2
+    exit 2
+  fi
+fi
+unset upload_value
 
 if [[ ! "${minimum_available_kib}" =~ ^[0-9]+$ ]]; then
   echo "ANDROID_MIN_AVAILABLE_KIB muss eine nichtnegative Ganzzahl sein." >&2
@@ -91,18 +114,69 @@ docker run --rm \
   -w /workspace/apps/android \
   "${builder_image}" \
   ./gradlew --no-daemon --max-workers=1 \
-    "-Dorg.gradle.jvmargs=${gradle_jvm_args}" assembleProductionRelease
+    "-Dorg.gradle.jvmargs=${gradle_jvm_args}" \
+    assembleProductionRelease bundleProductionRelease
 
 release_apk="${android_dir}/app/build/outputs/apk/production/release/app-production-release-unsigned.apk"
+release_bundle="${android_dir}/app/build/outputs/bundle/productionRelease/app-production-release.aab"
 
-if [[ ! -s "${release_apk}" ]]; then
-  echo "Debug-APK wurde gesichert, aber unsigned Release-APK fehlt: ${release_apk}" >&2
+if [[ ! -s "${release_apk}" || ! -s "${release_bundle}" ]]; then
+  echo "Debug-APK wurde gesichert, aber unsigned Release-APK oder AAB fehlt." >&2
   exit 1
 fi
 
 install -m 0644 -- "${release_apk}" "${artifact_dir}/lunara-release-unsigned.apk"
+install -m 0644 -- "${release_bundle}" "${artifact_dir}/lunara-release-unsigned.aab"
+
+if (( upload_value_count == 4 )); then
+  # Mount the keystore as one read-only file. Passwords are inherited by name,
+  # never rendered into the process command line or copied into the workspace.
+  export LUNARA_UPLOAD_KEYSTORE_PASSWORD="${upload_store_password}"
+  export LUNARA_UPLOAD_KEY_ALIAS="${upload_key_alias}"
+  export LUNARA_UPLOAD_KEY_PASSWORD="${upload_key_password}"
+  docker run --rm \
+    --memory "${builder_memory}" \
+    --memory-swap "${builder_memory_swap}" \
+    --cpus "${builder_cpus}" \
+    --user "$(id -u):$(id -g)" \
+    -e ANDROID_SDK_HOME=/root \
+    -e ANDROID_USER_HOME=/root/.android \
+    -e GRADLE_USER_HOME=/workspace/.gradle-container \
+    -e "JAVA_TOOL_OPTIONS=${gradle_jvm_args}" \
+    -e LUNARA_UPLOAD_KEYSTORE=/run/lunara-upload.p12 \
+    -e LUNARA_UPLOAD_KEYSTORE_PASSWORD \
+    -e LUNARA_UPLOAD_KEY_ALIAS \
+    -e LUNARA_UPLOAD_KEY_PASSWORD \
+    -v "${debug_keystore_dir}:/root/.android" \
+    -v "${project_dir}:/workspace" \
+    -v "${upload_keystore}:/run/lunara-upload.p12:ro" \
+    -w /workspace/apps/android \
+    "${builder_image}" \
+    ./gradlew --no-daemon --max-workers=1 \
+      "-Dorg.gradle.jvmargs=${gradle_jvm_args}" \
+      assembleProductionRelease bundleProductionRelease
+  unset LUNARA_UPLOAD_KEYSTORE_PASSWORD LUNARA_UPLOAD_KEY_ALIAS LUNARA_UPLOAD_KEY_PASSWORD
+
+  signed_apk="${android_dir}/app/build/outputs/apk/production/release/app-production-release.apk"
+  signed_bundle="${android_dir}/app/build/outputs/bundle/productionRelease/app-production-release.aab"
+  if [[ ! -s "${signed_apk}" || ! -s "${signed_bundle}" ]]; then
+    echo "Signierter Release-Build meldete Erfolg, aber APK oder AAB fehlt." >&2
+    exit 1
+  fi
+  install -m 0644 -- "${signed_apk}" "${artifact_dir}/lunara-release.apk"
+  install -m 0644 -- "${signed_bundle}" "${artifact_dir}/lunara-play-upload.aab"
+fi
+
 (
   cd -- "${artifact_dir}"
-  sha256sum lunara-debug.apk lunara-release-unsigned.apk > SHA256SUMS
+  checksum_files=(
+    lunara-debug.apk
+    lunara-release-unsigned.apk
+    lunara-release-unsigned.aab
+  )
+  if (( upload_value_count == 4 )); then
+    checksum_files+=(lunara-release.apk lunara-play-upload.aab)
+  fi
+  sha256sum "${checksum_files[@]}" > SHA256SUMS
 )
 echo "Android-Artefakte geprüft und nach ${artifact_dir} kopiert."

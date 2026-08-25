@@ -16,6 +16,7 @@ import de.lunara.app.data.local.DailyLogEntity
 import de.lunara.app.data.local.PartnerDashboardEntity
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.ApiClientFactory
 import de.lunara.app.data.remote.dto.SyncMutationDto
 import de.lunara.app.data.remote.dto.SyncRequest
@@ -58,6 +59,7 @@ class SyncWorker @AssistedInject constructor(
 
     private suspend fun doSerializedWork(): Result {
         val state = preferences.state.first()
+        if (state.appMode == AppMode.LOCAL) return Result.success()
         val base = state.baseUrl ?: return Result.success()
         // Never issue /sync without a Lunara access token. A refresh token may restore the
         // authenticated session first; without either credential there is nothing safe to send.

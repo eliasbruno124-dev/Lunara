@@ -1,11 +1,14 @@
 package de.lunara.app.ui.main
 
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.InvitationDto
 import de.lunara.app.data.remote.dto.SharingSettingsDto
@@ -14,13 +17,18 @@ import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.CycleProfileDto
 import de.lunara.app.data.remote.dto.CarePreferencesDto
 import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
+import de.lunara.app.data.remote.dto.OidcStatusDto
 import de.lunara.app.data.repository.DashboardRepository
 import de.lunara.app.data.repository.PeriodRepository
 import de.lunara.app.data.repository.HouseholdRepository
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.repository.PasswordRepository
+import de.lunara.app.data.repository.ConnectionRepository
 import de.lunara.app.data.repository.SharingRepository
 import de.lunara.app.data.repository.CarePreferencesRepository
+import de.lunara.app.data.backup.IncorrectBackupPassphraseException
+import de.lunara.app.data.backup.InvalidPortableBackupException
+import de.lunara.app.data.backup.PortableLocalBackupRepository
 import de.lunara.app.data.sync.SyncScheduler
 import de.lunara.app.notifications.NotificationPreferences
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,6 +41,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.coroutineScope
@@ -68,6 +77,9 @@ data class MainUiState(
     val cycleProfile: CycleProfileDto? = null,
     val carePreferences: CarePreferencesDto? = null,
     val passwordChangeStatus: PasswordChangeStatus = PasswordChangeStatus.IDLE,
+    val oidc: OidcLinkUiState = OidcLinkUiState(),
+    val backupStatus: LocalBackupStatus = LocalBackupStatus.IDLE,
+    val isLocalMode: Boolean = false,
     /** Advances after a period mutation fails so an open editor can safely unlock. */
     val periodFailureRevision: Long = 0L,
 )
@@ -85,6 +97,14 @@ sealed interface MainEvent {
     data object PasswordChanged : MainEvent
 }
 
+data class OidcLinkUiState(
+    val status: OidcStatusDto? = null,
+    val busy: Boolean = false,
+    val error: Boolean = false,
+)
+
+enum class LocalBackupStatus { IDLE, BUSY, EXPORTED, IMPORTED, BAD_PASSPHRASE, INVALID_BACKUP, FAILED }
+
 private data class SessionUiExtras(
     val checkInSent: Boolean,
     val checkInError: Boolean,
@@ -97,7 +117,15 @@ private data class SessionUiExtras(
     val cycleProfile: CycleProfileDto?,
     val carePreferences: CarePreferencesDto?,
     val passwordChangeStatus: PasswordChangeStatus,
+    val oidc: OidcLinkUiState,
+    val backupStatus: LocalBackupStatus,
     val periodFailureRevision: Long,
+)
+
+private data class SessionBinding(
+    val userId: String?,
+    val role: UserRole?,
+    val appMode: AppMode,
 )
 
 @HiltViewModel
@@ -110,6 +138,8 @@ class MainViewModel @Inject constructor(
     private val sharingRepository: SharingRepository,
     private val carePreferencesRepository: CarePreferencesRepository,
     private val passwordRepository: PasswordRepository,
+    private val connectionRepository: ConnectionRepository,
+    private val portableBackupRepository: PortableLocalBackupRepository,
 ) : ViewModel() {
     private val partnerDashboard = MutableStateFlow<PartnerDashboardDto?>(null)
     private val partnerUnavailable = MutableStateFlow(false)
@@ -124,6 +154,8 @@ class MainViewModel @Inject constructor(
     private val cycleProfile = MutableStateFlow<CycleProfileDto?>(null)
     private val carePreferences = MutableStateFlow<CarePreferencesDto?>(null)
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
+    private val oidc = MutableStateFlow(OidcLinkUiState())
+    private val backupStatus = MutableStateFlow(LocalBackupStatus.IDLE)
     private val periodFailureRevision = MutableStateFlow(0L)
     private val sessionOwnerId = MutableStateFlow<String?>(null)
     private var sessionOperations: CoroutineScope? = null
@@ -149,6 +181,7 @@ class MainViewModel @Inject constructor(
             privacyMode = prefs.privacyMode,
             useSystemTheme = prefs.useSystemTheme,
             darkMode = prefs.darkMode,
+            isLocalMode = prefs.appMode == AppMode.LOCAL,
         )
     }
     private val dashboardState = combine(
@@ -157,7 +190,8 @@ class MainViewModel @Inject constructor(
     ) { partner, unavailable -> partner to unavailable }
     private val sessionExtras = combine(
         checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
-        trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, periodFailureRevision,
+        trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, oidc, backupStatus,
+        periodFailureRevision,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
@@ -171,7 +205,9 @@ class MainViewModel @Inject constructor(
             cycleProfile = values[8] as CycleProfileDto?,
             carePreferences = values[9] as CarePreferencesDto?,
             passwordChangeStatus = values[10] as PasswordChangeStatus,
-            periodFailureRevision = values[11] as Long,
+            oidc = values[11] as OidcLinkUiState,
+            backupStatus = values[12] as LocalBackupStatus,
+            periodFailureRevision = values[13] as Long,
         )
     }
     val state: StateFlow<MainUiState> = combine(
@@ -199,6 +235,8 @@ class MainViewModel @Inject constructor(
                 cycleProfile = extra.cycleProfile,
                 carePreferences = extra.carePreferences,
                 passwordChangeStatus = extra.passwordChangeStatus,
+                oidc = extra.oidc,
+                backupStatus = extra.backupStatus,
                 periodFailureRevision = extra.periodFailureRevision,
             )
         }
@@ -207,21 +245,29 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             preferences.state
-                .map { it.session }
+                .map { state -> SessionBinding(state.session?.userId, state.session?.role, state.appMode) }
                 .distinctUntilChanged()
-                .collectLatest { session ->
+                .collectLatest { binding ->
                     sessionOperations?.cancel()
                     sessionOperations = null
                     resetSessionState()
-                    if (session == null) return@collectLatest
+                    val session = preferences.state.first().session
+                        ?.takeIf { it.userId == binding.userId && it.role == binding.role }
+                        ?: return@collectLatest
+                    val appMode = binding.appMode
                     sessionOwnerId.value = session.userId
                     preferencesStateRole = session.role
+                    preferencesStateMode = appMode
                     sessionOperations = CoroutineScope(
                         viewModelScope.coroutineContext +
                             SupervisorJob(viewModelScope.coroutineContext[Job]),
                     )
+                    if (appMode == AppMode.SERVER) {
+                        sessionOperations?.launch { loadOidcStatusNow(session.userId) }
+                    }
 
                     if (session.role == UserRole.PARTNER) {
+                        if (appMode == AppMode.LOCAL) return@collectLatest
                         syncScheduler.requestImmediate()
                         coroutineScope {
                             launch {
@@ -244,24 +290,26 @@ class MainViewModel @Inject constructor(
                         }
                     } else {
                         coroutineScope {
-                            launch { loadInvitationNow(session.userId) }
-                            launch { loadSharingNow(session.userId) }
                             launch { refreshTrackerPredictionNow(session.userId) }
                             launch { loadCycleProfileNow(session.userId) }
-                            launch { loadCarePreferencesNow(session.userId) }
-                            launch {
-                                preferences.state
-                                    .map { it.lastSyncAt }
-                                    .drop(1)
-                                    .filterNotNull()
-                                    .distinctUntilChanged()
-                                    .collectLatest {
-                                        refreshTrackerPredictionNow(session.userId)
-                                        loadCycleProfileNow(session.userId)
-                                        loadCarePreferencesNow(session.userId)
-                                        loadInvitationNow(session.userId)
+                            if (appMode == AppMode.SERVER) {
+                                launch { loadInvitationNow(session.userId) }
+                                launch { loadSharingNow(session.userId) }
+                                launch { loadCarePreferencesNow(session.userId) }
+                                launch {
+                                    preferences.state
+                                        .map { it.lastSyncAt }
+                                        .drop(1)
+                                        .filterNotNull()
+                                        .distinctUntilChanged()
+                                        .collectLatest {
+                                            refreshTrackerPredictionNow(session.userId)
+                                            loadCycleProfileNow(session.userId)
+                                            loadCarePreferencesNow(session.userId)
+                                            loadInvitationNow(session.userId)
+                                        }
                                     }
-                            }
+                                }
                         }
                     }
                 }
@@ -271,6 +319,7 @@ class MainViewModel @Inject constructor(
     private fun resetSessionState() {
         sessionOwnerId.value = null
         preferencesStateRole = null
+        preferencesStateMode = null
         partnerDashboard.value = null
         partnerUnavailable.value = false
         checkInSent.value = false
@@ -286,6 +335,8 @@ class MainViewModel @Inject constructor(
         carePreferences.value = null
         carePreferencesRevision += 1
         passwordChangeStatus.value = PasswordChangeStatus.IDLE
+        oidc.value = OidcLinkUiState()
+        backupStatus.value = LocalBackupStatus.IDLE
         periodFailureRevision.value = 0L
     }
 
@@ -293,7 +344,10 @@ class MainViewModel @Inject constructor(
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation { periodRepository.startPeriod(userId) }
-                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodSaved) } }
+                .onSuccess {
+                    ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodSaved) }
+                    refreshPredictionAfterLocalPeriodChange(userId)
+                }
                 .onFailure { reportPeriodFailure(userId) }
         }
     }
@@ -306,7 +360,10 @@ class MainViewModel @Inject constructor(
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation { periodRepository.createPeriod(userId, startDate, endDate) }
-                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodAdded) } }
+                .onSuccess {
+                    ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodAdded) }
+                    refreshPredictionAfterLocalPeriodChange(userId)
+                }
                 .onFailure { reportPeriodFailure(userId) }
         }
     }
@@ -318,6 +375,7 @@ class MainViewModel @Inject constructor(
                 .onSuccess { changed ->
                     if (changed) {
                         ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodEnded) }
+                        refreshPredictionAfterLocalPeriodChange(userId)
                     }
                 }
                 .onFailure { reportPeriodFailure(userId) }
@@ -333,7 +391,10 @@ class MainViewModel @Inject constructor(
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation { periodRepository.updatePeriodDates(userId, periodId, startDate, endDate) }
-                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) } }
+                .onSuccess {
+                    ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) }
+                    refreshPredictionAfterLocalPeriodChange(userId)
+                }
                 .onFailure { reportPeriodFailure(userId) }
         }
     }
@@ -342,7 +403,10 @@ class MainViewModel @Inject constructor(
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation { periodRepository.deletePeriod(userId, periodId) }
-                .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodDeleted) } }
+                .onSuccess {
+                    ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodDeleted) }
+                    refreshPredictionAfterLocalPeriodChange(userId)
+                }
                 .onFailure { reportPeriodFailure(userId) }
         }
     }
@@ -374,17 +438,20 @@ class MainViewModel @Inject constructor(
     }
 
     fun syncNow() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) { periodRepository.retryFailedMutations() }
     }
 
     fun discardConflictsAndReload() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (!canManagePeriod(ownerId)) return
         launchForSession(ownerId) { periodRepository.discardConflictsAndReload() }
     }
 
     fun refreshPartnerDashboard() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) { refreshPartnerDashboardNow(ownerId) }
     }
@@ -438,6 +505,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun sendCheckIn(prompt: String) {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (checkInSent.value) return
         launchForSession(ownerId) {
@@ -448,6 +516,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun createInvitation() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (settingsBusy.value || invitation.value != null || partnerConnected.value) return
         val revision = ++invitationRevision
@@ -489,12 +558,14 @@ class MainViewModel @Inject constructor(
     }
 
     fun refreshInvitation() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
         launchForSession(ownerId) { loadInvitationNow(ownerId) }
     }
 
     fun revokeInvitation() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         val currentInvitation = invitation.value ?: return
         if (settingsBusy.value) return
@@ -514,6 +585,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun loadSharing() {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) { loadSharingNow(ownerId) }
     }
@@ -525,6 +597,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun updateSharing(request: UpdateSharingRequest) {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) {
             ifCurrentSession(ownerId) { settingsBusy.value = true }
@@ -555,6 +628,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun updateCarePreferences(request: UpdateCarePreferencesRequest) {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
         val revision = ++carePreferencesRevision
@@ -598,6 +672,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun changePassword(currentPassword: String, newPassword: String, confirmation: String) {
+        if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
         if (passwordChangeStatus.value == PasswordChangeStatus.BUSY) return
         val validation = validatePasswordChange(currentPassword, newPassword, confirmation)
@@ -635,6 +710,99 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun beginAuthentikLink(onReady: (Intent) -> Unit) {
+        if (preferencesStateMode == AppMode.LOCAL) return
+        val ownerId = sessionOwnerId.value ?: return
+        if (oidc.value.busy || oidc.value.status?.enabled != true || oidc.value.status?.linked == true) return
+        oidc.value = oidc.value.copy(busy = true, error = false)
+        launchForSession(ownerId) {
+            runCatching { connectionRepository.authentikAuthorizationIntent() }
+                .onSuccess { intent ->
+                    ifCurrentSession(ownerId) {
+                        oidc.value = oidc.value.copy(busy = false)
+                        onReady(intent)
+                    }
+                }
+                .onFailure {
+                    ifCurrentSession(ownerId) { oidc.value = oidc.value.copy(busy = false, error = true) }
+                }
+        }
+    }
+
+    fun completeAuthentikLink(result: Intent?, currentPassword: String) {
+        if (preferencesStateMode == AppMode.LOCAL) return
+        val ownerId = sessionOwnerId.value ?: return
+        if (oidc.value.busy) return
+        oidc.value = oidc.value.copy(busy = true, error = false)
+        launchForSession(ownerId) {
+            runCatching { connectionRepository.linkAuthentik(result, currentPassword) }
+                .onSuccess { status ->
+                    ifCurrentSession(ownerId) { oidc.value = OidcLinkUiState(status = status) }
+                }
+                .onFailure {
+                    ifCurrentSession(ownerId) { oidc.value = oidc.value.copy(busy = false, error = true) }
+                }
+        }
+    }
+
+    fun clearAuthentikError() {
+        oidc.value = oidc.value.copy(error = false)
+    }
+
+    fun exportLocalBackup(uri: Uri, passphrase: CharArray) {
+        val ownerId = sessionOwnerId.value ?: return passphrase.fill('\u0000')
+        if (preferencesStateMode != AppMode.LOCAL || backupStatus.value == LocalBackupStatus.BUSY) {
+            passphrase.fill('\u0000')
+            return
+        }
+        backupStatus.value = LocalBackupStatus.BUSY
+        launchForSession(ownerId) {
+            val result = runSessionOperation { portableBackupRepository.exportTo(uri, passphrase) }
+            ifCurrentSession(ownerId) {
+                backupStatus.value = if (result.isSuccess) LocalBackupStatus.EXPORTED else LocalBackupStatus.FAILED
+            }
+        }
+    }
+
+    fun importLocalBackup(uri: Uri, passphrase: CharArray) {
+        val ownerId = sessionOwnerId.value ?: return passphrase.fill('\u0000')
+        if (preferencesStateMode != AppMode.LOCAL || backupStatus.value == LocalBackupStatus.BUSY) {
+            passphrase.fill('\u0000')
+            return
+        }
+        backupStatus.value = LocalBackupStatus.BUSY
+        launchForSession(ownerId) {
+            val result = runSessionOperation { portableBackupRepository.importFrom(uri, passphrase) }
+            if (result.isSuccess) {
+                refreshTrackerPredictionNow(ownerId)
+                loadCycleProfileNow(ownerId)
+            }
+            ifCurrentSession(ownerId) {
+                backupStatus.value = when (result.exceptionOrNull()) {
+                    null -> LocalBackupStatus.IMPORTED
+                    is IncorrectBackupPassphraseException -> LocalBackupStatus.BAD_PASSPHRASE
+                    is InvalidPortableBackupException -> LocalBackupStatus.INVALID_BACKUP
+                    else -> LocalBackupStatus.FAILED
+                }
+            }
+        }
+    }
+
+    fun clearLocalBackupStatus() {
+        if (backupStatus.value != LocalBackupStatus.BUSY) backupStatus.value = LocalBackupStatus.IDLE
+    }
+
+    private suspend fun loadOidcStatusNow(ownerId: String) {
+        val result = runSessionOperation { connectionRepository.oidcStatus() }
+        ifCurrentSession(ownerId) {
+            oidc.value = when {
+                result.isSuccess -> OidcLinkUiState(status = result.getOrNull())
+                (result.exceptionOrNull() as? ApiException)?.status == 404 -> OidcLinkUiState()
+                else -> oidc.value.copy(error = true)
+            }
+        }
+    }
+
     private inline fun ifCurrentSession(ownerId: String, action: () -> Unit) {
         if (sessionOwnerId.value == ownerId) action()
     }
@@ -643,6 +811,11 @@ class MainViewModel @Inject constructor(
         sessionOwnerId.value == userId && preferencesStateRole?.let(de.lunara.app.core.model.RoleNavigation::canManagePeriods) == true
 
     private var preferencesStateRole: UserRole? = null
+    private var preferencesStateMode: AppMode? = null
+
+    private suspend fun refreshPredictionAfterLocalPeriodChange(ownerId: String) {
+        if (preferencesStateMode == AppMode.LOCAL) refreshTrackerPredictionNow(ownerId)
+    }
 
     private fun launchForSession(ownerId: String, action: suspend () -> Unit) {
         val scope = sessionOperations ?: return

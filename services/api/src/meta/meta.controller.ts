@@ -13,6 +13,15 @@ export interface MetaResponse {
   registrationEnabled: boolean;
   serverTime: string;
   gatewayHeaderName: 'X-Lunara-Authorization';
+  authenticationMethods: Array<'PASSWORD' | 'OIDC'>;
+  oidc?: {
+    providerName: string;
+    issuer: string;
+    audience: string;
+    clientId: string;
+    scopes: string[];
+    discoveryUrl: string;
+  };
 }
 
 @ApiTags('meta')
@@ -30,9 +39,14 @@ export class MetaController {
   @ApiOperation({ summary: 'Server identity, compatibility and setup state' })
   async getMeta(): Promise<MetaResponse> {
     const bootstrapped = await isServerBootstrapped(this.prisma);
+    const oidcEnabled = this.config.get<boolean>(
+      'lunara.oidc.enabled',
+      false,
+    );
+    const oidcIssuer = this.config.get<string>('lunara.oidc.issuer', '');
     return {
       name: this.config.get<string>('lunara.appName', 'Lunara'),
-      version: this.config.get<string>('lunara.appVersion', '1.0.7'),
+      version: this.config.get<string>('lunara.appVersion', '1.1.0'),
       apiVersion: 'v1',
       setupRequired: !bootstrapped,
       registrationEnabled: this.config.get<boolean>(
@@ -41,6 +55,30 @@ export class MetaController {
       ),
       serverTime: new Date().toISOString(),
       gatewayHeaderName: 'X-Lunara-Authorization',
+      authenticationMethods: oidcEnabled
+        ? ['PASSWORD', 'OIDC']
+        : ['PASSWORD'],
+      ...(oidcEnabled
+        ? {
+            oidc: {
+              providerName: this.config.get<string>(
+                'lunara.oidc.providerName',
+                'Authentik',
+              ),
+              issuer: oidcIssuer,
+              audience: this.config.get<string>('lunara.oidc.audience', ''),
+              clientId: this.config.get<string>('lunara.oidc.clientId', ''),
+              scopes: this.config.get<string[]>(
+                'lunara.oidc.scopes',
+                ['openid', 'offline_access'],
+              ),
+              discoveryUrl: this.config.get<string>(
+                'lunara.oidc.discoveryUrl',
+                `${oidcIssuer.endsWith('/') ? oidcIssuer : `${oidcIssuer}/`}.well-known/openid-configuration`,
+              ),
+            },
+          }
+        : {}),
     };
   }
 }

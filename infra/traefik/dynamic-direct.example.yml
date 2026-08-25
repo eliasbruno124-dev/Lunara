@@ -1,0 +1,29 @@
+# Traefik 3 file-provider example for an installation WITHOUT Authentik.
+# Lunara's own username/password, short-lived access tokens and household
+# isolation remain active. Keep /api-docs disabled or protect it separately.
+http:
+  routers:
+    lunara-direct:
+      entryPoints: [websecure]
+      rule: Host(`lunara.example.com`)
+      service: lunara-api-direct
+      tls:
+        certResolver: letsencrypt
+      middlewares: [lunara-direct-security]
+  middlewares:
+    lunara-direct-security:
+      headers:
+        contentTypeNosniff: true
+        referrerPolicy: no-referrer
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        forceSTSHeader: true
+        customResponseHeaders:
+          Server: ""
+          X-Powered-By: ""
+  services:
+    lunara-api-direct:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://lunara-api:3000

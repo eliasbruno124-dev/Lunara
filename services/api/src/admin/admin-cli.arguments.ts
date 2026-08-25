@@ -4,6 +4,7 @@ const UUID_PATTERN =
 const SUPPORTED_COMMANDS = new Set([
   'users list',
   'users disable',
+  'users link-oidc',
   'sessions revoke-all',
   'bootstrap status',
   'invitations list',

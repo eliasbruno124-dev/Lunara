@@ -12,6 +12,9 @@ import de.lunara.app.data.remote.dto.JoinRequest
 import de.lunara.app.data.remote.dto.LoginRequest
 import de.lunara.app.data.remote.dto.LogoutRequest
 import de.lunara.app.data.remote.dto.MetaDto
+import de.lunara.app.data.remote.dto.OidcLinkRequest
+import de.lunara.app.data.remote.dto.OidcLoginRequest
+import de.lunara.app.data.remote.dto.OidcStatusDto
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PeriodDto
 import de.lunara.app.data.remote.dto.PredictionDto
@@ -41,6 +44,9 @@ interface LunaraApi {
     @POST suspend fun setup(@Url url: String, @Body request: SetupRequest): Response<AuthResponseDto>
     @POST suspend fun registerTracker(@Url url: String, @Body request: RegisterRequest): Response<AuthResponseDto>
     @POST suspend fun login(@Url url: String, @Body request: LoginRequest): Response<AuthResponseDto>
+    @POST suspend fun oidcLogin(@Url url: String, @Body request: OidcLoginRequest): Response<AuthResponseDto>
+    @POST suspend fun linkOidc(@Url url: String, @Body request: OidcLinkRequest): Response<OidcStatusDto>
+    @GET suspend fun oidcStatus(@Url url: String): Response<OidcStatusDto>
     @POST suspend fun join(@Url url: String, @Body request: JoinRequest): Response<AuthResponseDto>
     @POST suspend fun refresh(@Url url: String, @Body request: RefreshRequest): Response<AuthResponseDto>
     @POST suspend fun logout(@Url url: String, @Body request: LogoutRequest): Response<Unit>

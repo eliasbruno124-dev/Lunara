@@ -20,6 +20,10 @@ env_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
 restore_parent="${LUNARA_RESTORE_TMP_DIR:-/var/backups/lunara}"
 lock_file="${LUNARA_OPERATION_LOCK:-/run/lock/lunara-maintenance.lock}"
 
+lunara_compose() {
+  LUNARA_ENV_FILE="${env_file}" "${script_dir}/compose.sh" "$@"
+}
+
 exec 9>"${lock_file}"
 if ! flock -n 9; then
   echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
@@ -38,7 +42,7 @@ cleanup() {
     rm -rf -- "${work_dir}"
   fi
   if [[ "${api_stopped:-false}" == "true" && "${restore_committed:-false}" != "true" ]]; then
-    docker compose --project-directory "${project_dir}" --env-file "${env_file}" up -d --no-deps api >/dev/null || true
+    lunara_compose up -d --no-deps api >/dev/null || true
   fi
 }
 trap cleanup EXIT
@@ -57,25 +61,23 @@ LUNARA_ENV_FILE="${env_file}" LUNARA_OPERATION_LOCK="${lock_file}.nested.$$" "${
 # only Lunara's API; PostgreSQL and every unrelated host service remain online.
 api_stopped=true
 restore_committed=false
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" stop api
+lunara_compose stop api
 
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-  exec -T postgres sh -ceu \
+lunara_compose exec -T postgres sh -ceu \
   'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --set=ON_ERROR_STOP=1 \
     --command="SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=current_database() AND pid <> pg_backend_pid();"'
 
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-  exec -T postgres sh -ceu \
+lunara_compose exec -T postgres sh -ceu \
   'pg_restore --clean --if-exists --no-owner --no-acl --single-transaction --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"' \
   < "${work_dir}/database.dump"
 restore_committed=true
 
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" run --rm migrate
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" up -d --no-deps api
+lunara_compose run --rm migrate
+lunara_compose up -d --no-deps api
 
 for attempt in {1..20}; do
-  if docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-    exec -T api node -e "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+  if lunara_compose exec -T api \
+    node -e "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
     api_stopped=false
     break
   fi
@@ -83,11 +85,11 @@ for attempt in {1..20}; do
 done
 if [[ "${api_stopped}" == "true" ]]; then
   echo "Restore wurde eingespielt, aber die API ist nicht bereit; sie wird vorsichtshalber gestoppt gelassen." >&2
-  docker compose --project-directory "${project_dir}" --env-file "${env_file}" stop api
+  lunara_compose stop api
   exit 1
 fi
 
-docker compose --project-directory "${project_dir}" --env-file "${env_file}" \
-  exec -T postgres sh -ceu 'pg_isready --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"'
+lunara_compose exec -T postgres sh -ceu \
+  'pg_isready --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"'
 
 echo "Datenbank wiederhergestellt. API-Health und Entschlüsselung einer Testnotiz jetzt prüfen."

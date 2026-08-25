@@ -59,6 +59,8 @@ src/main/kotlin/de/lunara/api/models/JoinHouseholdDto.kt
 src/main/kotlin/de/lunara/api/models/LoginDto.kt
 src/main/kotlin/de/lunara/api/models/LogoutDto.kt
 src/main/kotlin/de/lunara/api/models/MetaResponse.kt
+src/main/kotlin/de/lunara/api/models/OidcLinkDto.kt
+src/main/kotlin/de/lunara/api/models/OidcLoginDto.kt
 src/main/kotlin/de/lunara/api/models/PartnerDashboardResponse.kt
 src/main/kotlin/de/lunara/api/models/PartnerPredictionResponse.kt
 src/main/kotlin/de/lunara/api/models/PeriodResponse.kt

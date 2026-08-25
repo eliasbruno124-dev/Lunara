@@ -3,6 +3,7 @@ package de.lunara.app.ui.main
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
@@ -25,6 +26,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.List
@@ -67,10 +70,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
@@ -79,6 +89,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -110,6 +121,7 @@ import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.local.DailyLogEntity
 import de.lunara.app.data.preferences.AppPreferencesState
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
@@ -128,6 +140,7 @@ import de.lunara.app.ui.components.StatusPill
 import de.lunara.app.ui.components.QrCode
 import de.lunara.app.ui.theme.LunaraTheme
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -142,19 +155,20 @@ fun MainShell(
     onLogout: () -> Unit,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
+    val isLocalMode = preferences.appMode == AppMode.LOCAL
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val destinations = remember(session.role) { RoleNavigation.destinations(session.role) }
     val backStack by navController.currentBackStackEntryAsState()
     val selected = backStack?.destination?.route ?: MainDestination.TODAY.route
     val snackbar = remember { SnackbarHostState() }
-    val periodSavedMessage = stringResource(R.string.period_saved_offline)
-    val periodAddedMessage = stringResource(R.string.period_added_offline)
-    val periodEndedMessage = stringResource(R.string.period_ended_offline)
-    val periodUpdatedMessage = stringResource(R.string.period_updated_offline)
-    val periodDeletedMessage = stringResource(R.string.period_deleted_offline)
+    val periodSavedMessage = stringResource(if (isLocalMode) R.string.period_saved_local else R.string.period_saved_offline)
+    val periodAddedMessage = stringResource(if (isLocalMode) R.string.period_added_local else R.string.period_added_offline)
+    val periodEndedMessage = stringResource(if (isLocalMode) R.string.period_ended_local else R.string.period_ended_offline)
+    val periodUpdatedMessage = stringResource(if (isLocalMode) R.string.period_updated_local else R.string.period_updated_offline)
+    val periodDeletedMessage = stringResource(if (isLocalMode) R.string.period_deleted_local else R.string.period_deleted_offline)
     val periodChangeFailedMessage = stringResource(R.string.period_change_failed)
-    val dailyLogSavedMessage = stringResource(R.string.daily_log_saved_offline)
+    val dailyLogSavedMessage = stringResource(if (isLocalMode) R.string.daily_log_saved_local else R.string.daily_log_saved_offline)
     val dailyLogFailedMessage = stringResource(R.string.daily_log_change_failed)
     val passwordChangedMessage = stringResource(R.string.password_change_success)
 
@@ -180,7 +194,12 @@ fun MainShell(
         topBar = {
             TopAppBar(
                 title = { Text("Lunara", fontWeight = FontWeight.SemiBold) },
-                actions = { StatusPill(stringResource(R.string.offline_badge), Modifier.padding(end = 12.dp)) },
+                actions = {
+                    StatusPill(
+                        stringResource(if (isLocalMode) R.string.local_mode_badge else R.string.offline_badge),
+                        Modifier.padding(end = 12.dp),
+                    )
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -240,6 +259,7 @@ fun MainShell(
                         onSync = viewModel::syncNow,
                         onDiscardConflicts = viewModel::discardConflictsAndReload,
                         periodFailureRevision = state.periodFailureRevision,
+                        showSync = !isLocalMode,
                     )
                 } else {
                     PartnerDashboard(
@@ -313,6 +333,8 @@ fun MainShell(
                     settingsBusy = state.settingsBusy,
                     settingsError = state.settingsError,
                     passwordChangeStatus = state.passwordChangeStatus,
+                    oidc = state.oidc,
+                    backupStatus = state.backupStatus,
                     onCreateInvitation = viewModel::createInvitation,
                     onRefreshInvitation = viewModel::refreshInvitation,
                     onRevokeInvitation = viewModel::revokeInvitation,
@@ -321,6 +343,12 @@ fun MainShell(
                     onFertilityPrediction = viewModel::setFertilityPredictionEnabled,
                     onChangePassword = viewModel::changePassword,
                     onClearPasswordChangeStatus = viewModel::clearPasswordChangeStatus,
+                    onBeginAuthentikLink = viewModel::beginAuthentikLink,
+                    onCompleteAuthentikLink = viewModel::completeAuthentikLink,
+                    onClearAuthentikError = viewModel::clearAuthentikError,
+                    onExportLocalBackup = viewModel::exportLocalBackup,
+                    onImportLocalBackup = viewModel::importLocalBackup,
+                    onClearLocalBackupStatus = viewModel::clearLocalBackupStatus,
                     onLogout = onLogout,
                 )
             }
@@ -361,6 +389,7 @@ fun TrackerDashboard(
     onSync: () -> Unit,
     onDiscardConflicts: () -> Unit,
     periodFailureRevision: Long = 0L,
+    showSync: Boolean = true,
 ) {
     val haptics = LocalHapticFeedback.current
     var showTodayLog by remember { mutableStateOf(false) }
@@ -485,25 +514,27 @@ fun TrackerDashboard(
         dailyLogs.firstOrNull()?.let { latest ->
             item { DailyLogRow(latest) }
         }
-        item {
-            InsightCard(
-                Icons.Rounded.Refresh,
-                stringResource(R.string.sync_status),
-                syncDescription(pendingMutations, conflictMutations, lastSyncAt),
-                action = {
-                    Column(horizontalAlignment = Alignment.End) {
-                        TextButton(onClick = onSync) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = null)
-                            Text(stringResource(R.string.sync_now), Modifier.padding(start = 6.dp))
-                        }
-                        if (conflictMutations > 0) {
-                            TextButton(onClick = { showDiscardConflicts = true }) {
-                                Text(stringResource(R.string.resolve_sync_conflicts))
+        if (showSync) {
+            item {
+                InsightCard(
+                    Icons.Rounded.Refresh,
+                    stringResource(R.string.sync_status),
+                    syncDescription(pendingMutations, conflictMutations, lastSyncAt),
+                    action = {
+                        Column(horizontalAlignment = Alignment.End) {
+                            TextButton(onClick = onSync) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = null)
+                                Text(stringResource(R.string.sync_now), Modifier.padding(start = 6.dp))
+                            }
+                            if (conflictMutations > 0) {
+                                TextButton(onClick = { showDiscardConflicts = true }) {
+                                    Text(stringResource(R.string.resolve_sync_conflicts))
+                                }
                             }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
         if (periods.isNotEmpty()) {
             item { Text(stringResource(R.string.history), style = MaterialTheme.typography.titleLarge) }
@@ -703,6 +734,7 @@ private fun DailyLogRow(log: DailyLogEntity) {
             StatusPill(
                 when (log.syncState) {
                     "SYNCED" -> stringResource(R.string.synced)
+                    "LOCAL" -> stringResource(R.string.stored_on_device)
                     "CONFLICT" -> stringResource(R.string.sync_conflict)
                     "RESOLVING" -> stringResource(R.string.sync_resolving)
                     else -> stringResource(R.string.pending)
@@ -854,12 +886,18 @@ internal fun CalendarScreen(
 ) {
     val today = LocalDate.now()
     val currentMonth = YearMonth.from(today)
-    var visibleMonthValue by rememberSaveable { mutableStateOf(currentMonth.toString()) }
-    val month = remember(visibleMonthValue, currentMonth) {
-        runCatching { YearMonth.parse(visibleMonthValue) }
-            .getOrDefault(currentMonth)
-            .coerceAtMost(currentMonth)
+    val lastCalendarMonth = remember(currentMonth) {
+        CalendarMonthPagingPolicy.mainCalendarLastMonth(currentMonth)
     }
+    val calendarPageCount = remember(lastCalendarMonth) {
+        CalendarMonthPagingPolicy.pageCount(lastCalendarMonth)
+    }
+    val currentMonthPage = remember(currentMonth, lastCalendarMonth) {
+        CalendarMonthPagingPolicy.pageForMonth(currentMonth, lastCalendarMonth)
+    }
+    val monthPagerState = rememberPagerState(initialPage = currentMonthPage) { calendarPageCount }
+    val month = CalendarMonthPagingPolicy.monthForPage(monthPagerState.currentPage, lastCalendarMonth)
+    val calendarScope = rememberCoroutineScope()
     var selectedNewStart by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedPeriodId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingNewStartDate by rememberSaveable { mutableStateOf<String?>(null) }
@@ -873,9 +911,7 @@ internal fun CalendarScreen(
     val createSubmitting = pendingNewStartDate != null
     val editorSubmitting = pendingUpdatedStartDate != null || pendingDeletePeriodId != null
     val locale = LocalLocale.current.platformLocale
-    val first = month.atDay(1)
-    val leading = first.dayOfWeek.value - 1
-    val cells = List(leading) { null } + (1..month.lengthOfMonth()).map(month::atDay)
+    val predictionBand = remember(prediction) { CalendarPredictionBand.from(prediction) }
     val fertilityRange = remember(prediction) { PredictionPresentationPolicy.fertileWindow(prediction) }
     LaunchedEffect(periods, pendingNewStartDate, pendingNewEndDate) {
         val pendingStart = pendingNewStartDate ?: return@LaunchedEffect
@@ -944,99 +980,113 @@ internal fun CalendarScreen(
             )
         }
         item {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    onClick = { visibleMonthValue = month.minusMonths(1).toString() },
-                    modifier = Modifier.testTag("calendar-previous-month"),
-                ) { Text(stringResource(R.string.previous_month)) }
-                Text(
-                    month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                TextButton(
-                    onClick = { visibleMonthValue = month.plusMonths(1).toString() },
-                    enabled = month < currentMonth,
-                    modifier = Modifier.testTag("calendar-next-month"),
-                ) { Text(stringResource(R.string.next_month)) }
-            }
-        }
-        item {
-            Row(Modifier.fillMaxWidth()) {
-                java.time.DayOfWeek.entries.forEach { day ->
-                    Text(day.getDisplayName(java.time.format.TextStyle.NARROW, locale), Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                }
-            }
-        }
-        items(cells.chunked(7)) { week ->
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { date ->
-                    if (date == null) Spacer(Modifier.weight(1f).height(52.dp))
-                    else {
-                        val selectable = role == UserRole.TRACKER && !date.isAfter(today)
-                        val ownPeriod = periodForDate(periods, date, today)
-                        val existing = if (selectable) ownPeriod else null
-                        val editable = selectable &&
-                            (existing == null || !SyncEditPolicy.isBlocked(existing.syncState))
-                        DayCell(
-                            date = date,
-                            actual = ownPeriod != null || sharedPeriodDates.any {
-                                calendarRangeContains(
-                                    date = date,
-                                    startDate = it["startDate"] as? String,
-                                    endDate = it["endDate"] as? String,
-                                    today = today,
-                                )
-                            },
-                            predicted = prediction?.available == true && calendarRangeContains(
-                                date = date,
-                                startDate = prediction.predictedStartFrom,
-                                endDate = prediction.predictedStartTo,
-                                today = today,
-                                extendOpenRange = false,
-                            ),
-                            fertileEstimate = fertilityRange?.let {
-                                calendarRangeContains(
-                                    date = date,
-                                    startDate = it.from,
-                                    endDate = it.to,
-                                    today = today,
-                                    extendOpenRange = false,
-                                )
-                            } == true,
-                            actionDescription = if (!editable) {
-                                null
-                            } else if (existing != null) {
-                                stringResource(R.string.calendar_edit_day)
-                            } else {
-                                stringResource(R.string.calendar_add_day)
-                            },
-                            onClick = if (!editable) {
-                                null
-                            } else {
-                                {
-                                    if (existing != null) {
-                                        selectedPeriodId = existing.id
-                                    } else {
-                                        selectedNewStart = date.toString()
+            HorizontalPager(
+                state = monthPagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(432.dp)
+                    .testTag("calendar-month-pager"),
+                key = { page ->
+                    CalendarMonthPagingPolicy.monthForPage(page, lastCalendarMonth).toString()
+                },
+            ) { page ->
+                val pageMonth = CalendarMonthPagingPolicy.monthForPage(page, lastCalendarMonth)
+                val first = pageMonth.atDay(1)
+                val leading = first.dayOfWeek.value - 1
+                val populatedCells = List<LocalDate?>(leading) { null } +
+                    (1..pageMonth.lengthOfMonth()).map(pageMonth::atDay)
+                val cells = populatedCells + List(42 - populatedCells.size) { null }
+
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("calendar-month-$pageMonth"),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        pageMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .semantics { heading() }
+                            .testTag("calendar-month-title-$pageMonth"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(Modifier.fillMaxWidth()) {
+                        java.time.DayOfWeek.entries.forEach { day ->
+                            Text(
+                                day.getDisplayName(java.time.format.TextStyle.NARROW, locale),
+                                Modifier.weight(1f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                    cells.chunked(7).forEach { week ->
+                        Row(Modifier.fillMaxWidth()) {
+                            week.forEach { date ->
+                                if (date == null) {
+                                    Spacer(Modifier.weight(1f).height(52.dp))
+                                } else {
+                                    val selectable = role == UserRole.TRACKER && !date.isAfter(today)
+                                    val ownPeriod = periodForDate(periods, date, today)
+                                    val existing = if (selectable) ownPeriod else null
+                                    val editable = selectable &&
+                                        (existing == null || !SyncEditPolicy.isBlocked(existing.syncState))
+                                    val actual = ownPeriod != null || sharedPeriodDates.any {
+                                        calendarRangeContains(
+                                            date = date,
+                                            startDate = it["startDate"] as? String,
+                                            endDate = it["endDate"] as? String,
+                                            today = today,
+                                        )
                                     }
+                                    DayCell(
+                                        date = date,
+                                        isToday = date == today,
+                                        actual = actual,
+                                        predictionRole = predictionBand?.roleFor(date)
+                                            ?: CalendarPredictionDayRole.NONE,
+                                        fertileEstimate = fertilityRange?.let {
+                                            calendarRangeContains(
+                                                date = date,
+                                                startDate = it.from,
+                                                endDate = it.to,
+                                                today = today,
+                                                extendOpenRange = false,
+                                            )
+                                        } == true,
+                                        actionDescription = if (!editable) {
+                                            null
+                                        } else if (existing != null) {
+                                            stringResource(R.string.calendar_edit_day)
+                                        } else {
+                                            stringResource(R.string.calendar_add_day)
+                                        },
+                                        onClick = if (!editable) {
+                                            null
+                                        } else {
+                                            {
+                                                if (existing != null) {
+                                                    selectedPeriodId = existing.id
+                                                } else {
+                                                    selectedNewStart = date.toString()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f).testTag("calendar-day-$date"),
+                                    )
                                 }
-                            },
-                            modifier = Modifier.weight(1f).testTag("calendar-day-$date"),
-                        )
+                            }
+                        }
                     }
                 }
-                repeat(7 - week.size) { Spacer(Modifier.weight(1f).height(52.dp)) }
             }
         }
         item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.calendar_actual_marker), style = MaterialTheme.typography.bodyMedium)
-                Text(stringResource(R.string.calendar_prediction_marker), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.calendar_prediction_start_marker), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.calendar_prediction_duration_marker), style = MaterialTheme.typography.bodyMedium)
                 if (fertilityRange != null) {
                     Text(stringResource(R.string.calendar_fertility_marker), style = MaterialTheme.typography.bodyMedium)
                 }
@@ -1048,8 +1098,10 @@ internal fun CalendarScreen(
         if (month != currentMonth) {
             item {
                 TextButton(
-                    onClick = { visibleMonthValue = currentMonth.toString() },
-                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        calendarScope.launch { monthPagerState.animateScrollToPage(currentMonthPage) }
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("calendar-current-month"),
                 ) { Text(stringResource(R.string.current_month)) }
             }
         }
@@ -1110,19 +1162,39 @@ internal fun CalendarScreen(
 @Composable
 private fun DayCell(
     date: LocalDate,
+    isToday: Boolean,
     actual: Boolean,
-    predicted: Boolean,
+    predictionRole: CalendarPredictionDayRole,
     fertileEstimate: Boolean,
     modifier: Modifier = Modifier,
     actionDescription: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    val description = when {
-        actual -> stringResource(R.string.calendar_day_period, date.dayOfMonth)
-        predicted -> stringResource(R.string.calendar_day_prediction, date.dayOfMonth)
-        fertileEstimate -> stringResource(R.string.calendar_day_fertility, date.dayOfMonth)
-        else -> date.dayOfMonth.toString()
+    val locale = LocalLocale.current.platformLocale
+    val formattedDate = remember(date, locale) {
+        date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale))
     }
+    val todayStatus = stringResource(R.string.calendar_day_today_status)
+    val recordedStatus = stringResource(R.string.calendar_day_recorded_status)
+    val predictedStartStatus = stringResource(R.string.calendar_day_prediction_start_status)
+    val predictedDurationStatus = stringResource(R.string.calendar_day_prediction_duration_status)
+    val fertilityStatus = stringResource(R.string.calendar_day_fertility_status)
+    val statusDescriptions = listOfNotNull(
+        todayStatus.takeIf { isToday },
+        recordedStatus.takeIf { actual },
+        predictedStartStatus.takeIf {
+            predictionRole == CalendarPredictionDayRole.START_UNCERTAINTY
+        },
+        predictedDurationStatus.takeIf {
+            predictionRole == CalendarPredictionDayRole.POSSIBLE_DURATION
+        },
+        fertilityStatus.takeIf { fertileEstimate },
+    )
+    val description = (listOf(formattedDate) + statusDescriptions).joinToString(". ")
+    val visiblePredictionRole = predictionRole.takeUnless { actual }
+        ?: CalendarPredictionDayRole.NONE
+    val dashedPrediction = visiblePredictionRole == CalendarPredictionDayRole.START_UNCERTAINTY
+    val predictionOutline = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.82f)
     val cardModifier = modifier
         .padding(2.dp)
         .height(52.dp)
@@ -1134,21 +1206,52 @@ private fun DayCell(
                 Modifier
             },
         )
+        .then(
+            if (dashedPrediction) {
+                Modifier.drawWithContent {
+                    drawContent()
+                    val strokeWidth = 1.5.dp.toPx()
+                    drawRoundRect(
+                        color = predictionOutline,
+                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                        cornerRadius = CornerRadius(10.dp.toPx()),
+                        style = Stroke(
+                            width = strokeWidth,
+                            pathEffect = PathEffect.dashPathEffect(
+                                floatArrayOf(5.dp.toPx(), 3.dp.toPx()),
+                            ),
+                        ),
+                    )
+                }
+            } else {
+                Modifier
+            },
+        )
     Card(
         cardModifier,
         colors = CardDefaults.cardColors(
             containerColor = when {
                 actual -> MaterialTheme.colorScheme.secondaryContainer
-                predicted -> MaterialTheme.colorScheme.tertiaryContainer
+                visiblePredictionRole == CalendarPredictionDayRole.START_UNCERTAINTY ->
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f)
+                visiblePredictionRole == CalendarPredictionDayRole.POSSIBLE_DURATION ->
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.24f)
                 fertileEstimate -> MaterialTheme.colorScheme.primaryContainer
                 else -> MaterialTheme.colorScheme.surface
             },
         ),
     ) {
         Column(Modifier.fillMaxSize().padding(5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                date.dayOfMonth.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+            )
             if (actual) Text("P", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            else if (predicted) Text("~", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            else if (visiblePredictionRole != CalendarPredictionDayRole.NONE) {
+                Text("≈", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            }
             else if (fertileEstimate) Text("F?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
@@ -1353,6 +1456,7 @@ private fun EditablePeriodRow(
                 Text(
                     when (period.syncState) {
                         "SYNCED" -> stringResource(R.string.synced)
+                        "LOCAL" -> stringResource(R.string.stored_on_device)
                         "CONFLICT" -> stringResource(R.string.sync_conflict)
                         "RESOLVING" -> stringResource(R.string.sync_resolving)
                         else -> stringResource(R.string.pending)
@@ -1634,80 +1738,76 @@ private fun PeriodRangePicker(
 ) {
     val today = LocalDate.now()
     val currentMonth = YearMonth.from(today)
-    val initialVisibleMonth = remember(initialMonth, currentMonth) { initialMonth.coerceAtMost(currentMonth) }
-    var visibleMonthValue by rememberSaveable(initialVisibleMonth.toString()) {
-        mutableStateOf(initialVisibleMonth.toString())
+    val initialPage = remember(initialMonth, currentMonth) {
+        CalendarMonthPagingPolicy.pageForMonth(initialMonth, currentMonth)
     }
-    val month = remember(visibleMonthValue, initialVisibleMonth, currentMonth) {
-        runCatching { YearMonth.parse(visibleMonthValue) }
-            .getOrDefault(initialVisibleMonth)
-            .coerceAtMost(currentMonth)
-    }
+    val pageCount = remember(currentMonth) { CalendarMonthPagingPolicy.pageCount(currentMonth) }
+    val pagerState = rememberPagerState(initialPage = initialPage) { pageCount }
     val locale = LocalLocale.current.platformLocale
-    val first = month.atDay(1)
-    val leading = first.dayOfWeek.value - 1
-    val cells = List<LocalDate?>(leading) { null } +
-        (1..month.lengthOfMonth()).map(month::atDay)
-    val previousMonthDescription = stringResource(R.string.previous_month)
-    val nextMonthDescription = stringResource(R.string.next_month)
 
     Column(
         Modifier.fillMaxWidth().testTag("period-range-picker"),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(
-                onClick = { visibleMonthValue = month.minusMonths(1).toString() },
-                enabled = enabled,
-                modifier = Modifier
-                    .testTag("period-picker-previous-month")
-                    .semantics { contentDescription = previousMonthDescription },
-            ) { Text("‹", style = MaterialTheme.typography.titleLarge) }
-            Text(
-                month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            TextButton(
-                onClick = { visibleMonthValue = month.plusMonths(1).toString() },
-                enabled = enabled && month < currentMonth,
-                modifier = Modifier
-                    .testTag("period-picker-next-month")
-                    .semantics { contentDescription = nextMonthDescription },
-            ) { Text("›", style = MaterialTheme.typography.titleLarge) }
-        }
-        Row(Modifier.fillMaxWidth()) {
-            java.time.DayOfWeek.entries.forEach { day ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(392.dp)
+                .testTag("period-range-month-pager"),
+            userScrollEnabled = enabled,
+            key = { page -> CalendarMonthPagingPolicy.monthForPage(page, currentMonth).toString() },
+        ) { page ->
+            val month = CalendarMonthPagingPolicy.monthForPage(page, currentMonth)
+            val first = month.atDay(1)
+            val leading = first.dayOfWeek.value - 1
+            val populatedCells = List<LocalDate?>(leading) { null } +
+                (1..month.lengthOfMonth()).map(month::atDay)
+            val cells = populatedCells + List(42 - populatedCells.size) { null }
+
+            Column(
+                Modifier.fillMaxWidth().testTag("period-picker-month-$month"),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 Text(
-                    day.getDisplayName(java.time.format.TextStyle.NARROW, locale),
-                    Modifier.weight(1f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
+                    month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale)),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { heading() },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
-            }
-        }
-        cells.chunked(7).forEach { week ->
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { date ->
-                    if (date == null) {
-                        Spacer(Modifier.weight(1f).height(48.dp))
-                    } else {
-                        PeriodRangePickerDay(
-                            date = date,
-                            role = periodRangeDayRole(selection, date),
-                            enabled = enabled && !date.isAfter(today),
-                            onClick = {
-                                onSelectionChanged(PeriodRangeSelectionPolicy.select(selection, date))
-                            },
-                            modifier = Modifier.weight(1f),
+                Row(Modifier.fillMaxWidth()) {
+                    java.time.DayOfWeek.entries.forEach { day ->
+                        Text(
+                            day.getDisplayName(java.time.format.TextStyle.NARROW, locale),
+                            Modifier.weight(1f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            style = MaterialTheme.typography.labelMedium,
                         )
                     }
                 }
-                repeat(7 - week.size) { Spacer(Modifier.weight(1f).height(48.dp)) }
+                cells.chunked(7).forEach { week ->
+                    Row(Modifier.fillMaxWidth()) {
+                        week.forEach { date ->
+                            if (date == null) {
+                                Spacer(Modifier.weight(1f).height(48.dp))
+                            } else {
+                                PeriodRangePickerDay(
+                                    date = date,
+                                    role = periodRangeDayRole(selection, date),
+                                    enabled = enabled && !date.isAfter(today),
+                                    onClick = {
+                                        onSelectionChanged(
+                                            PeriodRangeSelectionPolicy.select(selection, date),
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1862,6 +1962,8 @@ private fun SettingsScreen(
     settingsBusy: Boolean,
     settingsError: Boolean,
     passwordChangeStatus: PasswordChangeStatus,
+    oidc: OidcLinkUiState,
+    backupStatus: LocalBackupStatus,
     onCreateInvitation: () -> Unit,
     onRefreshInvitation: () -> Unit,
     onRevokeInvitation: () -> Unit,
@@ -1870,10 +1972,26 @@ private fun SettingsScreen(
     onFertilityPrediction: (Boolean) -> Unit,
     onChangePassword: (String, String, String) -> Unit,
     onClearPasswordChangeStatus: () -> Unit,
+    onBeginAuthentikLink: ((Intent) -> Unit) -> Unit,
+    onCompleteAuthentikLink: (Intent?, String) -> Unit,
+    onClearAuthentikError: () -> Unit,
+    onExportLocalBackup: (Uri, CharArray) -> Unit,
+    onImportLocalBackup: (Uri, CharArray) -> Unit,
+    onClearLocalBackupStatus: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val isLocalMode = preferences.appMode == AppMode.LOCAL
     var confirmLogout by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var showAuthentikLinkDialog by remember { mutableStateOf(false) }
+    // A current account password must never enter SavedInstanceState. If the
+    // activity is recreated while the browser flow is open, linking fails
+    // closed and the user can start it again.
+    var pendingAuthentikPassword by remember { mutableStateOf("") }
+    var showExportBackupDialog by remember { mutableStateOf(false) }
+    var showImportBackupDialog by remember { mutableStateOf(false) }
+    var pendingExportPassphrase by remember { mutableStateOf("") }
+    var pendingImportUri by remember { mutableStateOf<String?>(null) }
     var notificationPermissionDenied by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -1884,8 +2002,34 @@ private fun SettingsScreen(
             onNotificationPreferences(preferences.notifications.copy(master = true))
         }
     }
+    val authentikLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val password = pendingAuthentikPassword
+        pendingAuthentikPassword = ""
+        onCompleteAuthentikLink(result.data, password)
+    }
+    val exportBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream"),
+    ) { uri ->
+        val passphrase = pendingExportPassphrase.toCharArray()
+        pendingExportPassphrase = ""
+        if (uri == null) {
+            passphrase.fill('\u0000')
+        } else {
+            onExportLocalBackup(uri, passphrase)
+        }
+    }
+    val importBackupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            pendingImportUri = uri.toString()
+            showImportBackupDialog = true
+        }
+    }
     LaunchedEffect(session.userId) {
-        if (session.role == UserRole.TRACKER) onRefreshInvitation()
+        if (session.role == UserRole.TRACKER && !isLocalMode) onRefreshInvitation()
     }
     LaunchedEffect(passwordChangeStatus) {
         if (passwordChangeStatus == PasswordChangeStatus.SUCCESS) {
@@ -1895,18 +2039,108 @@ private fun SettingsScreen(
     }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item { LunaraHeader(title = stringResource(R.string.settings), modifier = Modifier.padding(vertical = 18.dp)) }
-        item { SettingHeader(stringResource(R.string.server_information)) }
-        item { SettingText(Icons.Rounded.Info, session.serverName, "${session.serverVersion} · ${BuildConfig.VERSION_NAME}") }
-        item { SettingHeader(stringResource(R.string.account_security)) }
-        item {
-            SettingText(
-                Icons.Rounded.Lock,
-                stringResource(R.string.change_password),
-                stringResource(R.string.change_password_summary),
-            ) {
-                onClearPasswordChangeStatus()
-                showPasswordDialog = true
+        if (isLocalMode) {
+            item { SettingHeader(stringResource(R.string.local_storage_title)) }
+            item {
+                SettingText(
+                    Icons.Rounded.Lock,
+                    stringResource(R.string.local_storage_title),
+                    stringResource(R.string.local_storage_summary),
+                )
             }
+            item {
+                InsightCard(
+                    Icons.Rounded.Lock,
+                    stringResource(R.string.portable_backup_title),
+                    stringResource(R.string.portable_backup_summary),
+                    action = {
+                        Column(horizontalAlignment = Alignment.End) {
+                            TextButton(
+                                enabled = backupStatus != LocalBackupStatus.BUSY,
+                                onClick = {
+                                    onClearLocalBackupStatus()
+                                    showExportBackupDialog = true
+                                },
+                            ) { Text(stringResource(R.string.backup_create)) }
+                            TextButton(
+                                enabled = backupStatus != LocalBackupStatus.BUSY,
+                                onClick = {
+                                    onClearLocalBackupStatus()
+                                    importBackupLauncher.launch(arrayOf("application/octet-stream", "application/zip", "*/*"))
+                                },
+                            ) { Text(stringResource(R.string.backup_restore)) }
+                        }
+                    },
+                )
+            }
+            if (backupStatus != LocalBackupStatus.IDLE) {
+                item {
+                    Text(
+                        stringResource(
+                            when (backupStatus) {
+                                LocalBackupStatus.BUSY -> R.string.backup_busy
+                                LocalBackupStatus.EXPORTED -> R.string.backup_export_success
+                                LocalBackupStatus.IMPORTED -> R.string.backup_import_success
+                                LocalBackupStatus.BAD_PASSPHRASE -> R.string.backup_bad_passphrase
+                                LocalBackupStatus.INVALID_BACKUP -> R.string.backup_invalid
+                                LocalBackupStatus.FAILED -> R.string.backup_failed
+                                LocalBackupStatus.IDLE -> R.string.backup_busy
+                            },
+                        ),
+                        color = when (backupStatus) {
+                            LocalBackupStatus.BAD_PASSPHRASE,
+                            LocalBackupStatus.INVALID_BACKUP,
+                            LocalBackupStatus.FAILED -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.tertiary
+                        },
+                    )
+                }
+            }
+        } else {
+            item { SettingHeader(stringResource(R.string.server_information)) }
+            item { SettingText(Icons.Rounded.Info, session.serverName, "${session.serverVersion} · ${BuildConfig.VERSION_NAME}") }
+            item { SettingHeader(stringResource(R.string.account_security)) }
+        }
+        if (!isLocalMode && oidc.status?.enabled == true) {
+            item {
+                if (oidc.status.linked) {
+                    SettingText(
+                        Icons.Rounded.Lock,
+                        stringResource(R.string.authentik_connected, oidc.status.providerName ?: "Authentik"),
+                        stringResource(
+                            if (oidc.status.passwordLoginEnabled) {
+                                R.string.authentik_connected_password_available
+                            } else {
+                                R.string.authentik_connected_only
+                            },
+                        ),
+                    )
+                } else {
+                    SettingText(
+                        Icons.Rounded.Lock,
+                        stringResource(R.string.connect_authentik, oidc.status.providerName ?: "Authentik"),
+                        stringResource(R.string.connect_authentik_summary),
+                    ) {
+                        onClearAuthentikError()
+                        showAuthentikLinkDialog = true
+                    }
+                }
+            }
+        }
+        if (!isLocalMode && oidc.status?.passwordLoginEnabled != false) {
+            item {
+                SettingText(
+                    Icons.Rounded.Lock,
+                    stringResource(R.string.change_password),
+                    stringResource(R.string.change_password_summary),
+                ) {
+                    onClearPasswordChangeStatus()
+                    showPasswordDialog = true
+                }
+            }
+        }
+        if (!isLocalMode && oidc.error) {
+            item { Text(stringResource(R.string.authentik_link_failed), color = MaterialTheme.colorScheme.error) }
         }
         item { SettingHeader(stringResource(R.string.appearance)) }
         item { SettingSwitch(Icons.Rounded.Settings, stringResource(R.string.system_theme), null, preferences.useSystemTheme, onUseSystemTheme) }
@@ -1921,7 +2155,9 @@ private fun SettingsScreen(
                 onPrivacyMode,
             )
         }
-        item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
+        if (!isLocalMode) {
+            item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
+        }
         item { SettingHeader(stringResource(R.string.notifications)) }
         item {
             val hasRuntimePermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -1983,6 +2219,8 @@ private fun SettingsScreen(
                     onEnabled = onFertilityPrediction,
                 )
             }
+        }
+        if (session.role == UserRole.TRACKER && !isLocalMode) {
             item { SettingHeader(stringResource(R.string.partner_connect)) }
             item {
                 InsightCard(
@@ -2062,15 +2300,31 @@ private fun SettingsScreen(
             if (settingsError) item { Text(stringResource(R.string.settings_save_error), color = MaterialTheme.colorScheme.error) }
         }
         item { HorizontalDivider(Modifier.padding(vertical = 10.dp)) }
-        item { SettingText(Icons.AutoMirrored.Rounded.ExitToApp, stringResource(R.string.logout), null) { confirmLogout = true } }
+        item {
+            SettingText(
+                Icons.AutoMirrored.Rounded.ExitToApp,
+                stringResource(if (isLocalMode) R.string.local_delete_and_switch else R.string.logout),
+                if (isLocalMode) stringResource(R.string.local_delete_and_switch_summary) else null,
+            ) { confirmLogout = true }
+        }
         item { Spacer(Modifier.height(20.dp)) }
     }
     if (confirmLogout) {
         AlertDialog(
             onDismissRequest = { confirmLogout = false },
-            title = { Text(stringResource(R.string.logout)) },
-            text = { Text(stringResource(R.string.privacy_mode_summary)) },
-            confirmButton = { TextButton(onClick = onLogout) { Text(stringResource(R.string.logout)) } },
+            title = { Text(stringResource(if (isLocalMode) R.string.local_delete_title else R.string.logout)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (isLocalMode) R.string.local_delete_confirmation else R.string.privacy_mode_summary,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = onLogout) {
+                    Text(stringResource(if (isLocalMode) R.string.local_delete_confirm else R.string.logout))
+                }
+            },
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text(stringResource(R.string.back_label)) } },
         )
     }
@@ -2087,6 +2341,178 @@ private fun SettingsScreen(
             },
         )
     }
+    if (showAuthentikLinkDialog) {
+        AuthentikLinkDialog(
+            providerName = oidc.status?.providerName ?: "Authentik",
+            busy = oidc.busy,
+            failed = oidc.error,
+            onDismiss = {
+                if (!oidc.busy) {
+                    showAuthentikLinkDialog = false
+                    pendingAuthentikPassword = ""
+                    onClearAuthentikError()
+                }
+            },
+            onSubmit = { password ->
+                pendingAuthentikPassword = password
+                showAuthentikLinkDialog = false
+                onBeginAuthentikLink { authentikLauncher.launch(it) }
+            },
+        )
+    }
+    if (showExportBackupDialog) {
+        BackupPassphraseDialog(
+            title = stringResource(R.string.backup_create),
+            explanation = stringResource(R.string.backup_export_passphrase_notice),
+            requireConfirmation = true,
+            onDismiss = { showExportBackupDialog = false },
+            onSubmit = { passphrase ->
+                showExportBackupDialog = false
+                pendingExportPassphrase = passphrase
+                exportBackupLauncher.launch("lunara-backup-${LocalDate.now()}.lunara")
+            },
+        )
+    }
+    if (showImportBackupDialog) {
+        BackupPassphraseDialog(
+            title = stringResource(R.string.backup_restore),
+            explanation = stringResource(R.string.backup_import_warning),
+            requireConfirmation = false,
+            onDismiss = {
+                showImportBackupDialog = false
+                pendingImportUri = null
+            },
+            onSubmit = { passphrase ->
+                val uri = pendingImportUri?.let(Uri::parse)
+                showImportBackupDialog = false
+                pendingImportUri = null
+                if (uri == null) {
+                    passphrase.toCharArray().fill('\u0000')
+                } else {
+                    onImportLocalBackup(uri, passphrase.toCharArray())
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun BackupPassphraseDialog(
+    title: String,
+    explanation: String,
+    requireConfirmation: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    var passphrase by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    var showValidation by remember { mutableStateOf(false) }
+    val validLength = de.lunara.app.data.backup.PortableBackupPassphrasePolicy.isValid(passphrase)
+    val matches = !requireConfirmation || passphrase == confirmation
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(explanation, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedTextField(
+                    value = passphrase,
+                    onValueChange = {
+                        passphrase = it.take(de.lunara.app.data.backup.PortableBackupPassphrasePolicy.MAX_UTF16_CODE_UNITS)
+                        showValidation = false
+                    },
+                    label = { Text(stringResource(R.string.backup_passphrase)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    isError = showValidation && !validLength,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (requireConfirmation) {
+                    OutlinedTextField(
+                        value = confirmation,
+                        onValueChange = {
+                            confirmation = it.take(de.lunara.app.data.backup.PortableBackupPassphrasePolicy.MAX_UTF16_CODE_UNITS)
+                            showValidation = false
+                        },
+                        label = { Text(stringResource(R.string.backup_passphrase_confirm)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        isError = showValidation && !matches,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (showValidation && !validLength) {
+                    Text(stringResource(R.string.backup_passphrase_length), color = MaterialTheme.colorScheme.error)
+                } else if (showValidation && !matches) {
+                    Text(stringResource(R.string.backup_passphrase_mismatch), color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (validLength && matches) {
+                        val submitted = passphrase
+                        passphrase = ""
+                        confirmation = ""
+                        onSubmit(submitted)
+                    } else {
+                        showValidation = true
+                    }
+                },
+            ) { Text(stringResource(R.string.continue_label)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun AuthentikLinkDialog(
+    providerName: String,
+    busy: Boolean,
+    failed: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    var currentPassword by remember { mutableStateOf("") }
+    var passwordMissing by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.connect_authentik, providerName)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    stringResource(R.string.connect_authentik_confirmation),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = {
+                        currentPassword = limitAccountPasswordInput(it)
+                        passwordMissing = false
+                    },
+                    label = { Text(stringResource(R.string.current_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    enabled = !busy,
+                    isError = passwordMissing,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (passwordMissing) Text(stringResource(R.string.password_current_required), color = MaterialTheme.colorScheme.error)
+                if (failed) Text(stringResource(R.string.authentik_link_failed), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !busy,
+                onClick = {
+                    if (currentPassword.isBlank()) passwordMissing = true else onSubmit(currentPassword)
+                },
+            ) { Text(stringResource(R.string.continue_label)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable

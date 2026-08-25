@@ -1,4 +1,4 @@
-import { validateEnvironment } from './app.config.js';
+import { appConfig, validateEnvironment } from './app.config.js';
 
 const valid = {
   NODE_ENV: 'production',
@@ -44,5 +44,53 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({ ...valid, ACCESS_TOKEN_TTL_SECONDS: '86400' }),
     ).toThrow('ACCESS_TOKEN_TTL_SECONDS');
+  });
+
+  it('keeps OIDC disabled unless explicitly enabled', () => {
+    const previous = process.env.OIDC_ENABLED;
+    delete process.env.OIDC_ENABLED;
+    try {
+      expect(appConfig().lunara.oidc.enabled).toBe(false);
+    } finally {
+      if (previous === undefined) delete process.env.OIDC_ENABLED;
+      else process.env.OIDC_ENABLED = previous;
+    }
+  });
+
+  it('accepts a fixed HTTPS OIDC provider with a public PKCE client', () => {
+    expect(
+      validateEnvironment({
+        ...valid,
+        OIDC_ENABLED: 'true',
+        OIDC_ISSUER: 'https://auth.example/application/o/lunara/',
+        OIDC_JWKS_URL: 'https://auth.example/application/o/lunara/jwks/',
+        OIDC_DISCOVERY_URL:
+          'https://auth.example/application/o/lunara/.well-known/openid-configuration',
+        OIDC_AUDIENCE: 'lunara-api',
+        OIDC_CLIENT_ID: 'lunara-android',
+        OIDC_SCOPES: 'openid profile',
+        OIDC_ALLOWED_ALGORITHMS: 'RS256',
+      }),
+    ).toMatchObject({ OIDC_ENABLED: 'true' });
+  });
+
+  it.each([
+    ['an HTTP issuer', { OIDC_ISSUER: 'http://auth.example/' }],
+    ['a symmetric algorithm', { OIDC_ALLOWED_ALGORITHMS: 'HS256' }],
+    ['an HTTP discovery endpoint', { OIDC_DISCOVERY_URL: 'http://auth.example/.well-known/openid-configuration' }],
+    ['scopes without openid', { OIDC_SCOPES: 'profile email' }],
+    ['an invalid enabled flag', { OIDC_ENABLED: 'yes' }],
+  ])('rejects OIDC configuration with %s', (_caseName, override) => {
+    expect(() =>
+      validateEnvironment({
+        ...valid,
+        OIDC_ENABLED: 'true',
+        OIDC_ISSUER: 'https://auth.example/application/o/lunara/',
+        OIDC_JWKS_URL: 'https://auth.example/application/o/lunara/jwks/',
+        OIDC_AUDIENCE: 'lunara-api',
+        OIDC_ALLOWED_ALGORITHMS: 'RS256',
+        ...override,
+      }),
+    ).toThrow();
   });
 });

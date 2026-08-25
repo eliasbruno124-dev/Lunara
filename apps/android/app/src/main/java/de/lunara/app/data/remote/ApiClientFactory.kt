@@ -2,6 +2,7 @@ package de.lunara.app.data.remote
 
 import de.lunara.app.core.network.GatewayCredentials
 import de.lunara.app.core.security.SecureCookieJar
+import de.lunara.app.security.AuthentikAuthManager
 import okhttp3.Authenticator
 import okhttp3.Credentials
 import okhttp3.Dispatcher
@@ -14,9 +15,11 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.nio.charset.StandardCharsets
+import android.os.Looper
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.runBlocking
 
 private class GatewayAuthenticator(
     private val credentials: GatewayCredentials?,
@@ -80,41 +83,89 @@ internal object GatewayHeaderPolicy {
  */
 private class PreemptiveGatewayHeaderInterceptor(
     private val credentials: GatewayCredentials?,
+    private val bearerProvider: () -> String?,
     private val expectedOrigin: GatewayOrigin,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val gateway = credentials
-        if (!GatewayHeaderPolicy.shouldAttach(gateway != null, expectedOrigin.matches(request.url), request.header("Authorization"))) {
+        if (!expectedOrigin.matches(request.url) || request.header("Authorization") != null) {
             return chain.proceed(request)
         }
+        val authorization = GatewayAuthorizationPolicy.value(credentials, bearerProvider())
+            ?: return chain.proceed(request)
         return chain.proceed(
             request.newBuilder()
-                .header("Authorization", Credentials.basic(gateway!!.username, gateway.appPassword, StandardCharsets.UTF_8))
+                .header("Authorization", authorization)
                 .build(),
         )
     }
 }
 
+internal object GatewayAuthorizationPolicy {
+    fun value(credentials: GatewayCredentials?, bearerToken: String?): String? =
+        bearerToken?.takeIf(String::isNotBlank)?.let { "Bearer $it" }
+            ?: credentials?.let {
+                Credentials.basic(it.username, it.appPassword, StandardCharsets.UTF_8)
+            }
+}
+
 private class AppTokenInterceptor(
     private val accessToken: String?,
     private val gatewayEnabled: Boolean,
+    private val expectedOrigin: GatewayOrigin,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = accessToken?.takeIf(String::isNotBlank) ?: return chain.proceed(chain.request())
+        val request = chain.request()
+        val token = accessToken?.takeIf(String::isNotBlank) ?: return chain.proceed(request)
         val header = if (gatewayEnabled) "X-Lunara-Authorization" else "Authorization"
-        return chain.proceed(chain.request().newBuilder().header(header, "Bearer $token").build())
+        if (!AppTokenHeaderPolicy.shouldAttach(
+                tokenPresent = true,
+                requestMatchesOrigin = expectedOrigin.matches(request.url),
+                existingHeader = request.header(header),
+            )
+        ) return chain.proceed(request)
+        return chain.proceed(request.newBuilder().header(header, "Bearer $token").build())
+    }
+}
+
+internal object AppTokenHeaderPolicy {
+    fun shouldAttach(
+        tokenPresent: Boolean,
+        requestMatchesOrigin: Boolean,
+        existingHeader: String?,
+    ): Boolean = tokenPresent && requestMatchesOrigin && existingHeader == null
+}
+
+internal object BlockingTokenBridgePolicy {
+    fun requireBackgroundThread(isMainThread: Boolean) {
+        check(!isMainThread) { "Synchronous Lunara networking is forbidden on the Android main thread" }
     }
 }
 
 @Singleton
 class ApiClientFactory @Inject constructor(
     private val cookieJar: SecureCookieJar,
+    private val authentik: AuthentikAuthManager,
 ) {
     private val dispatcher = Dispatcher()
 
-    fun create(baseUrl: String, gateway: GatewayCredentials?, accessToken: String?): LunaraApi {
+    fun create(
+        baseUrl: String,
+        gateway: GatewayCredentials?,
+        accessToken: String?,
+        outerBearerOverride: String? = null,
+    ): LunaraApi {
         val gatewayOrigin = GatewayOrigin.fromBaseUrl(baseUrl)
+        val pendingBearer = outerBearerOverride?.takeIf(String::isNotBlank)
+        val gatewayEnabled = gateway != null || pendingBearer != null || authentik.isConfiguredFor(baseUrl)
+        val bearerProvider = {
+            pendingBearer ?: run {
+                BlockingTokenBridgePolicy.requireBackgroundThread(
+                    Looper.myLooper() == Looper.getMainLooper(),
+                )
+                runBlocking { authentik.freshAccessTokenFor(baseUrl) }
+            }
+        }
         val client = OkHttpClient.Builder()
             .dispatcher(dispatcher)
             .connectTimeout(12, TimeUnit.SECONDS)
@@ -123,8 +174,8 @@ class ApiClientFactory @Inject constructor(
             .callTimeout(30, TimeUnit.SECONDS)
             .cookieJar(cookieJar.scoped())
             .authenticator(GatewayAuthenticator(gateway, gatewayOrigin))
-            .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, gatewayOrigin))
-            .addInterceptor(AppTokenInterceptor(accessToken, gateway != null))
+            .addInterceptor(PreemptiveGatewayHeaderInterceptor(gateway, bearerProvider, gatewayOrigin))
+            .addInterceptor(AppTokenInterceptor(accessToken, gatewayEnabled, gatewayOrigin))
             // A REST client must not follow a browser-login redirect and try to parse
             // HTML as JSON. A valid gateway header returns the API response directly.
             .followRedirects(false)

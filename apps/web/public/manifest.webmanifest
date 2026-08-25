@@ -1,0 +1,48 @@
+{
+  "name": "Lunara – private Zyklusbegleitung",
+  "short_name": "Lunara",
+  "description": "Private, selbst gehostete Zyklusbegleitung für zwei Menschen.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f8f3f3",
+  "theme_color": "#552744",
+  "categories": ["health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/lunara.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/lunara-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/lunara-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/lunara-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Periode eintragen",
+      "short_name": "Periode",
+      "url": "/?action=period",
+      "icons": [{ "src": "/icons/lunara-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

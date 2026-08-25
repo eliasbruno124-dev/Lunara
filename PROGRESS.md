@@ -1,276 +1,166 @@
 # Lunara – Fortschritt
 
-Stand: 20. August 2026, Android 1.0.9 und Server 1.0.7
+Stand: 25. August 2026, Releasekandidat 1.1.0
 
-## Android-Kalender 1.0.9
+## 1.1.0 umgesetzt
 
-- [x] Rückwirkende Perioden werden ohne Datumstexteingabe als Zwei-Tipp-
-  Zeitraum erfasst: Der erste Tap markiert den Beginn, beispielsweise den 18.,
-  und der zweite Tap das inklusive Ende, beispielsweise den 22. Derselbe Tag
-  kann als Start und Ende gewählt werden.
-- [x] Der Bereichswähler unterstützt Monatswechsel, markiert Start,
-  Zwischentage und Ende und zeigt den gewählten Zeitraum sowie seine inklusive
-  Dauer unmittelbar an.
-- [x] Eine noch laufende Periode wird über eine bewusst bezeichnete eigene
-  Speicheraktion angelegt. Beim Bearbeiten stehen „Neu auswählen“ und „Ende
-  entfernen“ zur Verfügung; Löschen bleibt bestätigungspflichtig.
-- [x] Überschneidungen mit anderen aktiven Perioden werden bereits im Dialog
-  verständlich angezeigt und blockieren das Speichern. Der bearbeitete
-  Datensatz wird dabei korrekt aus der Prüfung ausgenommen.
-- [x] Partnerkalender bleiben ohne Schreibaktion. TalkBack erhält vollständige
-  Datums- und Auswahlbeschreibungen, den semantischen Auswahlzustand und eine
-  höfliche Live-Region für die aktualisierte Zusammenfassung.
-- [x] Local und Production jeweils mit 28 JVM-Suites und 143 Tests geprüft:
-  0 Fehler und 0 übersprungene Tests. Local-Lint: 0 Fehler/56 Warnungen;
-  Production-Lint: 0 Fehler/55 Warnungen. Die Instrumentierungsquellen wurden
-  erfolgreich kompiliert, mangels Emulator oder Gerät jedoch nicht ausgeführt.
-- [x] Android auf VersionCode 10/VersionName 1.0.9 angehoben. Installierbare
-  Debug-APK: 24.856.219 Bytes, SHA-256
-  `c90413fb5a3dbcd478bf549b498d88a286a9a56de3ea17381fd3376d7fffb7a7`.
-  Bewusst unsignierte Release-APK: 19.845.271 Bytes, SHA-256
-  `39f3b7df2f68f2f75229d283c384ecb388d773c8c9cad18411cbb9b287058c23`.
-- [x] Während der abschließenden Android-Prüfungen blieben die
-  Produktionsdienste gesund, ohne Restarts oder OOM-Ereignisse; es war kein
-  produktiver Neustart erforderlich.
-- [x] GitHub-Workflows sind dedupliziert: Feature-Branches werden über den Pull
-  Request geprüft, Push-Prüfungen laufen nur auf `main`, und Release-Tags lösen
-  keine zweite identische Runde aus. Android 1.0.9 ist im privaten Repository
-  als Release mit beiden APKs und Prüfsummendatei veröffentlicht.
-- [x] Eine beim ersten 1.0.9-PR-Lauf neu gemeldete HIGH-Schwachstelle in der
-  transitiven Prisma-Abhängigkeit `deepmerge-ts` wurde durch einen zentralen
-  Pin auf 8.0.1 behoben. `npm ci`, Produktions-Audit (0 Funde), Prisma-
-  Generierung/-Validierung, Backend-Lint, 20 Suites/105 Tests, API-Image-Build
-  und Trivy HIGH/CRITICAL (0 Funde) wurden lokal erfolgreich wiederholt; der
-  produktive Servercontainer blieb unverändert und gesund.
+### Android Solo und Gerätewechsel
 
-## Android-Buildkorrektur 1.0.8 (historischer Nachweis)
+- [x] Beim ersten Start ist **Nur auf diesem Gerät** prominent wählbar.
+- [x] Der Solomodus benötigt kein Konto, keine Domain und keinen Server.
+- [x] Stabile zufällige lokale Tracker-ID; keine Server-, Auth- oder
+  Sync-Aufrufe im `LOCAL`-Modus.
+- [x] SQLCipher/Keystore, lokaler Kalender, Periodenerfassung,
+  Korrektur/Löschung, Tageslogs, Verlauf, Prognose und Benachrichtigungen.
+- [x] Portabler SAF-Export/-Import für Perioden, Tageslogs, Profil und
+  Einstellungen.
+- [x] Format: PBKDF2-HMAC-SHA256 mit 310.000 Iterationen plus AES-256-GCM;
+  strikte Größen-, Schema-, Datums-, UUID- und Überschneidungsprüfung.
+- [x] Crash-tolerantes Import-Journal: nach Room-Commit unterbrochene
+  Einstellungswiederherstellung wird idempotent vollendet.
+- [x] Android-Cloudbackup und systemseitiger Gerätetransfer für alle App-
+  Domänen ausgeschlossen; Gerätewechsel erfolgt bewusst über die
+  passphrasenverschlüsselte Datei.
+- [x] Android-Systemdateidialog erlaubt lokale Ordner und installierte Anbieter
+  wie Google Drive oder Nextcloud, ohne Google-SDK oder automatischen Upload.
 
-- [x] targetSdk auf den tatsächlich im stabilen SDK-Kanal verfügbaren
-  API-Level 36 korrigiert. compileSdk bleibt wegen der gepinnten aktuellen
-  AndroidX-Versionen auf API 37; Android wurde auf VersionCode 9/VersionName
-  1.0.8 angehoben und bleibt mit Server/API 1.0.7 kompatibel.
-- [x] GitHub-Runner installieren das benötigte Preview-Compile-SDK explizit;
-  PostgreSQL-E2E läuft mit der gepinnten Node-Version des Runners statt in
-  einem internen Container ohne erreichbaren Prisma-Engine-Download. Der
-  Testport bleibt ausschließlich an Loopback gebunden und ist überschreibbar;
-  das flüchtige Bridge-Netz ist für den dafür nötigen Runner-Zugriff geöffnet.
-- [x] Der Gitleaks-Fehlalarm ist über seinen exakten Finding-Fingerprint
-  begrenzt; alle übrigen Regeln, Commits und Dateien bleiben im Historien-Scan
-  aktiv.
-- [x] Android 1.0.8 lokal real gebaut und geprüft: beide Varianten jeweils
-  27 Suites/132 Tests ohne Fehler, Local-Lint 0 Fehler/39 Warnungen,
-  Production-Lint 0 Fehler/38 Warnungen und Instrumentierung kompiliert.
-- [x] Installierbare Debug-APK (24.531.309 Bytes, SHA-256
-  `66098c59fadc58c84d463e68447b325435aa84d45e13c2bb27761283b958191d`)
-  sowie unsigned Release-APK (19.841.583 Bytes, SHA-256
-  `caa4575e6e782cdeb2639b83a17d475b0f319a6e2a9fd260a30583daef8749f1`)
-  gebaut; ZIP, Manifest, SDK-Stufen und Signaturstatus geprüft.
+### Kalender und Prognose
 
-## Verifizierter Release 1.0.7
+- [x] Monatswechsel per horizontalem Wischen statt Zurück-/Weiter-Buttons.
+- [x] Monate bis fünf Jahre in der Zukunft sichtbar; Zukunftstage nicht als
+  tatsächliche Periode editierbar.
+- [x] Tatsächliche Perioden, Zwei-Tipp-Auswahl und geschätzter Zeitraum sind
+  visuell und semantisch unterscheidbar; tatsächliche Daten dominieren.
+- [x] Wählbare Start-/Endtage, offene Periode, Neu-Auswahl, Ende entfernen und
+  bestätigtes Löschen bleiben offlinefähig.
+- [x] Algorithmus `lunara-robust-v2`: bis zu zwölf aktuelle Zyklen, gewichteter
+  Median, robuste MAD-Ausreißerbehandlung, transparente Erklärung,
+  Mindestunsicherheit und stale/fail-closed Verhalten.
+- [x] Geschätztes fruchtbares Fenster nur nach Opt-in, ausreichenden Daten und
+  in zulässigem Sondermodus; weiterhin keine Ovulationsbestätigung oder
+  Verhütungsmethode.
+- [x] Kotlin- und TypeScript-Implementierung anhand gemeinsamer
+  Referenzvektoren geprüft.
 
-- [x] Rückwirkende Periodenerfassung direkt im Monatskalender mit Start- und
-  optionalem Enddatum; vorhandene Zeiträume antippbar, korrigierbar und nach
-  Bestätigung löschbar. Partnerkalender bleibt ohne Schreibaktionen.
-- [x] Tracker-Hauptaktion wechselt aus lokalem Room-Zustand zwischen „Periode
-  begonnen“, „Periode heute beenden“ und der bestätigten Endzustandsanzeige.
-  Speicherung, Pending-Zustand und erfolgreiche Synchronisierung bleiben
-  sichtbar; Dialoge schließen erst nach tatsächlich erfolgreicher lokaler
-  Transaktion.
-- [x] Historischer Zeitraum wird atomar als genau ein lokaler Datensatz und
-  genau eine idempotente Mutation gespeichert. Bestehender automatischer Sync
-  nach Mutation/Anmeldung, im Vordergrund und über WorkManager bleibt aktiv.
-- [x] Dialogentwürfe und Pending-Zustand rotationsfest; Mehrfach-Submit,
-  Dismiss und Bearbeitung während Create/Update/Delete gesperrt. Nach Fehlern
-  bleibt der Entwurf erhalten, nach Erfolg schließt er erst mit der Room-
-  Bestätigung.
-- [x] Clientseitige Überschneidungsprüfung und konstante Kalender-
-  Speichernutzung ergänzt; sehr alte offene Bereiche erzeugen keine
-  materialisierte Liste hunderttausender Tage.
-- [x] Serverweite Perioden-Invariante ergänzt: Advisory-Lock pro Tracker,
-  409-Konfliktantwort sowie partielle PostgreSQL-GiST-Exclusion-Constraint für
-  aktive inklusive Datumsbereiche. Direkte API und `/sync` nutzen denselben
-  geschützten Servicepfad.
-- [x] Sync-Receipt, Perioden-/Tageslogmutation, SyncChange und notwendige
-  Prognoseneuberechnung atomar in einer PostgreSQL-Transaktion; sichere
-  Recovery alter Pending-Receipts, race-sichere Wiederverwendung abgelaufener
-  Keys und importseitige Überschneidungsprüfung.
-- [x] Android final: 27 Suites, 132 Tests, 0 Fehler/0 übersprungen;
-  `lintLocalDebug` 0 Fehler/38 Warnungen, Production-Lint 0 Fehler/37
-  Warnungen; Production-Instrumentierung kompiliert, mangels Gerät nicht
-  ausgeführt.
-- [x] Backend final: 20 Suites und 105 Tests erfolgreich, TypeScript-Typecheck,
-  vollständiges ESLint, Prisma-Validierung, Nest-/OpenAPI-Build und echtes
-  Docker-Image erfolgreich.
-- [x] PostgreSQL 18 final: sieben Migrationen auf frischer temporärer
-  Tmpfs-Datenbank und 1/1 vollständiger E2E-Kernablauf erfolgreich; der Test
-  bestätigt unter anderem Beziehungstrennung, Partnerfreigaben und genau einen
-  Datensatz nach wiederholtem Offline-Sync.
-- [x] Debug-APK (24.531.305 Bytes) und unsigned Release-APK (19.841.579 Bytes)
-  tatsächlich gebaut, ZIP/Manifest/SDK/Version/Signaturstatus und SHA-256
-  geprüft.
-- [x] Eng benanntes und mit `pg_restore --list` validiertes Live-Backup
-  erstellt; Bestandsprüfung ergab keine ungültigen oder überlappenden aktiven
-  Perioden. Migration angewendet und ausschließlich die Lunara-API auf 1.0.7
-  ersetzt.
-- [x] Live verifiziert: Migration/Constraint/Extension vorhanden, API non-root
-  und read-only, `/health`, `/ready` und Meta jeweils 200, Version 1.0.7,
-  Authentik-Gateway vollständig geschützt. Finale npm-freie Runtime lokal mit
-  0 fixbaren HIGH/CRITICAL-Trivy-Funden geprüft. Fremddienste blieben
-  unverändert.
+### PWA
 
-## Implementiert
+- [x] Installierbare DE-/EN-Web-App mit Hell/Dunkel, Tracker-/Partneransicht,
+  Kalender, Prognose und Partner-Tipp.
+- [x] IndexedDB-Offlinedaten, idempotente Mutation Queue und automatische
+  Synchronisierung.
+- [x] Kontospezifische Caches und Queues werden bei Identitätswechsel, Logout
+  und 401 getrennt beziehungsweise gelöscht.
+- [x] Service Worker cached keine API-, Health-, Ready- oder OpenAPI-Pfade und
+  verwendet sie nicht als SPA-Fallback.
+- [x] Portable Backupkompatibilität mit dem Android-Solodatenformat.
+- [x] PWA-Solomodus mit AES-256-GCM-Vault, 600.000 PBKDF2-Iterationen und nur
+  im Seitenspeicher gehaltenem Schlüssel; Klartext-Legacydaten werden entfernt
+  und der Vault sperrt bei versteckter Seite, `pagehide` oder 15 Minuten
+  Inaktivität.
+- [x] PWA-Bundle wird im API-Multi-Stage-Image gebaut und als SPA nur auf
+  zulässigen Browserpfaden ausgeliefert.
 
-- [x] Eigenständiges Monorepo unter `/root/Lunara`; keine Änderung am Emby-
-  Plugin oder an Medien-Diensten.
-- [x] NestJS-/Prisma-/PostgreSQL-Backend mit Argon2id, rotierenden
-  Refresh-Tokens, Gerätesitzungen, Rollen und strikter Isolation mehrerer
-  Beziehungen.
-- [x] Persistenter einmaliger Bootstrap, optionale Registrierung beliebig
-  vieler voneinander getrennter Tracker-Beziehungen und je Beziehung genau ein
-  `TRACKER`-/`PARTNER`-Konto.
-- [x] Permanente, einmal verwendbare und widerrufbare Partner-Einladungen mit
-  einmaliger Rohcodeausgabe und passwortfreiem QR-Code.
-- [x] Perioden, Tageslogs, eigene Symptome, verschlüsselte Notizen,
-  deterministische Bereichsprognose, Soft Deletes, Versionskonflikte und
-  idempotente Offline-Synchronisierung.
-- [x] Automatische Synchronisierung nach Anmeldung und lokaler Mutation, beim
-  Öffnen, regelmäßig im Vordergrund und sparsam über WorkManager; begrenzter
-  Backoff und manueller Sync bleiben vorhanden.
-- [x] Lokale, ausdrücklich aktivierbare Android-Benachrichtigungen für den
-  geschätzten Periodenzeitraum, das optional grob geschätzte fruchtbare
-  Fenster, Tracker-Eingaben und Partner-Tipps; je Gerät mit Wunschzeit,
-  Ruhezeit, Tageslimit und neutraler Sperrbildschirmvorschau.
-- [x] Tägliche Erinnerungsarbeit bei jedem Lauf an lokaler Uhrzeit neu geplant;
-  verschlüsselte Prognose-/Zustellcaches, Zustell-Commit erst nach Übergabe an
-  Android und strikt unterdrückte Partner-Hinweise ohne aktuelle
-  freigabefilterte Serverantwort.
-- [x] Persönlicher Passwortwechsel mit aktuellem Passwort, Argon2id, Rate
-  Limit, Audit und Widerruf aller anderen Lunara-Sitzungen.
-- [x] Kontopasswort-Regel zentral auf 8 bis 128 Unicode-Zeichen ohne
-  verpflichtende Zeichenklassen vereinheitlicht; bestehende Passwörter bleiben
-  mit 1 bis 128 Zeichen verifizierbar. Die unabhängige Exportpassphrase bleibt
-  bewusst bei 12 bis 128 Zeichen.
-- [x] Unicode-Länge zwischen Android, API und OpenAPI explizit auf Codepoints
-  vereinheitlicht und mit Variationsselektoren an Minimum und Maximum getestet.
-- [x] Periodenzeiträume nachträglich über den Kalender ändern oder bestätigt
-  löschen; beide Aktionen laufen offlinefähig über die automatische Mutation
-  Queue.
-- [x] Granulare Partnerfreigaben, Freigabepause, privater Tag und
-  serverseitige fail-closed Projektion. Private Tage verbergen Phase,
-  tatsächliche Periodendaten und Fertilitätsangaben.
-- [x] Nicht freigegebene Notizen werden nicht entschlüsselt; der lokale
-  Partner-Cache wird durch autoritative Antworten ersetzt, damit entzogene
-  Tipps nicht sichtbar bleiben.
-- [x] 71 respektvolle deutsche und englische Partner-Tipps mit Kategorien,
-  freigabebewusster Phasen-/Symptomlogik, Feedback, Priorität und Care-
-  Preferences-Auswahl.
-- [x] Acht Care Preferences direkt in den deutschen und englischen Android-
-  Einstellungen pflegbar: Wärme, Nähe, Raum, Snacks, Gespräch,
-  Haushaltshilfe, Erinnerungen und keine ungefragten Ratschläge.
-- [x] Optionale Fertilitätsschätzung als ausdrückliches Opt-in, erst ab drei
-  vollständigen Zyklen, fail-closed in ungeeigneten Sondermodi und mit
-  permanentem Hinweis: keine Ovulationsbestätigung und keine Verhütung.
-- [x] Getrennte Partnerfreigabe für das geschätzte fruchtbare Fenster;
-  Aktivierung nur bei persönlichem Opt-in und atomarer Widerruf beim
-  Deaktivieren.
-- [x] Aktueller Android-Quellstand 1.0.9/VersionCode 10; Serverfeld beim ersten
-  Start wirklich leer und ohne fest eingebaute Produktionsdomain.
-- [x] Einmalige HTTPS-Userinfo-Eingabe implementiert. Gateway-Credential wird
-  von der Basisadresse getrennt, Keystore-gestützt gespeichert und nie in
-  Server- oder Einladungs-QRs übernommen.
-- [x] Zwei Header-Schichten implementiert: gemeinsames äußeres
-  `Authorization: Basic …` für Authentik und persönliches
-  `X-Lunara-Authorization: Bearer …` für Lunara. Basic Auth bleibt auf den
-  exakten HTTPS-Ursprung begrenzt; Redirects werden nicht verfolgt.
-- [x] Authentik-Migrationsskript für vollständigen Domain-Schutz vorbereitet:
-  genau eine neutrale Serviceidentität, genau ein nicht ablaufendes
-  App-Passwort, leeres Skip-RegEx und keine menschlichen Gateway-Mitglieder.
-- [x] Sichere Gateway-Prüfung ergänzt: authentifizierte Meta/OpenAPI-Antworten
-  sowie anonyme Sperre von Root, Health, OpenAPI, Meta und Login, ohne Secret in
-  Argumenten, temporären Dateien oder Ausgabe.
-- [x] Docker-, Migrations-, Backup-/Restore-/Update-, Admin-, Pangolin- und
-  Secret-Scan-Werkzeuge sowie deutsche Betriebs-/Sicherheitsdokumentation auf
-  das aktuelle Gateway- und Mehrbeziehungsmodell aktualisiert.
+### Optionales Authentik-OIDC und Direct-Modus
 
-## Verifizierte Android-Ergänzung: 1.0.6
+- [x] `GATEWAY_MODE=direct` mit Traefik-Override; Lunara funktioniert ohne
+  Authentik ausschließlich mit eigenen Konten.
+- [x] `GATEWAY_MODE=authentik` mit öffentlicher cachefreier Metaerkennung und
+  öffentlicher `assetlinks.json`; alle anderen Pfade bleiben geschützt.
+- [x] OIDC Authorization Code + PKCE S256 + State/Nonce im Systembrowser;
+  kein WebView-Login und kein Client Secret in APK/PWA.
+- [x] Production-OIDC verwendet unabhängig von der Self-hosting-Domain immer
+  den festen verifizierten Publisher-App-Link. Production-Provisioning
+  registriert nur Android-HTTPS und PWA-HTTPS, keine Custom Schemes.
+- [x] Custom Scheme ausschließlich im Android-`local`-Flavor für einen
+  getrennten Entwicklungsprovider mit eigener client_id; gegen Production-
+  Authentik bewusst nicht nutzbar. Production einschließlich Production-Debug
+  besitzt keinen Custom-Scheme-Intent-Filter.
+- [x] Äußerer Authentik-Bearer in `Authorization`, innerer persönlicher
+  Lunara-Bearer in `X-Lunara-Authorization`, jeweils same-origin.
+- [x] Authentik-Access-Token wird vor dem Proxyaufruf bei Bedarf erneuert;
+  OIDC-Lunara-Refresh verlangt dieselbe externe Identität.
+- [x] Serverprüfung von Issuer, Audience, Subject, `iat`, `exp`, `azp`,
+  Algorithmus und JWKS; kein Auto-Provisioning und kein E-Mail-Linking.
+- [x] Selbstverknüpfung nach Passwort-Reauth sowie bestätigungspflichtige
+  Adminmigration mit optionalem Deaktivieren des Passwortlogins.
+- [x] Fail-closed Authentik-Provisioner mit exakter Gruppe, expliziter
+  Zustimmung, validiertem Vorab-Dump und root-only öffentlicher OIDC-Env.
+- [x] `scripts/compose.sh` lädt Direct-Override beziehungsweise Authentik-OIDC-
+  Env. Backup, Update, Restore und Admin delegieren ebenfalls an diesen
+  Wrapper.
 
-- [x] 25 JVM-Suites und 114 Tests erfolgreich; darunter 28 neue
-  Benachrichtigungstests für Policy, verschlüsselten Cache, Deduplizierung,
-  Ruhezeit, Doze, DST und Zeitzonenwechsel.
-- [x] Vollständiger Local-Lint einschließlich Testquellen und separater
-  Production-Hauptcode-Lint ohne Error/Fatal; Android-Instrumentation final
-  kompiliert, mangels Emulator/Gerät nicht ausgeführt.
-- [x] Installierbare Production-Debug-APK 1.0.6 und unsignierte Release-APK
-  tatsächlich gebaut; ZIP, Manifest, Version, SDKs, Signaturstatus, Größen und
-  SHA-256 geprüft.
-- [x] Ressourcenintensive Sammelläufe bei den vereinbarten Speichergrenzen
-  kontrolliert beendet und Restschritte einzeln begrenzt abgeschlossen. Keine
-  Wiedergabe, kein Host-/Produktivdienst-OOM und kein Restart; Lunara,
-  PostgreSQL, Authentik,
-  Pangolin, Traefik und Emby blieben während der Überwachung stabil.
-- [x] Reines Android-Update: API, Datenbank und produktive Container bleiben
-  unverändert auf dem geprüften Serverstand 1.0.5; kein Live-Neustart nötig.
-- [x] Android-1.0.6-Quellstand und beide geprüften APKs in den privaten Branch
-  gepusht, Draft-PR 1 aktualisiert und privaten Release `v1.0.6` veröffentlicht.
+### Android Release/Play
 
-## Vollständig verifizierter Server-/Gesamtrelease: 1.0.5
+- [x] VersionCode 11, VersionName 1.1.0, minSdk 26, targetSdk 36,
+  compileSdk 37.
+- [x] Optionaler externer Upload-Key ausschließlich über die vier
+  `LUNARA_UPLOAD_*`-Umgebungsvariablen; Teilkonfiguration bricht ab.
+- [x] Production-Debug/Testinstallation, signierte und unsignierte Release-APK
+  sowie signiertes und unsigniertes AAB tatsächlich gebaut. Die signierte
+  Release-APK ist die empfohlene Nutzer-/App-Link-Variante.
+- [x] ZIP-/Bundle-Struktur, Manifest und erwartete Signaturzustände geprüft.
+- [x] Upload-Key und Passwörter bleiben serverlokal; Play App Signing und der
+  getrennte Play-App-Signing-Key sind dokumentiert.
 
-- [x] Finale Backend-Prüfkette für 1.0.5: Prisma, ESLint, Nest-Build,
-  OpenAPI-Reproduzierbarkeit und Audits erfolgreich; 19 Suites und 83 Tests.
-- [x] Echter PostgreSQL-18-E2E-Ablauf auf dem finalen 1.0.5-Quellstand:
-  1 Suite und 1 durchgehender Test erfolgreich.
-- [x] Finale Android-Prüfkette: 20 Suites und 86 JVM-Tests, beide Lints ohne
-  Error/Fatal, Instrumentierung kompiliert und Production-Debug gebaut.
-- [x] Installierbare Debug-APK 1.0.5 sowie unsignierte Release-APK unter
-  `artifacts/` abgelegt; ZIP, Manifest, Signaturstatus, Größen und SHA-256
-  geprüft.
-- [x] API-Image `lunara-api:1.0.5` gebaut und Non-Root-/Read-only-Eigenschaften
-  geprüft.
-- [x] Eng benanntes, validiertes Live-Datenbank- und Konfigurationsbackup vor
-  dem Update angelegt.
-- [x] Nur die Lunara-API auf 1.0.5 aktualisiert; Health, Readiness, Version,
-  Migrationen und unveränderte Fremdcontainer geprüft.
-- [x] Authentik nach Backup auf vollständigen Domain-Schutz mit genau einem
-  technischen App-Zugang migriert; alte A/B-Zugänge ungültig.
-- [x] Ende-zu-Ende geprüft: anonyme Pfade gesperrt; Header-Auth auf allen
-  geprüften Pfaden; acht kleingeschriebene Passwortzeichen produktiv
-  akzeptiert, sieben abgelehnt und das temporäre Konto wieder gelöscht. Ein
-  zusätzlicher Variationsselektor-Grenzfall mit acht Codepoints wurde auf dem
-  finalen Live-Image akzeptiert und ebenfalls vollständig bereinigt.
-- [x] Nach dem Live-Test sind Benutzer, Beziehungen/Mandanten,
-  Mitgliedschaften, Sitzungen, Perioden und Tageslogs jeweils leer; Dunjas
-  früheres Konto `dune` und die aktive Passwortdatei bleiben gelöscht.
-- [x] Zehnminütige Build-Überwachung mit 30 Stichproben: kein ungesunder
-  Dienst, mindestens rund 1,87 GiB verfügbarer Arbeitsspeicher und keine
-  geänderten IDs von PostgreSQL, Authentik, Pangolin, Traefik oder Emby.
-- [x] Finalen gezielten und High-Entropy-Secret-Scan sowie `git diff --check`
-  ohne Treffer beziehungsweise Fehler ausgeführt; `gitleaks` ist lokal nicht
-  installiert und bleibt Aufgabe des CI-History-Scans.
-- [x] OpenAPI-Snapshot aktuell; generierten Kotlin-Client nach einem
-  dokumentierten 1-GiB-Daemonabbruch mit 1,5 GiB erfolgreich kompiliert.
-- [x] Geprüften 1.0.5-Stand einschließlich beider APKs als Commit
-  `3c3ced280203a4108bbf665b1a2b0a63c700c278` in den privaten Branch gepusht,
-  Draft-PR 1 aktualisiert und privaten Release `v1.0.5` mit beiden bestätigten
-  Artefakten veröffentlicht.
+## Verifiziert
 
-Der lokale, gebaute, live geprüfte und privat veröffentlichte 1.0.5-Stand ist
-vollständig belegt.
+- [x] Backend: 26 Jest-Suites und 177 Unit-Tests erfolgreich.
+- [x] PWA: 11 Vitest-Dateien und 39 Tests erfolgreich; TypeScript/Lint,
+  Produktionsbuild, vollständiges und Production-npm-Audit ebenfalls
+  erfolgreich, beide Audits mit 0 gemeldeten Schwachstellen.
+- [x] Backend plus PWA: insgesamt 216 erfolgreiche Unit-/Komponententests;
+  PostgreSQL-E2E separat 1/1.
+- [x] Backend-/PWA-Typecheck, Lint und Builds erfolgreich.
+- [x] PostgreSQL 18: alle acht Migrationen und 1/1 vollständiger Core-E2E-
+  Ablauf erfolgreich.
+- [x] Android: je Flavor 36 JVM-Suites und 174 Tests, insgesamt 348
+  Testausführungen, ohne Fehler.
+- [x] Android-Lint: Local 0 Fehler/64 Warnungen/+1 Information; Production
+  0 Fehler/63 Warnungen/+1 Information.
+- [x] Production-Instrumentierungsquellen erfolgreich kompiliert.
+- [ ] Instrumentierte Android-Tests auf Emulator/realem Gerät ausgeführt.
+- [x] Android APK/AAB gebaut, Signaturzustände verifiziert und alle fünf
+  finalen Hashes mit `artifacts/SHA256SUMS` erfolgreich geprüft.
+- [x] Multi-Stage-Build mit API und PWA erfolgreich.
+- [x] Release 1.1.0 auf dem produktiven Server ausgerollt: achte Migration,
+  Non-root/read-only API gesund, öffentliche cachefreie Meta-/Asset-Link-
+  Verträge, geschützte Root-/Me-Pfade, Header-Auth/PWA, Authentik-OIDC/PKCE,
+  Pangolin und erhaltene Dunja-Daten nach der Dune-Verknüpfung geprüft.
+- [x] Frisches Vorab-Backup mit Prüfsummen und `pg_restore --list` validiert;
+  Datenbankdump zusätzlich in einem isolierten PostgreSQL-18-Container real
+  wiederhergestellt und die gesicherten Kernzählwerte geprüft.
 
-## Bewusst offen nach dem produktionsnahen Kern
+## Kernumfang aus 1.0.x weiterhin vorhanden
 
-- [ ] Instrumentierte Android-Tests auf realem Gerät oder Emulator ausführen.
-- [ ] Eigenen signierten/minifizierten Release-Build erstellen; private
-  Signierschlüssel bleiben absichtlich außerhalb des Repositorys.
-- [ ] Android-UIs für Gerätesitzungen, eigene Symptome/Tipps,
-  Check-in-Antworten, Export/Import, Kontolöschung und Beziehung trennen.
-- [ ] Basis-Tageslog um Notiz, Basaltemperatur und Ovulationstest sowie
-  Tageslog-Korrektur/-Löschung erweitern.
-- [ ] Serverseitige Rollenübertragung beziehungsweise Tracker-Einzellöschung
-  ergänzen; aktuell löscht ein Tracker den gesamten internen Mandanten.
-- [ ] Optionale ntfy-Anbindung, Biometrie, SSE-Client, Widget, Demo-Modus und
-  reduzierte Bewegungen. Lokale Benachrichtigungen sind umgesetzt.
-- [ ] Generischen CSV-Zuordnungsassistenten, Import-Rollback und direkten
-  Import verschlüsselter Backupdateien ergänzen.
-- [ ] Tiefere Statistiken und Charts ergänzen.
-- [ ] Vollständige Umbenennbarkeit von Package-ID, Übersetzungstexten und
-  Vektor-Assets über einen einzigen Generator.
+- [x] Persistenter Bootstrap, optional beliebig viele isolierte Tracker-
+  Beziehungen und genau ein Partner je Beziehung.
+- [x] Eigene Zugangsdaten, Argon2id, rotierende Refresh-Tokens,
+  Gerätesitzungen, Rate Limits und generische Loginfehler.
+- [x] Granulare Freigaben, privater Tag, Freigabepause und serverseitig
+  gefiltertes Partnerdashboard.
+- [x] 71 respektvolle DE-/EN-Tipps, Care Preferences und symptomabhängige
+  Auswahl nur bei Freigabe.
+- [x] Perioden/Tageslogs, eigene Symptome, verschlüsselte Notizen,
+  Soft Deletes, Cursor-Sync, Konflikte und idempotente Offline-Mutationen.
+- [x] Automatische Android-Synchronisierung nach Login/Mutation, beim Öffnen,
+  im Vordergrund und sparsam via WorkManager; manueller Sync zusätzlich.
+- [x] Lokale konfigurierbare Erinnerungen ohne Firebase.
+- [x] Server-JSON/CSV/verschlüsselter Export, Importvorschau, Kontolöschungs-
+  API, Admin-CLI, Backup/Restore/Update und CI.
+
+## Offen nach 1.1.0
+
+- [ ] Reale Android-Gerätematrix einschließlich App Link, getrenntem lokalem
+  Entwicklungs-OIDC, Keystore, SQLCipher, WorkManager, Rotation und TalkBack
+  ausführen.
+- [ ] PWA auf unterstützten Safari-/iOS-/iPadOS- und Chromium-Versionen testen.
+- [ ] Android-UIs für aktive Sitzungen, eigene Symptome/Tipps,
+  Check-in-Antworten und vollständige Serverexport-/Import-/Löschflows
+  fertigstellen.
+- [ ] Biometrische App-Sperre, Widget, ntfy, Android-SSE-Client und reduzierte
+  Bewegungen fertigstellen.
+- [ ] Generischen CSV-Zuordnungsassistenten und Import-Undo ergänzen.
+- [ ] Lizenz, Publisher, Markenprüfung, Support, öffentliche Datenschutz- und
+  Löschseiten sowie Play-Console-Erklärungen entscheiden.
+- [ ] Bluetooth-/WLAN-Peer-to-Peer-Sync ist nicht implementiert und wird nicht
+  als vorhandene Funktion vermarktet.

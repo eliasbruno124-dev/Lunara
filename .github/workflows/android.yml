@@ -152,7 +152,7 @@ jobs:
           retention-days: 14
 
   unsigned-release:
-    name: Unsigned production release APK
+    name: Unsigned production release APK and AAB
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -177,13 +177,17 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
 
-      - name: Build unsigned production release APK
-        run: gradle -p apps/android --no-daemon --max-workers=1 assembleProductionRelease
+      - name: Build unsigned production release APK and app bundle
+        run: >-
+          gradle -p apps/android --no-daemon --max-workers=1
+          assembleProductionRelease bundleProductionRelease
 
-      - name: Upload unsigned release APK
+      - name: Upload unsigned release artifacts
         uses: actions/upload-artifact@v7
         with:
           name: lunara-release-unsigned
-          path: apps/android/app/build/outputs/apk/production/release/*.apk
+          path: |
+            apps/android/app/build/outputs/apk/production/release/*.apk
+            apps/android/app/build/outputs/bundle/productionRelease/*.aab
           if-no-files-found: error
           retention-days: 14

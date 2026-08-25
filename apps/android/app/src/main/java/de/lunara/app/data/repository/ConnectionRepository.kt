@@ -1,6 +1,7 @@
 package de.lunara.app.data.repository
 
 import android.os.Build
+import android.content.Intent
 import de.lunara.app.core.model.AppSession
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.core.network.ParsedServerAddress
@@ -13,10 +14,16 @@ import de.lunara.app.data.remote.dto.AuthResponseDto
 import de.lunara.app.data.remote.dto.JoinRequest
 import de.lunara.app.data.remote.dto.LoginRequest
 import de.lunara.app.data.remote.dto.MetaDto
+import de.lunara.app.data.remote.dto.OidcLinkRequest
+import de.lunara.app.data.remote.dto.OidcLoginRequest
+import de.lunara.app.data.remote.dto.OidcMetaDto
+import de.lunara.app.data.remote.dto.OidcStatusDto
 import de.lunara.app.data.remote.dto.RefreshRequest
 import de.lunara.app.data.remote.dto.RegisterRequest
 import de.lunara.app.data.remote.dto.SetupRequest
 import de.lunara.app.data.sync.SyncScheduler
+import de.lunara.app.security.AuthentikAuthManager
+import de.lunara.app.security.PendingAuthentikSession
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -33,8 +40,17 @@ class ConnectionRepository @Inject constructor(
     private val accountRepository: AccountRepository,
     private val syncScheduler: SyncScheduler,
     private val credentialGate: SessionCredentialGate,
+    private val authentik: AuthentikAuthManager,
 ) {
     private val refreshMutex = Mutex()
+
+    suspend fun startLocalMode(displayName: String): AppSession {
+        require(preferences.state.first().session == null) { "An active account must be removed first" }
+        // A connection test may already have stored gateway state. Entering local mode starts
+        // from a cryptographically fresh, empty local vault and never carries server credentials.
+        accountRepository.eraseLocalAccount()
+        return preferences.activateLocalMode(displayName)
+    }
 
     suspend fun testAndSaveConnection(
         address: ParsedServerAddress,
@@ -135,14 +151,110 @@ class ConnectionRepository @Inject constructor(
         ).requireBody()
     }
 
+    suspend fun authentikAuthorizationIntent(meta: OidcMetaDto): Intent {
+        preferences.state.first().baseUrl ?: throw ApiException(400, "server_not_configured")
+        return authentik.authorizationIntent(meta)
+    }
+
+    suspend fun authentikAuthorizationIntent(): Intent {
+        val state = preferences.state.first()
+        val base = state.baseUrl ?: throw ApiException(400, "server_not_configured")
+        val meta = apiFactory.create(base, secrets.gatewayCredentials, null)
+            .meta(endpoint(base, "api/v1/meta"))
+            .requireBody()
+        val oidc = meta.oidc ?: throw ApiException(404, "oidc_disabled")
+        return authentik.authorizationIntent(oidc)
+    }
+
+    suspend fun authentikLogin(result: Intent?): AppSession {
+        val pending = authentik.completeAuthorization(result)
+        val generation = credentialGate.snapshot()
+        val base = preferences.state.first().baseUrl ?: throw ApiException(400, "server_not_configured")
+        try {
+            return authenticate(
+                outerBearerOverride = pending.accessToken,
+                onCommitted = {
+                    authentik.commit(base, pending)
+                    // A personal OIDC session supersedes the legacy shared gateway credential.
+                    secrets.gatewayCredentials = null
+                },
+            ) { requestBase, api ->
+                api.oidcLogin(
+                    endpoint(requestBase, "api/v1/auth/oidc/login"),
+                    OidcLoginRequest(pending.accessToken, deviceName()),
+                ).requireBody()
+            }
+        } catch (error: ApiException) {
+            if (error.status == 401) {
+                // The proxy already accepted this personal Authentik token, but the
+                // inner identity is not linked yet. Retain only the outer session so
+                // a new tracker can register or a partner can redeem an invitation;
+                // no Lunara permissions are granted until those endpoints succeed.
+                val committed = credentialGate.commitIfCurrent(generation) {
+                    val current = preferences.state.first()
+                    if (current.baseUrl != base || current.session != null) {
+                        return@commitIfCurrent false
+                    }
+                    authentik.commit(base, pending)
+                    secrets.gatewayCredentials = null
+                    true
+                }
+                if (!committed) throw CredentialGenerationChangedException()
+            }
+            throw error
+        }
+    }
+
+    suspend fun linkAuthentik(result: Intent?, currentPassword: String): OidcStatusDto {
+        val pending = authentik.completeAuthorization(result)
+        val generation = credentialGate.snapshot()
+        val state = preferences.state.first()
+        val base = state.baseUrl ?: throw ApiException(400, "server_not_configured")
+        val localAccessToken = secrets.accessToken ?: throw ApiException(401, "not_authenticated")
+        val status = apiFactory.create(
+            base,
+            secrets.gatewayCredentials,
+            localAccessToken,
+            outerBearerOverride = pending.accessToken,
+        ).linkOidc(
+            endpoint(base, "api/v1/auth/oidc/link"),
+            OidcLinkRequest(pending.accessToken, currentPassword),
+        ).requireBody()
+        val committed = credentialGate.commitIfCurrent(generation) {
+            val current = preferences.state.first()
+            if (current.baseUrl != base || current.session?.userId != state.session?.userId) {
+                return@commitIfCurrent false
+            }
+            authentik.commit(base, pending)
+            secrets.gatewayCredentials = null
+            true
+        }
+        if (!committed) throw CredentialGenerationChangedException()
+        return status
+    }
+
+    suspend fun oidcStatus(): OidcStatusDto {
+        val state = preferences.state.first()
+        val base = state.baseUrl ?: throw ApiException(400, "server_not_configured")
+        val access = secrets.accessToken ?: throw ApiException(401, "not_authenticated")
+        return apiFactory.create(base, secrets.gatewayCredentials, access)
+            .oidcStatus(endpoint(base, "api/v1/auth/oidc/status"))
+            .requireBody()
+    }
+
     suspend fun refresh(): Boolean = refreshMutex.withLock {
         val generation = credentialGate.snapshot()
         val state = preferences.state.first()
         val base = state.baseUrl ?: return@withLock false
         val refresh = secrets.refreshToken ?: return@withLock false
+        val hasAuthentikSession = authentik.isConfiguredFor(base)
+        if (hasAuthentikSession && !authentik.refreshFor(base)) {
+            return@withLock false
+        }
+        val oidcAccessToken = if (hasAuthentikSession) authentik.currentAccessTokenFor(base) else null
         val response = apiFactory.create(base, secrets.gatewayCredentials, null).refresh(
             endpoint(base, "api/v1/auth/refresh"),
-            RefreshRequest(refresh),
+            RefreshRequest(refresh, oidcAccessToken),
         )
         if (!response.isSuccessful || response.body() == null) return@withLock false
         val auth = response.body()!!
@@ -167,12 +279,14 @@ class ConnectionRepository @Inject constructor(
     }
 
     private suspend fun authenticate(
+        outerBearerOverride: String? = null,
+        onCommitted: (String) -> Unit = {},
         call: suspend (baseUrl: String, api: de.lunara.app.data.remote.LunaraApi) -> AuthResponseDto,
     ): AppSession {
         val generation = credentialGate.snapshot()
         val state = preferences.state.first()
         val base = state.baseUrl ?: throw ApiException(400, "server_not_configured")
-        val api = apiFactory.create(base, secrets.gatewayCredentials, null)
+        val api = apiFactory.create(base, secrets.gatewayCredentials, null, outerBearerOverride)
         val auth = call(base, api)
         val rawRole = auth.user.role
         val role = runCatching { UserRole.valueOf(rawRole) }.getOrElse {
@@ -185,6 +299,7 @@ class ConnectionRepository @Inject constructor(
             }
             secrets.accessToken = auth.accessToken
             secrets.refreshToken = auth.refreshToken
+            onCommitted(base)
             preferences.saveSession(auth.user.id, auth.user.username, auth.user.displayName, role)
             true
         }

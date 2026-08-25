@@ -74,3 +74,19 @@ data class PartnerDashboardEntity(
     val payloadJson: String,
     val updatedAt: String,
 )
+
+/**
+ * Durable hand-off between the encrypted Room replacement and DataStore.
+ *
+ * Room commits the imported health records and this journal row atomically.
+ * Applying the settings and clearing derived notification state is idempotent;
+ * if Android stops the process between those stores, startup resumes from this
+ * encrypted row instead of reporting a half-restored backup as complete.
+ */
+@Entity(tableName = "portable_import_journal")
+data class PortableImportJournalEntity(
+    @PrimaryKey val id: String = "pending",
+    val userId: String,
+    val settingsJson: String,
+    val createdAt: String,
+)

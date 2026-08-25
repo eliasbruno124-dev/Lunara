@@ -31,13 +31,18 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param refreshToken
+ * @param oidcAccessToken Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity
  */
 
 
 data class RefreshDto (
 
     @Json(name = "refreshToken")
-    val refreshToken: kotlin.String
+    val refreshToken: kotlin.String,
+
+    /* Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity */
+    @Json(name = "oidcAccessToken")
+    val oidcAccessToken: kotlin.String? = null
 
 ) {
 

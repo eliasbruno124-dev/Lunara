@@ -1,6 +1,7 @@
 package de.lunara.app.data.repository
 
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.ApiClientFactory
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import kotlinx.coroutines.flow.first
@@ -16,6 +17,9 @@ import de.lunara.app.data.sync.ProcessSyncGate
 import de.lunara.app.data.remote.dto.CycleProfileDto
 import de.lunara.app.data.remote.dto.UpdateCycleProfileRequest
 import de.lunara.app.notifications.NotificationDataCache
+import de.lunara.app.data.prediction.LocalPredictionEngine
+import java.time.LocalDate
+import java.time.ZoneId
 
 @Singleton
 class DashboardRepository @Inject constructor(
@@ -65,7 +69,24 @@ class DashboardRepository @Inject constructor(
         }
 
     suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {
-        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
+        val preferenceState = preferences.state.first()
+        if (preferenceState.appMode == AppMode.LOCAL) {
+            if (preferenceState.session?.userId != expectedUserId) throw SessionChangedException()
+            val prediction = LocalPredictionEngine.calculate(
+                periods = database.periodDao().activeForUser(expectedUserId),
+                preferences = preferenceState,
+                referenceDate = LocalDate.now(ZoneId.systemDefault()),
+            )
+            ProcessSyncGate.serialized {
+                val current = preferences.state.first()
+                if (current.session?.userId != expectedUserId || current.appMode != AppMode.LOCAL) {
+                    throw SessionChangedException()
+                }
+                notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
+            }
+            return prediction
+        }
+        val base = preferenceState.baseUrl ?: throw ApiException(400)
         var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .prediction(endpoint(base, "api/v1/predictions"))
         if (response.code() == 401 && connectionRepository.refresh()) {
@@ -81,7 +102,22 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun cycleProfile(): CycleProfileDto {
-        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
+        val state = preferences.state.first()
+        if (state.appMode == AppMode.LOCAL) {
+            val session = state.session ?: throw SessionChangedException()
+            return CycleProfileDto(
+                id = "local-profile",
+                userId = session.userId,
+                typicalCycleLengthOptional = state.localTypicalCycleLength,
+                typicalPeriodLengthOptional = state.localTypicalPeriodLength,
+                lutealLengthOptional = state.localLutealLength,
+                fertilityPredictionEnabled = state.localFertilityPredictionEnabled,
+                predictionPaused = state.localPredictionPaused,
+                specialMode = state.localSpecialMode,
+                timezone = ZoneId.systemDefault().id,
+            )
+        }
+        val base = state.baseUrl ?: throw ApiException(400)
         var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .cycleProfile(endpoint(base, "api/v1/cycle/profile"))
         if (response.code() == 401 && connectionRepository.refresh()) {
@@ -92,7 +128,14 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun setFertilityPredictionEnabled(enabled: Boolean): CycleProfileDto {
-        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
+        val state = preferences.state.first()
+        if (state.appMode == AppMode.LOCAL) {
+            val session = state.session ?: throw SessionChangedException()
+            if (session.role != de.lunara.app.core.model.UserRole.TRACKER) throw ApiException(403)
+            preferences.setLocalFertilityPredictionEnabled(session.userId, enabled)
+            return cycleProfile()
+        }
+        val base = state.baseUrl ?: throw ApiException(400)
         val request = UpdateCycleProfileRequest(fertilityPredictionEnabled = enabled)
         var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
             .updateCycleProfile(endpoint(base, "api/v1/cycle/profile"), request)

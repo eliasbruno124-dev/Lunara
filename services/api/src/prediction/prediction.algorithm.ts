@@ -1,4 +1,4 @@
-export const PREDICTION_ALGORITHM_VERSION = 'lunara-robust-v1';
+export const PREDICTION_ALGORITHM_VERSION = 'lunara-robust-v2';
 
 export type PredictionConfidenceValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'UNAVAILABLE';
 
@@ -9,6 +9,8 @@ export interface HistoricalPeriod {
 
 export interface PredictionInput {
   periods: HistoricalPeriod[];
+  /** Local calendar date in the cycle profile's time zone. */
+  referenceDate?: string;
   typicalCycleLength?: number | null;
   typicalPeriodLength?: number | null;
   lutealLength?: number | null;
@@ -27,6 +29,18 @@ export interface CycleStatistics {
   variationDays: number;
   consideredCycleCount: number;
   allObservedCycleLengths: number[];
+  /** Number of raw intervals retained in the statistics window. */
+  observedCycleCount?: number;
+  /** Chronological intervals that are suitable as model inputs. */
+  modelCycleLengths?: number[];
+  /** Raw intervals retained for transparency but excluded from the model. */
+  excludedCycleLengths?: number[];
+  excludedCycleCount?: number;
+  modelMedianCycleLength?: number | null;
+  completedPeriodDurationCount?: number;
+  allObservedPeriodDurations?: number[];
+  excludedPeriodDurations?: number[];
+  periodDurationDataBasis?: 'observed-periods' | 'profile-fallback' | 'default-prior';
 }
 
 export interface PredictionResult {
@@ -51,6 +65,7 @@ export interface PredictionResult {
     dataBasis: 'observed-cycles' | 'profile-fallback';
     cyclesUsed: number;
     outliersRetained: true;
+    excludedImplausibleIntervalsFromModel?: number;
     uncertainty: 'low' | 'medium' | 'high';
     note: string;
   };
@@ -59,7 +74,8 @@ export interface PredictionResult {
 export type FertilityEstimateReason =
   | 'AVAILABLE'
   | 'DISABLED'
-  | 'INSUFFICIENT_DATA';
+  | 'INSUFFICIENT_DATA'
+  | 'UNRELIABLE_DATA';
 
 /**
  * Explicit safety metadata for the optional calendar-based fertility estimate.
@@ -79,11 +95,21 @@ export interface UnavailablePrediction {
   available: false;
   confidence: 'UNAVAILABLE';
   algorithmVersion: string;
-  reason: 'NO_PERIOD_START' | 'PREDICTION_PAUSED' | 'SPECIAL_MODE' | 'INSUFFICIENT_DATA';
+  reason:
+    | 'NO_PERIOD_START'
+    | 'PREDICTION_PAUSED'
+    | 'SPECIAL_MODE'
+    | 'INSUFFICIENT_DATA'
+    | 'STALE_HISTORY';
+  basedOnCycleCount?: number;
+  statistics?: CycleStatistics;
 }
 
 const DAY_MS = 86_400_000;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MIN_MODEL_CYCLE_LENGTH = 15;
+const MAX_MODEL_CYCLE_LENGTH = 90;
+const MAX_FERTILITY_VARIATION_DAYS = 14;
 
 function epochDay(value: string): number {
   if (!ISO_DATE.test(value)) throw new Error(`Invalid local date: ${value}`);
@@ -113,7 +139,7 @@ function median(values: number[]): number {
 
 function weightedMedian(values: number[]): number {
   // Chronological input: a linear 1.0 -> 2.0 weight makes recent cycles matter
-  // more without permitting one newest cycle to dominate the history.
+  // more. With at least three cycles, one newest cycle cannot dominate alone.
   const weighted = values.map((value, index) => ({
     value,
     weight: values.length === 1 ? 1 : 1 + index / (values.length - 1),
@@ -151,55 +177,131 @@ export function calculatePrediction(
   if (starts.length === 0) return unavailable('NO_PERIOD_START');
 
   const allCycleLengths = starts.slice(1).map((start, index) => start.day - (starts[index]?.day ?? 0));
-  // At most twelve recent complete cycles. No value is silently dropped as an
-  // outlier; median and MAD limit its influence. Non-positive intervals can
-  // only result from malformed duplicate data and are rejected explicitly.
+  // At most twelve recent complete intervals. Every positive raw value remains
+  // visible in statistics; values outside 15..90 are explicitly reported but
+  // excluded from the model because they cannot reliably represent one cycle.
   if (allCycleLengths.some((length) => length <= 0)) {
     throw new Error('Period starts must form positive cycle intervals');
   }
-  const cycleLengths = allCycleLengths.slice(-12);
-  const fallbackCycleLength = finiteInteger(input.typicalCycleLength, 15, 90);
-  if (cycleLengths.length === 0 && fallbackCycleLength === null) {
-    return unavailable('INSUFFICIENT_DATA');
-  }
-
-  const robustCycleLength = Math.round(
-    cycleLengths.length > 0 ? weightedMedian(cycleLengths) : (fallbackCycleLength as number),
+  const observedCycleLengths = allCycleLengths.slice(-12);
+  const cycleLengths = observedCycleLengths.filter(
+    (length) => length >= MIN_MODEL_CYCLE_LENGTH && length <= MAX_MODEL_CYCLE_LENGTH,
   );
-  const cycleMedian = cycleLengths.length > 0 ? median(cycleLengths) : null;
-  const mad = cycleMedian === null
+  const excludedCycleLengths = observedCycleLengths.filter(
+    (length) => length < MIN_MODEL_CYCLE_LENGTH || length > MAX_MODEL_CYCLE_LENGTH,
+  );
+  const fallbackCycleLength = finiteInteger(input.typicalCycleLength, 15, 90);
+
+  const modelCycleMedian = cycleLengths.length > 0 ? median(cycleLengths) : null;
+  const observedCycleMedian = observedCycleLengths.length > 0
+    ? median(observedCycleLengths)
+    : null;
+  const mad = modelCycleMedian === null
     ? null
-    : median(cycleLengths.map((length) => Math.abs(length - cycleMedian)));
+    : median(cycleLengths.map((length) => Math.abs(length - modelCycleMedian)));
   const robustSpread = mad === null ? 0 : Math.ceil(mad * 1.4826);
-  const rangeSpread = cycleLengths.length > 0
+  // The usable range affects confidence only. The visible band itself remains
+  // based on MAD, so one retained in-range outlier cannot inflate it by months.
+  const rangeSignal = cycleLengths.length > 0
     ? Math.ceil(((Math.max(...cycleLengths) - Math.min(...cycleLengths)) / 2) * 0.5)
     : 0;
   const variationDays = cycleLengths.length < 3
-    ? Math.max(4, robustSpread + 2, rangeSpread)
-    : Math.max(2, robustSpread + 1, rangeSpread);
+    ? Math.max(4, robustSpread + 2)
+    : cycleLengths.length < 6
+      ? Math.max(3, robustSpread + 1)
+      : Math.max(2, robustSpread + 1);
 
-  const completedDurations = input.periods
+  const allObservedPeriodDurations = [...input.periods]
+    .sort((left, right) => epochDay(left.startDate) - epochDay(right.startDate))
     .filter((period): period is HistoricalPeriod & { endDate: string } => Boolean(period.endDate))
     .map((period) => epochDay(period.endDate) - epochDay(period.startDate) + 1)
-    .filter((duration) => duration > 0 && duration <= 30)
+    .filter((duration) => duration > 0)
     .slice(-12);
+  const completedDurations = allObservedPeriodDurations.filter(
+    (duration) => duration <= 30,
+  );
+  const excludedPeriodDurations = allObservedPeriodDurations.filter(
+    (duration) => duration > 30,
+  );
   const fallbackPeriodLength = finiteInteger(input.typicalPeriodLength, 1, 14);
+  const periodDurationDataBasis: CycleStatistics['periodDurationDataBasis'] =
+    completedDurations.length > 0
+      ? 'observed-periods'
+      : fallbackPeriodLength !== null
+        ? 'profile-fallback'
+        : 'default-prior';
   const typicalPeriodLength = Math.round(
     completedDurations.length > 0
       ? median(completedDurations)
       : (fallbackPeriodLength ?? 5),
   );
 
+  const statistics: CycleStatistics = {
+    averageCycleLength: observedCycleLengths.length > 0
+      ? Number(
+          (
+            observedCycleLengths.reduce((sum, length) => sum + length, 0) /
+            observedCycleLengths.length
+          ).toFixed(1),
+        )
+      : null,
+    medianCycleLength: observedCycleMedian,
+    shortestCycle: observedCycleLengths.length > 0
+      ? Math.min(...observedCycleLengths)
+      : null,
+    longestCycle: observedCycleLengths.length > 0
+      ? Math.max(...observedCycleLengths)
+      : null,
+    typicalPeriodDuration: typicalPeriodLength,
+    medianAbsoluteDeviation: mad,
+    variationDays,
+    consideredCycleCount: cycleLengths.length,
+    allObservedCycleLengths: observedCycleLengths,
+    observedCycleCount: observedCycleLengths.length,
+    modelCycleLengths: cycleLengths,
+    excludedCycleLengths,
+    excludedCycleCount: excludedCycleLengths.length,
+    modelMedianCycleLength: modelCycleMedian,
+    completedPeriodDurationCount: completedDurations.length,
+    allObservedPeriodDurations,
+    excludedPeriodDurations,
+    periodDurationDataBasis,
+  };
+
+  if (cycleLengths.length === 0 && fallbackCycleLength === null) {
+    return unavailable('INSUFFICIENT_DATA', {
+      basedOnCycleCount: 0,
+      statistics,
+    });
+  }
+
+  const robustCycleLength = Math.round(
+    cycleLengths.length > 0 ? weightedMedian(cycleLengths) : (fallbackCycleLength as number),
+  );
+
   const lastStart = starts[starts.length - 1] as { date: string; day: number };
   const center = lastStart.day + robustCycleLength;
   const startFrom = center - variationDays;
   const startTo = center + variationDays;
-  const confidence = confidenceFor(cycleLengths.length, robustSpread, rangeSpread);
+  const confidence = confidenceFor(cycleLengths.length, robustSpread, rangeSignal);
+  const referenceDay = epochDay(input.referenceDate ?? now.toISOString().slice(0, 10));
+  if (startTo < referenceDay) {
+    return unavailable('STALE_HISTORY', {
+      basedOnCycleCount: cycleLengths.length,
+      statistics,
+    });
+  }
 
   let fertileWindowFrom: string | null = null;
   let fertileWindowTo: string | null = null;
   const fertilityEnabled = input.fertilityPredictionEnabled === true;
-  const fertilityAvailable = fertilityEnabled && cycleLengths.length >= 3;
+  const fertilityHasEnoughData = cycleLengths.length >= 3;
+  const fertilityDataReliable =
+    excludedCycleLengths.length === 0 &&
+    confidence !== 'LOW' &&
+    variationDays <= MAX_FERTILITY_VARIATION_DAYS;
+  const fertilityAvailable =
+    fertilityEnabled && fertilityHasEnoughData && fertilityDataReliable;
   if (fertilityAvailable) {
     const lutealLength = finiteInteger(input.lutealLength, 8, 20) ?? 14;
     const ovulationCenter = center - lutealLength;
@@ -221,9 +323,11 @@ export function calculatePrediction(
       estimated: true,
       reason: fertilityAvailable
         ? 'AVAILABLE'
-        : fertilityEnabled
-          ? 'INSUFFICIENT_DATA'
-          : 'DISABLED',
+        : !fertilityEnabled
+          ? 'DISABLED'
+          : !fertilityHasEnoughData
+            ? 'INSUFFICIENT_DATA'
+            : 'UNRELIABLE_DATA',
       basedOnCycleCount: cycleLengths.length,
       notContraception: true,
       doesNotConfirmOvulation: true,
@@ -235,29 +339,20 @@ export function calculatePrediction(
     typicalCycleLength: robustCycleLength,
     typicalPeriodLength,
     variationDays,
-    statistics: {
-      averageCycleLength: cycleLengths.length > 0
-        ? Number((cycleLengths.reduce((sum, length) => sum + length, 0) / cycleLengths.length).toFixed(1))
-        : null,
-      medianCycleLength: cycleMedian,
-      shortestCycle: cycleLengths.length > 0 ? Math.min(...cycleLengths) : null,
-      longestCycle: cycleLengths.length > 0 ? Math.max(...cycleLengths) : null,
-      typicalPeriodDuration: typicalPeriodLength,
-      medianAbsoluteDeviation: mad,
-      variationDays,
-      consideredCycleCount: cycleLengths.length,
-      allObservedCycleLengths: cycleLengths,
-    },
+    statistics,
     explanation: {
       method: 'recency-weighted-median-with-mad',
       dataBasis: cycleLengths.length > 0 ? 'observed-cycles' : 'profile-fallback',
       cyclesUsed: cycleLengths.length,
       outliersRetained: true,
+      excludedImplausibleIntervalsFromModel: excludedCycleLengths.length,
       uncertainty: confidence === 'HIGH' ? 'low' : confidence === 'MEDIUM' ? 'medium' : 'high',
       note:
         cycleLengths.length < 3
-          ? 'Fewer than three complete cycles are available; the estimate is deliberately broad.'
-          : 'The interval uses recent observed cycles, a robust median and median absolute deviation.',
+          ? 'Fewer than three usable complete cycles are available; the estimate is deliberately broad.'
+          : excludedCycleLengths.length > 0
+            ? 'Implausible intervals remain visible in statistics but are excluded from the model and fertility estimate.'
+            : 'The interval uses recent observed cycles, a robust median and median absolute deviation.',
     },
   };
 }
@@ -273,11 +368,15 @@ function confidenceFor(
   return 'LOW';
 }
 
-function unavailable(reason: UnavailablePrediction['reason']): UnavailablePrediction {
+function unavailable(
+  reason: UnavailablePrediction['reason'],
+  details: Pick<UnavailablePrediction, 'basedOnCycleCount' | 'statistics'> = {},
+): UnavailablePrediction {
   return {
     available: false,
     confidence: 'UNAVAILABLE',
     algorithmVersion: PREDICTION_ALGORITHM_VERSION,
     reason,
+    ...details,
   };
 }

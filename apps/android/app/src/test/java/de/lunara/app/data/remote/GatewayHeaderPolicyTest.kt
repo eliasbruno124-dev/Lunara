@@ -1,7 +1,10 @@
 package de.lunara.app.data.remote
 
+import de.lunara.app.core.network.GatewayCredentials
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -25,5 +28,55 @@ class GatewayHeaderPolicyTest {
         assertFalse(GatewayHeaderPolicy.shouldAttach(true, true, "Bearer token"))
         assertFalse(GatewayHeaderPolicy.shouldAttach(false, true, null))
         assertFalse(GatewayHeaderPolicy.shouldAttach(true, false, null))
+    }
+
+    @Test
+    fun `personal Authentik bearer wins over legacy shared basic credentials`() {
+        val value = GatewayAuthorizationPolicy.value(
+            GatewayCredentials("legacy-app", "legacy-secret"),
+            "personal-token",
+        )
+        assertEquals("Bearer personal-token", value)
+    }
+
+    @Test
+    fun `blank bearer safely falls back to basic credentials`() {
+        val value = GatewayAuthorizationPolicy.value(
+            GatewayCredentials("legacy-app", "legacy-secret"),
+            "  ",
+        )
+        assertTrue(value?.startsWith("Basic ") == true)
+    }
+}
+
+class BlockingTokenBridgePolicyTest {
+    @Test
+    fun rejectsMainThreadBridging() {
+        assertThrows(IllegalStateException::class.java) {
+            BlockingTokenBridgePolicy.requireBackgroundThread(true)
+        }
+    }
+
+    @Test
+    fun permitsOkHttpWorkerThreadBridging() {
+        BlockingTokenBridgePolicy.requireBackgroundThread(false)
+    }
+}
+
+class AppTokenHeaderPolicyTest {
+    @Test
+    fun neverSendsInnerTokenToAbsoluteForeignUrl() {
+        assertFalse(AppTokenHeaderPolicy.shouldAttach(true, false, null))
+    }
+
+    @Test
+    fun neverOverwritesCallerHeader() {
+        assertFalse(AppTokenHeaderPolicy.shouldAttach(true, true, "Bearer caller"))
+    }
+
+    @Test
+    fun sendsInnerTokenOnlyToConfiguredOrigin() {
+        assertTrue(AppTokenHeaderPolicy.shouldAttach(true, true, null))
+        assertFalse(AppTokenHeaderPolicy.shouldAttach(false, true, null))
     }
 }

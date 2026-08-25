@@ -1,7 +1,7 @@
 {
   "generator": "OpenAPITools/openapi-generator",
   "generatorVersion": "7.24.0",
-  "specificationSha256": "b53c7505a21467710227ad41e1eaaa76aff9c5a66a512028670a06b2867dca91",
+  "specificationSha256": "ba98d7b76b18106d69d4bc680bd3e0f91a7b7b3ac976ecbe292eb8f74a58dd03",
   "configurationSha256": "934230718d726ea3b336ea3b14171cd1ff7720fc47a9fdea33f8cfcbaae924a3",
-  "generatedTreeSha256": "531e1539fb3156516393544d76b48bf9d9023714b52e324fbc43219a5ba70c0e"
+  "generatedTreeSha256": "2207e3a0a64a34d131f56f84464c1b38540ef41e5ff23ff2739ea40a0353f1fc"
 }
