@@ -2,11 +2,10 @@
 
 Stand: 25. August 2026
 
-Lunara 1.1.0 ist als Android-/Server-/PWA-Releasekandidat implementiert,
-gebaut und lokal geprüft. Dieser Bericht trennt den tatsächlich bestätigten
-Quell-/Buildstand vom noch ausstehenden finalen 1.1.0-Live-Rollout. Frühere
-produktive 1.0.x-Prüfungen werden nicht als Nachweis für den neuen Release
-umetikettiert.
+Lunara 1.1.0 ist als Android-/Server-/PWA-Release implementiert, gebaut,
+produktiv ausgerollt und im privaten GitHub-Repository veröffentlicht. Dieser
+Bericht nennt ausschließlich tatsächlich ausgeführte Prüfungen; frühere
+produktive 1.0.x-Prüfungen werden nicht als Nachweis für 1.1.0 umetikettiert.
 
 ## Implementierte Architektur
 
@@ -189,6 +188,22 @@ Ergebnisse:
   compileSdk 37
 - APK-/AAB-Struktur und erwartete Signaturzustände geprüft
 
+### GitHub Actions
+
+Die finalen GitHub-Prüfungen waren erfolgreich:
+
+- Backend CI: Build, Prisma, Lint und Tests
+- Android CI: Unit-Tests, Lint, Debug-APK sowie unsigned Release-APK/AAB
+- Dependency Review
+- Container-/Dependency-Sicherheit: redigierter Gitleaks-History-Scan,
+  npm-Audit, Image-Build, CycloneDX-SBOM und Trivy-Scan
+
+Der erste Gitleaks-Lauf wertete einen rein erklärenden Satz in
+`.env.example` als generischen API-Key. Der Inhalt war kein Geheimnis. Die
+Formulierung wurde geändert und exakt dieser redigierte historische
+Fingerabdruck dokumentiert. Anschließend waren sowohl die lokale Reproduktion
+mit Gitleaks 8.24.3 über 23 Commits als auch der erneute GitHub-Lauf grün.
+
 ## Android-Buildartefakte
 
 Die tatsächlich erzeugten Dateien liegen absolut unter:
@@ -227,6 +242,10 @@ Dieselben finalen Werte stehen in
 `/root/Lunara/artifacts/SHA256SUMS`; `sha256sum -c SHA256SUMS` wurde im
 Artefaktverzeichnis für alle fünf Dateien erfolgreich ausgeführt. Ältere
 Hashes aus 1.0.x sind für 1.1.0 ungültig.
+
+Die sechs Release-Assets wurden im privaten GitHub-Release veröffentlicht.
+Die dort gespeicherte signierte APK wurde erneut heruntergeladen und ihr
+SHA-256-Wert bytegenau gegen das lokale Artefakt bestätigt.
 
 Der private Upload-Keystore, Alias und Passwörter liegen nicht im Repository.
 Gradle liest sie nur über:

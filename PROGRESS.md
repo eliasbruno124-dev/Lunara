@@ -1,6 +1,6 @@
 # Lunara – Fortschritt
 
-Stand: 25. August 2026, Releasekandidat 1.1.0
+Stand: 25. August 2026, Release 1.1.0 veröffentlicht
 
 ## 1.1.0 umgesetzt
 
@@ -129,6 +129,9 @@ Stand: 25. August 2026, Releasekandidat 1.1.0
 - [x] Frisches Vorab-Backup mit Prüfsummen und `pg_restore --list` validiert;
   Datenbankdump zusätzlich in einem isolierten PostgreSQL-18-Container real
   wiederhergestellt und die gesicherten Kernzählwerte geprüft.
+- [x] Privater GitHub-Release `v1.1.0` mit signierter APK, Debug-APK,
+  Play-Upload-AAB, unsigned Referenzartefakten und Prüfsummen veröffentlicht;
+  Backend-, Android-, Dependency- und Container-Sicherheits-CI grün.
 
 ## Kernumfang aus 1.0.x weiterhin vorhanden
 
