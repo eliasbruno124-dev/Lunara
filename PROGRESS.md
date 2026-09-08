@@ -15,7 +15,7 @@
 - [x] API/PWA als Container 1.1.4 produktiv aktualisiert; Health/Ready gesund, Authentik-Ausnahme nur für exaktes `/invite` ergänzt und extern geprüft.
 - [x] Android-Code, JVM-Tests (205 pro Variante), beide Lints, Instrumentierungskompilierung sowie Debug-/Release-APK und AAB erfolgreich gebaut; Release mit vorhandenem serverlokalem Schlüssel signiert.
 - [x] Serverseitiges Review und scoped Live-Update abgeschlossen.
-- [ ] Abschließende Artefaktprüfung und private Release-Veröffentlichung abschließen.
+- [x] Abschließende Artefaktprüfung und Sicherheitsreview erfolgreich; privater GitHub-Release v1.1.4 mit sechs geprüften Dateien veröffentlicht. APK-Signatur passt zur vorherigen Installation.
 
 Die folgenden Abschnitte dokumentieren den früheren Release-Stand.
 

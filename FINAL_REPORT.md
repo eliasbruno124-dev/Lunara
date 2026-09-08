@@ -1,8 +1,9 @@
 # Lunara 1.1.4 – Einladungskorrektur
 
 Stand: 8. September 2026. Server/PWA produktiv aktualisiert;
-Android-Build einschließlich Signierung erfolgreich. Private Veröffentlichung
-wird nach der abschließenden Artefaktprüfung ausgeführt.
+Android-Build einschließlich Signierung erfolgreich und im privaten
+GitHub-Release v1.1.4 veröffentlicht. Alle sechs hochgeladenen Dateien wurden
+gegen ihre lokalen Größen und SHA-256-Prüfsummen geprüft.
 
 ## Ergebnis und Architektur
 
@@ -79,6 +80,23 @@ SHA-256 der signierten Nutzer-APK:
 
 Die abschließende Sicherheitsprüfung lautet **ship**; keine bekannten
 blockierenden Befunde verbleiben in diesem Änderungssatz.
+
+## GitHub-Veröffentlichung
+
+Quellstand und Artefakte: Commit `a7d591b`, Tag `v1.1.4`. Das Repository bleibt
+privat. Builds/Tests wurden lokal ausgeführt; der gebündelte Quellcommit
+verwendet `[skip ci]`, um keine zusätzlichen automatischen Build-Mails
+auszulösen. Keine Pull Requests, Diskussionen oder Kommentare wurden angelegt.
+
+Release:
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.1.4
+
+Empfohlene APK (GitHub-Anmeldung mit Repository-Zugriff erforderlich):
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.1.4/lunara-release.apk
+
+Keine offenen Implementierungs- oder Veröffentlichungsaufgaben für diese
+Einladungskorrektur. Die oben genannten Geräte-/Play-Validierungsgrenzen
+bleiben ausdrücklich bestehen.
 
 ## Produktive Änderungen und Rückfallmöglichkeit
 
