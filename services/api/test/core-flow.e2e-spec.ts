@@ -208,6 +208,9 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .expect(201);
     expect(invite.body.code).toMatch(/^[A-HJ-NP-Z2-9]{12}$/);
     expect(invite.body.expiresAt).toBeNull();
+    expect(invite.body.acceptanceUrl).toBe(
+      `http://api-test:3000/invite#invite=${invite.body.code}`,
+    );
 
     const isolatedInvite = await request(app.getHttpServer())
       .post('/api/v1/household/invitations')
@@ -1632,5 +1635,145 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       })
       .expect(201)
       .expect(({ body }) => expect(body.user.role).toBe(UserRole.TRACKER));
+  });
+
+  it('moves only an explicit, empty standalone tracker through a one-use invitation', async () => {
+    // The core-flow exercise intentionally consumes the shared app's rate
+    // budget. This separate app has its own in-memory Throttler store while
+    // retaining the same real PostgreSQL database.
+    const acceptanceApp = await createTestApplication();
+    const config = acceptanceApp.get(ConfigService);
+    config.set('lunara.registrationEnabled', true);
+    const auth = acceptanceApp.get(AuthService);
+    const register = (username: string) =>
+      auth.register({
+        username,
+        password: `A secure ${username} password 2026!`,
+        displayName: username,
+        deviceName: 'Invitation acceptance E2E device',
+        preferredLanguage: 'DE',
+      });
+
+    try {
+      const [target, source, occupiedSource, healthTarget, healthSource] =
+        await Promise.all([
+          register('accept-target-e2e'),
+          register('accept-source-e2e'),
+          register('accept-occupied-source-e2e'),
+          register('accept-health-target-e2e'),
+          register('accept-health-source-e2e'),
+        ]);
+
+      const sourceInvitation = await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations')
+        .set('Authorization', `Bearer ${source.accessToken}`)
+        .send({ neverExpires: true })
+        .expect(201);
+      const targetInvitation = await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations')
+        .set('Authorization', `Bearer ${target.accessToken}`)
+        .send({ neverExpires: true })
+        .expect(201);
+
+      await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations/accept')
+        .set('Authorization', `Bearer ${source.accessToken}`)
+        .send({ invitationCode: targetInvitation.body.code, confirm: true })
+        .expect(200)
+        .expect({ accepted: true });
+
+      const movedMembership = await prisma.membership.findUniqueOrThrow({
+        where: { userId: source.user.id },
+      });
+      expect(movedMembership).toMatchObject({
+        householdId: target.user.householdId,
+        role: UserRole.PARTNER,
+      });
+      expect(
+        (
+          await prisma.invitation.findUniqueOrThrow({
+            where: { id: sourceInvitation.body.id },
+          })
+        ).revokedAt,
+      ).toBeInstanceOf(Date);
+
+      // Access-token role claims are not trusted by the guard. The same active
+      // session now resolves the moved membership and makes a lost response
+      // retry harmless for the original claimant.
+      await request(acceptanceApp.getHttpServer())
+        .get('/api/v1/household')
+        .set('Authorization', `Bearer ${source.accessToken}`)
+        .expect(200)
+        .expect(({ body }) => expect(body.id).toBe(target.user.householdId));
+      await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations/accept')
+        .set('Authorization', `Bearer ${source.accessToken}`)
+        .send({ invitationCode: targetInvitation.body.code, confirm: true })
+        .expect(200)
+        .expect({ accepted: true });
+      await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations/accept')
+        .set('Authorization', `Bearer ${source.accessToken}`)
+        .send({ invitationCode: targetInvitation.body.code, confirm: false })
+        .expect(400);
+
+      const occupiedCode = 'ACCEPT2CC2';
+      await prisma.invitation.create({
+        data: {
+          householdId: target.user.householdId,
+          createdByUserId: target.user.id,
+          assignedRole: UserRole.PARTNER,
+          tokenHash: auth.hashToken(`invitation:${occupiedCode}`),
+          expiresAt: null,
+        },
+      });
+      await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations/accept')
+        .set('Authorization', `Bearer ${occupiedSource.accessToken}`)
+        .send({ invitationCode: occupiedCode, confirm: true })
+        .expect(409);
+
+      // Soft-deleted records are counted too. A data-bearing tracker must not
+      // be able to turn a relationship move into an inaccessible-data path.
+      await prisma.periodEvent.create({
+        data: {
+          userId: healthSource.user.id,
+          startDate: new Date('2026-08-01T00:00:00.000Z'),
+          deletedAt: new Date('2026-08-02T00:00:00.000Z'),
+        },
+      });
+      const healthCode = 'ACCEPTHEAL';
+      const healthInvitation = await prisma.invitation.create({
+        data: {
+          householdId: healthTarget.user.householdId,
+          createdByUserId: healthTarget.user.id,
+          assignedRole: UserRole.PARTNER,
+          tokenHash: auth.hashToken(`invitation:${healthCode}`),
+          expiresAt: null,
+        },
+      });
+      await request(acceptanceApp.getHttpServer())
+        .post('/api/v1/household/invitations/accept')
+        .set('Authorization', `Bearer ${healthSource.accessToken}`)
+        .send({ invitationCode: healthCode, confirm: true })
+        .expect(409);
+      expect(
+        (
+          await prisma.invitation.findUniqueOrThrow({
+            where: { id: healthInvitation.id },
+          })
+        ).usedAt,
+      ).toBeNull();
+      expect(
+        (
+          await prisma.membership.findUniqueOrThrow({
+            where: { userId: healthSource.user.id },
+          })
+        ).householdId,
+      ).toBe(healthSource.user.householdId);
+    } finally {
+      config.set('lunara.registrationEnabled', false);
+      await acceptanceApp.close();
+    }
   });
 });

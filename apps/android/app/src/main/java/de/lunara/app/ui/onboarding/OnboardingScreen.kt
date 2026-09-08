@@ -63,9 +63,10 @@ import de.lunara.app.R
 import de.lunara.app.core.branding.BrandTokens
 import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.ui.components.LunaraHeader
+import de.lunara.app.ui.scanner.lunaraQrScanOptions
 import de.lunara.app.ui.theme.LunaraTheme
+import com.google.zxing.client.android.Intents
 import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 
 @Composable
 fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
@@ -92,6 +93,8 @@ fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
         onDisplayName = viewModel::setDisplayName,
         onBootstrapToken = viewModel::setBootstrapToken,
         onInvitationCode = viewModel::setInvitationCode,
+        onInvalidInvitationQr = viewModel::reportInvalidInvitationQr,
+        onQrCameraUnavailable = viewModel::reportQrCameraUnavailable,
         onAuthentikLogin = {
             viewModel.beginAuthentikLogin { authentikLauncher.launch(it) }
         },
@@ -117,6 +120,8 @@ fun OnboardingScreen(
     onDisplayName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
+    onInvalidInvitationQr: () -> Unit = {},
+    onQrCameraUnavailable: () -> Unit = {},
     onAuthentikLogin: () -> Unit = {},
     onSubmit: () -> Unit,
     onLocalMode: () -> Unit = {},
@@ -138,10 +143,18 @@ fun OnboardingScreen(
             when (state.stage) {
                 OnboardingStage.INTRO -> IntroStep(state.language, onLanguage, onContinue, onLocalMode)
                 OnboardingStage.LOCAL -> LocalModeStep(state, onDisplayName, onLocalSubmit)
-                OnboardingStage.SERVER -> ServerStep(state, onServerUrl, onScannedServerUrl, onAllowHttp, onTestConnection)
+                OnboardingStage.SERVER -> ServerStep(
+                    state,
+                    onServerUrl,
+                    onScannedServerUrl,
+                    onAllowHttp,
+                    onTestConnection,
+                    onQrCameraUnavailable,
+                )
                 OnboardingStage.AUTH -> AuthStep(
                     state, onAuthMode, onUsername, onPassword, onDisplayName,
-                    onBootstrapToken, onInvitationCode, onAuthentikLogin, onSubmit,
+                    onBootstrapToken, onInvitationCode, onInvalidInvitationQr,
+                    onQrCameraUnavailable, onAuthentikLogin, onSubmit,
                 )
             }
         }
@@ -239,6 +252,7 @@ private fun ServerStep(
     onScannedServerUrl: (String) -> Unit,
     onAllowHttp: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
+    onQrCameraUnavailable: () -> Unit,
 ) {
     var revealCredentialUrl by remember { mutableStateOf(false) }
     val containsGatewayCredentials = remember(state.serverUrl) {
@@ -246,7 +260,12 @@ private fun ServerStep(
     }
     val scanPrompt = stringResource(R.string.scan_qr_prompt)
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
-        result.contents?.let(onScannedServerUrl)
+        when {
+            result.contents != null -> onScannedServerUrl(result.contents)
+            result.originalIntent?.getBooleanExtra(Intents.Scan.MISSING_CAMERA_PERMISSION, false) == true -> {
+                onQrCameraUnavailable()
+            }
+        }
     }
     LunaraHeader(
         eyebrow = "2 / 3",
@@ -282,11 +301,7 @@ private fun ServerStep(
     OutlinedButton(
         onClick = {
             scanLauncher.launch(
-                ScanOptions()
-                    .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-                    .setPrompt(scanPrompt)
-                    .setBeepEnabled(false)
-                    .setOrientationLocked(false),
+                lunaraQrScanOptions(scanPrompt),
             )
         },
         modifier = Modifier.fillMaxWidth(),
@@ -326,9 +341,14 @@ private fun AuthStep(
     onDisplayName: (String) -> Unit,
     onBootstrapToken: (String) -> Unit,
     onInvitationCode: (String) -> Unit,
+    onInvalidInvitationQr: () -> Unit,
+    onQrCameraUnavailable: () -> Unit,
     onAuthentikLogin: () -> Unit,
     onSubmit: () -> Unit,
 ) {
+    val joinPolicy = authentikJoinPolicy(state.meta)
+    val primaryAuthentikIdentity = usesPrimaryAuthentikIdentity(state.meta)
+    val localIdentityFields = requiresLocalIdentityFields(state) && !state.invitationConfirmationReady
     val title = when (state.authMode) {
         AuthMode.LOGIN -> R.string.login_title
         AuthMode.SETUP -> R.string.setup_title
@@ -352,7 +372,7 @@ private fun AuthStep(
             FilterChip(state.authMode == AuthMode.LOGIN, { onAuthMode(AuthMode.LOGIN) }, { Text(stringResource(R.string.use_login)) })
             FilterChip(state.authMode == AuthMode.JOIN, { onAuthMode(AuthMode.JOIN) }, { Text(stringResource(R.string.use_invitation)) })
         }
-        if (registrationAvailable(state)) {
+        if (registrationAvailable(state) && !primaryAuthentikIdentity) {
             FilterChip(
                 state.authMode == AuthMode.REGISTER,
                 { onAuthMode(AuthMode.REGISTER) },
@@ -373,17 +393,66 @@ private fun AuthStep(
                 Modifier.padding(start = 10.dp),
             )
         }
-        Text(
-            stringResource(R.string.or_use_lunara_account),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
+        if (!primaryAuthentikIdentity) {
+            Text(
+                stringResource(R.string.or_use_lunara_account),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            Text(
+                stringResource(R.string.authentik_primary_identity_summary),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
+    if (state.authMode == AuthMode.JOIN && joinPolicy != AuthentikJoinPolicy.NONE) {
+        NoticeCard(
+            stringResource(
+                if (primaryAuthentikIdentity) {
+                    R.string.authentik_primary_join_summary
+                } else if (state.authentikGatewayReady) {
+                    R.string.authentik_join_ready
+                } else if (joinPolicy == AuthentikJoinPolicy.LEGACY_OPTIONAL) {
+                    R.string.authentik_join_legacy_summary
+                } else {
+                    R.string.authentik_join_summary
+                },
+            ),
         )
+        if (!primaryAuthentikIdentity) {
+            OutlinedButton(
+                onClick = onAuthentikLogin,
+                enabled = !state.isBusy && !state.authentikGatewayReady,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+            ) {
+                Icon(
+                    if (state.authentikGatewayReady) Icons.Rounded.CheckCircle else Icons.Rounded.Lock,
+                    contentDescription = null,
+                )
+                Text(
+                    stringResource(
+                        if (state.authentikGatewayReady) {
+                            R.string.authentik_join_confirmed
+                        } else {
+                            R.string.authentik_prepare_join
+                        },
+                        requireNotNull(state.meta?.oidc).providerName,
+                    ),
+                    Modifier.padding(start = 10.dp),
+                )
+            }
+        }
     }
 
     if (state.authMode != AuthMode.LOGIN) {
         RoleCard(isTracker = state.authMode == AuthMode.SETUP || state.authMode == AuthMode.REGISTER)
+    }
+    if (state.authMode != AuthMode.LOGIN && localIdentityFields) {
         OutlinedTextField(
             state.displayName,
             onDisplayName,
@@ -407,6 +476,7 @@ private fun AuthStep(
         )
     }
     if (state.authMode == AuthMode.JOIN) {
+        val invitationScanPrompt = stringResource(R.string.scan_invitation_qr_prompt)
         OutlinedTextField(
             state.invitationCode,
             onInvitationCode,
@@ -416,13 +486,20 @@ private fun AuthStep(
             modifier = Modifier.fillMaxWidth(),
         )
         val invitationScanner = rememberLauncherForActivityResult(ScanContract()) { result ->
-            result.contents?.trim()?.takeIf { it.matches(Regex("^[A-HJ-NP-Z2-9]{8,12}$", RegexOption.IGNORE_CASE)) }
-                ?.let(onInvitationCode)
+            when {
+                result.contents != null -> {
+                    parseInvitationQrPayload(result.contents, state.serverUrl)?.let(onInvitationCode)
+                        ?: onInvalidInvitationQr()
+                }
+                result.originalIntent?.getBooleanExtra(Intents.Scan.MISSING_CAMERA_PERMISSION, false) == true -> {
+                    onQrCameraUnavailable()
+                }
+            }
         }
         OutlinedButton(
             onClick = {
                 invitationScanner.launch(
-                    ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("Lunara").setBeepEnabled(false).setOrientationLocked(false),
+                    lunaraQrScanOptions(invitationScanPrompt),
                 )
             },
             modifier = Modifier.fillMaxWidth(),
@@ -430,39 +507,67 @@ private fun AuthStep(
             Icon(Icons.Rounded.Search, contentDescription = null)
             Text(stringResource(R.string.scan_invitation_qr), Modifier.padding(start = 8.dp))
         }
+        if (primaryAuthentikIdentity || state.invitationConfirmationReady) {
+            Button(
+                onClick = if (state.invitationConfirmationReady) onSubmit else onAuthentikLogin,
+                enabled = !state.isBusy,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+            ) {
+                if (state.isBusy) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Rounded.Lock, contentDescription = null)
+                }
+                Text(
+                    if (state.invitationConfirmationReady) {
+                        stringResource(R.string.connect_with_invitation)
+                    } else {
+                        stringResource(
+                            R.string.authentik_join_with_provider,
+                            requireNotNull(state.meta?.oidc).providerName,
+                        )
+                    },
+                    Modifier.padding(start = 10.dp),
+                )
+            }
+        }
     }
-    OutlinedTextField(
-        state.username,
-        onUsername,
-        label = { Text(stringResource(R.string.username)) },
-        singleLine = true,
-        isError = state.error == OnboardingError.USERNAME || state.error == OnboardingError.USERNAME_IN_USE,
-        modifier = Modifier.fillMaxWidth(),
-    )
-    SecretField(
-        state.password,
-        onPassword,
-        stringResource(R.string.password),
-        state.error == OnboardingError.PASSWORD || state.error == OnboardingError.PASSWORD_REQUIRED,
-    )
-    if (state.authMode != AuthMode.LOGIN) {
-        Text(
-            stringResource(R.string.password_length_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    if (localIdentityFields) {
+        OutlinedTextField(
+            state.username,
+            onUsername,
+            label = { Text(stringResource(R.string.username)) },
+            singleLine = true,
+            isError = state.error == OnboardingError.USERNAME || state.error == OnboardingError.USERNAME_IN_USE,
+            modifier = Modifier.fillMaxWidth(),
         )
-    }
-    ErrorText(state.error)
-    val button = when (state.authMode) {
-        AuthMode.LOGIN -> R.string.sign_in
-        AuthMode.SETUP -> R.string.finish_setup
-        AuthMode.REGISTER -> R.string.create_relationship
-        AuthMode.JOIN -> R.string.connect_with_invitation
-    }
-    Button(onSubmit, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-        if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-        else Icon(Icons.Rounded.Lock, contentDescription = null)
-        Text(stringResource(button), Modifier.padding(start = 10.dp))
+        SecretField(
+            state.password,
+            onPassword,
+            stringResource(R.string.password),
+            state.error == OnboardingError.PASSWORD || state.error == OnboardingError.PASSWORD_REQUIRED,
+        )
+        if (state.authMode != AuthMode.LOGIN) {
+            Text(
+                stringResource(R.string.password_length_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        ErrorText(state.error)
+        val button = when (state.authMode) {
+            AuthMode.LOGIN -> R.string.sign_in
+            AuthMode.SETUP -> R.string.finish_setup
+            AuthMode.REGISTER -> R.string.create_relationship
+            AuthMode.JOIN -> R.string.connect_with_invitation
+        }
+        Button(onSubmit, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+            if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            else Icon(Icons.Rounded.Lock, contentDescription = null)
+            Text(stringResource(button), Modifier.padding(start = 10.dp))
+        }
+    } else {
+        ErrorText(state.error)
     }
 }
 
@@ -519,10 +624,12 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.INCOMPLETE_CREDENTIALS -> R.string.error_credentials
         OnboardingError.CREDENTIALS_REQUIRE_HTTPS -> R.string.error_credentials_require_https
         OnboardingError.QR_CREDENTIALS -> R.string.error_qr_credentials
+        OnboardingError.QR_CAMERA -> R.string.error_qr_camera
         OnboardingError.DNS -> R.string.error_dns
         OnboardingError.TLS -> R.string.error_tls
         OnboardingError.TIMEOUT -> R.string.error_timeout
         OnboardingError.GATEWAY_AUTH -> R.string.error_gateway_auth
+        OnboardingError.GATEWAY_AUTH_JOIN -> R.string.error_gateway_auth_join
         OnboardingError.API -> R.string.error_api
         OnboardingError.USERNAME -> R.string.error_username
         OnboardingError.USERNAME_IN_USE -> R.string.error_username_in_use
@@ -535,6 +642,8 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.INVITATION_CODE -> R.string.error_invitation_code
         OnboardingError.INVITATION_INVALID -> R.string.error_invitation_invalid
         OnboardingError.INVITATION_UNAVAILABLE -> R.string.error_invitation_unavailable
+        OnboardingError.INVITATION_ACCOUNT_NOT_EMPTY -> R.string.error_invitation_account_not_empty
+        OnboardingError.INVITATION_ACCEPT_CONFLICT -> R.string.error_invitation_accept_conflict
         OnboardingError.PARTNER_ALREADY_CONNECTED -> R.string.error_partner_already_connected
         OnboardingError.INVALID_CREDENTIALS -> R.string.error_invalid_credentials
         OnboardingError.REGISTRATION_UNAVAILABLE -> R.string.error_registration_unavailable
@@ -555,7 +664,8 @@ private fun IntroPreview() = LunaraTheme {
         onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {}, onScannedServerUrl = {},
         onAllowHttp = {}, onTestConnection = {}, onConfirmServerChange = {}, onCancelServerChange = {},
         onAuthMode = {}, onUsername = {}, onPassword = {}, onDisplayName = {},
-        onBootstrapToken = {}, onInvitationCode = {}, onAuthentikLogin = {}, onSubmit = {},
+        onBootstrapToken = {}, onInvitationCode = {}, onInvalidInvitationQr = {},
+        onQrCameraUnavailable = {}, onAuthentikLogin = {}, onSubmit = {},
     )
 }
 

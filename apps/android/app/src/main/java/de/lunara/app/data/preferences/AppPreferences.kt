@@ -212,6 +212,11 @@ class AppPreferences @Inject constructor(
         context.lunaraDataStore.edit { it[LAST_SYNC] = instant }
     }
 
+    /** A membership move changes the complete server data scope. */
+    suspend fun clearLastSync() {
+        context.lunaraDataStore.edit { it.remove(LAST_SYNC) }
+    }
+
     suspend fun setNotificationPreferences(
         expectedUserId: String,
         requested: NotificationPreferences,

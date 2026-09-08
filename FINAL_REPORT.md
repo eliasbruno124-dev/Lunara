@@ -1,4 +1,133 @@
-# Lunara 1.1.0 – Abschlussbericht
+# Lunara 1.1.4 – Einladungskorrektur
+
+Stand: 8. September 2026. Server/PWA produktiv aktualisiert;
+Android-Build einschließlich Signierung erfolgreich. Private Veröffentlichung
+wird nach der abschließenden Artefaktprüfung ausgeführt.
+
+## Ergebnis und Architektur
+
+Die vorhandene NestJS-/Prisma-/PostgreSQL-API, installierbare PWA und native
+Compose-App bleiben erhalten. Einladungen funktionieren zusätzlich mit bereits
+vorhandenen, leeren Einzelkonten: Anmeldung authentifiziert die Identität,
+eine getrennte ausdrückliche Bestätigung verbindet anschließend den Partner.
+Es werden keine bestehenden Gesundheitsdaten stillschweigend zusammengeführt
+oder gelöscht. Rolle und Beziehung werden im Server geprüft und nicht aus
+lokalen UI-Werten oder alten Token-Rollen übernommen.
+
+Die statische `/invite`-Landeseite bewahrt den Code vor dem Authentik-Redirect
+im lokalen Sitzungsspeicher. Der Code steht im Fragment, nicht in einem
+Query-Parameter. Android unterstützt Code-/QR-Eingabe in Einstellungen und
+speichert eine laufende OIDC-Einladung Keystore-gestützt. Lokale ungelöste
+Mutationen verhindern die Annahme. Nach Erfolg laden beide Clients `/me` neu
+und wechseln den lokalen Beziehungscache kontrolliert.
+
+## Tatsächlich ausgeführte Prüfungen
+
+- `npm run lint`: API und PWA erfolgreich.
+- `npm test`: API 28 Suites / 198 Tests; PWA abschließend 13 Dateien / 50 Tests.
+- `npm run prisma:migrate:deploy && npm run test:e2e`: acht Migrationen und
+  zwei Szenarien auf einer frischen, isolierten PostgreSQL-18-Datenbank ohne
+  veröffentlichte Ports erfolgreich. Keine Testdaten im produktiven Server.
+- `npm run build`: API und PWA erfolgreich.
+- OpenAPI-Snapshot exportiert, Kotlin-Client mit Generator 7.24.0 erneuert;
+  `npm run openapi:check` erfolgreich.
+- `npm audit`: keine bekannten Treffer nach gezielten Overrides für drei
+  transitive Abhängigkeiten. Das ist keine Garantie auf Schwachstellenfreiheit.
+- `docker build -t lunara-api:1.1.4 -f infra/docker/api.Dockerfile .`: erfolgreich.
+- `scripts/secret-scan.sh`: gezielter und High-Entropy-Scan erfolgreich;
+  kein lokales gitleaks installiert.
+- Android: beide JVM-Testvarianten je 42 Suites / 205 Tests ohne Fehler;
+  beide Lint-Varianten ohne Fehler, 63 beziehungsweise 62 Warnungen.
+- Gradle: `testLocalDebugUnitTest testProductionDebugUnitTest lintLocalDebug
+  lintProductionDebug compileProductionDebugAndroidTestKotlin
+  assembleProductionDebug assembleProductionRelease bundleProductionRelease`
+  erfolgreich. Anschließend signierter Release-Build mit dem vorhandenen,
+  ausschließlich serverlokalen Upload-Key ebenfalls erfolgreich.
+
+Während der Prüfung wurden ein ungültiger E2E-Testcode, gemeinsam verbrauchte
+Test-Rate-Limits, Compose-Aufrufkontexte, eine Test-Typsignatur, ein zu neuer
+URLDecoder-Overload und Parallelzugriffe bei der Rollenänderung korrigiert.
+Produktive Rate-Limits und die Android-Mindestversion wurden nicht abgesenkt.
+Ein alter Gradle-Transform ohne Metadaten wurde recoverbar in den privaten
+Backupordner verschoben. Der anschließende Release-Build passierte den zuvor
+fehlgeschlagenen DEX-Schritt erfolgreich.
+
+## Android-Artefakte
+
+Tatsächlich erzeugte Dateien im Arbeitsbaum
+`/root/Lunara-invitation-fix/artifacts/`:
+
+| Datei | Bytes | Zweck |
+|---|---:|---|
+| `lunara-release.apk` | 20.176.195 | signierte Nutzerinstallation |
+| `lunara-debug.apk` | 25.036.200 | separate Testinstallation |
+| `lunara-release-unsigned.apk` | 20.120.518 | eigene Signierung |
+| `lunara-release-unsigned.aab` | 16.152.797 | unsigniertes Bundle |
+| `lunara-play-upload.aab` | 16.184.357 | signiertes Upload-Bundle |
+
+Release-Paket: `de.lunara.app`, Version 1.1.4, VersionCode 15, minSdk 26,
+targetSdk 36, compileSdk 37. APK-Signatur mit `apksigner verify` erfolgreich
+geprüft, AAB mit `jarsigner -verify`; kein Play-Store-Upload durchgeführt.
+Die APK besitzt dieselbe Signatur wie die vorherige produktive Release-APK.
+Bei der AAB-Prüfung weist JDK 21 auf das selbst signierte Zertifikat, fehlende
+Zeitstempel und unterschiedliche Manifest-Reihenfolge bei ZIP-Stream-Lesern
+hin. Die JAR-Signatur wird verifiziert; eine Play-Console-Prüfung dieses
+Bundles wurde nicht durchgeführt. Empfohlenes Nutzerartefakt ist die APK.
+SHA-256 der signierten Nutzer-APK:
+
+`033af11fb40a14c2a29d75ac7f56729be65f1f2d6f9b5cc665ec3d2738c23d5f`
+
+Die abschließende Sicherheitsprüfung lautet **ship**; keine bekannten
+blockierenden Befunde verbleiben in diesem Änderungssatz.
+
+## Produktive Änderungen und Rückfallmöglichkeit
+
+- Nur `lunara-api-1` wurde über den Lunara-Compose-Wrapper mit
+  `up -d --no-deps api` erneuert. PostgreSQL und Authentik wurden nicht neu
+  gestartet; der Hauptstack und Emby blieben unverändert.
+- `/health` und `/ready` intern 200; Container gesund, UID/GID 10001,
+  schreibgeschütztes Root-Dateisystem. Meta meldet Version 1.1.4.
+- Authentik erlaubt anonym exakt Meta, Asset-Links und `/invite`. Externe
+  Prüfungen liefern für `/`, `/api/v1/me`, `/invite/private` und `/health`
+  weiterhin den Authentik-Redirect, nicht die geschützte Antwort.
+- Angeforderte Kalenderwiederherstellung mit eng begrenzter Transaktion,
+  geprüftem Dump, Sync-Änderungen und anschließender Entschlüsselungsprüfung.
+  Ursprüngliche Datensätze wurden nicht verändert. Personenbezogene Inhalte
+  und Einladungscodes sind nicht Teil dieses Repositorys.
+- Root-only Sicherungen von Datenbank, Konfiguration und vorherigem Quellstand
+  liegen in einem eng benannten Wiederherstellungsordner unter
+  `/var/backups/lunara/` und nicht im Repository.
+  Die Dumps wurden mit `pg_restore --list` geprüft. Das vorige API-Image bleibt
+  als `lunara-api:pre-invitations-20260908` verfügbar; Rollback-Konfiguration
+  bleibt ebenfalls ausschließlich auf dem Server.
+
+## Bekannte Grenzen
+
+- Kein interaktiver Test mit zwei Handys, Kamera und Authentik-Browser in dieser
+  Umgebung. Instrumentierung wird kompiliert, nicht als ausgeführter
+  Gerätetest behauptet.
+- Andere offline befindliche Geräte können dem Server nicht mitteilen, welche
+  ungesendeten Änderungen sie besitzen. Vor einem Beziehungswechsel alle
+  Geräte synchronisieren oder die betreffenden Daten exportieren.
+- Einladungen ohne Ablauf bleiben bis zur Nutzung oder zum Widerruf gültige
+  Bearer-Geheimnisse. Nicht öffentlich teilen.
+- Bereits kopierte Partnerdaten lassen sich nicht aus fremden Screenshots
+  oder Backups zurückrufen. Zyklus-/Fruchtbarkeitswerte bleiben Schätzungen,
+  keine Ovulationsbestätigung und kein Verhütungsmittel.
+
+## Erster Start beziehungsweise Update
+
+Bestehende Installation: neue signierte Release-APK über die vorhandene App
+installieren, nicht vorher deinstallieren. Mit dem eigenen Konto anmelden,
+unter **Einstellungen → Partner verbinden** den Code eingeben oder den QR-Code
+scannen und bewusst bestätigen. Das Profil der zyklustrackenden Person wird
+nicht auf dem Partnergerät angemeldet. Für neue Self-hosting-Installationen
+gelten die konfigurierbaren Domain-/Direct-/Authentik-Anleitungen in
+`DEPLOYMENT.md`; echte Secrets und Signierschlüssel bleiben außerhalb von Git.
+
+---
+
+# Historischer Abschlussbericht 1.1.0
 
 Stand: 25. August 2026
 

@@ -25,6 +25,13 @@ import {
 } from './db';
 import { translate, type MessageKey } from './i18n';
 import { IdentityEpochCoordinator, StaleIdentityError } from './identity-epoch';
+import {
+  captureInvitationHash,
+  clearPendingInvitation,
+  hasUnresolvedInvitationMutations,
+  pendingInvitation,
+  storeInvitation,
+} from './invitation-link';
 import { calculateLocalPrediction } from './local-prediction';
 import {
   LocalVaultSession,
@@ -32,11 +39,19 @@ import {
   type LocalVaultState,
 } from './local-vault';
 import { LocalVaultCoordinator } from './local-vault-coordinator';
-import { canStartOidc, finishOidcCallback, startOidc } from './oidc';
+import {
+  canStartOidc,
+  finishOidcCallback,
+  normalizeInvitationCode,
+  startOidc,
+  supportsOidcEnrollment,
+} from './oidc';
 import { PeriodSyncEngine, queuePeriodEnd, queuePeriodStart, type SyncState } from './sync';
 import type {
   Language,
+  InvitationResponse,
   MetaResponse,
+  OidcEnrollmentIntent,
   PartnerDashboard,
   PartnerTip,
   PeriodEvent,
@@ -97,6 +112,17 @@ class LunaraWebApp {
   private vaultLockTimer: number | null = null;
   private readonly localVaultCoordinator = new LocalVaultCoordinator();
   private loginChoice: 'server' | 'local' | null = null;
+  private invitationCode: string | null = null;
+  private invitationError: 'invalid' | 'conflict' | 'failed' | null = null;
+  private acceptingInvitation = false;
+  private partnerConnected: boolean | null = null;
+  private invitationOverviewLoading = false;
+  private invitationOverviewFailed = false;
+  private invitationCreationBusy = false;
+  private createdInvitation: InvitationResponse | null = null;
+  private createdInvitationLink: string | null = null;
+  private invitationCreationError = false;
+  private invitationLinkRejected = false;
 
   constructor() {
     const root = document.querySelector<HTMLElement>('#app');
@@ -129,6 +155,18 @@ class LunaraWebApp {
   async start(): Promise<void> {
     this.renderLoading();
     this.localMode = (await settingsStore.get<boolean>('local-mode')) ?? false;
+    const captured = captureInvitationHash(window.location.hash, sessionStorage);
+    if (captured !== 'absent') history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
+    if (captured === 'invalid') this.invitationError = 'invalid';
+    this.invitationCode = pendingInvitation(sessionStorage)?.invitationCode ?? null;
+    // An invitation is an explicit request to use the server. Keep a local
+    // vault intact and do not persist this mode switch until acceptance wins.
+    if (this.invitationCode) {
+      this.localMode = false;
+      this.loginChoice = 'server';
+      this.meta = (await this.fetchMeta()) ?? (await settingsStore.get<MetaResponse>('meta')) ?? null;
+      if (this.meta) await settingsStore.put('meta', this.meta);
+    }
     if (this.localMode) {
       this.localVaultAvailable = Boolean(await getLocalVaultEnvelope<LocalVaultEnvelope>());
       this.loginChoice = 'local';
@@ -140,7 +178,7 @@ class LunaraWebApp {
       const oidcSession = await finishOidcCallback(this.api);
       if (oidcSession) await this.rememberUser(oidcSession.user);
     } catch {
-      this.initError = this.t('loginFailed');
+      this.initError = this.t('oidcLoginFailed');
     }
 
     const cachedUser = (await settingsStore.get<UserIdentity>('user')) ?? null;
@@ -198,6 +236,12 @@ class LunaraWebApp {
       this.prediction = null;
       this.partnerTip = null;
       this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
+      this.partnerConnected = null;
+      this.invitationOverviewFailed = false;
+      this.createdInvitation = null;
+      this.createdInvitationLink = null;
+      this.invitationCreationError = false;
+      this.invitationLinkRejected = false;
       this.user = user;
     });
   }
@@ -358,6 +402,10 @@ class LunaraWebApp {
   private render(): void {
     document.documentElement.lang = this.language;
     this.root.replaceChildren();
+    if (this.invitationCode && this.user && !this.localMode) {
+      this.root.append(this.invitationAcceptanceView());
+      return;
+    }
     if (!this.user) {
       this.root.append(this.loginView());
       return;
@@ -371,6 +419,79 @@ class LunaraWebApp {
     if (this.screen === 'settings') main.append(this.settingsView());
     frame.append(main, this.bottomNavigation());
     this.root.append(frame);
+  }
+
+  private invitationAcceptanceView(): HTMLElement {
+    const main = element('main', 'login-page');
+    main.id = 'main-content';
+    const card = element('section', 'login-card invitation-acceptance');
+    const code = this.invitationCode;
+    if (!code || !this.user) return main;
+    card.append(
+      element('h1', '', this.t('invitationAcceptTitle')),
+      element('p', 'notice', this.t('invitationAcceptSignedIn', { name: this.user.displayName })),
+      element('p', '', this.t('invitationAcceptExplanation')),
+      element('p', 'invitation-code', code),
+    );
+    if (this.invitationError) {
+      const error = element(
+        'p',
+        'form-error',
+        this.t(
+          this.invitationError === 'conflict'
+            ? 'invitationAcceptConflict'
+            : this.invitationError === 'invalid'
+              ? 'invitationInvalid'
+              : 'invitationAcceptFailed',
+        ),
+      );
+      error.setAttribute('role', 'alert');
+      card.append(error);
+    }
+    const accept = button(
+      'primary-button',
+      this.acceptingInvitation ? this.t('invitationAccepting') : this.t('invitationAcceptConfirm'),
+      () => this.acceptPendingInvitation(),
+    );
+    accept.disabled = this.acceptingInvitation || !navigator.onLine;
+    const discard = button('text-button', this.t('invitationDiscard'), () => {
+      clearPendingInvitation(sessionStorage);
+      this.invitationCode = null;
+      this.invitationError = null;
+      this.render();
+    });
+    card.append(accept, discard);
+    main.append(card);
+    return main;
+  }
+
+  private async acceptPendingInvitation(): Promise<void> {
+    const code = this.invitationCode;
+    const current = this.user;
+    if (!code || !current || this.acceptingInvitation || this.localMode) return;
+    this.acceptingInvitation = true;
+    this.invitationError = null;
+    this.render();
+    try {
+      const unresolvedMutations = await queueStorage.getMutations();
+      if (hasUnresolvedInvitationMutations(unresolvedMutations)) {
+        this.invitationError = 'conflict';
+        return;
+      }
+      await this.api.acceptInvitation(code);
+      const next = await this.api.me();
+      if (!(await this.rememberUser(next))) throw new ApiError(409, 'Invitation acceptance was superseded');
+      await settingsStore.put('local-mode', false);
+      clearPendingInvitation(sessionStorage);
+      this.invitationCode = null;
+      await this.loadCachedData();
+      if (navigator.onLine) await this.refreshData();
+    } catch (error) {
+      this.invitationError = error instanceof ApiError && error.status === 409 ? 'conflict' : 'failed';
+    } finally {
+      this.acceptingInvitation = false;
+      this.render();
+    }
   }
 
   private loginView(): HTMLElement {
@@ -438,27 +559,106 @@ class LunaraWebApp {
       }
     });
     card.append(brand, notice);
+    if (this.invitationCode) {
+      card.append(
+        element('p', 'notice', this.t('invitationPendingSignIn')),
+        element('p', 'invitation-code', this.invitationCode),
+      );
+    }
     if (this.meta?.setupRequired) card.append(element('p', 'warning-card', this.t('setupRequired')));
     card.append(form, error);
     if (this.meta?.authenticationMethods?.includes('OIDC')) {
       const divider = element('div', 'divider', this.t('or'));
       card.append(divider);
+      const beginOidc = async (intent: OidcEnrollmentIntent): Promise<void> => {
+        if (!this.meta || !canStartOidc(this.meta, intent.kind)) {
+          error.textContent = this.t('oidcUnavailable');
+          return;
+        }
+        error.textContent = '';
+        try {
+          await startOidc(this.meta, intent);
+        } catch {
+          error.textContent = this.t('oidcUnavailable');
+        }
+      };
+      const provider = this.meta.oidc?.providerName ?? 'Authentik';
+      const preferredLanguage = this.language === 'de' ? 'DE' : 'EN';
+      const enrollmentAvailable = supportsOidcEnrollment(this.meta);
       const oidcButton = button(
         'secondary-button',
-        this.t('oidcLogin', { provider: this.meta.oidc?.providerName ?? 'Authentik' }),
-        async () => {
-          if (!this.meta || !canStartOidc(this.meta)) {
-            error.textContent = this.t('oidcUnavailable');
+        this.t(enrollmentAvailable ? 'oidcExistingLogin' : 'oidcLogin', { provider }),
+        () => beginOidc({ kind: 'login', preferredLanguage }),
+      );
+      const oidcActions = element('div', 'oidc-actions');
+      oidcActions.append(oidcButton);
+      if (canStartOidc(this.meta, 'new-tracker')) {
+        oidcActions.append(
+          element('p', 'subtle oidc-hint', this.t('oidcCreateTrackerHint')),
+          button(
+            'secondary-button',
+            this.t('oidcCreateTracker', { provider }),
+            () => beginOidc({ kind: 'new-tracker', preferredLanguage }),
+          ),
+        );
+      }
+      if (canStartOidc(this.meta, 'partner')) {
+        const partnerForm = element('form', 'login-form oidc-partner-form');
+        const invitationLabel = element('label', '', this.t('oidcInvitationCode'));
+        const invitationCode = element('input') as HTMLInputElement;
+        invitationCode.name = 'invitationCode';
+        invitationCode.autocomplete = 'one-time-code';
+        invitationCode.spellcheck = false;
+        invitationCode.required = true;
+        invitationCode.minLength = 8;
+        invitationCode.maxLength = 12;
+        invitationCode.placeholder = this.t('oidcInvitationPlaceholder');
+        invitationCode.value = this.invitationCode ?? '';
+        invitationLabel.append(invitationCode);
+        const partnerSubmit = element(
+          'button',
+          'secondary-button',
+          this.t('oidcJoinPartner', { provider }),
+        );
+        partnerSubmit.type = 'submit';
+        partnerForm.append(
+          element('p', 'subtle oidc-hint', this.t('oidcJoinPartnerHint')),
+          invitationLabel,
+          partnerSubmit,
+        );
+        partnerForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const normalizedCode = normalizeInvitationCode(invitationCode.value);
+          if (!normalizedCode) {
+            error.textContent = this.t('oidcInvitationInvalid');
+            invitationCode.focus();
             return;
           }
-          try {
-            await startOidc(this.meta);
-          } catch {
-            error.textContent = this.t('oidcUnavailable');
+          invitationCode.value = normalizedCode;
+          // Keep the separately confirmed, existing-account path available
+          // after the browser returns from OIDC. The PKCE record carries the
+          // new-identity enrollment intent; this hand-off covers an already
+          // linked identity, for which the API deliberately performs normal
+          // sign-in first.
+          if (!storeInvitation(sessionStorage, normalizedCode)) {
+            error.textContent = this.t('invitationInvalid');
+            return;
           }
-        },
-      );
-      card.append(oidcButton);
+          this.invitationCode = normalizedCode;
+          partnerSubmit.disabled = true;
+          try {
+            await beginOidc({
+              kind: 'partner',
+              invitationCode: normalizedCode,
+              preferredLanguage,
+            });
+          } finally {
+            partnerSubmit.disabled = false;
+          }
+        });
+        oidcActions.append(partnerForm);
+      }
+      card.append(oidcActions);
     }
     const languageToggle = button('text-button language-toggle', this.language === 'de' ? 'English' : 'Deutsch', () => {
       this.setLanguage(this.language === 'de' ? 'en' : 'de');
@@ -959,6 +1159,9 @@ class LunaraWebApp {
     );
     if (this.localMode) logout.disabled = this.localVaultCoordinator.busy;
     view.append(account, language, appearance, server);
+    if (!this.localMode && this.user?.role === 'TRACKER') {
+      view.append(this.partnerInvitationCard(), this.manualInvitationAcceptanceCard());
+    }
     if (this.localMode) {
       view.append(
         this.backupCard(),
@@ -968,6 +1171,191 @@ class LunaraWebApp {
     if (install) view.append(install);
     view.append(logout);
     return view;
+  }
+
+  private partnerInvitationCard(): HTMLElement {
+    const card = element('section', 'info-card setting-card partner-invitation');
+    card.append(
+      element('h2', '', this.t('partnerInviteTitle')),
+      element('p', 'subtle', this.t('partnerInviteExplanation')),
+    );
+    if (this.partnerConnected === null && !this.invitationOverviewLoading && !this.invitationOverviewFailed) {
+      void this.loadInvitationOverview();
+    }
+    if (this.invitationOverviewLoading) {
+      card.append(element('p', 'subtle', this.t('partnerInviteChecking')));
+      return card;
+    }
+    if (this.partnerConnected === null) {
+      const error = element('p', 'form-error', this.t('partnerInviteStatusFailed'));
+      error.setAttribute('role', 'alert');
+      card.append(error, button('secondary-button', this.t('retry'), () => {
+        this.invitationOverviewFailed = false;
+        void this.loadInvitationOverview();
+        this.render();
+      }));
+      return card;
+    }
+    if (this.partnerConnected) {
+      card.append(element('p', 'notice', this.t('partnerInviteConnected')));
+      return card;
+    }
+    if (this.invitationCreationError) {
+      const error = element(
+        'p',
+        'form-error',
+        this.t(this.invitationLinkRejected ? 'partnerInviteLinkRejected' : 'partnerInviteFailed'),
+      );
+      error.setAttribute('role', 'alert');
+      card.append(error);
+    }
+    if (this.createdInvitation) {
+      const invitation = this.createdInvitation;
+      const code = element('p', 'invitation-code', invitation.code);
+      if (this.createdInvitationLink) {
+        const linkLabel = element('label', '', this.t('partnerInviteLink'));
+        const link = element('input') as HTMLInputElement;
+        link.type = 'url';
+        link.readOnly = true;
+        link.value = this.createdInvitationLink;
+        linkLabel.append(link);
+        const actions = element('div', 'button-row');
+        actions.append(
+          button('secondary-button', this.t('partnerInviteCopy'), () => this.copyInvitationLink(this.createdInvitationLink!)),
+        );
+        if ('share' in navigator) {
+          actions.append(button('secondary-button', this.t('partnerInviteShare'), () => this.shareInvitationLink(this.createdInvitationLink!)));
+        }
+        card.append(
+          element('p', 'subtle', this.t('partnerInviteLinkExplanation')),
+          linkLabel,
+          actions,
+        );
+      }
+      card.append(
+        element('p', 'subtle', this.t('partnerInviteCodeFallback')),
+        code,
+      );
+      return card;
+    }
+    const create = button(
+      'primary-button',
+      this.invitationCreationBusy ? this.t('partnerInviteCreating') : this.t('partnerInviteCreate'),
+      () => this.createPartnerInvitation(),
+    );
+    create.disabled = this.invitationCreationBusy || !navigator.onLine;
+    card.append(create);
+    return card;
+  }
+
+  private async loadInvitationOverview(): Promise<void> {
+    const user = this.user;
+    if (!user || user.role !== 'TRACKER' || this.localMode || this.invitationOverviewLoading) return;
+    const identityKey = serverIdentityKey(window.location.origin, user);
+    this.invitationOverviewLoading = true;
+    try {
+      await this.serverIdentities.run(identityKey, async (assertCurrent) => {
+        const household = await this.api.household();
+        assertCurrent();
+        this.partnerConnected = household.members.some((member) => member.role === 'PARTNER');
+        this.invitationOverviewFailed = false;
+      });
+    } catch {
+      // Fail closed: no invitation can be minted until the current relationship
+      // is known, avoiding a misleading second invitation after a stale view.
+      this.partnerConnected = null;
+      this.invitationOverviewFailed = true;
+    } finally {
+      this.invitationOverviewLoading = false;
+      this.render();
+    }
+  }
+
+  private async createPartnerInvitation(): Promise<void> {
+    const user = this.user;
+    if (
+      !user || user.role !== 'TRACKER' || this.localMode || this.partnerConnected !== false ||
+      this.invitationCreationBusy
+    ) return;
+    this.invitationCreationBusy = true;
+    this.invitationCreationError = false;
+    this.invitationLinkRejected = false;
+    this.render();
+    try {
+      const invitation = await this.api.createInvitation();
+      const link = new URL(invitation.acceptanceUrl);
+      if (
+        link.origin !== window.location.origin || link.username || link.password ||
+        link.pathname !== '/invite' || !link.hash.startsWith('#invite=')
+      ) {
+        this.createdInvitation = invitation;
+        this.createdInvitationLink = null;
+        this.invitationCreationError = true;
+        this.invitationLinkRejected = true;
+        return;
+      }
+      this.createdInvitation = invitation;
+      this.createdInvitationLink = link.href;
+    } catch {
+      this.invitationCreationError = true;
+    } finally {
+      this.invitationCreationBusy = false;
+      this.render();
+    }
+  }
+
+  private async copyInvitationLink(value: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(value);
+      this.toast(this.t('partnerInviteCopied'));
+    } catch {
+      this.toast(this.t('partnerInviteCopyFailed'));
+    }
+  }
+
+  private async shareInvitationLink(value: string): Promise<void> {
+    try {
+      await navigator.share({ title: this.t('partnerInviteTitle'), url: value });
+    } catch {
+      // Dismissing the native share sheet is a normal, non-error outcome.
+    }
+  }
+
+  private manualInvitationAcceptanceCard(): HTMLElement {
+    const card = element('section', 'info-card setting-card invitation-manual');
+    card.append(
+      element('h2', '', this.t('invitationManualTitle')),
+      element('p', 'subtle', this.t('invitationManualExplanation')),
+    );
+    const form = element('form', 'login-form');
+    const label = element('label', '', this.t('oidcInvitationCode'));
+    const input = element('input') as HTMLInputElement;
+    input.autocomplete = 'one-time-code';
+    input.spellcheck = false;
+    input.required = true;
+    input.minLength = 8;
+    input.maxLength = 12;
+    input.placeholder = this.t('oidcInvitationPlaceholder');
+    label.append(input);
+    const submit = element('button', 'secondary-button', this.t('invitationManualContinue'));
+    submit.type = 'submit';
+    const error = element('p', 'form-error');
+    error.setAttribute('role', 'alert');
+    form.append(label, submit, error);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const code = normalizeInvitationCode(input.value);
+      if (!code || !storeInvitation(sessionStorage, code)) {
+        error.textContent = this.t('invitationInvalid');
+        input.focus();
+        return;
+      }
+      this.invitationCode = code;
+      this.invitationError = null;
+      this.render();
+    });
+    card.append(form);
+    return card;
   }
 
   private backupCard(): HTMLElement {

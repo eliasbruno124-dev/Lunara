@@ -58,6 +58,17 @@ Der Authentik-Proxy schützt alle Pfade außer:
 
 - `/api/v1/meta`: cachefreie, nicht sensible Client-Erkennung;
 - `/.well-known/assetlinks.json`: öffentliche Android-App-Link-Bindung.
+- `/invite`: statische, cachefreie Fragment-Erfassung vor dem Authentik-Redirect;
+  kein API- oder Kontozugriff. Einladungen sind einmal verwendbare, widerrufbare
+  Bearer-Codes. QR-Fotos und Codes nicht öffentlich weitergeben.
+
+Bestehende Einzelkonten können eine Einladung nur mit ausdrücklicher
+Bestätigung annehmen. Die aktuelle Mitgliedschaft wird serverseitig neu
+geprüft. Bei vorhandenen Gesundheitsdaten oder individuellen Einstellungen
+wird der Wechsel verweigert, nicht stillschweigend zusammengeführt. Nach
+erfolgreicher Verknüpfung verwerfen die Clients den alten Beziehungscache und
+laden Rolle und Freigaben erneut. Das ist keine Garantie gegen Screenshots
+oder zuvor vom Partner exportierte Daten.
 
 Die Android-App und PWA führen Authorization Code mit PKCE S256 und
 Replay-Schutz im Systembrowser aus. Es gibt kein Client Secret im APK oder

@@ -17,7 +17,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
-import { CreateInvitationDto, JoinHouseholdDto } from './household.dto.js';
+import {
+  AcceptInvitationDto,
+  CreateInvitationDto,
+  JoinHouseholdDto,
+} from './household.dto.js';
 import { HouseholdService } from './household.service.js';
 
 @ApiTags('household')
@@ -47,6 +51,17 @@ export class HouseholdController {
     @Body() dto: CreateInvitationDto,
   ) {
     return this.households.createInvitation(user, dto);
+  }
+
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('invitations/accept')
+  acceptInvitation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AcceptInvitationDto,
+  ): Promise<{ accepted: true }> {
+    return this.households.acceptInvitation(user, dto);
   }
 
   @ApiBearerAuth()

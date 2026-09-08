@@ -21,6 +21,7 @@ describe('MetaController', () => {
 
       await expect(controller.getMeta()).resolves.toMatchObject({
         setupRequired,
+        gatewayMode: 'direct',
       });
       expect(prisma.serverState.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -47,6 +48,7 @@ describe('MetaController', () => {
     ).getMeta();
 
     expect(response.authenticationMethods).toEqual(['PASSWORD']);
+    expect(response.primaryAuthenticationMethod).toBe('PASSWORD');
     expect(response).not.toHaveProperty('oidc');
   });
 
@@ -59,6 +61,7 @@ describe('MetaController', () => {
       },
     };
     const values = new Map<string, unknown>([
+      ['lunara.gatewayMode', 'authentik'],
       ['lunara.oidc.enabled', true],
       ['lunara.oidc.providerName', 'Authentik'],
       ['lunara.oidc.issuer', 'https://auth.example/application/o/lunara/'],
@@ -76,7 +79,9 @@ describe('MetaController', () => {
       config as never,
     ).getMeta();
 
-    expect(response.authenticationMethods).toEqual(['PASSWORD', 'OIDC']);
+    expect(response.authenticationMethods).toEqual(['OIDC', 'PASSWORD']);
+    expect(response.primaryAuthenticationMethod).toBe('OIDC');
+    expect(response.gatewayMode).toBe('authentik');
     expect(response.oidc).toEqual({
       providerName: 'Authentik',
       issuer: 'https://auth.example/application/o/lunara/',
@@ -85,6 +90,12 @@ describe('MetaController', () => {
       scopes: ['openid', 'profile'],
       discoveryUrl:
         'https://auth.example/application/o/lunara/.well-known/openid-configuration',
+      enrollment: {
+        registration: false,
+        invitation: true,
+        localPasswordRequired: false,
+        createIfMissingRequired: true,
+      },
     });
     expect(JSON.stringify(response)).not.toMatch(/secret|jwks/iu);
   });

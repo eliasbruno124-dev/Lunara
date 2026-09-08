@@ -1,6 +1,6 @@
 {
   "name": "lunara",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "private": true,
   "description": "Private, self-hosted cycle tracking for independent couples",
   "workspaces": [
@@ -27,6 +27,9 @@
     "web:test": "npm run test --workspace @lunara/web"
   },
   "overrides": {
+    "fast-uri": "3.1.6",
+    "mysql2": "3.24.4",
+    "qs": "6.16.0",
     "@nestjs/swagger": {
       "js-yaml": "5.2.3"
     },

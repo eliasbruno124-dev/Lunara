@@ -28,7 +28,7 @@ describe('HouseholdService invitation preflight', () => {
       hashToken: jest.fn().mockReturnValue('invitation-hash'),
       hashPassword: jest.fn(),
     };
-    const config = { get: jest.fn() };
+    const config = { get: jest.fn(), getOrThrow: jest.fn() };
     const service = new HouseholdService(
       prisma as never,
       auth as never,
@@ -55,12 +55,22 @@ describe('HouseholdService invitation lifetime policy', () => {
 
   it('returns 409 before persistence when the requested lifetime exceeds server policy', async () => {
     const prisma = {
-      membership: { count: jest.fn().mockResolvedValue(0) },
+      membership: {
+        count: jest.fn().mockResolvedValue(0),
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       invitation: { create: jest.fn() },
       auditEvent: { create: jest.fn() },
     };
     const auth = { hashToken: jest.fn().mockReturnValue('invitation-hash') };
-    const config = { get: jest.fn().mockReturnValue('30') };
+    const config = {
+      get: jest.fn().mockReturnValue('30'),
+      getOrThrow: jest.fn().mockReturnValue('https://lunara.example'),
+    };
     const service = new HouseholdService(
       prisma as never,
       auth as never,
@@ -83,7 +93,14 @@ describe('HouseholdService invitation lifetime policy', () => {
     const expectedExpiry = new Date('2026-08-12T10:30:00.000Z');
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
-      membership: { count: jest.fn().mockResolvedValue(0) },
+      membership: {
+        count: jest.fn().mockResolvedValue(0),
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       invitation: {
         create: jest.fn().mockResolvedValue({
           id: 'invitation-id',
@@ -101,7 +118,10 @@ describe('HouseholdService invitation lifetime policy', () => {
       ),
     };
     const auth = { hashToken: jest.fn().mockReturnValue('invitation-hash') };
-    const config = { get: jest.fn().mockReturnValue('30') };
+    const config = {
+      get: jest.fn().mockReturnValue('30'),
+      getOrThrow: jest.fn().mockReturnValue('https://lunara.example'),
+    };
     const service = new HouseholdService(
       prisma as never,
       auth as never,
@@ -111,6 +131,9 @@ describe('HouseholdService invitation lifetime policy', () => {
     const invitation = await service.createInvitation(tracker, {});
 
     expect(invitation.expiresAt).toEqual(expectedExpiry);
+    expect(invitation.acceptanceUrl).toMatch(
+      /^https:\/\/lunara\.example\/invite#invite=/u,
+    );
     expect(tx.invitation.create).toHaveBeenCalledTimes(1);
     expect(tx.invitation.updateMany).toHaveBeenCalledWith({
       where: {
@@ -136,7 +159,14 @@ describe('HouseholdService invitation lifetime policy', () => {
   it('creates a longer, single-use invitation without an expiry when requested', async () => {
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
-      membership: { count: jest.fn().mockResolvedValue(0) },
+      membership: {
+        count: jest.fn().mockResolvedValue(0),
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       invitation: {
         updateMany: jest.fn().mockResolvedValue({ count: 0 }),
         create: jest
@@ -158,7 +188,10 @@ describe('HouseholdService invitation lifetime policy', () => {
       ),
     };
     const auth = { hashToken: jest.fn().mockReturnValue('invitation-hash') };
-    const config = { get: jest.fn().mockReturnValue('30') };
+    const config = {
+      get: jest.fn().mockReturnValue('30'),
+      getOrThrow: jest.fn().mockReturnValue('https://lunara.example'),
+    };
     const service = new HouseholdService(
       prisma as never,
       auth as never,
@@ -197,7 +230,7 @@ describe('HouseholdService invitation lifetime policy', () => {
       auditEvent: { create: jest.fn() },
     };
     const auth = { hashToken: jest.fn() };
-    const config = { get: jest.fn() };
+    const config = { get: jest.fn(), getOrThrow: jest.fn() };
     const service = new HouseholdService(
       prisma as never,
       auth as never,

@@ -32,6 +32,9 @@ import com.squareup.moshi.JsonClass
  *
  * @param accessToken Short-lived OIDC access token issued for the Lunara audience
  * @param deviceName
+ * @param createIfMissing Explicitly permits first sign-in to create a new isolated TRACKER relationship; omitted or false preserves login-only behavior
+ * @param invitationCode When present on first sign-in, atomically joins the relationship represented by this one-time invitation
+ * @param preferredLanguage Used only when this exact external identity is provisioned for the first time
  */
 
 
@@ -42,9 +45,31 @@ data class OidcLoginDto (
     val accessToken: kotlin.String,
 
     @Json(name = "deviceName")
-    val deviceName: kotlin.String
+    val deviceName: kotlin.String,
+
+    /* Explicitly permits first sign-in to create a new isolated TRACKER relationship; omitted or false preserves login-only behavior */
+    @Json(name = "createIfMissing")
+    val createIfMissing: kotlin.Boolean? = false,
+
+    /* When present on first sign-in, atomically joins the relationship represented by this one-time invitation */
+    @Json(name = "invitationCode")
+    val invitationCode: kotlin.String? = null,
+
+    /* Used only when this exact external identity is provisioned for the first time */
+    @Json(name = "preferredLanguage")
+    val preferredLanguage: OidcLoginDto.PreferredLanguage? = PreferredLanguage.DE
 
 ) {
 
+    /**
+     * Used only when this exact external identity is provisioned for the first time
+     *
+     * Values: DE,EN
+     */
+    @JsonClass(generateAdapter = false)
+    enum class PreferredLanguage(val value: kotlin.String) {
+        @Json(name = "DE") DE("DE"),
+        @Json(name = "EN") EN("EN");
+    }
 
 }

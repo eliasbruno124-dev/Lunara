@@ -8,7 +8,10 @@ import {
 } from './auth';
 import type {
   AuthResponse,
+  HouseholdResponse,
+  InvitationResponse,
   MetaResponse,
+  OidcEnrollmentIntent,
   PartnerDashboard,
   PeriodEvent,
   PartnerTip,
@@ -60,6 +63,7 @@ export class LunaraApi {
   async oidcLogin(
     accessToken: string,
     oidcRefresh: OidcRefreshSession,
+    intent: OidcEnrollmentIntent = { kind: 'login' },
   ): Promise<AuthResponse> {
     const boundary = this.beginSessionBoundary();
     await boundary.cleared;
@@ -67,7 +71,11 @@ export class LunaraApi {
       method: 'POST',
       auth: false,
       oidcAccessTokenOverride: accessToken,
-      body: { accessToken, deviceName: 'Lunara Web App' },
+      body: {
+        accessToken,
+        deviceName: 'Lunara Web App',
+        ...this.oidcEnrollmentFields(intent),
+      },
     });
     if (!(await this.acceptSession(
       response,
@@ -77,6 +85,27 @@ export class LunaraApi {
       throw new ApiError(409, 'Sign-in was superseded by another session change');
     }
     return response;
+  }
+
+  private oidcEnrollmentFields(intent: OidcEnrollmentIntent): {
+    createIfMissing?: true;
+    invitationCode?: string;
+    preferredLanguage?: 'DE' | 'EN';
+  } {
+    switch (intent.kind) {
+      case 'login':
+        return {};
+      case 'new-tracker':
+        return {
+          createIfMissing: true,
+          preferredLanguage: intent.preferredLanguage,
+        };
+      case 'partner':
+        return {
+          invitationCode: intent.invitationCode,
+          preferredLanguage: intent.preferredLanguage,
+        };
+    }
   }
 
   async restoreSession(): Promise<boolean> {
@@ -91,6 +120,24 @@ export class LunaraApi {
 
   async me(): Promise<AuthResponse['user']> {
     return this.request<AuthResponse['user']>('/api/v1/me');
+  }
+
+  async acceptInvitation(invitationCode: string): Promise<{ accepted: true }> {
+    return this.request<{ accepted: true }>('/api/v1/household/invitations/accept', {
+      method: 'POST',
+      body: { invitationCode, confirm: true },
+    });
+  }
+
+  async household(): Promise<HouseholdResponse> {
+    return this.request<HouseholdResponse>('/api/v1/household');
+  }
+
+  async createInvitation(): Promise<InvitationResponse> {
+    return this.request<InvitationResponse>('/api/v1/household/invitations', {
+      method: 'POST',
+      body: { neverExpires: true },
+    });
   }
 
   async periods(): Promise<PeriodEvent[]> {

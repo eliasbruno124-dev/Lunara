@@ -1,5 +1,24 @@
 # Lunara – Fortschritt
 
+## 1.1.4 – Einladungskorrektur, 8. September 2026
+
+- [x] Separater Arbeitsbaum bewahrt bestehende lokale Änderungen und übernimmt den neueren Live-Stand.
+- [x] Bestätigte Partner-Verknüpfung für bestehende leere Konten; einmalige Einladung, idempotente Wiederholung, erneute serverseitige Berechtigungsprüfung.
+- [x] Vorhandene Gesundheitsdaten einschließlich Soft Deletes verhindern einen unbemerkten Beziehungswechsel.
+- [x] PWA erhält Einladungen über Authentik/OIDC hinweg; öffentlicher Fragment-Empfang ohne öffentlichen API-Zugriff.
+- [x] Angeforderte Kalenderwiederherstellung mit geprüftem Backup und anschließendem Sync-/Entschlüsselungstest; ursprüngliche Datensätze bleiben unverändert.
+- [x] API: 198 Unit-Tests; PWA: 50 Tests; Lint und Build erfolgreich.
+- [x] Zwei Integrationstests gegen eine frische isolierte PostgreSQL-18-Datenbank erfolgreich, einschließlich bestehendem Konto, Partnerrechten und Wiederholbarkeit.
+- [x] npm-Abhängigkeitsprüfung ohne bekannte Treffer nach drei gezielten Override-Aktualisierungen.
+- [x] Serverseitige Mitgliedschaftssperre schützt auch parallele Importe, Symptome, Care Preferences, Profil und Freigaben vor einem veralteten Rollenentscheid.
+- [x] Nicht synchronisierte Einträge auf dem aktuellen Gerät verhindern die Annahme; kein stilles Leeren der Offline-Queue.
+- [x] API/PWA als Container 1.1.4 produktiv aktualisiert; Health/Ready gesund, Authentik-Ausnahme nur für exaktes `/invite` ergänzt und extern geprüft.
+- [x] Android-Code, JVM-Tests (205 pro Variante), beide Lints, Instrumentierungskompilierung sowie Debug-/Release-APK und AAB erfolgreich gebaut; Release mit vorhandenem serverlokalem Schlüssel signiert.
+- [x] Serverseitiges Review und scoped Live-Update abgeschlossen.
+- [ ] Abschließende Artefaktprüfung und private Release-Veröffentlichung abschließen.
+
+Die folgenden Abschnitte dokumentieren den früheren Release-Stand.
+
 Stand: 25. August 2026, Release 1.1.0 veröffentlicht
 
 ## 1.1.0 umgesetzt

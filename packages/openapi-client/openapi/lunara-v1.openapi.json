@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AcceptInvitationDto": {
+        "properties": {
+          "confirm": {
+            "description": "Must be true to confirm that this account will leave its empty standalone relationship",
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "invitationCode": {
+            "maxLength": 12,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitationCode",
+          "confirm"
+        ],
+        "type": "object"
+      },
       "AuthResponse": {
         "properties": {
           "accessToken": {
@@ -652,8 +673,26 @@
         ],
         "type": "object"
       },
+      "InvitationAcceptanceResponse": {
+        "properties": {
+          "accepted": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "type": "object"
+      },
       "InvitationResponse": {
         "properties": {
+          "acceptanceUrl": {
+            "format": "uri",
+            "type": "string"
+          },
           "assignedRole": {
             "enum": [
               "PARTNER"
@@ -676,6 +715,7 @@
         "required": [
           "id",
           "code",
+          "acceptanceUrl",
           "assignedRole",
           "expiresAt"
         ],
@@ -797,14 +837,34 @@
             ],
             "type": "string"
           },
+          "authenticationMethods": {
+            "items": {
+              "enum": [
+                "PASSWORD",
+                "OIDC"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
           "gatewayHeaderName": {
             "enum": [
               "X-Lunara-Authorization"
             ],
             "type": "string"
           },
+          "gatewayMode": {
+            "enum": [
+              "direct",
+              "authentik"
+            ],
+            "type": "string"
+          },
           "name": {
             "type": "string"
+          },
+          "oidc": {
+            "$ref": "#/components/schemas/OidcMetaResponse"
           },
           "registrationEnabled": {
             "type": "boolean"
@@ -827,7 +887,9 @@
           "setupRequired",
           "registrationEnabled",
           "serverTime",
-          "gatewayHeaderName"
+          "gatewayHeaderName",
+          "gatewayMode",
+          "authenticationMethods"
         ],
         "type": "object"
       },
@@ -859,14 +921,68 @@
             "type": "string",
             "writeOnly": true
           },
+          "createIfMissing": {
+            "default": false,
+            "description": "Explicitly permits first sign-in to create a new isolated TRACKER relationship; omitted or false preserves login-only behavior",
+            "type": "boolean"
+          },
           "deviceName": {
             "example": "Pixel 10",
+            "type": "string"
+          },
+          "invitationCode": {
+            "description": "When present on first sign-in, atomically joins the relationship represented by this one-time invitation",
+            "maxLength": 12,
+            "minLength": 8,
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "default": "DE",
+            "description": "Used only when this exact external identity is provisioned for the first time",
+            "enum": [
+              "DE",
+              "EN"
+            ],
             "type": "string"
           }
         },
         "required": [
           "accessToken",
           "deviceName"
+        ],
+        "type": "object"
+      },
+      "OidcMetaResponse": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "discoveryUrl": {
+            "type": "string"
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "providerName": {
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "providerName",
+          "issuer",
+          "audience",
+          "clientId",
+          "scopes",
+          "discoveryUrl"
         ],
         "type": "object"
       },
@@ -1940,7 +2056,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.1.0",
+    "version": "1.1.4",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },
@@ -2836,6 +2952,42 @@
         "responses": {
           "204": {
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "household"
+        ]
+      }
+    },
+    "/api/v1/household/invitations/accept": {
+      "post": {
+        "operationId": "Household_acceptInvitation",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationAcceptanceResponse"
+                }
+              }
+            },
+            "description": "Successful response"
           }
         },
         "security": [

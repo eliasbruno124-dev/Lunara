@@ -19,6 +19,16 @@ const tracker: AuthenticatedUser = {
   preferredLanguage: PreferredLanguage.DE,
 };
 
+function currentTrackerMembership() {
+  return {
+    findUnique: jest.fn().mockResolvedValue({
+      userId: tracker.userId,
+      householdId: tracker.householdId,
+      role: UserRole.TRACKER,
+    }),
+  };
+}
+
 describe('PeriodsService period mutation safety', () => {
   it('returns 409 when an existing client UUID is reused with a different payload', async () => {
     const existing = {
@@ -34,6 +44,7 @@ describe('PeriodsService period mutation safety', () => {
     };
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
@@ -76,6 +87,7 @@ describe('PeriodsService period mutation safety', () => {
     };
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
@@ -108,7 +120,7 @@ describe('PeriodsService period mutation safety', () => {
       endDate: '2026-07-05',
       version: 1,
     });
-    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(2);
     expect(transaction.periodEvent.create).toHaveBeenCalledWith({
       data: {
         id: historical.id,
@@ -128,6 +140,7 @@ describe('PeriodsService period mutation safety', () => {
   it('rejects an overlapping historical range before writing', async () => {
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
@@ -214,6 +227,7 @@ describe('PeriodsService period mutation safety', () => {
     };
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
@@ -297,6 +311,7 @@ describe('PeriodsService period mutation safety', () => {
     };
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },
@@ -327,6 +342,7 @@ describe('PeriodsService period mutation safety', () => {
   it('rejects future period dates at the API boundary in the profile timezone', async () => {
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: currentTrackerMembership(),
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }),
       },

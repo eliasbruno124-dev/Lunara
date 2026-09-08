@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CustomSymptom, Prisma } from '@prisma/client';
+import { assertCurrentTrackerMembership } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PREDEFINED_SYMPTOMS } from './symptom-catalog.js';
@@ -28,17 +29,20 @@ export class SymptomsService {
   async create(user: AuthenticatedUser, dto: CreateCustomSymptomDto) {
     const label = this.normalizeLabel(dto.label);
     this.rejectPredefinedLabel(label);
-    const existingId = await this.prisma.customSymptom.findUnique({ where: { id: dto.id } });
-    if (existingId) {
-      if (existingId.userId !== user.userId || existingId.label !== label) {
-        throw new ConflictException('Client identifier is already in use');
-      }
-      return this.serialize(existingId);
-    }
-    await this.rejectDuplicate(user.userId, label);
     try {
-      const symptom = await this.prisma.customSymptom.create({
-        data: { id: dto.id, userId: user.userId, label },
+      const symptom = await this.prisma.$transaction(async (tx) => {
+        await assertCurrentTrackerMembership(tx, user);
+        const existingId = await tx.customSymptom.findUnique({ where: { id: dto.id } });
+        if (existingId) {
+          if (existingId.userId !== user.userId || existingId.label !== label) {
+            throw new ConflictException('Client identifier is already in use');
+          }
+          return existingId;
+        }
+        await this.rejectDuplicate(tx, user.userId, label);
+        return tx.customSymptom.create({
+          data: { id: dto.id, userId: user.userId, label },
+        });
       });
       return this.serialize(symptom);
     } catch (error) {
@@ -53,23 +57,26 @@ export class SymptomsService {
     if (dto.label === undefined && dto.archived === undefined) {
       throw new BadRequestException('At least one custom symptom change is required');
     }
-    const current = await this.prisma.customSymptom.findFirst({
-      where: { id, userId: user.userId },
-    });
-    if (!current) throw new NotFoundException('Custom symptom not found');
-
-    const label = dto.label === undefined ? current.label : this.normalizeLabel(dto.label);
-    this.rejectPredefinedLabel(label);
-    if (label !== current.label) await this.rejectDuplicate(user.userId, label, id);
     try {
-      const symptom = await this.prisma.customSymptom.update({
-        where: { id },
-        data: {
-          label,
-          ...(dto.archived === undefined
-            ? {}
-            : { archivedAt: dto.archived ? new Date() : null }),
-        },
+      const symptom = await this.prisma.$transaction(async (tx) => {
+        await assertCurrentTrackerMembership(tx, user);
+        const current = await tx.customSymptom.findFirst({
+          where: { id, userId: user.userId },
+        });
+        if (!current) throw new NotFoundException('Custom symptom not found');
+
+        const label = dto.label === undefined ? current.label : this.normalizeLabel(dto.label);
+        this.rejectPredefinedLabel(label);
+        if (label !== current.label) await this.rejectDuplicate(tx, user.userId, label, id);
+        return tx.customSymptom.update({
+          where: { id },
+          data: {
+            label,
+            ...(dto.archived === undefined
+              ? {}
+              : { archivedAt: dto.archived ? new Date() : null }),
+          },
+        });
       });
       return this.serialize(symptom);
     } catch (error) {
@@ -81,20 +88,28 @@ export class SymptomsService {
   }
 
   async archive(user: AuthenticatedUser, id: string): Promise<void> {
-    const result = await this.prisma.customSymptom.updateMany({
-      where: { id, userId: user.userId, archivedAt: null },
-      data: { archivedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
+      const result = await tx.customSymptom.updateMany({
+        where: { id, userId: user.userId, archivedAt: null },
+        data: { archivedAt: new Date() },
+      });
+      if (result.count === 1) return;
+      const owned = await tx.customSymptom.count({
+        where: { id, userId: user.userId },
+      });
+      if (owned === 0) throw new NotFoundException('Custom symptom not found');
+      // Archiving is intentionally idempotent.
     });
-    if (result.count === 1) return;
-    const owned = await this.prisma.customSymptom.count({
-      where: { id, userId: user.userId },
-    });
-    if (owned === 0) throw new NotFoundException('Custom symptom not found');
-    // Archiving is intentionally idempotent.
   }
 
-  private async rejectDuplicate(userId: string, label: string, exceptId?: string): Promise<void> {
-    const duplicate = await this.prisma.customSymptom.findFirst({
+  private async rejectDuplicate(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    label: string,
+    exceptId?: string,
+  ): Promise<void> {
+    const duplicate = await tx.customSymptom.findFirst({
       where: {
         userId,
         label: { equals: label, mode: 'insensitive' },

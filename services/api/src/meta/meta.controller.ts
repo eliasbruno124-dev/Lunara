@@ -9,11 +9,13 @@ export interface MetaResponse {
   name: string;
   version: string;
   apiVersion: 'v1';
+  gatewayMode: 'direct' | 'authentik';
   setupRequired: boolean;
   registrationEnabled: boolean;
   serverTime: string;
   gatewayHeaderName: 'X-Lunara-Authorization';
   authenticationMethods: Array<'PASSWORD' | 'OIDC'>;
+  primaryAuthenticationMethod: 'PASSWORD' | 'OIDC';
   oidc?: {
     providerName: string;
     issuer: string;
@@ -21,6 +23,12 @@ export interface MetaResponse {
     clientId: string;
     scopes: string[];
     discoveryUrl: string;
+    enrollment: {
+      registration: boolean;
+      invitation: true;
+      localPasswordRequired: false;
+      createIfMissingRequired: true;
+    };
   };
 }
 
@@ -44,20 +52,30 @@ export class MetaController {
       false,
     );
     const oidcIssuer = this.config.get<string>('lunara.oidc.issuer', '');
+    const gatewayMode = this.config.get<'direct' | 'authentik'>(
+      'lunara.gatewayMode',
+      'direct',
+    );
+    const registrationEnabled = this.config.get<boolean>(
+      'lunara.registrationEnabled',
+      false,
+    );
+    const oidcPrimary = oidcEnabled && gatewayMode === 'authentik';
     return {
       name: this.config.get<string>('lunara.appName', 'Lunara'),
       version: this.config.get<string>('lunara.appVersion', '1.1.0'),
       apiVersion: 'v1',
+      gatewayMode,
       setupRequired: !bootstrapped,
-      registrationEnabled: this.config.get<boolean>(
-        'lunara.registrationEnabled',
-        false,
-      ),
+      registrationEnabled,
       serverTime: new Date().toISOString(),
       gatewayHeaderName: 'X-Lunara-Authorization',
       authenticationMethods: oidcEnabled
-        ? ['PASSWORD', 'OIDC']
+        ? oidcPrimary
+          ? ['OIDC', 'PASSWORD']
+          : ['PASSWORD', 'OIDC']
         : ['PASSWORD'],
+      primaryAuthenticationMethod: oidcPrimary ? 'OIDC' : 'PASSWORD',
       ...(oidcEnabled
         ? {
             oidc: {
@@ -76,6 +94,12 @@ export class MetaController {
                 'lunara.oidc.discoveryUrl',
                 `${oidcIssuer.endsWith('/') ? oidcIssuer : `${oidcIssuer}/`}.well-known/openid-configuration`,
               ),
+              enrollment: {
+                registration: registrationEnabled,
+                invitation: true,
+                localPasswordRequired: false,
+                createIfMissingRequired: true,
+              },
             },
           }
         : {}),

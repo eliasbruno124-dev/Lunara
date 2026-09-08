@@ -141,3 +141,10 @@ Die tatsächlich erreichten Ergebnisse stehen ausschließlich in
   rechtlich/geschäftlich festlegen
 - Bluetooth-/WLAN-Peer-to-Peer-Sync bleibt bewusst außerhalb von Version 1;
   Partner-Sync verwendet den überprüfbaren Self-hosted Server
+# Einladungskorrektur 1.1.4 – 8. September 2026
+
+1. Live-Stand und bestehende lokale Änderungen getrennt sichern; nur Lunara ändern.
+2. Einladung über eine kleine öffentliche `/invite`-Landeseite vor dem Authentik-Redirect im Browserspeicher erhalten. Alle Konten-/Gesundheitsendpunkte bleiben geschützt.
+3. Bereits angemeldete, leere Einzelkonten erst nach ausdrücklicher Bestätigung serverseitig als Partner verbinden. Vorhandene Gesundheitsdaten und individuelle Einstellungen verhindern einen automatischen Wechsel.
+4. Gleicher Ablauf in Android: Code oder QR in Einstellungen, Bestätigung nach OIDC, neue Rolle laden und alten lokalen Beziehungscache verwerfen.
+5. Echte PostgreSQL-Integrationstests, Clienttests, Sicherheitsreview, Container- und signierten Android-Build ausführen; anschließend nur Lunara aktualisieren.

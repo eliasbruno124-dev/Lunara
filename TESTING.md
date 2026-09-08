@@ -218,3 +218,32 @@ sind der ausgeführte Befehl, dessen Exitstatus, die nachfolgende Struktur-
 und Signaturprüfung sowie die Prüfsumme des unveränderten Artefakts. Ebenso ist
 das erfolgreiche Kompilieren von Android-Instrumentierung nicht deren
 Ausführung.
+# Prüfstand 1.1.4 – 8. September 2026
+
+- API: 28 Suites, 198 Tests; PWA: 13 Dateien, 50 Tests.
+- Zwei End-to-End-Szenarien auf frischem, isoliertem PostgreSQL 18 nach allen
+  acht Migrationen: Kernablauf und bestätigter Wechsel eines bestehenden
+  leeren Kontos zum Partner. Produktive Konten wurden nicht als Testkonten benutzt.
+- Android Local-Debug und Production-Debug: je 42 Suites, 205 Tests; beide
+  Lint-Varianten ohne Fehler (63 beziehungsweise 62 Warnungen).
+- Instrumentierungscode für Production-Debug kompiliert. Keine ausgeführten
+  Emulator- oder Gerätetests; insbesondere der interaktive Authentik-Browser
+  und die physische Kamera sind hier nicht durchgetestet.
+- Docker-API-/PWA-Build und OpenAPI-Client-Prüfung erfolgreich; Live-Health und
+  Readiness gesund. Nur Meta, Asset-Links und die statische `/invite`-Seite
+  sind am äußeren Proxy anonym erreichbar.
+
+Verwendeter Android-Builder: Temurin JDK 21.0.12, offizielles SDK-Paket
+`platforms;android-37.0` Revision 2, Build-Tools 36.0.0, Gradle 9.3.1.
+Ein alter unvollständiger Gradle-Transform wurde nach Prüfung in den privaten
+Backupordner verschoben, nicht gelöscht. Das Host-Java oder Host-SDK musste
+nicht installiert werden.
+
+Die Tests prüfen auch: explizite Annahme, wiederholte Annahme ohne Duplikat,
+belegte Partnerrolle, Soft Deletes, veraltete Trackerrechte bei Import und
+Einstellungen, Wiederaufnahme nach AppAuth, Abbruch ohne alte Einladung,
+Scopewechsel ohne ausstehende Offline-Mutationen und verspätete Antworten
+nach einem lokalen Abmelden.
+
+Die folgenden Abschnitte beschreiben die allgemeinen Testbefehle und den
+historischen Prüfstand.

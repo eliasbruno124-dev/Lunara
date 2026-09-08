@@ -12,7 +12,9 @@ import de.lunara.app.core.network.ServerAddressParser
 import de.lunara.app.core.network.ServerChangeConfirmationRequired
 import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.data.repository.ApiException
+import de.lunara.app.data.repository.AuthentikLoginResult
 import de.lunara.app.data.repository.ConnectionRepository
+import de.lunara.app.data.repository.shouldClearPendingInvitationAfterOidcFailure
 import de.lunara.app.security.limitAccountPasswordInput
 import de.lunara.app.security.AuthentikAuthorizationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.Locale
 import javax.inject.Inject
 import javax.net.ssl.SSLException
 
@@ -33,10 +36,12 @@ enum class OnboardingError {
     INCOMPLETE_CREDENTIALS,
     CREDENTIALS_REQUIRE_HTTPS,
     QR_CREDENTIALS,
+    QR_CAMERA,
     DNS,
     TLS,
     TIMEOUT,
     GATEWAY_AUTH,
+    GATEWAY_AUTH_JOIN,
     API,
     USERNAME,
     USERNAME_IN_USE,
@@ -49,6 +54,8 @@ enum class OnboardingError {
     INVITATION_CODE,
     INVITATION_INVALID,
     INVITATION_UNAVAILABLE,
+    INVITATION_ACCOUNT_NOT_EMPTY,
+    INVITATION_ACCEPT_CONFLICT,
     PARTNER_ALREADY_CONNECTED,
     INVALID_CREDENTIALS,
     REGISTRATION_UNAVAILABLE,
@@ -73,6 +80,8 @@ data class OnboardingUiState(
     val displayName: String = "",
     val bootstrapToken: String = "",
     val invitationCode: String = "",
+    val invitationConfirmationReady: Boolean = false,
+    val authentikGatewayReady: Boolean = false,
     val serverChangeConfirmationRequired: Boolean = false,
     val error: OnboardingError? = null,
 )
@@ -103,7 +112,13 @@ class OnboardingViewModel @Inject constructor(
         )
     }
     fun setServerUrl(value: String) = _state.update {
-        it.copy(serverUrl = value, error = null, meta = null, serverChangeConfirmationRequired = false)
+        it.copy(
+            serverUrl = value,
+            error = null,
+            meta = null,
+            authentikGatewayReady = false,
+            serverChangeConfirmationRequired = false,
+        )
     }
     fun acceptScannedServerUrl(value: String) {
         val parsed = runCatching { ServerAddressParser.parse(value, BuildConfig.ALLOW_INSECURE_HTTP) }.getOrNull()
@@ -116,11 +131,19 @@ class OnboardingViewModel @Inject constructor(
         }
     }
     fun setAllowHttp(value: Boolean) = _state.update { it.copy(allowInsecureHttp = value, error = null) }
-    fun setAuthMode(value: AuthMode) = _state.update { state ->
-        if (value == AuthMode.REGISTER && !registrationAvailable(state)) {
-            state.copy(error = OnboardingError.REGISTRATION_UNAVAILABLE, password = "")
-        } else {
-            state.copy(authMode = value, error = null, password = "")
+    fun setAuthMode(value: AuthMode) {
+        if (value != AuthMode.JOIN) connectionRepository.clearPendingInvitation()
+        _state.update { state ->
+            if (value == AuthMode.REGISTER && !registrationAvailable(state)) {
+                state.copy(error = OnboardingError.REGISTRATION_UNAVAILABLE, password = "")
+            } else {
+                state.copy(
+                    authMode = value,
+                    password = "",
+                    invitationConfirmationReady = false,
+                    error = null,
+                )
+            }
         }
     }
     fun setUsername(value: String) = _state.update { it.copy(username = value.take(64), error = null) }
@@ -129,7 +152,11 @@ class OnboardingViewModel @Inject constructor(
     }
     fun setDisplayName(value: String) = _state.update { it.copy(displayName = value.take(120), error = null) }
     fun setBootstrapToken(value: String) = _state.update { it.copy(bootstrapToken = value.take(256), error = null) }
-    fun setInvitationCode(value: String) = _state.update { it.copy(invitationCode = value.take(32), error = null) }
+    fun setInvitationCode(value: String) = _state.update {
+        it.copy(invitationCode = value.take(512), invitationConfirmationReady = false, error = null)
+    }
+    fun reportInvalidInvitationQr() = _state.update { it.copy(error = OnboardingError.INVITATION_CODE) }
+    fun reportQrCameraUnavailable() = _state.update { it.copy(error = OnboardingError.QR_CAMERA) }
 
     fun submitLocalSetup() {
         val snapshot = _state.value
@@ -161,8 +188,18 @@ class OnboardingViewModel @Inject constructor(
         }
         _state.update { it.copy(isBusy = true, error = null, serverChangeConfirmationRequired = false) }
         viewModelScope.launch {
-            runCatching { connectionRepository.testAndSaveConnection(parsed, confirmServerChange) }
-                .onSuccess { meta ->
+            runCatching {
+                val meta = connectionRepository.testAndSaveConnection(parsed, confirmServerChange)
+                val gatewayReady = if (
+                    authentikJoinPolicy(meta) == AuthentikJoinPolicy.LEGACY_OPTIONAL
+                ) {
+                    connectionRepository.hasAuthentikGatewaySession()
+                } else {
+                    false
+                }
+                meta to gatewayReady
+            }
+                .onSuccess { (meta, authentikGatewayReady) ->
                     _state.update {
                         it.copy(
                             isBusy = false,
@@ -170,6 +207,7 @@ class OnboardingViewModel @Inject constructor(
                             meta = meta,
                             serverUrl = parsed.baseUrl,
                             authMode = if (meta.setupRequired) AuthMode.SETUP else AuthMode.LOGIN,
+                            authentikGatewayReady = authentikGatewayReady,
                             error = null,
                         )
                     }
@@ -192,6 +230,31 @@ class OnboardingViewModel @Inject constructor(
     fun submitAuthentication() {
         val snapshot = _state.value
         if (snapshot.isBusy) return
+        if (snapshot.invitationConfirmationReady) {
+            val code = parseInvitationQrPayload(snapshot.invitationCode, snapshot.serverUrl) ?: run {
+                _state.update { it.copy(error = OnboardingError.INVITATION_CODE) }
+                return
+            }
+            _state.update { it.copy(isBusy = true, error = null) }
+            viewModelScope.launch {
+                runCatching { connectionRepository.acceptInvitation(code) }
+                    .onSuccess { resetForNewSession() }
+                    .onFailure { failure ->
+                        _state.update { it.copy(isBusy = false, error = mapInvitationAcceptanceError(failure)) }
+                    }
+            }
+            return
+        }
+        // Current Authentik-primary servers complete LOGIN and JOIN through the
+        // browser callback. There is intentionally no hidden local-credential
+        // fallback behind the primary OIDC UI.
+        if (
+            usesPrimaryAuthentikIdentity(snapshot.meta) &&
+            snapshot.authMode in setOf(AuthMode.LOGIN, AuthMode.JOIN)
+        ) {
+            _state.update { it.copy(error = OnboardingError.OIDC_FAILED) }
+            return
+        }
         val validationError = validateOnboardingForm(snapshot)
         if (validationError != null) {
             _state.update { it.copy(error = validationError) }
@@ -216,7 +279,7 @@ class OnboardingViewModel @Inject constructor(
                         snapshot.language,
                     )
                     AuthMode.JOIN -> connectionRepository.join(
-                        snapshot.invitationCode,
+                        requireNotNull(parseInvitationQrPayload(snapshot.invitationCode, snapshot.serverUrl)),
                         snapshot.username,
                         snapshot.displayName,
                         snapshot.password,
@@ -239,7 +302,27 @@ class OnboardingViewModel @Inject constructor(
     fun beginAuthentikLogin(onReady: (Intent) -> Unit) {
         val snapshot = _state.value
         val oidc = snapshot.meta?.oidc
-        if (snapshot.isBusy || snapshot.authMode != AuthMode.LOGIN || oidc == null) return
+        val gatewayJoinPolicy = authentikJoinPolicy(snapshot.meta)
+        if (
+            snapshot.isBusy ||
+            snapshot.authMode !in setOf(AuthMode.LOGIN, AuthMode.JOIN) ||
+            oidc == null ||
+            (snapshot.authMode == AuthMode.JOIN &&
+                (gatewayJoinPolicy == AuthentikJoinPolicy.NONE || snapshot.authentikGatewayReady))
+        ) return
+        val invitationForOidc = if (usesPrimaryAuthentikIdentity(snapshot.meta) && snapshot.authMode == AuthMode.JOIN) {
+            parseInvitationQrPayload(snapshot.invitationCode, snapshot.serverUrl) ?: run {
+                _state.update { it.copy(error = OnboardingError.INVITATION_CODE) }
+                return
+            }
+        } else {
+            null
+        }
+        if (shouldClearPendingInvitationBeforeOidc(invitationForOidc)) {
+            connectionRepository.clearPendingInvitation()
+        } else {
+            connectionRepository.rememberPendingInvitation(requireNotNull(invitationForOidc))
+        }
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
             runCatching { connectionRepository.authentikAuthorizationIntent(oidc) }
@@ -248,28 +331,99 @@ class OnboardingViewModel @Inject constructor(
                     onReady(intent)
                 }
                 .onFailure {
+                    connectionRepository.clearPendingInvitation()
                     _state.update { state -> state.copy(isBusy = false, error = OnboardingError.OIDC_FAILED) }
                 }
         }
     }
 
     fun completeAuthentikLogin(result: Intent?) {
-        if (_state.value.isBusy) return
+        val snapshot = _state.value
+        val continuation = invitationOidcContinuation(snapshot, connectionRepository.pendingInvitationCode())
+        // A restored AppAuth callback has no reliable in-memory meta/auth-mode.
+        // The encrypted invitation proof is authoritative for this one callback.
+        val mode = if (continuation != null) AuthMode.JOIN else snapshot.authMode
+        val primaryIdentity = continuation != null || usesPrimaryAuthentikIdentity(snapshot.meta)
+        val gatewayJoinPolicy = authentikJoinPolicy(snapshot.meta)
+        if (snapshot.isBusy) return
+        val invitationCode = continuation?.code
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
-            runCatching { connectionRepository.authentikLogin(result) }
-                .onSuccess { resetForNewSession() }
+            runCatching {
+                connectionRepository.authentikLogin(
+                    result = result,
+                    invitationCode = invitationCode,
+                    preferredLanguage = if (primaryIdentity) {
+                        snapshot.language.uppercase(Locale.ROOT)
+                    } else {
+                        null
+                    },
+                    // Creation is deliberately distinct from invitation
+                    // redemption. Only a primary Authentik LOGIN may create a
+                    // missing TRACKER projection; JOIN always needs its code.
+                    createIfMissing = true.takeIf {
+                        continuation == null && primaryIdentity && shouldCreateMissingAuthentikTracker(snapshot.meta, mode)
+                    },
+                    allowLegacyGatewayPreparation = continuation == null && !primaryIdentity,
+                )
+            }
+                .onSuccess { outcome ->
+                    when (outcome) {
+                        is AuthentikLoginResult.SignedIn -> resetForNewSession()
+                        AuthentikLoginResult.InvitationConfirmationRequired -> _state.update {
+                            it.copy(
+                                stage = OnboardingStage.AUTH,
+                                authMode = AuthMode.JOIN,
+                                invitationCode = requireNotNull(invitationCode),
+                                isBusy = false,
+                                invitationConfirmationReady = true,
+                                error = null,
+                            )
+                        }
+                        AuthentikLoginResult.LegacyGatewayPrepared -> _state.update {
+                            if (
+                                mode == AuthMode.JOIN &&
+                                gatewayJoinPolicy == AuthentikJoinPolicy.LEGACY_OPTIONAL
+                            ) {
+                                it.copy(isBusy = false, authentikGatewayReady = true, error = null)
+                            } else {
+                                it.copy(isBusy = false, error = OnboardingError.OIDC_NOT_LINKED)
+                            }
+                        }
+                    }
+                }
                 .onFailure { failure ->
+                    // A committed partner provisioning keeps its proof through a transient
+                    // post-commit role refresh failure. Actual callback/auth failures must
+                    // never turn a later ordinary OIDC login into invitation redemption.
+                    if (shouldClearPendingInvitationAfterOidcFailure(failure)) {
+                        connectionRepository.clearPendingInvitation()
+                    }
                     _state.update {
-                        it.copy(isBusy = false, error = mapAuthentikError(failure))
+                        it.copy(
+                            isBusy = false,
+                            error = mapAuthentikError(failure, mode, primaryIdentity),
+                        )
                     }
                 }
         }
     }
 
-    private fun mapAuthentikError(error: Throwable): OnboardingError = when {
+    private fun mapAuthentikError(
+        error: Throwable,
+        mode: AuthMode,
+        primaryIdentity: Boolean,
+    ): OnboardingError = when {
         error is AuthentikAuthorizationException &&
             error.message?.contains("cancel", ignoreCase = true) == true -> OnboardingError.OIDC_CANCELLED
+        primaryIdentity && mode == AuthMode.JOIN && error is ApiException && error.status == 404 ->
+            OnboardingError.INVITATION_INVALID
+        primaryIdentity && mode == AuthMode.JOIN && error is ApiException && error.status == 410 ->
+            OnboardingError.INVITATION_UNAVAILABLE
+        primaryIdentity && mode == AuthMode.JOIN && error is ApiException && error.status == 409 ->
+            OnboardingError.PARTNER_ALREADY_CONNECTED
+        primaryIdentity && mode == AuthMode.LOGIN && error is ApiException && error.status == 403 ->
+            OnboardingError.REGISTRATION_UNAVAILABLE
         error is ApiException && error.status in setOf(401, 404) -> OnboardingError.OIDC_NOT_LINKED
         else -> OnboardingError.OIDC_FAILED
     }
@@ -289,6 +443,7 @@ class OnboardingViewModel @Inject constructor(
         if (error is ApiException && mode == AuthMode.JOIN) {
             if (error.status == 404) return OnboardingError.INVITATION_INVALID
             if (error.status == 410) return OnboardingError.INVITATION_UNAVAILABLE
+            if (error.status == 403) return OnboardingError.INVITATION_ACCOUNT_NOT_EMPTY
             if (error.status == 409) {
                 return if (error.message?.contains("username", ignoreCase = true) == true) {
                     OnboardingError.USERNAME_IN_USE
@@ -296,8 +451,25 @@ class OnboardingViewModel @Inject constructor(
                     OnboardingError.PARTNER_ALREADY_CONNECTED
                 }
             }
+            gatewayJoinRecoveryError(
+                mode = mode,
+                failure = error,
+                gatewayOidcAvailable = _state.value.meta?.let {
+                    authentikJoinPolicy(it) != AuthentikJoinPolicy.NONE
+                } == true,
+            )?.let { return it }
         }
         return mapError(error)
+    }
+
+    private fun mapInvitationAcceptanceError(error: Throwable): OnboardingError = when {
+        error is ApiException && error.status == 404 -> OnboardingError.INVITATION_INVALID
+        error is ApiException && error.status == 410 -> OnboardingError.INVITATION_UNAVAILABLE
+        // A move conflict can mean data, a non-standalone source, a self-invite,
+        // or an occupied target. Do not expose or infer server-side relationship data.
+        error is ApiException && error.status == 409 -> OnboardingError.INVITATION_ACCEPT_CONFLICT
+        error is ApiException && error.status == 403 -> OnboardingError.INVITATION_ACCOUNT_NOT_EMPTY
+        else -> mapError(error)
     }
 
     fun resetForNewSession() {

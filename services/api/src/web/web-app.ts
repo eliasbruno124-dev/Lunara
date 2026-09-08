@@ -9,6 +9,7 @@ const RESERVED_PATHS = [
   '/api-docs',
   '/api-docs-json',
   '/.well-known',
+  '/invite',
 ] as const;
 
 function isReservedPath(pathname: string): boolean {

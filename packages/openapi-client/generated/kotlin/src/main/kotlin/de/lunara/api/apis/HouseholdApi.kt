@@ -6,13 +6,28 @@ import retrofit2.Response
 import okhttp3.RequestBody
 import com.squareup.moshi.Json
 
+import de.lunara.api.models.AcceptInvitationDto
 import de.lunara.api.models.AuthResponse
 import de.lunara.api.models.CreateInvitationDto
+import de.lunara.api.models.InvitationAcceptanceResponse
 import de.lunara.api.models.InvitationResponse
 import de.lunara.api.models.InvitationSummaryResponse
 import de.lunara.api.models.JoinHouseholdDto
 
 interface HouseholdApi {
+    /**
+     * POST api/v1/household/invitations/accept
+     *
+     *
+     * Responses:
+     *  - 200: Successful response
+     *
+     * @param acceptInvitationDto
+     * @return [InvitationAcceptanceResponse]
+     */
+    @POST("api/v1/household/invitations/accept")
+    suspend fun householdAcceptInvitation(@Body acceptInvitationDto: AcceptInvitationDto): Response<InvitationAcceptanceResponse>
+
     /**
      * POST api/v1/household/invitations
      *

@@ -23,6 +23,7 @@
 
 package de.lunara.api.models
 
+import de.lunara.api.models.OidcMetaResponse
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -31,12 +32,15 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param apiVersion
+ * @param authenticationMethods
  * @param gatewayHeaderName
+ * @param gatewayMode
  * @param name
  * @param registrationEnabled
  * @param serverTime
  * @param setupRequired
  * @param version
+ * @param oidc
  */
 
 
@@ -45,8 +49,14 @@ data class MetaResponse (
     @Json(name = "apiVersion")
     val apiVersion: MetaResponse.ApiVersion,
 
+    @Json(name = "authenticationMethods")
+    val authenticationMethods: kotlin.collections.List<MetaResponse.AuthenticationMethods>,
+
     @Json(name = "gatewayHeaderName")
     val gatewayHeaderName: MetaResponse.GatewayHeaderName,
+
+    @Json(name = "gatewayMode")
+    val gatewayMode: MetaResponse.GatewayMode,
 
     @Json(name = "name")
     val name: kotlin.String,
@@ -61,7 +71,10 @@ data class MetaResponse (
     val setupRequired: kotlin.Boolean,
 
     @Json(name = "version")
-    val version: kotlin.String
+    val version: kotlin.String,
+
+    @Json(name = "oidc")
+    val oidc: OidcMetaResponse? = null
 
 ) {
 
@@ -77,11 +90,31 @@ data class MetaResponse (
     /**
      *
      *
+     * Values: PASSWORD,OIDC
+     */
+    @JsonClass(generateAdapter = false)
+    enum class AuthenticationMethods(val value: kotlin.String) {
+        @Json(name = "PASSWORD") PASSWORD("PASSWORD"),
+        @Json(name = "OIDC") OIDC("OIDC");
+    }
+    /**
+     *
+     *
      * Values: X_LUNARA_AUTHORIZATION
      */
     @JsonClass(generateAdapter = false)
     enum class GatewayHeaderName(val value: kotlin.String) {
         @Json(name = "X-Lunara-Authorization") X_LUNARA_AUTHORIZATION("X-Lunara-Authorization");
+    }
+    /**
+     *
+     *
+     * Values: DIRECT,AUTHENTIK
+     */
+    @JsonClass(generateAdapter = false)
+    enum class GatewayMode(val value: kotlin.String) {
+        @Json(name = "direct") DIRECT("direct"),
+        @Json(name = "authentik") AUTHENTIK("authentik");
     }
 
 }

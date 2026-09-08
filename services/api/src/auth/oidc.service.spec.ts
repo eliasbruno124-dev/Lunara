@@ -62,27 +62,266 @@ function verifier() {
   };
 }
 
+function configuration(registrationEnabled = true) {
+  return {
+    get: jest.fn((key: string, defaultValue: unknown) =>
+      key === 'lunara.registrationEnabled'
+        ? registrationEnabled
+        : defaultValue,
+    ),
+  };
+}
+
 describe('OidcService.login', () => {
-  it('never auto-provisions an unknown subject', async () => {
-    const prisma = {
+  it('preserves login-only behavior for an unknown subject unless creation is explicit', async () => {
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
       externalIdentity: { findUnique: jest.fn().mockResolvedValue(null) },
+    };
+    const prisma = {
       auditEvent: { create: jest.fn().mockResolvedValue({}) },
-      $transaction: jest.fn(),
+      $transaction: jest.fn(
+        (operation: (database: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
     };
     const auth = { createAuthenticatedSession: jest.fn() };
     const service = new OidcService(
       prisma as never,
       verifier() as never,
       auth as never,
+      configuration() as never,
     );
 
     await expect(
       service.login({ accessToken: 'token', deviceName: 'Pixel' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.externalIdentity.findUnique).toHaveBeenCalledWith({
+      where: { issuer_subject: { issuer, subject } },
+      select: { id: true, userId: true },
+    });
     expect(auth.createAuthenticatedSession).not.toHaveBeenCalled();
     expect(prisma.auditEvent.create).toHaveBeenCalledWith({
       data: { type: 'LOGIN_FAILED', metadata: { method: 'OIDC' } },
+    });
+  });
+
+  it('atomically provisions an explicit first OIDC sign-in as a passwordless TRACKER', async () => {
+    const profiledIdentity = {
+      ...verifiedIdentity,
+      displayName: 'Elias Example',
+      preferredUsername: 'Elias',
+    };
+    const createdUser = {
+      id: userId,
+      username: 'elias',
+      displayName: 'Elias Example',
+      preferredLanguage: PreferredLanguage.EN,
+    };
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      serverState: {
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ bootstrappedAt: new Date() }),
+      },
+      externalIdentity: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: identityId }),
+      },
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(createdUser),
+      },
+      household: { create: jest.fn().mockResolvedValue({ id: householdId }) },
+      membership: {
+        create: jest.fn().mockResolvedValue({
+          householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
+      cycleProfile: { create: jest.fn().mockResolvedValue({}) },
+      carePreferences: { create: jest.fn().mockResolvedValue({}) },
+      sharingSettings: { create: jest.fn().mockResolvedValue({}) },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({}),
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (database: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const auth = {
+      normalizeUsername: jest.fn((value: string) => value.toLowerCase()),
+      createAuthenticatedSession: jest.fn().mockResolvedValue(authResponse),
+    };
+    const profiledVerifier = {
+      ...verifier(),
+      verify: jest.fn().mockResolvedValue(profiledIdentity),
+    };
+    const service = new OidcService(
+      prisma as never,
+      profiledVerifier as never,
+      auth as never,
+      configuration(true) as never,
+    );
+
+    await expect(
+      service.login({
+        accessToken: 'token',
+        deviceName: 'Pixel',
+        preferredLanguage: PreferredLanguage.EN,
+        createIfMissing: true,
+      }),
+    ).resolves.toEqual(authResponse);
+    expect(tx.user.create).toHaveBeenCalledWith({
+      data: {
+        username: 'elias',
+        displayName: 'Elias Example',
+        passwordHash: null,
+        preferredLanguage: PreferredLanguage.EN,
+      },
+    });
+    expect(tx.externalIdentity.create).toHaveBeenCalledWith({
+      data: {
+        userId,
+        issuer,
+        subject,
+        lastUsedAt: expect.any(Date) as Date,
+      },
+    });
+    expect(auth.createAuthenticatedSession).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ id: userId, role: UserRole.TRACKER }),
+      'Pixel',
+      { authMethod: SessionAuthMethod.OIDC, externalIdentityId: identityId },
+    );
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'OIDC_IDENTITY_LINKED',
+        metadata: expect.objectContaining({
+          autoProvisioned: true,
+          enrollment: 'REGISTER',
+        }) as Record<string, unknown>,
+      }) as Record<string, unknown>,
+    });
+  });
+
+  it('atomically redeems an invitation for an unknown OIDC identity without a local password', async () => {
+    const profiledIdentity = {
+      ...verifiedIdentity,
+      displayName: 'Elias',
+      preferredUsername: 'dunja',
+    };
+    const invitation = {
+      id: '77777777-7777-4777-8777-777777777777',
+      householdId,
+      assignedRole: UserRole.PARTNER,
+      usedAt: null,
+      revokedAt: null,
+      expiresAt: null,
+    };
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      externalIdentity: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: identityId }),
+      },
+      invitation: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce(invitation)
+          .mockResolvedValueOnce(invitation),
+        updateMany: jest
+          .fn()
+          .mockResolvedValueOnce({ count: 1 })
+          .mockResolvedValueOnce({ count: 0 }),
+      },
+      membership: {
+        count: jest.fn().mockResolvedValue(0),
+        create: jest.fn().mockResolvedValue({ householdId, role: UserRole.PARTNER }),
+      },
+      user: {
+        // A mutable profile username collision must cause a subject-derived
+        // fallback, never attachment to the existing local account.
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ id: 'existing-local-user' })
+          .mockResolvedValueOnce(null),
+        create: jest.fn().mockImplementation(
+          ({
+            data,
+          }: {
+            data: {
+              username: string;
+              displayName: string;
+              passwordHash: null;
+              preferredLanguage: PreferredLanguage;
+            };
+          }) => ({ id: userId, ...data }),
+        ),
+      },
+      auditEvent: {
+        create: jest.fn().mockResolvedValue({}),
+        createMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (database: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const auth = {
+      hashToken: jest.fn().mockReturnValue('invitation-hash'),
+      normalizeUsername: jest.fn((value: string) => value.toLowerCase()),
+      createAuthenticatedSession: jest.fn().mockResolvedValue(authResponse),
+    };
+    const profiledVerifier = {
+      ...verifier(),
+      verify: jest.fn().mockResolvedValue(profiledIdentity),
+    };
+    const service = new OidcService(
+      prisma as never,
+      profiledVerifier as never,
+      auth as never,
+      configuration(false) as never,
+    );
+
+    await expect(
+      service.login({
+        accessToken: 'token',
+        deviceName: 'Pixel',
+        invitationCode: 'abcd2345',
+      }),
+    ).resolves.toEqual(authResponse);
+    expect(auth.hashToken).toHaveBeenCalledWith('invitation:ABCD2345');
+    expect(tx.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        username: expect.stringMatching(/^oidc-[a-f0-9]{32}$/u) as string,
+        displayName: 'Elias',
+        passwordHash: null,
+      }) as Record<string, unknown>,
+    });
+    expect(tx.membership.create).toHaveBeenCalledWith({
+      data: { householdId, userId, role: UserRole.PARTNER },
+    });
+    expect(tx.invitation.updateMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: invitation.id,
+        usedAt: null,
+        revokedAt: null,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) as Date } }],
+      },
+      data: { usedAt: expect.any(Date) as Date },
+    });
+    expect(tx.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: 'OIDC_IDENTITY_LINKED',
+        metadata: expect.objectContaining({
+          enrollment: 'INVITATION',
+        }) as Record<string, unknown>,
+      }) as Record<string, unknown>,
     });
   });
 
@@ -107,6 +346,7 @@ describe('OidcService.login', () => {
         findUnique: jest.fn().mockResolvedValue(externalIdentity),
         update: jest.fn().mockResolvedValue({}),
       },
+      invitation: { findUnique: jest.fn() },
       auditEvent: { createMany: jest.fn().mockResolvedValue({ count: 2 }) },
     };
     const prisma = {
@@ -125,10 +365,16 @@ describe('OidcService.login', () => {
       prisma as never,
       verifier() as never,
       auth as never,
+      configuration() as never,
     );
 
     await expect(
-      service.login({ accessToken: 'token', deviceName: 'Pixel' }),
+      service.login({
+        accessToken: 'token',
+        deviceName: 'Pixel',
+        invitationCode: 'ABCD2345',
+        createIfMissing: true,
+      }),
     ).resolves.toEqual(authResponse);
     expect(auth.createAuthenticatedSession).toHaveBeenCalledWith(
       tx,
@@ -140,6 +386,7 @@ describe('OidcService.login', () => {
       where: { id: identityId },
       data: { lastUsedAt: expect.any(Date) as Date },
     });
+    expect(tx.invitation.findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects a linked identity when its Lunara account is disabled', async () => {
@@ -171,6 +418,7 @@ describe('OidcService.login', () => {
       prisma as never,
       verifier() as never,
       auth as never,
+      configuration() as never,
     );
 
     await expect(
@@ -201,6 +449,7 @@ describe('OidcService.link and status', () => {
       prisma as never,
       verifier() as never,
       {} as never,
+      configuration() as never,
     );
 
     await expect(
@@ -249,6 +498,7 @@ describe('OidcService.link and status', () => {
       prisma as never,
       verifier() as never,
       {} as never,
+      configuration() as never,
     );
 
     await expect(
@@ -307,6 +557,7 @@ describe('OidcService.link and status', () => {
       prisma as never,
       verifier() as never,
       {} as never,
+      configuration() as never,
     );
 
     await expect(
@@ -336,6 +587,7 @@ describe('OidcService.link and status', () => {
       prisma as never,
       disabledVerifier as never,
       {} as never,
+      configuration() as never,
     );
 
     await expect(service.status(userId)).resolves.toEqual({

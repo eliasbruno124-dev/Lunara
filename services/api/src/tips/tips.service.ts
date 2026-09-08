@@ -13,6 +13,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { createHash } from 'node:crypto';
+import { assertCurrentTrackerMembership } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -109,35 +110,38 @@ export class TipsService {
   }
 
   async createUserDefined(user: AuthenticatedUser, dto: CreateUserDefinedTipDto) {
-    const existing = await this.prisma.partnerTip.findUnique({ where: { id: dto.id } });
-    if (existing) {
-      if (
-        existing.category !== TipCategory.USER_DEFINED ||
-        existing.createdByUserId !== user.userId ||
-        existing.householdId !== user.householdId ||
-        !this.matchesCreateRequest(existing, dto)
-      ) {
-        throw new ConflictException('Client identifier is already in use');
+    const tip = await this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
+      const existing = await tx.partnerTip.findUnique({ where: { id: dto.id } });
+      if (existing) {
+        if (
+          existing.category !== TipCategory.USER_DEFINED ||
+          existing.createdByUserId !== user.userId ||
+          existing.householdId !== user.householdId ||
+          !this.matchesCreateRequest(existing, dto)
+        ) {
+          throw new ConflictException('Client identifier is already in use');
+        }
+        return existing;
       }
-      return this.serializeUserDefined(existing);
-    }
-    const tip = await this.prisma.partnerTip.create({
-      data: {
-        id: dto.id,
-        category: TipCategory.USER_DEFINED,
-        createdByUserId: user.userId,
-        householdId: user.householdId,
-        titleDe: dto.titleDe,
-        bodyDe: dto.bodyDe,
-        callToActionDe: dto.callToActionDe,
-        titleEn: dto.titleEn,
-        bodyEn: dto.bodyEn,
-        callToActionEn: dto.callToActionEn,
-        requiredSharedFields: dto.requiredSharedFields ?? [],
-        applicablePhase: dto.applicablePhase,
-        applicableSymptoms: dto.applicableSymptoms ?? [],
-        priority: dto.priority ?? 50,
-      },
+      return tx.partnerTip.create({
+        data: {
+          id: dto.id,
+          category: TipCategory.USER_DEFINED,
+          createdByUserId: user.userId,
+          householdId: user.householdId,
+          titleDe: dto.titleDe,
+          bodyDe: dto.bodyDe,
+          callToActionDe: dto.callToActionDe,
+          titleEn: dto.titleEn,
+          bodyEn: dto.bodyEn,
+          callToActionEn: dto.callToActionEn,
+          requiredSharedFields: dto.requiredSharedFields ?? [],
+          applicablePhase: dto.applicablePhase,
+          applicableSymptoms: dto.applicableSymptoms ?? [],
+          priority: dto.priority ?? 50,
+        },
+      });
     });
     return this.serializeUserDefined(tip);
   }
@@ -150,14 +154,17 @@ export class TipsService {
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException('At least one user-defined tip change is required');
     }
-    const updated = await this.prisma.partnerTip.updateMany({
-      where: {
-        id,
-        category: TipCategory.USER_DEFINED,
-        createdByUserId: user.userId,
-        householdId: user.householdId,
-      },
-      data: dto,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
+      return tx.partnerTip.updateMany({
+        where: {
+          id,
+          category: TipCategory.USER_DEFINED,
+          createdByUserId: user.userId,
+          householdId: user.householdId,
+        },
+        data: dto,
+      });
     });
     if (updated.count !== 1) throw new NotFoundException('User-defined tip not found');
     const tip = await this.prisma.partnerTip.findUniqueOrThrow({ where: { id } });
@@ -165,27 +172,30 @@ export class TipsService {
   }
 
   async disableUserDefined(user: AuthenticatedUser, id: string): Promise<void> {
-    const disabled = await this.prisma.partnerTip.updateMany({
-      where: {
-        id,
-        category: TipCategory.USER_DEFINED,
-        createdByUserId: user.userId,
-        householdId: user.householdId,
-        enabled: true,
-      },
-      data: { enabled: false },
+    await this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
+      const disabled = await tx.partnerTip.updateMany({
+        where: {
+          id,
+          category: TipCategory.USER_DEFINED,
+          createdByUserId: user.userId,
+          householdId: user.householdId,
+          enabled: true,
+        },
+        data: { enabled: false },
+      });
+      if (disabled.count === 1) return;
+      const owned = await tx.partnerTip.count({
+        where: {
+          id,
+          category: TipCategory.USER_DEFINED,
+          createdByUserId: user.userId,
+          householdId: user.householdId,
+        },
+      });
+      if (owned === 0) throw new NotFoundException('User-defined tip not found');
+      // Deactivation is intentionally idempotent.
     });
-    if (disabled.count === 1) return;
-    const owned = await this.prisma.partnerTip.count({
-      where: {
-        id,
-        category: TipCategory.USER_DEFINED,
-        createdByUserId: user.userId,
-        householdId: user.householdId,
-      },
-    });
-    if (owned === 0) throw new NotFoundException('User-defined tip not found');
-    // Deactivation is intentionally idempotent.
   }
 
   private async partnerContext(user: AuthenticatedUser): Promise<{

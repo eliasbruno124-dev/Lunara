@@ -19,6 +19,8 @@ describe('web application routing policy', () => {
     '/api-docs',
     '/api-docs-json',
     '/.well-known/assetlinks.json',
+    '/invite',
+    '/invite/private',
   ]) (
     'never treats %s as an SPA navigation',
     (path) => {

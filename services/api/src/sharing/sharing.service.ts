@@ -1,6 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditEventType } from '@prisma/client';
-import { lockRelationship } from '../common/database/database-coordination.js';
+import {
+  assertCurrentTrackerMembership,
+  lockRelationship,
+} from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSharingDto } from './sharing.dto.js';
@@ -24,6 +27,9 @@ export class SharingService {
 
   async update(user: AuthenticatedUser, dto: UpdateSharingDto) {
     const settings = await this.prisma.$transaction(async (tx) => {
+      // Revalidate the role before taking the relationship lock. This matches
+      // invitation acceptance's membership -> relationship order.
+      await assertCurrentTrackerMembership(tx, user);
       // Serialize this consent transition with cycle-profile changes. Without the shared lock,
       // a concurrent "enable sharing" and "disable estimate" request could commit in the wrong
       // order and silently restore a sensitive permission.

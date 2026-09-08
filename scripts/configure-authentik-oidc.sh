@@ -28,7 +28,7 @@ authentik_db_container="${AUTHENTIK_DB_CONTAINER:-postgresql}"
 expected_authentik_version="${AUTHENTIK_EXPECTED_VERSION:-2026.5.3}"
 public_host="${LUNARA_PUBLIC_HOST:-lunara.3li361.de}"
 authentik_public_url="${AUTHENTIK_PUBLIC_URL:-https://authentik.3li361.de}"
-allowed_users="${LUNARA_AUTHENTIK_USERS:-Dune,Elias}"
+access_group_name="${LUNARA_AUTHENTIK_ACCESS_GROUP:-ldapsearch}"
 signing_key_name="${AUTHENTIK_SIGNING_KEY_NAME:-authentik Self-signed Certificate}"
 android_app_link_host="${LUNARA_ANDROID_APP_LINK_HOST:-lunara.3li361.de}"
 android_app_package="${LUNARA_ANDROID_APP_PACKAGE:-de.lunara.app}"
@@ -62,9 +62,9 @@ if [[ ! "${android_app_package}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_
   echo "Ungültige Android-Application-ID." >&2
   exit 2
 fi
-if [[ ! "${allowed_users}" =~ ^[A-Za-z0-9_.@+-]+(,[A-Za-z0-9_.@+-]+)*$ ]] ||
-   (( ${#allowed_users} > 512 )); then
-  echo "LUNARA_AUTHENTIK_USERS muss eine eindeutige, kommaseparierte Benutzernamenliste sein." >&2
+if [[ -z "${access_group_name}" || "${access_group_name}" == *$'\n'* ||
+      "${access_group_name}" == *$'\r'* ]] || (( ${#access_group_name} > 150 )); then
+  echo "LUNARA_AUTHENTIK_ACCESS_GROUP muss eine vorhandene, eindeutig benannte Authentik-Zugriffsgruppe sein." >&2
   exit 2
 fi
 if [[ -z "${signing_key_name}" || "${signing_key_name}" == *$'\n'* ||
@@ -127,7 +127,7 @@ run_model() {
     -e LUNARA_EXPECTED_STATE="${expected_state}" \
     -e LUNARA_PUBLIC_HOST="${public_host}" \
     -e LUNARA_AUTHENTIK_URL="${authentik_public_url}" \
-    -e LUNARA_ALLOWED_USERS="${allowed_users}" \
+    -e LUNARA_ACCESS_GROUP="${access_group_name}" \
     -e LUNARA_SIGNING_KEY_NAME="${signing_key_name}" \
     -e LUNARA_ANDROID_APP_LINK_HOST="${android_app_link_host}" \
     -e LUNARA_ANDROID_APP_PACKAGE="${android_app_package}" \
@@ -156,7 +156,7 @@ ACTION = os.environ["LUNARA_ACTION"]
 EXPECTED_STATE = os.environ["LUNARA_EXPECTED_STATE"]
 PUBLIC_HOST = os.environ["LUNARA_PUBLIC_HOST"]
 AUTHENTIK_URL = os.environ["LUNARA_AUTHENTIK_URL"]
-ALLOWED_USERNAMES = os.environ["LUNARA_ALLOWED_USERS"].split(",")
+ACCESS_GROUP_NAME = os.environ["LUNARA_ACCESS_GROUP"]
 SIGNING_KEY_NAME = os.environ["LUNARA_SIGNING_KEY_NAME"]
 ANDROID_APP_LINK_HOST = os.environ["LUNARA_ANDROID_APP_LINK_HOST"]
 ANDROID_APP_PACKAGE = os.environ["LUNARA_ANDROID_APP_PACKAGE"]
@@ -166,24 +166,21 @@ OWNER = "lunara-authentik-oidc-v1"
 PROXY_PROVIDER_NAME = "Lunara Proxy"
 PROXY_APPLICATION_SLUG = "lunara"
 GATEWAY_GROUP_NAME = "Lunara Gateway"
+LEGACY_OIDC_GROUP_NAME = "Lunara Users"
 SERVICE_USERNAME = "lunara-native-app"
 INTERNAL_HOST = "http://lunara-api:3000"
 EXTERNAL_HOST = f"https://{PUBLIC_HOST}"
-PUBLIC_BYPASS = r"^/(?:api/v1/meta|\.well-known/assetlinks\.json)$"
+PUBLIC_BYPASS = r"^/(?:api/v1/meta|\.well-known/assetlinks\.json|invite)$"
 
 OIDC_PROVIDER_NAME = "Lunara Native and Web"
 OIDC_APPLICATION_NAME = "Lunara Login"
 OIDC_APPLICATION_SLUG = "lunara-android"
-OIDC_GROUP_NAME = "Lunara Users"
+OIDC_GROUP_NAME = ACCESS_GROUP_NAME
 OIDC_CLIENT_ID = "lunara-android"
 OIDC_REDIRECTS = [
     f"https://{ANDROID_APP_LINK_HOST}/auth/android-callback",
     f"https://{PUBLIC_HOST}/auth/callback",
 ]
-
-if len(ALLOWED_USERNAMES) != len(set(ALLOWED_USERNAMES)):
-    raise RuntimeError("Lunara Authentik OIDC preflight failed: duplicate allowed usernames")
-
 
 def fail(message):
     raise RuntimeError(f"Lunara Authentik OIDC preflight failed: {message}")
@@ -227,12 +224,23 @@ def dependencies():
             managed__in={
                 "goauthentik.io/providers/oauth2/scope-openid",
                 "goauthentik.io/providers/oauth2/scope-offline_access",
+                "goauthentik.io/providers/oauth2/scope-profile",
             }
         ).values_list("pk", flat=True)
     )
-    if len(scope_ids) != 2:
+    if len(scope_ids) != 3:
+        fail("the managed openid, profile and offline_access mappings are required")
+    legacy_scope_ids = set(
+        ScopeMapping.objects.filter(
+            managed__in={
+                "goauthentik.io/providers/oauth2/scope-openid",
+                "goauthentik.io/providers/oauth2/scope-offline_access",
+            }
+        ).values_list("pk", flat=True)
+    )
+    if len(legacy_scope_ids) != 2:
         fail("the managed openid and offline_access mappings are required")
-    return flows, signing_key, scope_ids
+    return flows, signing_key, scope_ids, legacy_scope_ids
 
 
 def inspect_base():
@@ -273,8 +281,8 @@ def inspect_oidc_named_objects():
     app_by_name = none_or_one(
         Application.objects.filter(name=OIDC_APPLICATION_NAME), "OIDC application name"
     )
-    group = none_or_one(Group.objects.filter(name=OIDC_GROUP_NAME), "OIDC group")
-    values = [provider, app_by_slug, app_by_name, group]
+    group = one(Group.objects.filter(name=OIDC_GROUP_NAME), "OIDC access group")
+    values = [provider, app_by_slug, app_by_name]
     if all(value is None for value in values):
         return None
     if any(value is None for value in values) or app_by_slug.pk != app_by_name.pk:
@@ -292,15 +300,17 @@ def expected_redirects():
     ]
 
 
-def verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids):
+def verify_target(
+    proxy,
+    proxy_app,
+    gateway_group,
+    oidc,
+    signing_key,
+    scope_ids,
+    proxy_human_group=None,
+):
     provider, application, group = oidc
-    allowed_users = list(User.objects.filter(username__in=ALLOWED_USERNAMES))
-    if len(allowed_users) != len(set(ALLOWED_USERNAMES)):
-        fail("an allowed human user is missing or duplicated")
-    if any(not user.is_active or user.type != UserTypes.INTERNAL for user in allowed_users):
-        fail("all allowed Lunara users must be active internal Authentik users")
-    if set(user.username for user in allowed_users) != set(ALLOWED_USERNAMES):
-        fail("allowed Authentik user lookup is incomplete")
+    proxy_human_group = proxy_human_group or group
 
     expected_provider_values = {
         "name": OIDC_PROVIDER_NAME,
@@ -327,7 +337,7 @@ def verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids)
     if provider._redirect_uris != expected_redirects():
         fail("OIDC redirect URIs are not the exact strict Android/PWA set")
     if set(provider.property_mappings.values_list("pk", flat=True)) != scope_ids:
-        fail("OIDC provider scopes must be openid + offline_access only")
+        fail("OIDC provider scopes must be openid + profile + offline_access only")
     if provider.jwt_federation_sources.exists() or set(
         provider.jwt_federation_providers.values_list("pk", flat=True)
     ) != {proxy.pk}:
@@ -341,12 +351,8 @@ def verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids)
         or application.policy_engine_mode != "any"
     ):
         fail("OIDC application differs from the pinned contract")
-    if group.is_superuser or group.attributes != {OWNER_KEY: OWNER}:
-        fail("Lunara Users group ownership or privilege differs")
-    if set(group.users.values_list("pk", flat=True)) != {user.pk for user in allowed_users}:
-        fail("Lunara Users group does not contain exactly the configured people")
-    if group.roles.exists() or group.parents.exists() or group.children.exists():
-        fail("Lunara Users has unexpected roles or hierarchy")
+    if group.is_superuser:
+        fail("the configured OIDC access group must not be a superuser group")
 
     oidc_bindings = list(PolicyBinding.objects.filter(target=application))
     if len(oidc_bindings) != 1:
@@ -359,47 +365,110 @@ def verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids)
         or not binding.enabled
         or binding.negate
         or binding.order != 0
+        or binding.timeout != 30
+        or binding.failure_result
     ):
         fail("OIDC application binding differs from the pinned group binding")
 
     proxy_bindings = list(PolicyBinding.objects.filter(target=proxy_app).order_by("order"))
     if len(proxy_bindings) != 2:
         fail("proxy application must allow exactly gateway and human groups")
-    expected_groups = [(gateway_group.pk, 0), (group.pk, 1)]
+    expected_groups = [(gateway_group.pk, 0), (proxy_human_group.pk, 1)]
     if [
         (binding.group_id, binding.order)
         for binding in proxy_bindings
-        if binding.enabled and not binding.negate and binding.user_id is None and binding.policy_id is None
+        if (
+            binding.enabled
+            and not binding.negate
+            and binding.user_id is None
+            and binding.policy_id is None
+            and binding.timeout == 30
+            and not binding.failure_result
+        )
     ] != expected_groups:
         fail("proxy application group bindings differ from the pinned any-policy")
     if proxy.skip_path_regex != PUBLIC_BYPASS:
-        fail("only meta and Android App Links may bypass proxy authentication")
+        fail("only meta, Android App Links and invitation capture may bypass proxy authentication")
     if proxy.jwt_federation_sources.exists() or proxy.jwt_federation_providers.exists():
         fail("proxy provider has unexpected outbound federation relationships")
 
 
-def classify(proxy, proxy_app, gateway_group, signing_key, scope_ids):
+def classify(
+    proxy,
+    proxy_app,
+    gateway_group,
+    signing_key,
+    scope_ids,
+    legacy_scope_ids,
+):
     oidc = inspect_oidc_named_objects()
     proxy_bindings = list(PolicyBinding.objects.filter(target=proxy_app))
     if oidc is None:
         if proxy.skip_path_regex != "":
             fail("base proxy already has an unexpected path bypass")
-        if len(proxy_bindings) != 1 or proxy_bindings[0].group_id != gateway_group.pk:
+        if len(proxy_bindings) != 1:
             fail("base proxy application does not have exactly the gateway binding")
+        binding = proxy_bindings[0]
+        if (
+            binding.group_id != gateway_group.pk
+            or binding.user_id is not None
+            or binding.policy_id is not None
+            or not binding.enabled
+            or binding.negate
+            or binding.order != 0
+            or binding.timeout != 30
+            or binding.failure_result
+        ):
+            fail("base proxy application gateway binding differs from the pinned contract")
         if proxy.jwt_federation_sources.exists() or proxy.jwt_federation_providers.exists():
             fail("base proxy has unexpected federation")
         return "base", None
-    verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids)
-    return "target", oidc
+    provider, _, group = oidc
+    configured_scope_ids = set(provider.property_mappings.values_list("pk", flat=True))
+    proxy_human_bindings = list(
+        PolicyBinding.objects.filter(target=proxy_app, order=1)
+    )
+    if configured_scope_ids == scope_ids:
+        verify_target(proxy, proxy_app, gateway_group, oidc, signing_key, scope_ids)
+        return "target", oidc
+    if configured_scope_ids == legacy_scope_ids and len(proxy_human_bindings) == 1:
+        legacy_group = none_or_one(
+            Group.objects.filter(name=LEGACY_OIDC_GROUP_NAME),
+            "legacy OIDC access group",
+        )
+        if legacy_group is None or legacy_group.is_superuser:
+            fail("the legacy OIDC access group is missing or privileged")
+        if proxy_human_bindings[0].group_id != legacy_group.pk:
+            fail("OIDC scopes and proxy access group form an unknown legacy state")
+        verify_target(
+            proxy,
+            proxy_app,
+            gateway_group,
+            oidc,
+            signing_key,
+            legacy_scope_ids,
+            proxy_human_group=legacy_group,
+        )
+        return "legacy", oidc
+    fail("existing OIDC target is neither the pinned current nor legacy contract")
+
+
+def migrate_legacy_target(proxy_app, oidc, scope_ids):
+    provider, _, group = oidc
+    provider.property_mappings.set(scope_ids)
+    human_binding = one(
+        PolicyBinding.objects.filter(target=proxy_app, order=1),
+        "legacy proxy human binding",
+    )
+    human_binding.group = group
+    human_binding.save(update_fields=["group"])
 
 
 def create_target(proxy, proxy_app, gateway_group, flows, signing_key, scope_ids):
     # All colliding names were checked while this transaction holds the namespace lock.
-    users = list(User.objects.filter(username__in=ALLOWED_USERNAMES))
-    if len(users) != len(set(ALLOWED_USERNAMES)) or set(user.username for user in users) != set(ALLOWED_USERNAMES):
-        fail("configured human Authentik users are missing")
-    if any(not user.is_active or user.type != UserTypes.INTERNAL for user in users):
-        fail("configured human Authentik users are not active internal accounts")
+    group = one(Group.objects.filter(name=OIDC_GROUP_NAME), "OIDC access group")
+    if group.is_superuser:
+        fail("the configured OIDC access group must not be a superuser group")
 
     provider = OAuth2Provider(
         name=OIDC_PROVIDER_NAME,
@@ -439,12 +508,6 @@ def create_target(proxy, proxy_app, gateway_group, flows, signing_key, scope_ids
         meta_hide=False,
         policy_engine_mode="any",
     )
-    group = Group.objects.create(
-        name=OIDC_GROUP_NAME,
-        is_superuser=False,
-        attributes={OWNER_KEY: OWNER},
-    )
-    group.users.set(users)
     PolicyBinding.objects.create(
         target=application,
         group=group,
@@ -469,17 +532,33 @@ def create_target(proxy, proxy_app, gateway_group, flows, signing_key, scope_ids
 
 if ACTION not in {"check", "apply"}:
     fail("invalid action")
-flows, signing_key, scope_ids = dependencies()
+flows, signing_key, scope_ids, legacy_scope_ids = dependencies()
 with transaction.atomic():
     lock_namespace()
     proxy, proxy_app, gateway_group = inspect_base()
-    state, _ = classify(proxy, proxy_app, gateway_group, signing_key, scope_ids)
+    state, oidc = classify(
+        proxy,
+        proxy_app,
+        gateway_group,
+        signing_key,
+        scope_ids,
+        legacy_scope_ids,
+    )
     if ACTION == "apply":
         if state != EXPECTED_STATE:
             fail("configuration changed after preflight")
         if state == "base":
             create_target(proxy, proxy_app, gateway_group, flows, signing_key, scope_ids)
-        state, _ = classify(proxy, proxy_app, gateway_group, signing_key, scope_ids)
+        elif state == "legacy":
+            migrate_legacy_target(proxy_app, oidc, scope_ids)
+        state, _ = classify(
+            proxy,
+            proxy_app,
+            gateway_group,
+            signing_key,
+            scope_ids,
+            legacy_scope_ids,
+        )
         if state != "target":
             fail("target OIDC contract could not be verified after apply")
 print(f"LUNARA_AUTHENTIK_OIDC_STATE={state}")
@@ -492,13 +571,16 @@ if ! preflight_output="$(run_model check none)"; then
 fi
 preflight_state="$(sed -n 's/^LUNARA_AUTHENTIK_OIDC_STATE=//p' <<< "${preflight_output}" | tail -n 1)"
 unset preflight_output
-[[ "${preflight_state}" == "base" || "${preflight_state}" == "target" ]] || {
+[[ "${preflight_state}" == "base" || "${preflight_state}" == "legacy" ||
+   "${preflight_state}" == "target" ]] || {
   echo "Authentik-OIDC-Preflight lieferte keinen eindeutigen Zustand." >&2
   exit 1
 }
 if [[ "${check_only}" == "true" ]]; then
   if [[ "${preflight_state}" == "base" ]]; then
     echo "Authentik-Prüfung erfolgreich: der bestehende Lunara-Vollschutz kann sicher um optionales OIDC erweitert werden."
+  elif [[ "${preflight_state}" == "legacy" ]]; then
+    echo "Authentik-Prüfung erfolgreich: der bekannte Altzustand kann sicher auf den aktuellen OIDC-Vertrag migriert werden."
   else
     echo "Authentik-Prüfung erfolgreich: OIDC, PKCE-Weiterleitungen, Gruppen, Federation und einzige Meta-Ausnahme entsprechen dem Sollzustand."
   fi
@@ -541,7 +623,7 @@ lines = [
     f"OIDC_ISSUER={issuer}",
     "OIDC_AUDIENCE=lunara-android",
     "OIDC_CLIENT_ID=lunara-android",
-    "OIDC_SCOPES=openid offline_access",
+    "OIDC_SCOPES=openid profile offline_access",
     f"OIDC_DISCOVERY_URL={issuer}.well-known/openid-configuration",
     f"OIDC_JWKS_URL={issuer}jwks/",
     "OIDC_ALLOWED_ALGORITHMS=RS256",
@@ -567,7 +649,7 @@ finally:
 PY
 
 backup_path=""
-if [[ "${preflight_state}" == "base" ]]; then
+if [[ "${preflight_state}" != "target" ]]; then
   timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
   backup_path="$(mktemp --tmpdir="${backup_dir}" "authentik-before-lunara-oidc-${timestamp}.XXXXXX.dump")"
   chmod 0600 -- "${backup_path}"

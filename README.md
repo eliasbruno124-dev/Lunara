@@ -15,7 +15,15 @@ Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
 nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## Release 1.1.0
+## Release 1.1.4
+
+Partner-Einladungen bleiben bei Authentik-Anmeldungen erhalten und lassen sich
+auch direkt in Android unter **Einstellungen → Partner verbinden** eingeben
+oder scannen. Bestehende leere Konten werden erst nach Bestätigung verbunden;
+vorhandene Daten und ausstehende Offline-Einträge werden nicht still gelöscht.
+Installationen lassen sich mit der signierten Release-APK aktualisieren.
+
+### Funktionen seit 1.1.0
 
 Version 1.1.0 ergänzt den bisherigen Server-/Android-Kern um:
 
@@ -97,8 +105,8 @@ beispielsweise:
 https://lunara.example.com
 ```
 
-Im Authentik-Modus sind nur `/api/v1/meta` und
-`/.well-known/assetlinks.json` anonym erreichbar. Meta enthält keine Konto-
+Im Authentik-Modus sind `/api/v1/meta`, `/.well-known/assetlinks.json` und die
+statische Einladungs-Landeseite `/invite` anonym erreichbar. Meta enthält keine Konto-
 oder Gesundheitsdaten und teilt dem Client mit, ob OIDC angeboten wird. Nach
 dem Browserlogin sendet der Client auf exakt denselben Ursprung:
 
@@ -160,7 +168,7 @@ ausdrücklich nicht als auf einem Gerät ausgeführter Test ausgewiesen.
 
 ## Android-Artefakte
 
-Erfolgreich gebaute Release-1.1.0-Artefakte liegen unter `artifacts/`:
+Erfolgreich gebaute Release-1.1.4-Artefakte liegen unter `artifacts/`:
 
 - `lunara-debug.apk` – Production-Debug/Testinstallation mit Debugsignatur und
   HTTPS-only; sie kann Passwort-/Headerauth testen, ihr Debugzertifikat erfüllt

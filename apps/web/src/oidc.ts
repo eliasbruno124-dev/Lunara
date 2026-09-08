@@ -1,6 +1,11 @@
 import type { LunaraApi } from './api';
 import type { OidcRefreshSession } from './auth';
-import type { AuthResponse, MetaResponse } from './types';
+import type {
+  AuthResponse,
+  MetaResponse,
+  OidcEnrollmentIntent,
+  PreferredLanguage,
+} from './types';
 
 const STORAGE_KEY = 'lunara-oidc-pkce';
 const CALLBACK_PATH = '/auth/callback';
@@ -20,7 +25,12 @@ interface PendingAuthorization {
   clientId: string;
   redirectUri: string;
   createdAt: number;
+  intent: OidcEnrollmentIntent['kind'];
+  preferredLanguage: PreferredLanguage;
+  invitationCode?: string;
 }
+
+const INVITATION_PATTERN = /^[A-HJ-NP-Z2-9]{8,12}$/u;
 
 function base64Url(bytes: Uint8Array): string {
   let binary = '';
@@ -45,19 +55,58 @@ function secureEndpoint(value: string): URL {
   return url;
 }
 
-export function canStartOidc(meta: MetaResponse): boolean {
-  const scopes = meta.oidc?.scopes ?? [];
+export function supportsOidcEnrollment(meta: MetaResponse): boolean {
+  const enrollment = meta.oidc?.enrollment;
   return Boolean(
+    meta.gatewayMode === 'authentik' &&
+      meta.primaryAuthenticationMethod === 'OIDC' &&
+      enrollment?.createIfMissingRequired === true &&
+      enrollment.localPasswordRequired === false,
+  );
+}
+
+export function canStartOidc(
+  meta: MetaResponse,
+  intent: OidcEnrollmentIntent['kind'] = 'login',
+): boolean {
+  const scopes = meta.oidc?.scopes ?? [];
+  const configured = Boolean(
     meta.authenticationMethods?.includes('OIDC') &&
       meta.oidc?.clientId &&
       meta.oidc.discoveryUrl &&
       scopes.includes('openid') &&
       scopes.includes('offline_access'),
   );
+  if (!configured || intent === 'login') return configured;
+  if (!supportsOidcEnrollment(meta)) return false;
+  if (intent === 'new-tracker') {
+    return meta.registrationEnabled && meta.oidc?.enrollment?.registration === true;
+  }
+  return meta.oidc?.enrollment?.invitation === true;
 }
 
-export async function startOidc(meta: MetaResponse): Promise<never> {
-  if (!canStartOidc(meta) || !meta.oidc?.clientId) {
+export function normalizeInvitationCode(value: string): string | null {
+  const normalized = value.trim().toUpperCase();
+  return INVITATION_PATTERN.test(normalized) ? normalized : null;
+}
+
+function preferredLanguage(intent: OidcEnrollmentIntent): PreferredLanguage {
+  return intent.preferredLanguage ?? 'DE';
+}
+
+function normalizedIntent(intent: OidcEnrollmentIntent): OidcEnrollmentIntent {
+  if (intent.kind !== 'partner') return intent;
+  const invitationCode = normalizeInvitationCode(intent.invitationCode);
+  if (!invitationCode) throw new Error('Invitation code is invalid');
+  return { ...intent, invitationCode };
+}
+
+export async function startOidc(
+  meta: MetaResponse,
+  requestedIntent: OidcEnrollmentIntent = { kind: 'login' },
+): Promise<void> {
+  const intent = normalizedIntent(requestedIntent);
+  if (!canStartOidc(meta, intent.kind) || !meta.oidc?.clientId) {
     throw new Error('OIDC browser login is not configured');
   }
   const discoveryUrl = secureEndpoint(meta.oidc.discoveryUrl);
@@ -91,6 +140,9 @@ export async function startOidc(meta: MetaResponse): Promise<never> {
     clientId: meta.oidc.clientId,
     redirectUri,
     createdAt: Date.now(),
+    intent: intent.kind,
+    preferredLanguage: preferredLanguage(intent),
+    ...(intent.kind === 'partner' ? { invitationCode: intent.invitationCode } : {}),
   };
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(pending));
   authorizationEndpoint.searchParams.set('client_id', meta.oidc.clientId);
@@ -101,7 +153,79 @@ export async function startOidc(meta: MetaResponse): Promise<never> {
   authorizationEndpoint.searchParams.set('code_challenge', await sha256(verifier));
   authorizationEndpoint.searchParams.set('code_challenge_method', 'S256');
   window.location.assign(authorizationEndpoint.href);
-  throw new Error('Browser navigation did not start');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function pendingAuthorization(raw: string): PendingAuthorization {
+  const value: unknown = JSON.parse(raw);
+  if (!isRecord(value)) throw new Error('OIDC callback state is invalid');
+  const intent = value.intent ?? 'login';
+  const language = value.preferredLanguage ?? 'DE';
+  if (
+    typeof value.state !== 'string' ||
+    typeof value.verifier !== 'string' ||
+    typeof value.issuer !== 'string' ||
+    typeof value.tokenEndpoint !== 'string' ||
+    typeof value.clientId !== 'string' ||
+    typeof value.redirectUri !== 'string' ||
+    typeof value.createdAt !== 'number' ||
+    !['login', 'new-tracker', 'partner'].includes(String(intent)) ||
+    !['DE', 'EN'].includes(String(language))
+  ) {
+    throw new Error('OIDC callback state is invalid');
+  }
+  if (intent === 'partner') {
+    if (typeof value.invitationCode !== 'string') {
+      throw new Error('OIDC callback state is invalid');
+    }
+    const invitationCode = normalizeInvitationCode(value.invitationCode);
+    if (!invitationCode) throw new Error('OIDC callback state is invalid');
+    return {
+      state: value.state,
+      verifier: value.verifier,
+      issuer: value.issuer,
+      tokenEndpoint: value.tokenEndpoint,
+      clientId: value.clientId,
+      redirectUri: value.redirectUri,
+      createdAt: value.createdAt,
+      intent,
+      preferredLanguage: language as PreferredLanguage,
+      invitationCode,
+    };
+  }
+  return {
+    state: value.state,
+    verifier: value.verifier,
+    issuer: value.issuer,
+    tokenEndpoint: value.tokenEndpoint,
+    clientId: value.clientId,
+    redirectUri: value.redirectUri,
+    createdAt: value.createdAt,
+    intent: intent as 'login' | 'new-tracker',
+    preferredLanguage: language as PreferredLanguage,
+  };
+}
+
+function enrollmentIntent(pending: PendingAuthorization): OidcEnrollmentIntent {
+  switch (pending.intent) {
+    case 'login':
+      return { kind: 'login' };
+    case 'new-tracker':
+      return {
+        kind: 'new-tracker',
+        preferredLanguage: pending.preferredLanguage,
+      };
+    case 'partner':
+      if (!pending.invitationCode) throw new Error('OIDC callback state is invalid');
+      return {
+        kind: 'partner',
+        invitationCode: pending.invitationCode,
+        preferredLanguage: pending.preferredLanguage,
+      };
+  }
 }
 
 export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse | null> {
@@ -115,7 +239,7 @@ export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse |
   history.replaceState({}, '', '/');
   if (error) throw new Error('OIDC authorization was rejected');
   if (!code || !returnedState || !pendingRaw) throw new Error('Incomplete OIDC callback');
-  const pending = JSON.parse(pendingRaw) as PendingAuthorization;
+  const pending = pendingAuthorization(pendingRaw);
   if (
     pending.state !== returnedState ||
     Date.now() - pending.createdAt > 10 * 60_000 ||
@@ -154,5 +278,9 @@ export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse |
     tokenEndpoint: pending.tokenEndpoint,
     clientId: pending.clientId,
   };
-  return api.oidcLogin(tokenBody.access_token, refreshSession);
+  return api.oidcLogin(
+    tokenBody.access_token,
+    refreshSession,
+    enrollmentIntent(pending),
+  );
 }

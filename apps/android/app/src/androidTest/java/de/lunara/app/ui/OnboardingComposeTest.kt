@@ -11,6 +11,8 @@ import de.lunara.app.ui.onboarding.AuthMode
 import de.lunara.app.ui.onboarding.OnboardingStage
 import de.lunara.app.ui.onboarding.OnboardingUiState
 import de.lunara.app.data.remote.dto.MetaDto
+import de.lunara.app.data.remote.dto.OidcEnrollmentDto
+import de.lunara.app.data.remote.dto.OidcMetaDto
 import de.lunara.app.ui.theme.LunaraTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -131,6 +133,59 @@ class OnboardingComposeTest {
     }
 
     @Test
+    fun authentikPrimaryLoginHidesEverySecondIdentityField() {
+        compose.setContent {
+            LunaraTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(
+                        stage = OnboardingStage.AUTH,
+                        authMode = AuthMode.LOGIN,
+                        meta = authentikPrimaryMeta(),
+                    ),
+                    onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {},
+                    onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
+                    onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {},
+                    onUsername = {}, onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
+                    onInvitationCode = {}, onAuthentikLogin = {}, onSubmit = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Mit Authentik anmelden").assertIsDisplayed()
+        compose.onNodeWithText("Benutzername").assertDoesNotExist()
+        compose.onNodeWithText("Passwort").assertDoesNotExist()
+        compose.onNodeWithText("Anzeigename").assertDoesNotExist()
+        compose.onNodeWithText("Neue Beziehung starten").assertDoesNotExist()
+    }
+
+    @Test
+    fun authentikPrimaryJoinOffersOnlyInvitationAndProvider() {
+        compose.setContent {
+            LunaraTheme {
+                OnboardingScreen(
+                    state = OnboardingUiState(
+                        stage = OnboardingStage.AUTH,
+                        authMode = AuthMode.JOIN,
+                        invitationCode = "ABCDEFGH2345",
+                        meta = authentikPrimaryMeta(),
+                    ),
+                    onLanguage = {}, onContinue = {}, onBack = {}, onServerUrl = {},
+                    onScannedServerUrl = {}, onAllowHttp = {}, onTestConnection = {},
+                    onConfirmServerChange = {}, onCancelServerChange = {}, onAuthMode = {},
+                    onUsername = {}, onPassword = {}, onDisplayName = {}, onBootstrapToken = {},
+                    onInvitationCode = {}, onAuthentikLogin = {}, onSubmit = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("Einladungscode").assertIsDisplayed()
+        compose.onNodeWithText("Einladung mit Authentik einlösen").assertIsDisplayed()
+        compose.onNodeWithText("Benutzername").assertDoesNotExist()
+        compose.onNodeWithText("Passwort").assertDoesNotExist()
+        compose.onNodeWithText("Anzeigename").assertDoesNotExist()
+    }
+
+    @Test
     fun setupAndRegistrationNeverAskForAHouseholdName() {
         compose.setContent {
             LunaraTheme {
@@ -152,4 +207,26 @@ class OnboardingComposeTest {
         compose.onNodeWithText("Beziehung starten").assertIsDisplayed()
         compose.onNodeWithText("Name des Haushalts").assertDoesNotExist()
     }
+
+    private fun authentikPrimaryMeta() = MetaDto(
+        name = "Lunara",
+        version = "1.1.2",
+        apiVersion = "v1",
+        setupRequired = false,
+        registrationEnabled = true,
+        serverTime = "now",
+        gatewayMode = "authentik",
+        authenticationMethods = listOf("OIDC"),
+        primaryAuthenticationMethod = "OIDC",
+        oidc = OidcMetaDto(
+            providerName = "Authentik",
+            issuer = "https://auth.example/application/o/lunara/",
+            enrollment = OidcEnrollmentDto(
+                registration = true,
+                invitation = true,
+                localPasswordRequired = false,
+                createIfMissingRequired = true,
+            ),
+        ),
+    )
 }

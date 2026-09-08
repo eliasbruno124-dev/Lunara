@@ -30,6 +30,7 @@ import com.squareup.moshi.JsonClass
 /**
  *
  *
+ * @param acceptanceUrl
  * @param assignedRole
  * @param code
  * @param expiresAt
@@ -38,6 +39,9 @@ import com.squareup.moshi.JsonClass
 
 
 data class InvitationResponse (
+
+    @Json(name = "acceptanceUrl")
+    val acceptanceUrl: java.net.URI,
 
     @Json(name = "assignedRole")
     val assignedRole: InvitationResponse.AssignedRole,

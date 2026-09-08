@@ -15,6 +15,18 @@ describe('validateEnvironment', () => {
     expect(validateEnvironment({ ...valid })).toMatchObject(valid);
   });
 
+  it('accepts only explicit direct or authentik gateway modes', () => {
+    expect(validateEnvironment({ ...valid, GATEWAY_MODE: 'direct' })).toMatchObject({
+      GATEWAY_MODE: 'direct',
+    });
+    expect(validateEnvironment({ ...valid, GATEWAY_MODE: 'authentik' })).toMatchObject({
+      GATEWAY_MODE: 'authentik',
+    });
+    expect(() => validateEnvironment({ ...valid, GATEWAY_MODE: 'proxy' })).toThrow(
+      'GATEWAY_MODE',
+    );
+  });
+
   it('allows the bootstrap token to be removed after first setup', () => {
     const withoutBootstrap = { ...valid };
     delete (withoutBootstrap as Partial<typeof valid>).BOOTSTRAP_TOKEN;

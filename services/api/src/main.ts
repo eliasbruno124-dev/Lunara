@@ -8,6 +8,7 @@ import type { NextFunction, Request, Response } from 'express';
 import type { Express } from 'express';
 import { AppModule } from './app.module.js';
 import { installWebApp } from './web/web-app.js';
+import { installInvitationLanding } from './web/invitation-landing.js';
 
 function safeEqual(left: string, right: string): boolean {
   const a = Buffer.from(left);
@@ -63,6 +64,7 @@ async function bootstrap(): Promise<void> {
       (request.path === '/api-docs' || request.path.startsWith('/api-docs/'));
     return (isOpenApi ? openApiHeaders : webHeaders)(request, response, next);
   });
+  installInvitationLanding(express);
   installWebApp(express, process.env.WEB_DIST_DIR);
   app.useGlobalPipes(
     new ValidationPipe({

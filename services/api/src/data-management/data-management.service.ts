@@ -9,6 +9,7 @@ import { AuditEventType, PeriodSource, Prisma, SyncOperation, UserRole } from '@
 import { createCipheriv, pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 import {
+  assertCurrentTrackerMembership,
   lockRelationship,
   lockUserPeriods,
 } from '../common/database/database-coordination.js';
@@ -144,7 +145,10 @@ export class DataManagementService {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
         // Preview is advisory. The authoritative plan is always rebuilt while
-        // holding the same per-user lock as normal period mutations.
+        // holding the same membership then per-user locks as normal mutations.
+        // This prevents a stale tracker request from importing records after
+        // invitation acceptance has moved that membership to PARTNER.
+        await assertCurrentTrackerMembership(tx, user);
         await lockUserPeriods(tx, user.userId);
         const [existingPeriods, existingLogs] = await Promise.all([
           tx.periodEvent.findMany({

@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PeriodEvent, Prisma, SyncOperation } from '@prisma/client';
-import { lockUserPeriods } from '../common/database/database-coordination.js';
+import {
+  assertCurrentTrackerMembership,
+  lockUserPeriods,
+} from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -37,6 +40,7 @@ export class PeriodsService {
     transaction?: Prisma.TransactionClient,
   ) {
     const operation = async (tx: Prisma.TransactionClient): Promise<PeriodEvent> => {
+      await assertCurrentTrackerMembership(tx, user);
       await lockUserPeriods(tx, user.userId);
       await this.validateRangeForUser(
         tx,
@@ -107,6 +111,7 @@ export class PeriodsService {
     transaction?: Prisma.TransactionClient,
   ) {
     const operation = async (tx: Prisma.TransactionClient): Promise<PeriodEvent> => {
+      await assertCurrentTrackerMembership(tx, user);
       await lockUserPeriods(tx, user.userId);
       const current = await tx.periodEvent.findFirst({
         where: { id, userId: user.userId, deletedAt: null },
@@ -193,6 +198,7 @@ export class PeriodsService {
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const operation = async (tx: Prisma.TransactionClient): Promise<void> => {
+      await assertCurrentTrackerMembership(tx, user);
       await lockUserPeriods(tx, user.userId);
       const result = await tx.periodEvent.updateMany({
         where: { id, userId: user.userId, version, deletedAt: null },

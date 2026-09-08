@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PreferredLanguage, UserRole } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
@@ -101,6 +101,13 @@ describe('DataManagementService period import safety', () => {
     const periodId = '86178311-8f06-409e-b2cf-99e83c362327';
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       periodEvent: {
         findMany: jest.fn().mockResolvedValue([existingPeriod]),
         create: jest.fn().mockResolvedValue({ id: periodId }),
@@ -147,6 +154,9 @@ describe('DataManagementService period import safety', () => {
       dailyLogs: { supplied: 0, create: 0, duplicates: 0 },
     });
     expect(tx.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      tx.membership.findUnique.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(tx.membership.findUnique.mock.invocationCallOrder[0]).toBeLessThan(
       tx.periodEvent.findMany.mock.invocationCallOrder[0] ?? 0,
     );
     expect(predictions.recalculateAndCache).toHaveBeenCalledWith(
@@ -160,6 +170,13 @@ describe('DataManagementService period import safety', () => {
   it('rejects a plan that became overlapping before commit without writing', async () => {
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       periodEvent: { findMany: jest.fn().mockResolvedValue([existingPeriod]), create: jest.fn() },
       dailyLog: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn() },
       importBatch: { create: jest.fn() },
@@ -189,6 +206,45 @@ describe('DataManagementService period import safety', () => {
     expect(tx.importBatch.create).not.toHaveBeenCalled();
     expect(tx.periodEvent.create).not.toHaveBeenCalled();
     expect(predictions.recalculateAndCache).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale tracker import before it creates any counted health data', async () => {
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: 'new-relationship-id',
+          role: UserRole.PARTNER,
+        }),
+      },
+      periodEvent: { findMany: jest.fn(), create: jest.fn() },
+      dailyLog: { findMany: jest.fn(), create: jest.fn() },
+      importBatch: { create: jest.fn() },
+      syncChange: { create: jest.fn() },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (operation: (client: typeof tx) => Promise<unknown>) => operation(tx),
+      ),
+    };
+    const service = new DataManagementService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      service.import(tracker, {
+        preview: false,
+        data: { periods: [{ startDate: '2026-06-01' }] },
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(tx.periodEvent.findMany).not.toHaveBeenCalled();
+    expect(tx.importBatch.create).not.toHaveBeenCalled();
+    expect(tx.periodEvent.create).not.toHaveBeenCalled();
+    expect(tx.dailyLog.create).not.toHaveBeenCalled();
   });
 
   it('maps an adapter-level exclusion violation without exposing range details', async () => {

@@ -16,9 +16,14 @@ data class MetaDto(
     val registrationEnabled: Boolean = false,
     val serverTime: String,
     val gatewayHeaderName: String? = null,
+    val gatewayMode: String? = null,
     val authenticationMethods: List<String> = listOf("PASSWORD"),
+    /** Present on servers that explicitly support Authentik-primary enrollment. */
+    val primaryAuthenticationMethod: String? = null,
     val oidc: OidcMetaDto? = null,
 )
+
+data class HealthDto(val status: String)
 
 data class OidcMetaDto(
     val providerName: String,
@@ -29,16 +34,43 @@ data class OidcMetaDto(
     val audience: String? = null,
     val scopes: List<String> = listOf("openid"),
     val discoveryUrl: String? = null,
+    val enrollment: OidcEnrollmentDto? = null,
+)
+
+data class OidcEnrollmentDto(
+    val registration: Boolean = false,
+    val invitation: Boolean = false,
+    val localPasswordRequired: Boolean = true,
+    val createIfMissingRequired: Boolean = false,
 )
 
 data class OidcLoginRequest(
     val accessToken: String,
     val deviceName: String,
+    /**
+     * Optional single-use relationship proof. On an Authentik-primary server an
+     * unknown external identity becomes a PARTNER only when this code is
+     * redeemed in the same verified OIDC operation.
+     */
+    val invitationCode: String? = null,
+    /** Used only while provisioning a previously unknown external identity. */
+    val preferredLanguage: String? = null,
+    /**
+     * Explicit opt-in for creating a TRACKER projection when this external
+     * identity is not known yet. Keeping the wire default false prevents an
+     * older invitation flow from silently starting a separate relationship.
+     */
+    val createIfMissing: Boolean? = null,
 )
 
 data class OidcLinkRequest(
     val accessToken: String,
     val currentPassword: String,
+)
+
+data class AcceptInvitationRequest(
+    val invitationCode: String,
+    val confirm: Boolean = true,
 )
 
 data class OidcStatusDto(
@@ -297,6 +329,8 @@ data class InvitationDto(
     val assignedRole: String,
     val expiresAt: String? = null,
     val createdAt: String? = null,
+    /** Present only when a code is created; never returned by invitation overview after restart. */
+    val acceptanceUrl: String? = null,
 )
 
 data class RelationshipMemberDto(

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PreferredLanguage } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -164,6 +165,37 @@ export class OidcLoginDto {
   @Length(1, 120)
   @Matches(/\S/u)
   deviceName!: string;
+
+  @ApiPropertyOptional({
+    minLength: 8,
+    maxLength: 12,
+    description:
+      'When present on first sign-in, atomically joins the relationship represented by this one-time invitation',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(8, 12)
+  @Matches(/^[A-HJ-NP-Z2-9]+$/i)
+  invitationCode?: string;
+
+  @ApiPropertyOptional({
+    enum: PreferredLanguage,
+    default: PreferredLanguage.DE,
+    description:
+      'Used only when this exact external identity is provisioned for the first time',
+  })
+  @IsOptional()
+  @IsEnum(PreferredLanguage)
+  preferredLanguage?: PreferredLanguage;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Explicitly permits first sign-in to create a new isolated TRACKER relationship; omitted or false preserves login-only behavior',
+  })
+  @IsOptional()
+  @IsBoolean()
+  createIfMissing?: boolean;
 }
 
 export class OidcLinkDto {

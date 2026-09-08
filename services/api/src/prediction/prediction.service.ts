@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PredictionConfidence, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
-import { lockRelationship } from '../common/database/database-coordination.js';
+import {
+  assertCurrentTrackerMembership,
+  lockRelationship,
+} from '../common/database/database-coordination.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   calculatePrediction,
@@ -22,6 +25,7 @@ export class PredictionService {
 
   async updateProfile(user: AuthenticatedUser, dto: UpdateCycleProfileDto) {
     const profile = await this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
       await lockRelationship(tx, user.householdId);
       const updated = await tx.cycleProfile.update({
         where: { userId: user.userId },

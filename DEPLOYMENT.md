@@ -98,11 +98,26 @@ einem eigenen langen Dokumentationspasswort geschützt werden.
 
 ### 3.1 Sicherheitsvertrag
 
-Im unterstützten Zielzustand sind genau zwei Endpunkte ohne Authentik-Sitzung
+Im unterstützten Zielzustand sind genau drei Pfade ohne Authentik-Sitzung
 erreichbar:
 
 - `/api/v1/meta` für nicht sensible Server-/OIDC-Erkennung;
-- `/.well-known/assetlinks.json` für die Android-Domainverifikation.
+- `/.well-known/assetlinks.json` für die Android-Domainverifikation;
+- `/invite` als statische, cachefreie Einladungs-Landeseite ohne API-Zugriff.
+
+Die exakte Proxy-Ausnahme lautet ab 1.1.4:
+`^/(?:api/v1/meta|\.well-known/assetlinks\.json|invite)$`.
+Zuerst die neue API ausrollen, danach nur diese Ausnahme ergänzen. Keine
+Ausnahme für `/`, `/api`, `/invite/…` oder Wildcards eintragen. Einladungen
+verwenden `https://eigener-server.example/invite#invite=CODE`. Der Code bleibt
+im URL-Fragment beziehungsweise lokalen Sitzungs-/Keystore-Speicher und wird
+nicht in die Authentik-Redirect-URL übernommen.
+
+In Android können bereits angemeldete Nutzer unter **Einstellungen → Partner
+verbinden** einen Code eingeben oder den QR-Code scannen. Nach Bestätigung
+wird das bestehende leere Einzelkonto zum Partnerkonto. Konten mit erfassten
+Gesundheitsdaten oder individuellen Beziehungseinstellungen werden nicht
+automatisch verschoben oder gelöscht. Der Solomodus bleibt separat.
 
 PWA, Login, Refresh, Sync, Health, Ready und OpenAPI laufen durch den
 Authentik-Proxy. Moderne Clients führen einmalig den OIDC Authorization Code

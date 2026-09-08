@@ -18,6 +18,13 @@ describe('fertility sharing invariant', () => {
   it('rejects direct fertility sharing before the source estimate is enabled', async () => {
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: user.userId,
+          householdId: user.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       cycleProfile: {
         findUnique: jest.fn().mockResolvedValue({ fertilityPredictionEnabled: false }),
       },
@@ -33,13 +40,20 @@ describe('fertility sharing invariant', () => {
       ConflictException,
     );
     expect(transaction.sharingSettings.update).not.toHaveBeenCalled();
-    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(2);
   });
 
   it('revokes fertility sharing in the same transaction when the estimate is disabled', async () => {
     const updatedProfile = { fertilityPredictionEnabled: false };
     const transaction = {
       $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: user.userId,
+          householdId: user.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       cycleProfile: { update: jest.fn().mockResolvedValue(updatedProfile) },
       sharingSettings: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     };
@@ -60,6 +74,32 @@ describe('fertility sharing invariant', () => {
       where: { ownerUserId: user.userId, householdId: user.householdId },
       data: { shareFertileWindow: false },
     });
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a stale tracker sharing change before it reaches the relationship lock', async () => {
+    const transaction = {
+      $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: user.userId,
+          householdId: 'moved-relationship-id',
+          role: UserRole.PARTNER,
+        }),
+      },
+      sharingSettings: { update: jest.fn() },
+      auditEvent: { create: jest.fn() },
+    };
+    const prisma = {
+      $transaction: jest.fn((work: (tx: typeof transaction) => unknown) => work(transaction)),
+    };
+    const service = new SharingService(prisma as never);
+
+    await expect(service.update(user, { sharePrediction: false })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(transaction.sharingSettings.update).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
     expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
   });
 });

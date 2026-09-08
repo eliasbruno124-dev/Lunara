@@ -138,7 +138,12 @@ import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.StatusPill
 import de.lunara.app.ui.components.QrCode
+import de.lunara.app.ui.onboarding.canonicalInvitationLink
+import de.lunara.app.ui.onboarding.parseInvitationQrPayload
+import de.lunara.app.ui.scanner.lunaraQrScanOptions
 import de.lunara.app.ui.theme.LunaraTheme
+import com.google.zxing.client.android.Intents
+import com.journeyapps.barcodescanner.ScanContract
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -336,6 +341,7 @@ fun MainShell(
                     oidc = state.oidc,
                     backupStatus = state.backupStatus,
                     onCreateInvitation = viewModel::createInvitation,
+                    onAcceptInvitation = viewModel::acceptInvitation,
                     onRefreshInvitation = viewModel::refreshInvitation,
                     onRevokeInvitation = viewModel::revokeInvitation,
                     onUpdateSharing = viewModel::updateSharing,
@@ -1965,6 +1971,7 @@ private fun SettingsScreen(
     oidc: OidcLinkUiState,
     backupStatus: LocalBackupStatus,
     onCreateInvitation: () -> Unit,
+    onAcceptInvitation: (String) -> Unit,
     onRefreshInvitation: () -> Unit,
     onRevokeInvitation: () -> Unit,
     onUpdateSharing: (UpdateSharingRequest) -> Unit,
@@ -1990,9 +1997,14 @@ private fun SettingsScreen(
     var pendingAuthentikPassword by remember { mutableStateOf("") }
     var showExportBackupDialog by remember { mutableStateOf(false) }
     var showImportBackupDialog by remember { mutableStateOf(false) }
+    var showInvitationAcceptDialog by remember { mutableStateOf(false) }
+    var invitationToAccept by remember { mutableStateOf("") }
+    var invitationInputInvalid by remember { mutableStateOf(false) }
     var pendingExportPassphrase by remember { mutableStateOf("") }
     var pendingImportUri by remember { mutableStateOf<String?>(null) }
     var notificationPermissionDenied by remember { mutableStateOf(false) }
+    val invitationScanPrompt = stringResource(R.string.scan_invitation_qr_prompt)
+    val shareInvitationLabel = stringResource(R.string.share_invitation)
     val context = LocalContext.current
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -2026,6 +2038,19 @@ private fun SettingsScreen(
         if (uri != null) {
             pendingImportUri = uri.toString()
             showImportBackupDialog = true
+        }
+    }
+    val invitationScanner = rememberLauncherForActivityResult(ScanContract()) { result ->
+        when {
+            result.contents != null -> {
+                parseInvitationQrPayload(result.contents, preferences.baseUrl)?.let {
+                    invitationToAccept = it
+                    invitationInputInvalid = false
+                } ?: run { invitationInputInvalid = true }
+            }
+            result.originalIntent?.getBooleanExtra(Intents.Scan.MISSING_CAMERA_PERMISSION, false) == true -> {
+                invitationInputInvalid = true
+            }
         }
     }
     LaunchedEffect(session.userId) {
@@ -2234,6 +2259,15 @@ private fun SettingsScreen(
                                     stringResource(R.string.partner_connected),
                                     fontWeight = FontWeight.Bold,
                                 )
+                            } else {
+                                OutlinedButton(
+                                    onClick = {
+                                        invitationToAccept = ""
+                                        invitationInputInvalid = false
+                                        showInvitationAcceptDialog = true
+                                    },
+                                    enabled = !settingsBusy,
+                                ) { Text(stringResource(R.string.accept_partner_invitation)) }
                             }
                             invitation?.let {
                                 it.code?.let { code ->
@@ -2247,7 +2281,27 @@ private fun SettingsScreen(
                                     } ?: stringResource(R.string.invitation_no_expiry),
                                 )
                                 it.code?.let { code ->
-                                    QrCode(code, stringResource(R.string.invitation_qr_description, code))
+                                    val link = it.acceptanceUrl
+                                        ?.takeIf { url ->
+                                            parseInvitationQrPayload(url, preferences.baseUrl) == code
+                                        }
+                                        ?: canonicalInvitationLink(preferences.baseUrl, code)
+                                    QrCode(link ?: code, stringResource(R.string.invitation_qr_description, code))
+                                    if (link != null) {
+                                        TextButton(
+                                            onClick = {
+                                                context.startActivity(
+                                                    Intent.createChooser(
+                                                        Intent(Intent.ACTION_SEND)
+                                                            .setType("text/plain")
+                                                            .putExtra(Intent.EXTRA_TEXT, link),
+                                                        shareInvitationLabel,
+                                                    ),
+                                                )
+                                            },
+                                            enabled = !settingsBusy,
+                                        ) { Text(stringResource(R.string.share_invitation)) }
+                                    }
                                 }
                                 TextButton(
                                     onClick = onRevokeInvitation,
@@ -2316,7 +2370,7 @@ private fun SettingsScreen(
             text = {
                 Text(
                     stringResource(
-                        if (isLocalMode) R.string.local_delete_confirmation else R.string.privacy_mode_summary,
+                        if (isLocalMode) R.string.local_delete_confirmation else R.string.logout_confirmation,
                     ),
                 )
             },
@@ -2326,6 +2380,64 @@ private fun SettingsScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text(stringResource(R.string.back_label)) } },
+        )
+    }
+    if (showInvitationAcceptDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!settingsBusy) showInvitationAcceptDialog = false },
+            title = { Text(stringResource(R.string.accept_partner_invitation)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        stringResource(R.string.accept_partner_invitation_warning),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = invitationToAccept,
+                        onValueChange = {
+                            invitationToAccept = it.take(512)
+                            invitationInputInvalid = false
+                        },
+                        label = { Text(stringResource(R.string.invitation_code)) },
+                        singleLine = true,
+                        isError = invitationInputInvalid,
+                        enabled = !settingsBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            invitationScanner.launch(
+                                lunaraQrScanOptions(invitationScanPrompt),
+                            )
+                        },
+                        enabled = !settingsBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.scan_invitation_qr)) }
+                    if (invitationInputInvalid) {
+                        Text(stringResource(R.string.error_invitation_code), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !settingsBusy,
+                    onClick = {
+                        val code = parseInvitationQrPayload(invitationToAccept, preferences.baseUrl)
+                        if (code == null) {
+                            invitationInputInvalid = true
+                        } else {
+                            showInvitationAcceptDialog = false
+                            onAcceptInvitation(code)
+                        }
+                    },
+                ) { Text(stringResource(R.string.connect_with_invitation)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showInvitationAcceptDialog = false },
+                    enabled = !settingsBusy,
+                ) { Text(stringResource(R.string.cancel)) }
+            },
         )
     }
     if (showPasswordDialog) {

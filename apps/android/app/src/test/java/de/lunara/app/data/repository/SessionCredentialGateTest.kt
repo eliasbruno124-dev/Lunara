@@ -16,4 +16,29 @@ class SessionCredentialGateTest {
         assertFalse(gate.commitIfCurrent(oldGeneration) { true })
         assertTrue(gate.commitIfCurrent(gate.snapshot()) { true })
     }
+
+    @Test
+    fun `stale invitation refresh cannot enter its cache reset commit`() = runTest {
+        val gate = SessionCredentialGate()
+        val invitationGeneration = gate.snapshot()
+        var cacheResetEntered = false
+
+        gate.invalidate()
+
+        assertFalse(gate.commitIfCurrent(invitationGeneration) {
+            cacheResetEntered = true
+            true
+        })
+        assertFalse(cacheResetEntered)
+    }
+
+    @Test
+    fun `post-provision role refresh failure retains invitation proof for retry`() {
+        assertFalse(
+            shouldClearPendingInvitationAfterOidcFailure(
+                PostProvisionFinalizationException(IllegalStateException("offline")),
+            ),
+        )
+        assertTrue(shouldClearPendingInvitationAfterOidcFailure(IllegalStateException("cancelled")))
+    }
 }

@@ -32,3 +32,10 @@ class SessionCredentialGate @Inject constructor() {
 
 internal class CredentialGenerationChangedException :
     IllegalStateException("Credential generation changed while authenticating")
+
+/** The server already provisioned the partner; retain the invitation proof for a safe retry. */
+internal class PostProvisionFinalizationException(cause: Throwable) :
+    IllegalStateException("Partner provisioning completed but session finalization failed", cause)
+
+internal fun shouldClearPendingInvitationAfterOidcFailure(failure: Throwable): Boolean =
+    failure !is PostProvisionFinalizationException

@@ -13,3 +13,11 @@ fun <T> Response<T>.requireBody(): T {
 }
 
 fun endpoint(baseUrl: String, path: String): String = baseUrl.trimEnd('/') + "/" + path.trimStart('/')
+
+internal fun gatewayProbeAccepted(
+    statusCode: Int,
+    healthStatus: String?,
+    gatewayMode: String?,
+): Boolean = statusCode in 200..299 &&
+    healthStatus == "ok" &&
+    (gatewayMode == null || gatewayMode == "authentik")

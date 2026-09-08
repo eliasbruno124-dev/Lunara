@@ -85,14 +85,42 @@ function sortDeep(value) {
 function addResponseContracts(document) {
   const schemas = document.components.schemas;
   Object.assign(schemas, {
-    MetaResponse: objectSchema({
-      name: stringSchema(),
-      version: stringSchema(),
-      apiVersion: { type: 'string', enum: ['v1'] },
-      setupRequired: booleanSchema(),
-      registrationEnabled: booleanSchema(),
-      serverTime: { type: 'string', format: 'date-time' },
-      gatewayHeaderName: { type: 'string', enum: ['X-Lunara-Authorization'] },
+    MetaResponse: {
+      type: 'object',
+      required: [
+        'name',
+        'version',
+        'apiVersion',
+        'setupRequired',
+        'registrationEnabled',
+        'serverTime',
+        'gatewayHeaderName',
+        'gatewayMode',
+        'authenticationMethods',
+      ],
+      properties: {
+        name: stringSchema(),
+        version: stringSchema(),
+        apiVersion: { type: 'string', enum: ['v1'] },
+        setupRequired: booleanSchema(),
+        registrationEnabled: booleanSchema(),
+        serverTime: { type: 'string', format: 'date-time' },
+        gatewayHeaderName: { type: 'string', enum: ['X-Lunara-Authorization'] },
+        gatewayMode: { type: 'string', enum: ['direct', 'authentik'] },
+        authenticationMethods: {
+          type: 'array',
+          items: { type: 'string', enum: ['PASSWORD', 'OIDC'] },
+        },
+        oidc: ref('OidcMetaResponse'),
+      },
+    },
+    OidcMetaResponse: objectSchema({
+      providerName: stringSchema(),
+      issuer: stringSchema(),
+      audience: stringSchema(),
+      clientId: stringSchema(),
+      scopes: { type: 'array', items: stringSchema() },
+      discoveryUrl: stringSchema(),
     }),
     AuthUserResponse: objectSchema({
       id: uuidSchema(),
@@ -122,8 +150,12 @@ function addResponseContracts(document) {
     InvitationResponse: objectSchema({
       id: uuidSchema(),
       code: stringSchema(),
+      acceptanceUrl: { type: 'string', format: 'uri' },
       assignedRole: { type: 'string', enum: ['PARTNER'] },
       expiresAt: nullable(dateTimeSchema()),
+    }),
+    InvitationAcceptanceResponse: objectSchema({
+      accepted: { type: 'boolean', enum: [true] },
     }),
     InvitationSummaryResponse: objectSchema({
       id: uuidSchema(),
@@ -285,6 +317,7 @@ function addResponseContracts(document) {
   }
   response(document, 'get', '/api/v1/auth/sessions', 200, arrayOf('SessionResponse'));
   response(document, 'post', '/api/v1/household/invitations', 201, ref('InvitationResponse'));
+  response(document, 'post', '/api/v1/household/invitations/accept', 200, ref('InvitationAcceptanceResponse'));
   response(document, 'get', '/api/v1/household/invitations', 200, arrayOf('InvitationSummaryResponse'));
   response(document, 'get', '/api/v1/periods', 200, arrayOf('PeriodResponse'));
   response(document, 'post', '/api/v1/periods', 201, ref('PeriodResponse'));

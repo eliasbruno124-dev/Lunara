@@ -38,6 +38,14 @@ describe('DailyLogsService client identifier idempotency', () => {
       version: 1,
     };
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       dailyLog: { findUnique: jest.fn().mockResolvedValue(existing) },
     };
     const prisma = {
@@ -82,6 +90,14 @@ describe('DailyLogsService client identifier idempotency', () => {
     };
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       dailyLog: {
         updateMany,
         findUniqueOrThrow: jest.fn().mockResolvedValue(updated),
@@ -153,6 +169,14 @@ describe('DailyLogsService client identifier idempotency', () => {
     };
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       dailyLog: {
         updateMany,
         findUniqueOrThrow: jest.fn().mockResolvedValue(updated),
@@ -204,6 +228,14 @@ describe('DailyLogsService client identifier idempotency', () => {
       version: 1,
     };
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      membership: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: tracker.userId,
+          householdId: tracker.householdId,
+          role: UserRole.TRACKER,
+        }),
+      },
       dailyLog: { findUnique: jest.fn().mockResolvedValue(existing) },
     };
     const prisma = {

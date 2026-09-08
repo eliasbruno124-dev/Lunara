@@ -60,6 +60,54 @@ describe('verifyOidcAccessToken', () => {
     });
   });
 
+  it('accepts strict display hints only with the signed profile scope', async () => {
+    await expect(
+      verifyOidcAccessToken(
+        await token({
+          scope: 'openid profile offline_access',
+          name: 'Elias Example',
+          preferred_username: 'Elias',
+          email: 'not-used@example.test',
+        }),
+        configuration,
+        publicKey,
+        now,
+      ),
+    ).resolves.toMatchObject({
+      issuer: configuration.issuer,
+      subject: 'authentik-user-id-123',
+      displayName: 'Elias Example',
+      preferredUsername: 'Elias',
+    });
+  });
+
+  it.each([
+    ['scope is absent', { name: 'Elias', preferred_username: 'elias' }],
+    ['name has controls', { scope: 'profile', name: 'Elias\u0000', preferred_username: 'elias' }],
+    ['username has an unsafe shape', { scope: 'profile', name: 'Elias', preferred_username: '../elias' }],
+    ['claims have wrong types', { scope: 'profile', name: ['Elias'], preferred_username: { value: 'elias' } }],
+  ])('does not trust unusable profile hints when %s', async (_name, overrides) => {
+    const result = await verifyOidcAccessToken(
+      await token(overrides),
+      configuration,
+      publicKey,
+      now,
+    );
+    if (_name === 'scope is absent') {
+      expect(result).not.toHaveProperty('displayName');
+      expect(result).not.toHaveProperty('preferredUsername');
+    } else if (_name === 'name has controls') {
+      expect(result).not.toHaveProperty('displayName');
+      expect(result.preferredUsername).toBe('elias');
+    } else if (_name === 'username has an unsafe shape') {
+      expect(result.displayName).toBe('Elias');
+      expect(result).not.toHaveProperty('preferredUsername');
+    } else {
+      expect(result).not.toHaveProperty('displayName');
+      expect(result).not.toHaveProperty('preferredUsername');
+    }
+  });
+
   it.each([
     ['wrong issuer', { iss: 'https://attacker.example/' }],
     ['wrong audience', { aud: 'another-client' }],

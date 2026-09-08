@@ -1,5 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DailyLog, Prisma, SyncOperation } from '@prisma/client';
+import { assertCurrentTrackerMembership } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { EncryptionService } from '../common/security/encryption.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -38,6 +43,7 @@ export class DailyLogsService {
     transaction?: Prisma.TransactionClient,
   ) {
     const operation = async (tx: Prisma.TransactionClient): Promise<DailyLog> => {
+      await assertCurrentTrackerMembership(tx, user);
       const existing = await tx.dailyLog.findUnique({ where: { id: dto.id } });
       if (existing) {
         if (
@@ -79,6 +85,7 @@ export class DailyLogsService {
   ) {
     if (dto.id !== id) throw new ConflictException('Body id must match path id');
     const operation = async (tx: Prisma.TransactionClient): Promise<DailyLog> => {
+      await assertCurrentTrackerMembership(tx, user);
       const result = await tx.dailyLog.updateMany({
         where: { id, userId: user.userId, version: dto.version, deletedAt: null },
         data: {
@@ -114,6 +121,7 @@ export class DailyLogsService {
     transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const operation = async (tx: Prisma.TransactionClient): Promise<void> => {
+      await assertCurrentTrackerMembership(tx, user);
       const result = await tx.dailyLog.updateMany({
         where: { id, userId: user.userId, version, deletedAt: null },
         data: { deletedAt: new Date(), version: { increment: 1 } },
@@ -242,4 +250,5 @@ export class DailyLogsService {
     }
     return date;
   }
+
 }

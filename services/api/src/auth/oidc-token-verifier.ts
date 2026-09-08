@@ -28,9 +28,35 @@ export interface VerifiedOidcIdentity {
   subject: string;
   issuedAt: number;
   expiresAt: number;
+  displayName?: string;
+  preferredUsername?: string;
 }
 
 type VerificationKey = KeyLike | Uint8Array | JWTVerifyGetKey;
+
+const OIDC_USERNAME_PATTERN =
+  /^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u;
+
+function strictProfileClaim(
+  value: unknown,
+  minimumLength: number,
+  maximumLength: number,
+  pattern?: RegExp,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const codePointLength = [...value].length;
+  if (
+    codePointLength < minimumLength ||
+    codePointLength > maximumLength ||
+    value !== value.trim() ||
+    value !== value.normalize('NFKC') ||
+    /\p{C}/u.test(value) ||
+    (pattern && !pattern.test(value))
+  ) {
+    return undefined;
+  }
+  return value;
+}
 
 export async function verifyOidcAccessToken(
   token: string,
@@ -99,11 +125,28 @@ export async function verifyOidcAccessToken(
     throw new Error('OIDC authorized party is invalid');
   }
 
+  // Profile values are display hints for first-use provisioning only. They are
+  // accepted exclusively when the signed access token says that the standard
+  // profile scope was granted. Neither value is ever used to find or link an
+  // existing Lunara account.
+  const scopes =
+    typeof payload.scope === 'string'
+      ? new Set(payload.scope.split(/\s+/u).filter(Boolean))
+      : new Set<string>();
+  const displayName = scopes.has('profile')
+    ? strictProfileClaim(payload.name, 1, 120)
+    : undefined;
+  const preferredUsername = scopes.has('profile')
+    ? strictProfileClaim(payload.preferred_username, 3, 64, OIDC_USERNAME_PATTERN)
+    : undefined;
+
   return {
     issuer: configuration.issuer,
     subject,
     issuedAt,
     expiresAt,
+    ...(displayName ? { displayName } : {}),
+    ...(preferredUsername ? { preferredUsername } : {}),
   };
 }
 

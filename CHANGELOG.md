@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.4 – 2026-09-08
+
+- Partner-Einladungen bleiben bei der Authentik-Anmeldung erhalten. Die PWA
+  verwendet eine eng begrenzte öffentliche Landeseite mit Fragment-Übergabe.
+- Bestehende leere Konten lassen sich nach ausdrücklicher Bestätigung verbinden,
+  ohne ein zweites Benutzerkonto anzulegen. Vorhandene Daten bleiben geschützt.
+- Android unterstützt Code-/QR-Eingabe direkt in Einstellungen und die
+  Bestätigung nach Authentik-Login; alte lokale Beziehungsdaten werden beim
+  Wechsel verworfen und die serverseitige Rolle erneut geladen.
+- Unterbrochene OIDC-Abläufe bewahren aktive Einladungen verschlüsselt;
+  abgebrochene Anmeldungen übernehmen keinen veralteten Einladungscode.
+- Einladungen enthalten eine kanonische Share-URL, bleiben einmal verwendbar
+  und sind auf Wunsch ohne zeitlichen Ablauf widerrufbar.
+- PostgreSQL-Integrationstests für bestehende Konten, Partnerrechte und
+  wiederholte Annahme ergänzt; OpenAPI-/Kotlin-Client aktualisiert.
+- Drei gezielte npm-Overrides schließen bekannte transitive Schwachstellen.
+
 ## 1.1.0 – 2026-08-25
 
 - Vollständig lokalen Android-Solomodus ohne Konto, Domain oder Server

@@ -1,6 +1,7 @@
 export interface LunaraConfig {
   appName: string;
   appVersion: string;
+  gatewayMode: 'direct' | 'authentik';
   publicBaseUrl: string;
   registrationEnabled: boolean;
   accessTokenTtlSeconds: number;
@@ -29,6 +30,14 @@ export interface LunaraConfig {
 const booleanValue = (value: string | undefined, fallback = false): boolean =>
   value === undefined ? fallback : value.toLowerCase() === 'true';
 
+const gatewayModeValue = (value: string | undefined): 'direct' | 'authentik' => {
+  const mode = value?.trim() || 'direct';
+  if (mode !== 'direct' && mode !== 'authentik') {
+    throw new Error('GATEWAY_MODE must be exactly direct or authentik');
+  }
+  return mode;
+};
+
 const defaultOidcDiscoveryUrl = (issuer: string): string =>
   issuer
     ? `${issuer.endsWith('/') ? issuer : `${issuer}/`}.well-known/openid-configuration`
@@ -37,7 +46,8 @@ const defaultOidcDiscoveryUrl = (issuer: string): string =>
 export const appConfig = (): { lunara: LunaraConfig } => ({
   lunara: {
     appName: process.env.APP_NAME?.trim() || 'Lunara',
-    appVersion: process.env.APP_VERSION?.trim() || '1.1.0',
+    appVersion: process.env.APP_VERSION?.trim() || '1.1.4',
+    gatewayMode: gatewayModeValue(process.env.GATEWAY_MODE),
     publicBaseUrl: process.env.PUBLIC_BASE_URL?.trim() || 'http://localhost:3000',
     registrationEnabled: booleanValue(process.env.REGISTRATION_ENABLED),
     accessTokenTtlSeconds: Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 900),
@@ -63,7 +73,7 @@ export const appConfig = (): { lunara: LunaraConfig } => ({
         process.env.OIDC_CLIENT_ID?.trim() ||
         process.env.OIDC_AUDIENCE?.trim() ||
         '',
-      scopes: (process.env.OIDC_SCOPES || 'openid offline_access')
+      scopes: (process.env.OIDC_SCOPES || 'openid profile offline_access')
         .trim()
         .split(/\s+/u)
         .filter(Boolean),
@@ -140,6 +150,7 @@ export function validateEnvironment(
 
   const nodeEnv = stringValue('NODE_ENV', 'development');
   const publicBaseUrl = stringValue('PUBLIC_BASE_URL', '');
+  gatewayModeValue(stringValue('GATEWAY_MODE', 'direct'));
   if (nodeEnv === 'production' && !publicBaseUrl.startsWith('https://')) {
     throw new Error('PUBLIC_BASE_URL must use HTTPS in production');
   }
@@ -219,7 +230,7 @@ export function validateEnvironment(
     if (clientId.length < 1 || clientId.length > 256 || /\s/u.test(clientId)) {
       throw new Error('OIDC_CLIENT_ID must contain between 1 and 256 non-whitespace characters');
     }
-    const scopes = stringValue('OIDC_SCOPES', 'openid offline_access')
+    const scopes = stringValue('OIDC_SCOPES', 'openid profile offline_access')
       .trim()
       .split(/\s+/u)
       .filter(Boolean);

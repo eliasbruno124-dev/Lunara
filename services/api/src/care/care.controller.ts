@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { assertCurrentTrackerMembership } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateCarePreferencesDto } from './care.dto.js';
@@ -24,13 +25,16 @@ export class CareController {
   }
 
   @Patch()
-  update(
+  async update(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateCarePreferencesDto,
   ) {
-    return this.prisma.carePreferences.update({
-      where: { userId: user.userId },
-      data: dto,
+    return this.prisma.$transaction(async (tx) => {
+      await assertCurrentTrackerMembership(tx, user);
+      return tx.carePreferences.update({
+        where: { userId: user.userId },
+        data: dto,
+      });
     });
   }
 }

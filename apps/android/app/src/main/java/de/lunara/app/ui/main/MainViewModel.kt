@@ -538,6 +538,22 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /** This is deliberately separate from sign-in: the UI has already confirmed the move. */
+    fun acceptInvitation(invitationCode: String) {
+        if (preferencesStateMode == AppMode.LOCAL || preferencesStateRole != UserRole.TRACKER) return
+        val ownerId = sessionOwnerId.value ?: return
+        if (settingsBusy.value) return
+        launchForSession(ownerId) {
+            ifCurrentSession(ownerId) {
+                settingsBusy.value = true
+                settingsError.value = false
+            }
+            runSessionOperation { connectionRepository.acceptInvitation(invitationCode) }
+                .onFailure { ifCurrentSession(ownerId) { settingsError.value = true } }
+            ifCurrentSession(ownerId) { settingsBusy.value = false }
+        }
+    }
+
     private suspend fun loadInvitationNow(ownerId: String) {
         val revision = invitationRevision
         runSessionOperation { householdRepository.invitationOverview() }

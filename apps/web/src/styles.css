@@ -262,6 +262,41 @@ button:disabled {
   margin: 10px auto -10px;
 }
 
+.oidc-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.oidc-actions > .secondary-button,
+.oidc-partner-form > .secondary-button {
+  width: 100%;
+}
+
+.oidc-hint {
+  margin: 6px 2px -2px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.oidc-partner-form {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--outline);
+}
+
+.invitation-code {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+  border: 1px dashed var(--outline);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  color: var(--aubergine);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .mode-choice {
   text-align: center;
 }

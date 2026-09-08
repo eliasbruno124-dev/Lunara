@@ -2,8 +2,10 @@ package de.lunara.app.data.repository
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import de.lunara.app.data.remote.dto.AcceptInvitationRequest
 import de.lunara.app.data.remote.dto.CreateInvitationRequest
 import de.lunara.app.data.remote.dto.InvitationDto
+import de.lunara.app.data.remote.dto.OidcLoginRequest
 import de.lunara.app.data.remote.dto.RegisterRequest
 import de.lunara.app.data.remote.dto.SetupRequest
 import de.lunara.app.data.remote.dto.SyncMutationDto
@@ -16,6 +18,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ApiPayloadPolicyTest {
+    @Test
+    fun `invitation acceptance payload requires explicit confirmation`() {
+        val payload = Gson().toJson(AcceptInvitationRequest("ABCDEFGH2345"))
+
+        assertEquals("{\"invitationCode\":\"ABCDEFGH2345\",\"confirm\":true}", payload)
+    }
+
     @Test
     fun `requests a non-expiring one-time invitation explicitly`() {
         val payload = Gson().toJson(CreateInvitationRequest())
@@ -32,6 +41,51 @@ class ApiPayloadPolicyTest {
 
         assertFalse(payload.contains("household", ignoreCase = true))
         assertFalse(payload.contains("bootstrap", ignoreCase = true))
+    }
+
+    @Test
+    fun `oidc invitation carries only external identity and relationship proof`() {
+        val payload = Gson().toJson(
+            OidcLoginRequest(
+                accessToken = "external-access-token",
+                deviceName = "Phone",
+                invitationCode = "ABCDEFGH2345",
+                preferredLanguage = "DE",
+            ),
+        )
+
+        assertTrue(payload.contains("\"invitationCode\":\"ABCDEFGH2345\""))
+        assertTrue(payload.contains("\"preferredLanguage\":\"DE\""))
+        assertFalse(payload.contains("createIfMissing"))
+        assertFalse(payload.contains("username", ignoreCase = true))
+        assertFalse(payload.contains("password", ignoreCase = true))
+        assertFalse(payload.contains("displayName", ignoreCase = true))
+    }
+
+    @Test
+    fun `legacy oidc login omits unsupported enrollment fields`() {
+        val payload = Gson().toJson(
+            OidcLoginRequest("external-access-token", "Phone"),
+        )
+
+        assertFalse(payload.contains("invitationCode"))
+        assertFalse(payload.contains("preferredLanguage"))
+        assertFalse(payload.contains("createIfMissing"))
+    }
+
+    @Test
+    fun `primary authentik login explicitly opts into tracker provisioning`() {
+        val payload = Gson().toJson(
+            OidcLoginRequest(
+                accessToken = "external-access-token",
+                deviceName = "Phone",
+                preferredLanguage = "DE",
+                createIfMissing = true,
+            ),
+        )
+
+        assertTrue(payload.contains("\"createIfMissing\":true"))
+        assertFalse(payload.contains("invitationCode"))
     }
 
     @Test

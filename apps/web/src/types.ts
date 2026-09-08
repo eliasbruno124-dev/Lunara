@@ -1,5 +1,15 @@
 export type Language = 'de' | 'en';
 export type Role = 'TRACKER' | 'PARTNER';
+export type PreferredLanguage = 'DE' | 'EN';
+
+export type OidcEnrollmentIntent =
+  | { kind: 'login'; preferredLanguage?: PreferredLanguage }
+  | { kind: 'new-tracker'; preferredLanguage: PreferredLanguage }
+  | {
+      kind: 'partner';
+      invitationCode: string;
+      preferredLanguage: PreferredLanguage;
+    };
 
 export interface MetaResponse {
   name: string;
@@ -9,7 +19,9 @@ export interface MetaResponse {
   registrationEnabled: boolean;
   serverTime: string;
   gatewayHeaderName?: 'X-Lunara-Authorization';
+  gatewayMode?: 'direct' | 'authentik';
   authenticationMethods?: Array<'PASSWORD' | 'OIDC'>;
+  primaryAuthenticationMethod?: 'PASSWORD' | 'OIDC';
   oidc?: {
     providerName: string;
     issuer: string;
@@ -17,6 +29,12 @@ export interface MetaResponse {
     discoveryUrl: string;
     clientId?: string;
     scopes?: string[];
+    enrollment?: {
+      registration: boolean;
+      invitation: boolean;
+      localPasswordRequired: boolean;
+      createIfMissingRequired: boolean;
+    };
   };
 }
 
@@ -24,7 +42,7 @@ export interface UserIdentity {
   id: string;
   username: string;
   displayName: string;
-  preferredLanguage: 'DE' | 'EN';
+  preferredLanguage: PreferredLanguage;
   role: Role;
   householdId: string;
 }
@@ -36,6 +54,30 @@ export interface AuthResponse {
   expiresInSeconds: number;
   sessionId: string;
   user: UserIdentity;
+}
+
+export interface HouseholdResponse {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  members: Array<{
+    membershipId: string;
+    userId: string;
+    username: string;
+    displayName: string;
+    role: Role;
+    customRoleLabel?: string | null;
+    disabled: boolean;
+  }>;
+}
+
+export interface InvitationResponse {
+  id: string;
+  code: string;
+  acceptanceUrl: string;
+  assignedRole: Role;
+  expiresAt: string | null;
 }
 
 export interface PeriodEvent {
