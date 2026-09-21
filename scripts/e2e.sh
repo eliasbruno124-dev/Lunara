@@ -41,6 +41,7 @@ export BOOTSTRAP_TOKEN="integration-only-bootstrap-token"
 cd "${project_dir}"
 npm run prisma:generate --workspace=@lunara/api
 npm run prisma:migrate:deploy --workspace=@lunara/api
+npm run build --workspace=@lunara/api
 npm run test:e2e --workspace=@lunara/api
 
 echo "Isolierter PostgreSQL-18-E2E-Ablauf erfolgreich."

@@ -1,7 +1,12 @@
 # Lunara 1.1.5 – Anmeldung und automatische Synchronisierung
 
 Stand: 21. September 2026. API produktiv aktualisiert, signiertes Android-
-Upgrade gebaut und geprüft. GitHub-Veröffentlichung ist noch im Abschlusslauf.
+Upgrade gebaut und geprüft. Privater GitHub-Release v1.1.5 veröffentlicht;
+alle sechs Assets nach Upload gegen lokale Größe und SHA-256 geprüft.
+
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.1.5
+
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.1.5/lunara-release.apk
 
 ## Aktuelles Ergebnis
 
@@ -60,6 +65,13 @@ Quellkorrektur; der abschließende eingefrorene Lauf bestand. Die APK-Gateprüfu
 wurde vor Abschluss der Signierung einmal negativ ausgeführt und anschließend
 mit dem tatsächlich signierten Artefakt erfolgreich wiederholt. Frühere
 fehlgeschlagene Zwischenläufe werden nicht als Erfolg gezählt.
+
+Ein anschließender reiner Test-/Dokumentationscommit auf `main` macht die neue
+Suite auch mit dem Standardnamen `lunara_test` ausführbar und baut die API
+vor dem Admin-CLI-Test. Dieser Standardablauf wurde zusätzlich gegen eine
+frische isolierte Datenbank geprüft: zehn Tests bestanden. Der veröffentlichte
+Tag bleibt unverändert; für den Standard-E2E-Runner den korrigierten `main`-Stand
+verwenden. Android-Artefakte und produktiver API-Laufzeitcode sind unverändert.
 
 ## Artefakte und Installation
 

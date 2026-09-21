@@ -21,8 +21,10 @@ describe('Refresh-response loss and partner sync (isolated PostgreSQL)', () => {
 
   beforeAll(async () => {
     const url = new URL(process.env.DATABASE_URL ?? 'http://invalid');
-    if (!url.pathname.includes('lunara_sync115_test')) {
-      throw new Error('This suite requires the dedicated disposable sync115 test database');
+    const disposableDatabase = url.pathname === '/lunara_test' ||
+      /^\/lunara_sync115_test(?:_\d+_\d+)?$/u.test(url.pathname);
+    if (process.env.NODE_ENV !== 'test' || !disposableDatabase) {
+      throw new Error('This suite requires NODE_ENV=test and a dedicated disposable test database');
     }
     const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = module.createNestApplication();

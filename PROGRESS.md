@@ -9,7 +9,8 @@
 - [x] Erste echte PostgreSQL-Prüfung: sieben Szenarien erfolgreich, einschließlich Antwortverlust und genau einmal sichtbarem Partnerdatensatz.
 - [x] Abschließende Regression: API 249, PWA 50, PostgreSQL 10 Tests; Android je 235 Tests und beide Lints bestanden.
 - [x] Signierter APK-Upgrade mit unveränderter App-ID/Signatur; enges API-only-Live-Update gesund.
-- [ ] Privaten GitHub-Release veröffentlichen und hochgeladene Prüfsummen gegenprüfen.
+- [x] Privater GitHub-Release v1.1.5 veröffentlicht; alle sechs Assets gegen lokale Größen und SHA-256 geprüft.
+- [x] Standard-E2E-Runner auf `main` für den neuen Admin-Test ergänzt; zehn Szenarien auch mit `lunara_test` bestanden. Laufzeitcode/Artefakte unverändert.
 
 Historische Ergebnisse unten gelten für den jeweils genannten älteren Release.
 

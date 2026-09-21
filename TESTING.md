@@ -13,8 +13,11 @@ Tokenwiederverwendung, Gerätefamilien-Isolation und parallele Abmeldungen.
 Der End-to-End-Fall wiederholt dieselbe Offline-Mutation und prüft exakt
 einen gespeicherten und für den Partner freigegebenen Periodeneintrag.
 
-Diese zusätzliche Suite verlangt ausdrücklich eine Datenbank mit
-`lunara_sync115_test` im Namen. Sie erstellt und entfernt ausschließlich eigene
+Diese zusätzliche Suite verlangt ausdrücklich `NODE_ENV=test` und die
+Standard-E2E-Datenbank `lunara_test` oder eine dedizierte
+`lunara_sync115_test`-Datenbank mit optionalem numerischem Laufsuffix.
+Der E2E-Runner baut die API vor dem integrierten Admin-CLI-Test.
+Die Suite erstellt und entfernt ausschließlich eigene
 synthetische Fixtures. Keine produktive Datenbank als Testziel verwenden.
 
 Neue Android-Policytests prüfen Identitäts-/Servergrenzen, Abbruchzustände,
