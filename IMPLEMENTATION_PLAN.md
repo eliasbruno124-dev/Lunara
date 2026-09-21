@@ -1,5 +1,22 @@
 # Lunara – Implementierungsplan
 
+## 1.1.6 – Verknüpfung, verständlicher Status und bessere Unterstützung
+
+1. Produktive Mitgliedschaften ausschließlich lesend prüfen; Anzeigeprobleme,
+   fehlende Freigaben und tatsächliche Trennung unterscheiden. Keine Konten
+   löschen, Daten zusammenführen oder Freigaben ungefragt erweitern.
+2. Partnerverknüpfung unabhängig von Prognose und Synchronisationsstatus laden
+   und verständlich darstellen; relevante Regressionsfälle automatisieren.
+3. Partner-Tipps inhaltlich und hinsichtlich Auswahl, Abwechslung, Freigaben
+   und Care Preferences überarbeiten; keine Gefühle aus Zyklusphasen ableiten.
+4. Missverständliches „Offline“ ersetzen, App-/Serverversion klar trennen,
+   einen freiwilligen externen PayPal-Unterstützungslink zentral konfigurieren.
+5. API-/Android-Tests, Lint, signiertes Upgrade und visuelle Prüfung soweit
+   ausführbar; danach enges Backup, API-only-Deployment und privater Release.
+6. Rückmeldung zur Spanne 9.–16. prüfen: Startfenster von Periodendauer
+   unterscheiden, Datenbasis und Unsicherheit erklären; keine künstliche
+   Verengung oder nachträgliche Anpassung an einen bereits bekannten Start.
+
 Aktueller Nachtrag: 21. September 2026, Synchronisierungsupdate 1.1.5.
 
 ## Reihenfolge für 1.1.5

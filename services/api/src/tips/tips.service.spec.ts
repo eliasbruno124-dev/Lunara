@@ -122,6 +122,20 @@ describe('TipsService privacy-aware context', () => {
     );
     await expect(insufficient.today(partner)).resolves.toMatchObject({ tip: null });
   });
+
+  it('updates built-in text once per process while protecting household and user-defined tips', async () => {
+    const prisma = prismaFor([selectableTip({})], {});
+    const service = new TipsService(prisma as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    await service.today(partner);
+    await service.today(partner, 1);
+    expect(prisma.partnerTip.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.partnerTip.updateMany).toHaveBeenCalledTimes(71);
+    for (const [request] of prisma.partnerTip.updateMany.mock.calls as unknown as [Record<string, unknown>][]) {
+      expect(request.where).toMatchObject({ createdByUserId: null, householdId: null, category: { not: TipCategory.USER_DEFINED } });
+    }
+    await expect(service.today(partner, 101)).rejects.toThrow('Invalid tip variant');
+    await expect(service.today(partner, -1)).rejects.toThrow('Invalid tip variant');
+  });
 });
 
 function prismaFor(
@@ -129,6 +143,7 @@ function prismaFor(
   sharingOverrides: Record<string, unknown>,
 ) {
   return {
+    $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
     membership: { findFirst: jest.fn().mockResolvedValue({ userId: 'tracker-id' }) },
     cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin' }) },
     sharingSettings: {
@@ -162,6 +177,7 @@ function prismaFor(
     },
     partnerTip: {
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findMany: jest.fn().mockResolvedValue(tips),
     },
   };

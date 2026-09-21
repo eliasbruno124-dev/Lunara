@@ -34,10 +34,11 @@ interface PartnerTipsApi {
      * Responses:
      *  - 200: Successful response
      *
+     * @param variant  (optional, default to 0)
      * @return [TodayTipResponse]
      */
     @GET("api/v1/tips/today")
-    suspend fun tipsToday(): Response<TodayTipResponse>
+    suspend fun tipsToday(@Query("variant") variant: java.math.BigDecimal? = java.math.BigDecimal("0")): Response<TodayTipResponse>
 
     /**
      * POST api/v1/tips/custom

@@ -12,7 +12,6 @@ import {
   TipCategory,
   UserRole,
 } from '@prisma/client';
-import { createHash } from 'node:crypto';
 import { assertCurrentTrackerMembership } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionService } from '../prediction/prediction.service.js';
@@ -20,11 +19,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import {
   carePreferenceScore,
   eligibleTips,
-  SelectableTip,
   TipSelectionContext,
 } from './tip-filter.js';
 import { TIP_CATALOG } from './tip-catalog.js';
 import { applicableTipPhases } from './tip-phase.js';
+import { selectPartnerTip } from './tip-selection.js';
 import {
   CreateUserDefinedTipDto,
   TipFeedbackDto,
@@ -33,12 +32,14 @@ import {
 
 @Injectable()
 export class TipsService {
+  private catalogReady?: Promise<void>;
   constructor(
     private readonly prisma: PrismaService,
     private readonly predictions: PredictionService,
   ) {}
 
-  async today(user: AuthenticatedUser) {
+  async today(user: AuthenticatedUser, variant = 0) {
+    if (!Number.isInteger(variant) || variant < 0 || variant > 100) throw new BadRequestException('Invalid tip variant');
     const partnerContext = await this.partnerContext(user);
     const { trackerId, sharing, selection, date } = partnerContext;
     if (!sharing.tipsEnabled || sharing.sharingPaused) return { tip: null, date };
@@ -52,7 +53,7 @@ export class TipsService {
       orderBy: [{ priority: 'desc' }, { id: 'asc' }],
     });
     const candidates = eligibleTips(tips, sharing, selection);
-    const chosen = this.chooseWeighted(candidates, user.userId, date, selection);
+    const chosen = selectPartnerTip(candidates, user.userId, date, selection, variant);
     if (!chosen) return { tip: null, date };
     const german = user.preferredLanguage === PreferredLanguage.DE;
     return {
@@ -63,6 +64,13 @@ export class TipsService {
         body: german ? chosen.bodyDe : chosen.bodyEn,
         callToAction: german ? chosen.callToActionDe : chosen.callToActionEn,
         applicablePhase: chosen.applicablePhase,
+        selectionReason: chosen.category === TipCategory.USER_DEFINED ? 'PERSONAL_REQUEST'
+          : carePreferenceScore(chosen, selection.carePreferences) > 0 ? 'CARE_PREFERENCE'
+            : chosen.applicableSymptoms.length > 0 ? 'SHARED_SYMPTOM'
+              : chosen.applicablePhase ? 'SHARED_CONTEXT' : 'GENERAL',
+        source: chosen.createdByUserId === null && chosen.householdId === null && chosen.category !== TipCategory.USER_DEFINED &&
+          ['10000000-0000-4000-8000-000000000011', '10000000-0000-4000-8000-000000000060'].includes(chosen.id)
+          ? { title: 'NHS: Period pain', url: 'https://www.nhs.uk/symptoms/period-pain/' } : null,
       },
       date,
     };
@@ -276,34 +284,6 @@ export class TipsService {
     };
   }
 
-  private chooseWeighted(
-    candidates: SelectableTip[],
-    partnerUserId: string,
-    date: string,
-    selection: TipSelectionContext,
-  ): SelectableTip | undefined {
-    if (candidates.length === 0) return undefined;
-    const weighted = candidates.map((tip) => ({
-      tip,
-      weight:
-        1 +
-        Math.max(0, carePreferenceScore(tip, selection.carePreferences)) * 4 +
-        Math.max(0, Math.min(4, Math.floor(tip.priority / 25))) +
-        (tip.feedback.some((feedback) => feedback.helpful === true) ? 3 : 0),
-    }));
-    const total = weighted.reduce((sum, item) => sum + item.weight, 0);
-    let slot =
-      createHash('sha256')
-        .update(`${partnerUserId}:${date}:lunara-tip-v2`)
-        .digest()
-        .readUInt32BE(0) % total;
-    for (const item of weighted) {
-      if (slot < item.weight) return item.tip;
-      slot -= item.weight;
-    }
-    return weighted[weighted.length - 1]?.tip;
-  }
-
   private accessibleTipOwnership(
     trackerId: string,
     householdId: string,
@@ -363,12 +343,28 @@ export class TipsService {
   }
 
   private async seedBuiltIns(): Promise<void> {
-    await this.prisma.partnerTip.createMany({
+    this.catalogReady ??= this.persistBuiltIns().catch((error: unknown) => {
+      this.catalogReady = undefined;
+      throw error;
+    });
+    await this.catalogReady;
+  }
+
+  private async persistBuiltIns(): Promise<void> {
+    // Stable UUIDs preserve feedback. Existing custom/household tips are never
+    // rewritten, including a deliberately colliding client-provided UUID.
+    await this.prisma.$transaction([
+      this.prisma.partnerTip.createMany({
       data: TIP_CATALOG.map((tip) => ({
         ...tip,
         applicableSymptoms: tip.applicableSymptoms ?? [],
       })),
       skipDuplicates: true,
-    });
+      }),
+      ...TIP_CATALOG.map(({ id, ...tip }) => this.prisma.partnerTip.updateMany({
+        where: { id, createdByUserId: null, householdId: null, category: { not: TipCategory.USER_DEFINED } },
+        data: { ...tip, applicablePhase: tip.applicablePhase ?? null, applicableSymptoms: tip.applicableSymptoms ?? [] },
+      })),
+    ]);
   }
 }

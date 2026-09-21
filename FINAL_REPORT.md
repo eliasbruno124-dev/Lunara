@@ -1,4 +1,155 @@
-# Lunara 1.1.5 – Anmeldung und automatische Synchronisierung
+# Lunara 1.1.6 – persönliche Unterstützung und klare Verbindung
+
+Stand: 21. September 2026. Bestehende NestJS-/Prisma-/PostgreSQL-API,
+verschlüsselte native Compose-App und PWA weiterverwendet. Kein neues
+Authentifizierungssystem, keine Datenbankmigration, keine Kontozusammenführung.
+
+## Ergebnis 1.1.6
+
+- Beziehung und Datenabgleich sind getrennte Zustände. Beide Rollen laden
+  ihre tatsächlichen Mitglieder unabhängig von Einladungs- oder Tippabrufen.
+  Unbekannt ist nicht getrennt; ein verschlüsselter, konto-/servergebundener
+  Cache kennzeichnet den letzten bestätigten Stand mit Zeitstempel.
+- Der Statusknopf erklärt Solo-/Servermodus, letzte erfolgreiche
+  Synchronisierung, offene Änderungen und nötige Anmeldung. Er behauptet
+  keine aktuell bestehende Internetverbindung. App-Version, Buildnummer und
+  zuletzt gemeldete Serverversion haben getrennte Beschriftungen.
+- **Was mir wirklich hilft:** Die Tracker-Person kann eigene Wünsche bewusst
+  teilen und deaktivieren. Sie bleiben unverändert und haben Vorrang vor dem
+  Katalog. Private Notizen werden dafür nicht verwendet. Der API-Vertrag
+  unterstützt auch Bearbeitung; die neue Android-Oberfläche zunächst Erstellen
+  und Deaktivieren. Das Speichern dieser Wünsche benötigt eine Verbindung.
+- 50 der 71 DE/EN-Katalogeinträge überarbeitet; stabile IDs erhalten Feedback
+  und Ausblendungen. Tägliche Rotation, konkrete Vorlieben, sichtbare Grundlage
+  der Auswahl und **Anderer Vorschlag** ohne negatives Feedback. Zwei
+  Wärmetipps verlinken die NHS-Quelle. Keine generative Laufzeitfunktion und
+  keine klinisch geprüfte oder individuell garantierte Wirksamkeit.
+- Das Zeitfenster bezeichnet den möglichen Periodenbeginn, nicht die
+  Blutungsdauer. Wenige vollständige Zyklen und Unsicherheit werden deutlicher
+  erklärt. Die bestehende v2-Formel bleibt unverändert; keine kosmetische
+  Verengung und keine behauptete höhere Vorhersagegenauigkeit.
+- Freiwilliger externer PayPal.me-Link aus dem zentralen Branding, mit
+  Bestätigungsdialog und Empfängerhinweis. Keine Zahlungs-SDKs, Daten im Link
+  oder automatische Zahlung. Die Zuordnung des angegebenen PayPal.me-Namens
+  zu einer Person wurde nicht unabhängig bestätigt.
+- Einstellungs-Schalter sind über die gesamte beschriftete Zeile bedienbar
+  und als ein Schalter für TalkBack ausgezeichnet.
+
+## Tatsächlich ausgeführte Prüfungen
+
+- API: **31 Suites / 258 Tests**, ESLint und Nest-Build bestanden.
+- PWA: **13 Testdateien / 50 Tests**, TypeScript und Vite-Build bestanden.
+- Echte isolierte PostgreSQL-18.6-Instanz: acht Migrationen, **2 Suites /
+  10 Integrationstests**, unter anderem Haushaltstrennung, Rollen, Einladung,
+  Refresh-Wiederholung/Widerruf und genau einmal sichtbare Offline-Mutation.
+- Android JVM: beide Varianten jeweils **49 Suites / 246 Tests**, keine Fehler
+  oder übersprungenen Tests. Lint: keine Fehler, 78 lokale bzw. 77 Produktions-
+  warnungen; nicht als warnungsfrei ausgegeben.
+- Android Instrumentierung: **alle 45 entdeckten Tests tatsächlich bestanden**
+  im isolierten AOSP-API-36-Emulator, darunter Kalender, Onboarding,
+  Benachrichtigungsschalter, Rollenansichten, Datenbankqueue und persönliche
+  Wünsche. Einzelne synthetische Testansichten visuell geprüft. Kein Lauf auf
+  den realen Nutzertelefonen und kein echter externer OIDC-Login im Emulator.
+- Debug-APK, unsigned Release-APK/AAB und signierte Release-APK/AAB gebaut.
+  `apksigner` bestätigt denselben Signierer wie 1.1.5, Paket `de.lunara.app`,
+  Version 1.1.6 / versionCode 17, Mindestversion Android 8.
+  Zusätzlich wurde die signierte 1.1.5-APK im isolierten Emulator installiert
+  und mit `adb install -r` erfolgreich auf 1.1.6 aktualisiert; der ursprüngliche
+  Installationszeitpunkt blieb erhalten. Das ist kein Test realer Nutzerdaten.
+- Docker-Multistage-Image gebaut und isoliert geprüft; läuft als UID/GID 10001
+  mit schreibgeschütztem Root-Dateisystem. Produktiv läuft `lunara-api:1.1.6`.
+  Image SHA-256:
+  `19bfe8729861265f2ea1cb37ebd7ddb41541e47bce6e2494d1ad15c1feacada7`.
+- Intern `/health` und `/ready`: HTTP 200. Öffentliches `/api/v1/meta`: 1.1.6;
+  unangemeldetes `/api/v1/me`: weiterhin Authentik-Redirect, HTTP 302.
+- OpenAPI neu exportiert, gepinnter Kotlin-Generator ausgeführt, Hashprüfung
+  bestanden. Dokumentationskatalog gegen alle 71 Laufzeiteinträge geprüft.
+- `npm audit --omit=dev`: keine bekannten Treffer. Das ist keine Garantie für
+  Sicherheit. Gezielter und High-Entropy-Secret-Scan bestanden; gitleaks lokal
+  nicht installiert. Keine Secrets oder privaten Nutzerdaten im Release.
+
+Die ersten Emulator-Gesamtläufe zeigten einen unpassenden Display-Viewport,
+fehlendes Scrollen in älteren Tests, exakte statt Teiltext-TalkBack-Assertions
+und die separate Schaltersemantik. Viewport/Testbedienung wurden korrigiert,
+die Einstellungszeile wurde tatsächlich bedienbarer gemacht; der abschließende
+Gesamtlauf bestand. Zwischenzeitliche Lint-Analysefehler während paralleler
+Quelländerungen zählen nicht als Erfolg; die eingefrorenen Läufe bestanden.
+
+Ausgeführte Befehle: `npm run lint`, `npm test`, `npm run build`,
+`npm run prisma:validate`, `npm run prisma:migrate:deploy`, `npm run test:e2e`,
+`npm audit --omit=dev`, `node scripts/export-tip-catalog.mjs --check`,
+`node packages/openapi-client/scripts/check-generated.mjs`,
+`bash scripts/secret-scan.sh`, `git diff --check`; Gradle
+`testLocalDebugUnitTest testProductionDebugUnitTest lintLocalDebug
+lintProductionDebug assembleProductionDebug assembleProductionDebugAndroidTest
+assembleProductionRelease bundleProductionRelease`; `adb install -r` und
+`adb shell am instrument -w -r`; `apksigner verify` und `sha256sum -c`.
+API-only-Update: `scripts/compose.sh up -d --no-deps api`.
+
+## Artefakte, Bezug und Installation
+
+Verzeichnis: `/root/Lunara-invitation-fix/artifacts/`
+
+- `lunara-release.apk`: signiertes Update für die bestehende Installation.
+- `lunara-debug.apk`: separat signierter Testbuild, kein Ersatz für die Nutzer-App.
+- `lunara-release-unsigned.apk` und `lunara-release-unsigned.aab`: eigene Signierung.
+- `lunara-play-upload.aab`: signiertes Bundle; nicht in der Play Console validiert.
+- `SHA256SUMS`: Prüfsummen für die fünf Binärartefakte.
+
+Release-APK SHA-256:
+`f3030847cf87fc50679b9ec74ef4d62fd97de90884b8a5458a41deb2787d0705`.
+
+Private Release-Adresse (GitHub-Anmeldung mit Repository-Zugriff erforderlich):
+
+Alle sechs Dateien wurden in das private GitHub-Releasepaket hochgeladen und
+anschließend gegen lokale Dateigrößen und SHA-256 geprüft. Die Freigabe des
+Pakets wird am GitHub-Release selbst ausgewiesen; keine CI wurde eigens gestartet.
+
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.1.6
+
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.1.6/lunara-release.apk
+
+Auf beiden Geräten **über die vorhandene Installation installieren**.
+Nicht deinstallieren, nicht App-Daten löschen und nicht zur Fehlerbehebung
+abmelden. Falls **Anmeldung erneuern** erscheint, einmalig dasselbe Konto
+verwenden. Erst danach können noch ausschließlich lokal vorhandene Einträge
+hochgeladen werden. Kein neuer Einladungscode ist für eine bestehende
+Verknüpfung nötig. Vorlieben/Wünsche unter Einstellungen bewusst freigeben.
+
+## Servereingriff, Grenzen und Rückweg
+
+Vor Änderungen wurden PostgreSQL-Dump, betroffene Quellen, Konfiguration und
+vorherige APK eng begrenzt gesichert. Der Dump wurde per Inhaltsverzeichnis
+geprüft, in diesem Durchlauf aber nicht vollständig zurückgespielt. Datenbank
+und unveränderter Master-Key gehören zusammen; Geheimnisse blieben serverlokal.
+Fingerabdrücke der Konten, Mitgliedschaften, externen Identitäten, Profile,
+Perioden, Tageslogs, Freigaben, Wünsche und Rückmeldungen waren vor/nach dem
+API-Austausch identisch. Katalogtexte aktualisiert die API mit stabilen IDs beim
+ersten Tippabruf. 51 übrige produktive Container behielten ihre IDs, inklusive
+PostgreSQL; keine Änderung an Hauptstack, Emby, Traefik oder Authentik.
+
+Die frühere Prognose lässt sich aus der aktuellen Serverlage nicht zuverlässig
+rekonstruieren. Ein Treffer innerhalb eines breiten Fensters belegt keine
+Präzision. Algorithmusgrenzen und fehlende prospektive Kalibrierung bleiben in
+`ALGORITHM.md` dokumentiert; Fertilität ist nur geschätzt und keine Verhütung.
+
+Ein gestoppter oder widerrufener Login kann nicht ohne erneute Legitimation
+wiederhergestellt werden. Automatische Sync-Versuche garantieren keine
+sofortige Ausführung unter Android-Energiesparregeln. Bereits auf einem
+Partnergerät angezeigte Daten lassen sich nach Freigabewiderruf nicht
+rückwirkend ungesehen machen. Persönliche Bedürfnisse und Texte benötigen
+weiterhin die bewusste Auswahl der Person, nicht eine Zuschreibung aus dem Zyklus.
+
+Rückweg bei Bedarf: vorheriges API-Image und gesicherte Konfiguration verwenden;
+keine Migration ist rückgängig zu machen. Kein automatisches Datenbank-Restore
+über inzwischen neu erfasste Daten. Android-Downgrade nicht durch Deinstallation
+erzwingen: vorher lokale Daten sichern und ein signiertes Korrektur-Update
+bevorzugen. Für eine Neuinstallation gelten `DEPLOYMENT.md` und die dortige
+Einrichtung mit eigenen Secrets und konfigurierbarer HTTPS-Domain.
+
+---
+
+# Historischer Bericht: Lunara 1.1.5 – Anmeldung und automatische Synchronisierung
 
 Stand: 21. September 2026. API produktiv aktualisiert, signiertes Android-
 Upgrade gebaut und geprüft. Privater GitHub-Release v1.1.5 veröffentlicht;

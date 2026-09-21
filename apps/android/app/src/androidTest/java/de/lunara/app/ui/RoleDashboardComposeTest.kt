@@ -12,6 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
@@ -182,6 +186,7 @@ class RoleDashboardComposeTest {
             LunaraTheme { PartnerDashboard("Sam", PartnerDashboardDto(), false, {}) }
         }
         compose.onNodeWithText("Es werden ausschließlich freigegebene Informationen angezeigt.").assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Heute ist kein Tipp freigegeben oder verfügbar."))
         compose.onNodeWithText("Heute ist kein Tipp freigegeben oder verfügbar.").assertIsDisplayed()
         compose.onAllNodesWithText("Frag kurz, ob heute praktische Unterstützung hilfreich wäre.").assertCountEquals(0)
         compose.onAllNodesWithText("Eine konkrete kleine Aufgabe anbieten").assertCountEquals(0)
@@ -226,13 +231,16 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Mögliche aktuelle Zyklusphase"))
         compose.onNodeWithText("Mögliche aktuelle Zyklusphase").assertIsDisplayed()
         compose.onNodeWithText("Lutealphase, geschätzt").assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Geschätztes fruchtbares Fenster"))
         compose.onNodeWithText("Geschätztes fruchtbares Fenster").assertIsDisplayed()
-        compose.onNodeWithText("Berücksichtigt eine freigegebene Phase").assertIsDisplayed()
         compose.onNodeWithText(
             "Nur eine grobe kalendarische Schätzung: keine Aussage über einen tatsächlichen Eisprung und nicht zur Verhütung verwenden.",
         ).assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Berücksichtigt eine freigegebene Phase"))
+        compose.onNodeWithText("Berücksichtigt eine freigegebene Phase").assertIsDisplayed()
     }
 
     @Test
@@ -261,8 +269,9 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("period-manage-period-1"))
         compose.onNodeWithTag("period-manage-period-1").performClick()
-        compose.onNodeWithTag("period-delete").performClick()
+        compose.onNodeWithTag("period-delete").performScrollTo().performClick()
         compose.onNodeWithTag("period-delete-confirm").performClick()
 
         assertEquals("period-1", deleted)
@@ -294,10 +303,11 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("period-manage-period-1"))
         compose.onNodeWithTag("period-manage-period-1").performClick()
-        compose.onNodeWithTag("period-range-reset").performClick()
-        compose.onNodeWithTag("period-picker-day-2026-08-11").performClick()
-        compose.onNodeWithTag("period-picker-day-2026-08-12").performClick()
+        compose.onNodeWithTag("period-range-reset").performScrollTo().performClick()
+        compose.onNodeWithTag("period-picker-day-2026-08-11").performScrollTo().performClick()
+        compose.onNodeWithTag("period-picker-day-2026-08-12").performScrollTo().performClick()
         compose.onNodeWithTag("period-update-confirm").performClick()
 
         assertEquals(
@@ -338,8 +348,9 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("period-manage-period-1"))
         compose.onNodeWithTag("period-manage-period-1").performClick()
-        compose.onNodeWithTag("period-end-clear").performClick()
+        compose.onNodeWithTag("period-end-clear").performScrollTo().performClick()
         compose.onNodeWithTag("period-update-confirm").performClick()
 
         assertEquals(Triple("period-1", LocalDate.parse("2026-08-10"), null), updated)

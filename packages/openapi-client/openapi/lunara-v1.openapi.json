@@ -1519,6 +1519,25 @@
             "format": "uuid",
             "type": "string"
           },
+          "selectionReason": {
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "title",
+              "url"
+            ],
+            "type": "object"
+          },
           "title": {
             "type": "string"
           }
@@ -1529,7 +1548,9 @@
           "title",
           "body",
           "callToAction",
-          "applicablePhase"
+          "applicablePhase",
+          "selectionReason",
+          "source"
         ],
         "type": "object"
       },
@@ -2064,7 +2085,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },
@@ -3843,7 +3864,19 @@
     "/api/v1/tips/today": {
       "get": {
         "operationId": "Tips_today",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "variant",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

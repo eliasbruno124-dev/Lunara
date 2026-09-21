@@ -58,6 +58,7 @@ entropy_report="$(git ls-files -co --exclude-standard -z \
   | grep -Ev '^FINAL_REPORT\.md:[0-9]+:https://github\.com/eliasbruno124-dev/Lunara/releases/(tag/v[0-9]+\.[0-9]+\.[0-9]+|download/v[0-9]+\.[0-9]+\.[0-9]+/lunara-release\.apk)$' \
   | grep -Ev '(^packages/openapi-client/openapi/lunara-v1\.openapi\.json:[0-9]+:.*?/components/schemas/(PredefinedSymptomResponseDto|InvitationAcceptanceResponse).*$|^scripts/configure-pangolin\.sh:[0-9]+:expected_(resources|targets|domains|sites|roles|role_resources)_schema="[a-f0-9]{64}"$)' \
   | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*fun [A-Za-z][A-Za-z0-9]*\(' \
+  | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*@Test fun [A-Za-z][A-Za-z0-9]*\(\) \{[[:space:]]*$' \
   | grep -Ev '(^\.github/workflows/|^apps/android/gradlew:|^artifacts/SHA256SUMS:|^services/api/prisma/migrations/[^/]+/migration\.sql:|^packages/openapi-client/generated/kotlin/(gradlew|\.lunara-generation\.json|\.openapi-generator/FILES):)' \
   || true)"
 

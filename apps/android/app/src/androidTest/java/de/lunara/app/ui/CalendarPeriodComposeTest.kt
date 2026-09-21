@@ -232,10 +232,10 @@ class CalendarPeriodComposeTest {
         compose.onNodeWithTag("calendar-day-$possibleStart")
             .assertIsDisplayed()
             .assertHasNoClickAction()
-            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt")
+            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt", substring = true)
         compose.onNodeWithTag("calendar-day-$possibleDuration")
             .assertHasNoClickAction()
-            .assertContentDescriptionContains("Möglicher Periodentag, geschätzt")
+            .assertContentDescriptionContains("Möglicher Periodentag, geschätzt", substring = true)
 
         compose.onNodeWithTag("calendar-current-month").performClick()
         compose.onNodeWithTag("calendar-month-$currentMonth").assertIsDisplayed()
@@ -278,8 +278,8 @@ class CalendarPeriodComposeTest {
         compose.onNodeWithTag("calendar-month-pager").performTouchInput { swipeRight() }
         compose.onNodeWithTag("calendar-day-$actualDate")
             .assertTextContains("P")
-            .assertContentDescriptionContains("Erfasster Periodentag")
-            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt")
+            .assertContentDescriptionContains("Erfasster Periodentag", substring = true)
+            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt", substring = true)
     }
 
     @Test

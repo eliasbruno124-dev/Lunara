@@ -53,9 +53,12 @@ export function carePreferenceScore(
 ): number {
   if (!care) return 0;
   let score = 0;
-  if (tip.category === TipCategory.COMFORT && (care.likesWarmth || care.likesCuddling)) score += 2;
+  // Match the action, not just a broad category: liking warmth does not mean
+  // wanting a cuddle, a massage, or a changed evening plan.
+  if (care.likesWarmth && textContainsAny(actionText(tip), ['wärm', 'warmth', 'hot water bottle'])) score += 3;
+  if (care.likesCuddling && textContainsAny(actionText(tip), ['umarm', 'kuschel', 'hug', 'cuddle'])) score += 3;
   if (tip.category === TipCategory.SPACE && care.likesSpace) score += 3;
-  if (tip.category === TipCategory.FOOD_AND_DRINK && care.likesSnacks) score += 3;
+  if (care.likesSnacks && textContainsAny(actionText(tip), ['snack', 'lieblingsgericht', 'favourite'])) score += 3;
   if (
     ([TipCategory.COMMUNICATION, TipCategory.EMOTIONAL_SUPPORT] as TipCategory[]).includes(
       tip.category,

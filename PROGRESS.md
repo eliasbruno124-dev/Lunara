@@ -1,5 +1,17 @@
 # Lunara – Fortschritt
 
+## 1.1.6 – Qualitätskorrektur
+
+- [x] Gemeldete fehlende Partneranzeige ohne Konten-/Datenänderung diagnostiziert; Beziehungen für beide Rollen unabhängig geprüft.
+- [x] 50 konkrete DE/EN-Katalogrevisionen, Rotation, Freigabefilter und ausdrücklich selbst formulierte Wünsche mit Vorrang.
+- [x] Verständliche Synchronisations- und getrennte App-/Serverversionsanzeige.
+- [x] Freiwilliger PayPal-Unterstützungsbutton ohne Zahlungs-SDK oder Tracking; Empfängerprüfung weiterhin nötig.
+- [x] API 258, PWA 50, PostgreSQL 10 Tests; Android je 246 JVM-Tests, beide Lints und alle 45 echten Emulator-Instrumentierungstests bestanden.
+- [x] Synthetische Testansichten visuell geprüft; signierter 1.1.6-Upgrade mit unveränderter App-ID und Signatur gebaut.
+- [x] API-only-Update produktiv gesund; Datenfingerabdrücke und 51 übrige Produktionscontainer unverändert.
+- [x] Breites Vorhersagefenster untersucht und erklärt; keine unbewiesene Präzisionsverbesserung behauptet.
+- [x] Alle sechs Release-Dateien privat auf GitHub hochgeladen und nach Upload gegen lokale Größen und SHA-256 geprüft; der GitHub-Releasestatus zeigt die Freigabe des Pakets.
+
 ## 1.1.5 – automatische Anmeldung und Synchronisierung, 21. September 2026
 
 - [x] Getrennter Arbeitsbaum; keine Änderungen an vorhandenen Konten oder Freigaben.

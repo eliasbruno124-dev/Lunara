@@ -2,6 +2,13 @@ import { CyclePhase, TipCategory } from '@prisma/client';
 import { carePreferenceScore, eligibleTips } from './tip-filter.js';
 
 describe('eligibleTips', () => {
+  it('a warmth preference does not boost an unrelated cuddle or general comfort suggestion', () => {
+    const care = { likesWarmth: true, customHelpfulActions: [] } as never;
+    const warm = { category: TipCategory.COMFORT, callToActionDe: 'Biete eine Wärmflasche an.', callToActionEn: 'Offer a hot water bottle.' } as never;
+    const cuddle = { category: TipCategory.COMFORT, callToActionDe: 'Biete eine Umarmung an.', callToActionEn: 'Offer a hug.' } as never;
+    expect(carePreferenceScore(warm, care)).toBeGreaterThan(0);
+    expect(carePreferenceScore(cuddle, care)).toBe(0);
+  });
   const settings = {
     tipsEnabled: true,
     sharingPaused: false,

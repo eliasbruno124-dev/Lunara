@@ -37,7 +37,7 @@ class DashboardRepository @Inject constructor(
 ) {
     private val partnerRefreshMutex = Mutex()
 
-    suspend fun partnerDashboard(expectedUserId: String): PartnerDashboardDto = partnerRefreshMutex.withLock {
+    suspend fun partnerDashboard(expectedUserId: String, tipVariant: Int = 0): PartnerDashboardDto = partnerRefreshMutex.withLock {
         val generation = credentialGate.snapshot()
         val initial = preferences.state.first()
         val base = initial.baseUrl ?: throw ApiException(400)
@@ -77,10 +77,10 @@ class DashboardRepository @Inject constructor(
         saveCurrent(dashboard)
         val completeDashboard = PartnerRefreshPolicy.withOptionalTip(dashboard) {
             var tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
-                .todayTip(endpoint(base, "api/v1/tips/today"))
+                .todayTip(endpoint(base, "api/v1/tips/today?variant=${tipVariant.coerceIn(0, 100)}"))
             if (tipResponse.code() == 401 && connectionRepository.refresh()) {
                 tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
-                    .todayTip(endpoint(base, "api/v1/tips/today"))
+                    .todayTip(endpoint(base, "api/v1/tips/today?variant=${tipVariant.coerceIn(0, 100)}"))
             }
             tipResponse.requireBody().tip
         }

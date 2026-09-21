@@ -1,4 +1,5 @@
 import { CyclePhase, TipCategory } from '@prisma/client';
+import { EDITORIAL_COPY } from './tip-editorial.js';
 
 export interface CatalogTip {
   id: string;
@@ -124,12 +125,12 @@ if (texts.length < 50) {
 export const TIP_CATALOG: CatalogTip[] = texts.map((tip, index) => ({
   id: `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
   category: tip[0],
-  titleDe: tip[1],
-  bodyDe: tip[2],
-  callToActionDe: tip[3],
-  titleEn: tip[4],
-  bodyEn: tip[5],
-  callToActionEn: tip[6],
+  titleDe: EDITORIAL_COPY[index + 1]?.[0] ?? tip[1],
+  bodyDe: EDITORIAL_COPY[index + 1]?.[1] ?? tip[2],
+  callToActionDe: EDITORIAL_COPY[index + 1]?.[2] ?? tip[3],
+  titleEn: EDITORIAL_COPY[index + 1]?.[3] ?? tip[4],
+  bodyEn: EDITORIAL_COPY[index + 1]?.[4] ?? tip[5],
+  callToActionEn: EDITORIAL_COPY[index + 1]?.[5] ?? tip[6],
   requiredSharedFields: tip[7] ?? [],
   applicablePhase: tip[8],
   applicableSymptoms: tip[9] ?? [],

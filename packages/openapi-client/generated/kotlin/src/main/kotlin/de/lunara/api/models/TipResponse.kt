@@ -23,6 +23,7 @@
 
 package de.lunara.api.models
 
+import de.lunara.api.models.TipResponseSource
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -35,6 +36,8 @@ import com.squareup.moshi.JsonClass
  * @param callToAction
  * @param category
  * @param id
+ * @param selectionReason
+ * @param source
  * @param title
  */
 
@@ -55,6 +58,12 @@ data class TipResponse (
 
     @Json(name = "id")
     val id: java.util.UUID,
+
+    @Json(name = "selectionReason")
+    val selectionReason: kotlin.String,
+
+    @Json(name = "source")
+    val source: TipResponseSource?,
 
     @Json(name = "title")
     val title: kotlin.String

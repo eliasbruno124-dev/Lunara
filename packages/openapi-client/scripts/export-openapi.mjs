@@ -260,6 +260,8 @@ function addResponseContracts(document) {
       body: stringSchema(),
       callToAction: stringSchema(),
       applicablePhase: nullable(stringSchema()),
+      selectionReason: stringSchema(),
+      source: nullable(objectSchema({ title: stringSchema(), url: stringSchema() })),
     }),
     TodayTipResponse: {
       type: 'object',

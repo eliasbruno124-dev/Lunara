@@ -23,6 +23,8 @@ import de.lunara.app.data.repository.PartnerRefreshPolicy
 import de.lunara.app.data.repository.PartnerRefreshState
 import de.lunara.app.data.repository.PeriodRepository
 import de.lunara.app.data.repository.HouseholdRepository
+import de.lunara.app.data.repository.RelationshipState
+import de.lunara.app.data.repository.RelationshipPolicy
 import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.repository.PasswordRepository
 import de.lunara.app.data.repository.ConnectionRepository
@@ -75,7 +77,7 @@ data class MainUiState(
     val checkInSent: Boolean = false,
     val checkInError: Boolean = false,
     val invitation: InvitationDto? = null,
-    val partnerConnected: Boolean = false,
+    val relationship: RelationshipState = RelationshipState(),
     val sharing: SharingSettingsDto? = null,
     val settingsBusy: Boolean = false,
     val settingsError: Boolean = false,
@@ -116,7 +118,7 @@ private data class SessionUiExtras(
     val checkInSent: Boolean,
     val checkInError: Boolean,
     val invitation: InvitationDto?,
-    val partnerConnected: Boolean,
+    val relationship: RelationshipState,
     val sharing: SharingSettingsDto?,
     val settingsBusy: Boolean,
     val settingsError: Boolean,
@@ -155,7 +157,8 @@ class MainViewModel @Inject constructor(
     private val checkInSent = MutableStateFlow(false)
     private val checkInError = MutableStateFlow(false)
     private val invitation = MutableStateFlow<InvitationDto?>(null)
-    private val partnerConnected = MutableStateFlow(false)
+    private val relationship = MutableStateFlow(RelationshipState())
+    private var tipVariant = 0
     private val sharing = MutableStateFlow<SharingSettingsDto?>(null)
     private val settingsBusy = MutableStateFlow(false)
     private val settingsError = MutableStateFlow(false)
@@ -194,7 +197,7 @@ class MainViewModel @Inject constructor(
         )
     }
     private val sessionExtras = combine(
-        checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
+        checkInSent, checkInError, invitation, relationship, sharing, settingsBusy, settingsError,
         trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, oidc, backupStatus,
         periodFailureRevision, recoveryStatus,
     ) { values ->
@@ -202,7 +205,7 @@ class MainViewModel @Inject constructor(
             checkInSent = values[0] as Boolean,
             checkInError = values[1] as Boolean,
             invitation = values[2] as InvitationDto?,
-            partnerConnected = values[3] as Boolean,
+            relationship = values[3] as RelationshipState,
             sharing = values[4] as SharingSettingsDto?,
             settingsBusy = values[5] as Boolean,
             settingsError = values[6] as Boolean,
@@ -236,7 +239,7 @@ class MainViewModel @Inject constructor(
                 checkInSent = extra.checkInSent,
                 checkInError = extra.checkInError,
                 invitation = extra.invitation,
-                partnerConnected = extra.partnerConnected,
+                relationship = extra.relationship,
                 sharing = extra.sharing,
                 settingsBusy = extra.settingsBusy,
                 settingsError = extra.settingsError,
@@ -273,6 +276,13 @@ class MainViewModel @Inject constructor(
                     )
                     if (appMode == AppMode.SERVER) {
                         sessionOperations?.launch { loadOidcStatusNow(session.userId) }
+                        sessionOperations?.launch {
+                            runSessionOperation { householdRepository.cachedRelationship(session.userId) }
+                                .onSuccess { cached -> ifCurrentSession(session.userId) { cached?.let { relationship.value = it } } }
+                            loadRelationshipNow(session.userId)
+                            preferences.state.map { it.lastSyncAt }.drop(1).filterNotNull()
+                                .distinctUntilChanged().collectLatest { loadRelationshipNow(session.userId) }
+                        }
                     }
 
                     if (session.role == UserRole.PARTNER) {
@@ -333,7 +343,8 @@ class MainViewModel @Inject constructor(
         checkInSent.value = false
         checkInError.value = false
         invitation.value = null
-        partnerConnected.value = false
+        relationship.value = RelationshipState()
+        tipVariant = 0
         invitationRevision += 1
         sharing.value = null
         settingsBusy.value = false
@@ -461,14 +472,19 @@ class MainViewModel @Inject constructor(
     fun refreshPartnerDashboard() {
         if (preferencesStateMode == AppMode.LOCAL || preferencesStateRole != UserRole.PARTNER) return
         val ownerId = sessionOwnerId.value ?: return
-        launchForSession(ownerId) { refreshPartnerDashboardNow(ownerId) }
+        launchForSession(ownerId) {
+            coroutineScope {
+                launch { loadRelationshipNow(ownerId) }
+                refreshPartnerDashboardNow(ownerId)
+            }
+        }
     }
 
     private suspend fun refreshPartnerDashboardNow(ownerId: String) {
         if (partnerRefresh.value.refreshing) return
         ifCurrentSession(ownerId) { partnerRefresh.value = partnerRefresh.value.copy(refreshing = true) }
         try {
-            runSessionOperation { dashboardRepository.partnerDashboard(ownerId) }
+            runSessionOperation { dashboardRepository.partnerDashboard(ownerId, tipVariant) }
                 .onSuccess {
                     ifCurrentSession(ownerId) {
                         partnerRefresh.value = PartnerRefreshPolicy.succeeded(partnerRefresh.value, it, Instant.now().toString())
@@ -480,6 +496,12 @@ class MainViewModel @Inject constructor(
         } finally {
             ifCurrentSession(ownerId) { partnerRefresh.value = partnerRefresh.value.copy(refreshing = false) }
         }
+    }
+
+    fun nextPartnerTip() {
+        if (preferencesStateMode != AppMode.SERVER || preferencesStateRole != UserRole.PARTNER || partnerRefresh.value.refreshing) return
+        tipVariant = (tipVariant + 1) % 101
+        refreshPartnerDashboard()
     }
 
     fun beginSessionRecovery(onReady: (Intent) -> Unit) {
@@ -533,6 +555,7 @@ class MainViewModel @Inject constructor(
                             _events.tryEmit(MainEvent.SessionRecovered)
                         }
                         if (preferencesStateRole == UserRole.PARTNER) refreshPartnerDashboardNow(ownerId)
+                        loadRelationshipNow(ownerId)
                     }
                     .onFailure { error -> ifCurrentSession(ownerId) { recoveryStatus.value = SessionRecoveryUiPolicy.failure(error) } }
             } finally {
@@ -594,7 +617,7 @@ class MainViewModel @Inject constructor(
     fun createInvitation() {
         if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
-        if (settingsBusy.value || invitation.value != null || partnerConnected.value) return
+        if (settingsBusy.value || invitation.value != null || !relationship.value.known || relationship.value.connected || relationship.value.unavailable) return
         val revision = ++invitationRevision
         launchForSession(ownerId) {
             ifCurrentSession(ownerId) { settingsBusy.value = true }
@@ -637,7 +660,6 @@ class MainViewModel @Inject constructor(
                 ifCurrentSession(ownerId) {
                     if (invitationRevision == revision) {
                         invitation.value = result.invitation
-                        partnerConnected.value = result.partnerConnected
                         settingsError.value = false
                     }
                 }
@@ -652,8 +674,20 @@ class MainViewModel @Inject constructor(
     fun refreshInvitation() {
         if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return
-        if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
-        launchForSession(ownerId) { loadInvitationNow(ownerId) }
+        if (settingsBusy.value) return
+        launchForSession(ownerId) {
+            coroutineScope {
+                launch { loadRelationshipNow(ownerId) }
+                if (preferencesStateRole == UserRole.TRACKER) loadInvitationNow(ownerId)
+            }
+        }
+    }
+
+    private suspend fun loadRelationshipNow(ownerId: String) {
+        ifCurrentSession(ownerId) { relationship.value = relationship.value.copy(refreshing = true) }
+        runSessionOperation { householdRepository.relationship(ownerId) }
+            .onSuccess { result -> ifCurrentSession(ownerId) { relationship.value = result } }
+            .onFailure { ifCurrentSession(ownerId) { relationship.value = RelationshipPolicy.failed(relationship.value) } }
     }
 
     fun revokeInvitation() {

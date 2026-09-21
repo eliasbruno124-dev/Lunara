@@ -743,6 +743,20 @@ describe('Lunara core flow (real PostgreSQL)', () => {
       .set('Authorization', `Bearer ${partnerAccess}`)
       .expect(200);
     expect(dailyTip.body.tip.id).toMatch(/^[0-9a-f-]{36}$/);
+    const anotherTip = await request(app.getHttpServer())
+      .get('/api/v1/tips/today?variant=1')
+      .set('Authorization', `Bearer ${partnerAccess}`)
+      .expect(200);
+    expect(anotherTip.body.tip.id).not.toBe(dailyTip.body.tip.id);
+    await request(app.getHttpServer())
+      .get('/api/v1/tips/today?variant=101')
+      .set('Authorization', `Bearer ${partnerAccess}`)
+      .expect(400);
+    const relationship = await request(app.getHttpServer())
+      .get('/api/v1/household')
+      .set('Authorization', `Bearer ${partnerAccess}`)
+      .expect(200);
+    expect(relationship.body.members.some((member: { userId: string; role: string }) => member.userId === trackerUserId && member.role === 'TRACKER')).toBe(true);
     await request(app.getHttpServer())
       .post(`/api/v1/tips/${dailyTip.body.tip.id}/feedback`)
       .set('Authorization', `Bearer ${partnerAccess}`)

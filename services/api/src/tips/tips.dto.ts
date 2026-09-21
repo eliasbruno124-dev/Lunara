@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CyclePhase, TipCategory } from '@prisma/client';
 import {
@@ -18,6 +18,16 @@ import {
 } from 'class-validator';
 
 const SAFE_TEXT = /^\P{Cc}+$/u;
+
+export class TodayTipQueryDto {
+  @ApiPropertyOptional({ default: 0, minimum: 0, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  variant: number = 0;
+}
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 const trimArray = ({ value }: { value: unknown }) =>

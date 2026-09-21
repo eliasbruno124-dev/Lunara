@@ -30,6 +30,13 @@ class SessionSecretsTest {
         assertNotEquals(second, secrets.refreshRequestIdFor("synthetic-token"))
     }
 
+    @Test fun `logout clears private relationship snapshot`() {
+        val secrets = SessionSecrets(InMemorySecretStore())
+        secrets.relationshipJson = "synthetic-relationship"
+        secrets.clearAccountSecrets()
+        assertNull(secrets.relationshipJson)
+    }
+
     @Test
     fun `late Authentik refresh cannot restore state after logout`() {
         val secrets = SessionSecrets(InMemorySecretStore())

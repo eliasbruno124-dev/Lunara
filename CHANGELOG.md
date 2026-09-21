@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.6 – 2026-09-21
+
+- Partnerverknüpfung für beide Rollen unabhängig von Einladungen abrufen;
+  unbekannter Status und Abruffehler werden nicht als Trennung angezeigt.
+- Verschlüsselter, server-/kontogebundener Beziehungscache mit erkennbarem
+  Zeitstempel, ohne Änderung vorhandener Konten oder Freigaben.
+- Klarer Server-/Solomodus und Details zum letzten Abgleich; getrennte App-
+  und Serverversionsanzeige statt zweier unbeschrifteter Versionsnummern.
+- 50 überarbeitete deutsche/englische Unterstützungstipps, abwechslungsreiche
+  Auswahl, konkrete Vorlieben statt pauschaler Kategoriezuordnung und
+  „Anderer Vorschlag“ ohne unbeabsichtigtes Ausblenden.
+- Eigene, ausdrücklich geteilte Wünsche in Android erstellen/deaktivieren.
+  Unveränderte Worte haben Vorrang; Quellen/Grundlage der Auswahl sind sichtbar.
+- Optionaler PayPal.me-Link in zentralem Branding, explizite Bestätigung,
+  externer Browser, keine Zahlungsintegration oder Gesundheitsdatenübertragung.
+- Startfenster und Anzahl zugrunde liegender Zyklen deutlicher erklären;
+  keine Änderung oder behauptete höhere Präzision der Prognoseformel.
+- Einstellungs-Schalter über die ganze beschriftete Zeile bedienbar und für
+  TalkBack zusammengefasst; vollständige Instrumentierung im Emulator ausgeführt.
+
 ## 1.1.5 – 2026-09-21
 
 - Android erneuert Anmeldungen automatisch mit einer dauerhaft gespeicherten

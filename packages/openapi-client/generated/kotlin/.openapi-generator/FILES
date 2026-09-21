@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 README.md
 build.gradle
 gradle/wrapper/gradle-wrapper.jar
@@ -80,6 +79,7 @@ src/main/kotlin/de/lunara/api/models/SyncRequestDto.kt
 src/main/kotlin/de/lunara/api/models/SyncResponse.kt
 src/main/kotlin/de/lunara/api/models/TipFeedbackDto.kt
 src/main/kotlin/de/lunara/api/models/TipResponse.kt
+src/main/kotlin/de/lunara/api/models/TipResponseSource.kt
 src/main/kotlin/de/lunara/api/models/TodayTipResponse.kt
 src/main/kotlin/de/lunara/api/models/UpdateCarePreferencesDto.kt
 src/main/kotlin/de/lunara/api/models/UpdateCustomSymptomDto.kt

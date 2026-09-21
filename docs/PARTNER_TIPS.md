@@ -1,9 +1,12 @@
 # Partner tips: seed data and privacy rules
 
-Lunara's built-in partner tips are stored in
-`docs/partner-tips.seed.json`. The seed contains stable, language-neutral
-keys and complete German and English copy. Built-in records are immutable from
-the user's perspective; feedback and suppression are stored separately.
+Lunara's runtime source is `services/api/src/tips/tip-catalog.ts` with text
+revisions in `tip-editorial.ts`. `docs/partner-tips.seed.json` is a generated
+snapshot, not a separate database seed. Its keys are the actual stable UUIDs.
+After building the API, run `node scripts/export-tip-catalog.mjs`; add `--check`
+to verify that the snapshot still matches. Built-in records are immutable from
+the user's perspective; editorial updates preserve IDs, feedback and suppression.
+See [TIP_QUALITY.md](TIP_QUALITY.md) for personal wishes, sources and limitations.
 
 The tips are deliberately small, optional suggestions. They do not diagnose,
 prescribe treatment, infer emotions from a cycle phase, or replace a direct
@@ -17,8 +20,8 @@ Each item contains:
 - `category`: one of `COMMUNICATION`, `PRACTICAL_HELP`, `COMFORT`,
   `SPACE`, `FOOD_AND_DRINK`, `EMOTIONAL_SUPPORT`, `PERIOD_DAYS`,
   `PREMENSTRUAL_ESTIMATE`, `GENERAL`, or `USER_DEFINED`.
-- `priority`: integer from 0 to 100; higher values are considered first after
-  privacy filtering. Priority never bypasses eligibility rules.
+- `priority`: retained catalogue metadata from 0 to 100. Since 1.1.6 it does
+  not override the daily rotating selection or any eligibility rule.
 - `requiredSharedFields`: sharing switches that must all currently be true.
 - `applicablePhase`: eligible estimated or recorded phases. `ANY` means the
   item does not use cycle phase as an input.
@@ -34,15 +37,15 @@ tenant.
 
 ## Eligibility and selection
 
-The server must select a tip from a privacy-filtered view, not directly from a
-tracker's health records. The recommended order is:
+The server selects a tip from a privacy-filtered context. Current behaviour:
 
 1. Resolve the authenticated partner's active relationship membership. Never
    accept a relationship/tenant or owner ID supplied by the client as
    authorization.
 2. Read the current tracker sharing settings, private-day state, sharing pause,
-   category preferences, care preferences, quiet hours, and dismissed-tip
-   feedback.
+   category preferences, care preferences, and dismissed-tip feedback. Quiet
+   hours and notification frequency are enforced separately by notifications;
+   they do not prevent explicitly opening a tip in the foreground.
 3. Discard disabled tips and disabled categories.
 4. Require every value in `requiredSharedFields` to be true. A missing or
    unknown field is false (fail closed).
@@ -57,18 +60,21 @@ tracker's health records. The recommended order is:
 7. Exclude suggestions that conflict with care preferences or a custom
    unhelpful-action rule. Prefer explicitly liked actions, but never infer a
    preference from health data.
-8. Exclude dismissed tips and reduce the weight of categories the partner has
-   marked as less frequent. Honor per-day and per-category frequency limits.
-9. Rank the remaining candidates by priority, preference match, recent
-   repetition penalty, and a deterministic daily tie-breaker scoped to the
-   internal relationship tenant. Select at most the configured number of tips.
+8. Exclude dismissed tips. Helpful feedback, explicitly liked actions and
+   permitted phase/symptom context qualify a suggestion for the relevant pool.
+   There is currently no independent partner-side per-category frequency control.
+9. Put explicitly shared personal wishes first. Rotate the permitted catalogue
+   deterministically each day, giving the relevant pool two days out of three
+   and general ideas the third day when both are available. `variant=0..100`
+   browses the eligible deck without changing feedback. Return one tip.
 10. If no data-dependent item is eligible, use a general item with empty
     `requiredSharedFields`, `ANY`, and no symptoms. Returning no tip is also
     valid when tips are disabled.
 
-The deterministic tie-breaker should use a keyed server-side hash of the
-internal relationship ID, local date, and tip key. It must not expose
-identifiers and must not make private data observable through ordering.
+The stable deck uses a SHA-256 hash of the authenticated user UUID and tip
+UUID, then rotates by local date. It is variety, not cryptography for an
+authorization decision. Only eligible candidates participate. A change to
+sharing or personal wishes can change the deck; ordering never grants access.
 
 ## Non-negotiable privacy behavior
 
@@ -77,14 +83,18 @@ identifiers and must not make private data observable through ordering.
 - Symptom matching is allowed only when both the data field and
   `allowSymptomBasedTips` are enabled. For pain, mood, flow, energy, and
   sleep, the corresponding dedicated sharing switch is also required.
-- The API response must contain only the selected localized copy and safe
-  metadata. It must not include the match reason, raw symptom keys, pain level,
-  log values, or excluded candidates.
+- The API response contains the selected localized copy and safe metadata.
+  `selectionReason` is only a broad label: personal request, care preference,
+  shared symptom/context, or general idea. It includes no symptom keys, pain
+  level, log values, notes or excluded candidates. A source link is attached only
+  to the two matching global warmth tips, never inferred for a user-authored tip.
 - Copy must not interpolate a person's name, a symptom value, a severity, a
   note, a predicted emotion, or an unshared event. Built-in copy remains static.
 - A sharing change, partner disconnect, private day, or global sharing pause
-  takes effect on the next authorization check. Partner-dashboard and tip
-  caches must be invalidated immediately and must never outlive authorization.
+  takes effect on the next server authorization check. A disconnected phone
+  cannot learn of a revocation immediately: previously delivered data and
+  screenshots cannot be retroactively withdrawn. The app refreshes while open
+  and uses the existing protected partner-cache policy; this is not remote erasure.
 - A private day removes all day-specific inputs. Only general, data-independent
   tips may remain if the tracker has allowed general tips.
 - Notes are never used for built-in tip selection, even when note sharing is
@@ -108,8 +118,9 @@ Built-in and user-defined tips should:
 - remain useful when read without hidden health context.
 
 User-defined tips are validated for length and plain text, rendered without
-HTML, and visible only inside their relationship tenant. The tracker can edit
-or disable them at any time. They must never be promoted into the global seed.
+HTML, and visible only inside their relationship tenant. Android 1.1.6 supports
+creating and disabling them; the API also supports editing. They are never
+promoted into the global seed. Existing private notes are not used as wishes.
 
 ## Localization
 
@@ -117,6 +128,8 @@ The server selects the account's preferred language, with German as the product
 default and English as the supported fallback. A seed migration must fail if
 either locale or any of `title`, `body`, and `callToAction` is missing.
 Clients must not combine fields from different locales in a single tip.
+Personal wishes entered in Android preserve the author's words in both language
+slots; the app does not silently translate or paraphrase them.
 
 ## Required tests
 
@@ -135,5 +148,5 @@ At minimum, automated tests should prove:
   immediately;
 - an authenticated member cannot influence or retrieve another relationship
   tenant's candidate set;
-- the response and structured logs contain no unshared symptom, note, severity,
-  or matching reason.
+- the response and structured logs contain no unshared symptom, note or severity;
+  only the documented coarse selection label is returned, not the matched value.

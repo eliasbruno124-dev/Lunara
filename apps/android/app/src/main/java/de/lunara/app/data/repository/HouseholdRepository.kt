@@ -8,6 +8,8 @@ import de.lunara.app.data.remote.dto.InvitationDto
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.Instant
+import de.lunara.app.data.preferences.AppMode
 
 @Singleton
 class HouseholdRepository @Inject constructor(
@@ -16,7 +18,48 @@ class HouseholdRepository @Inject constructor(
     private val apiFactory: ApiClientFactory,
     private val connectionRepository: ConnectionRepository,
     private val gson: Gson,
+    private val credentialGate: SessionCredentialGate,
 ) {
+    suspend fun cachedRelationship(expectedUserId: String): RelationshipState? {
+        val state = preferences.state.first()
+        if (state.appMode != AppMode.SERVER || state.session?.userId != expectedUserId) return null
+        val base = state.baseUrl ?: return null
+        val snapshot = secrets.relationshipJson?.let {
+            runCatching { gson.fromJson(it, RelationshipSnapshot::class.java) }.getOrNull()
+        }
+        return RelationshipPolicy.cached(snapshot, base, expectedUserId)
+    }
+
+    /** Both roles can read their relationship; invitation permissions must not gate it. */
+    suspend fun relationship(expectedUserId: String): RelationshipState {
+        val generation = credentialGate.snapshot()
+        val initial = preferences.state.first()
+        val base = initial.baseUrl ?: throw ApiException(400)
+        if (initial.appMode != AppMode.SERVER || initial.session?.userId != expectedUserId) throw SessionChangedException()
+        suspend fun currentApi() = credentialGate.exclusive {
+            val current = preferences.state.first()
+            if (credentialGate.snapshot() != generation || current.appMode != AppMode.SERVER || current.baseUrl != base || current.session?.userId != expectedUserId) throw SessionChangedException()
+            apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+        }
+        var response = currentApi()
+            .relationship(endpoint(base, "api/v1/household"))
+        if (response.code() == 401 && connectionRepository.refresh()) {
+            response = currentApi()
+                .relationship(endpoint(base, "api/v1/household"))
+        }
+        val result = RelationshipPolicy.fromServer(response.requireBody(), expectedUserId, Instant.now().toString())
+        val committed = credentialGate.commitIfCurrent(generation) {
+            val current = preferences.state.first()
+            if (current.appMode != AppMode.SERVER || current.baseUrl != base || current.session?.userId != expectedUserId) {
+                return@commitIfCurrent false
+            }
+            secrets.relationshipJson = gson.toJson(RelationshipSnapshot(base, expectedUserId, result))
+            true
+        }
+        if (!committed) throw SessionChangedException()
+        return result
+    }
+
     internal suspend fun invitationOverview(): InvitationOverview {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
         var api = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
@@ -33,13 +76,7 @@ class HouseholdRepository @Inject constructor(
         }
         val merged = InvitationCachePolicy.merge(remote, cached)
         secrets.activeInvitationJson = merged?.takeIf { it.code != null }?.let(gson::toJson)
-        var relationshipResponse = api.relationship(endpoint(base, "api/v1/household"))
-        if (relationshipResponse.code() == 401 && connectionRepository.refresh()) {
-            relationshipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
-                .relationship(endpoint(base, "api/v1/household"))
-        }
-        val partnerConnected = relationshipResponse.requireBody().members.any { it.role == "PARTNER" }
-        return InvitationOverview(merged, partnerConnected)
+        return InvitationOverview(merged)
     }
 
     suspend fun createInvitation(): InvitationDto {
@@ -72,7 +109,6 @@ class HouseholdRepository @Inject constructor(
 
 internal data class InvitationOverview(
     val invitation: InvitationDto?,
-    val partnerConnected: Boolean,
 )
 
 internal object InvitationCachePolicy {

@@ -71,6 +71,11 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
         get() = store.getString(ACTIVE_INVITATION)
         set(value) = store.putString(ACTIVE_INVITATION, value)
 
+    /** Names/relationship state are private too; scope is checked before exposing this cache. */
+    var relationshipJson: String?
+        get() = store.getString(RELATIONSHIP)
+        set(value) = store.putString(RELATIONSHIP, value)
+
     /** Pending inbound relationship proof for an AppAuth round trip; never put this in saved UI state. */
     var pendingInvitationCode: String?
         get() = store.getString(PENDING_INVITATION)
@@ -94,6 +99,7 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
         clearRefreshRequestId()
         clearAuthentik()
         activeInvitationJson = null
+        relationshipJson = null
         pendingInvitationCode = null
         gatewayCredentials = null
     }
@@ -111,6 +117,7 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
         const val AUTHENTIK_STATE = "gateway.authentik_state.v1"
         const val AUTHENTIK_BASE_URL = "gateway.authentik_base_url.v1"
         const val ACTIVE_INVITATION = "relationship.active_invitation.v1"
+        const val RELATIONSHIP = "relationship.snapshot.v1"
         const val PENDING_INVITATION = "relationship.pending_invitation.v1"
         const val GATEWAY_USER = "gateway.username"
         const val GATEWAY_PASSWORD = "gateway.app_password"

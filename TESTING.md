@@ -1,8 +1,25 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Aktuelle 1.1.5-Ergebnisse stehen in `FINAL_REPORT.md`; die Matrix
+Testquellen. Aktuelle 1.1.6-Ergebnisse stehen in `FINAL_REPORT.md`; die Matrix
 unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.1.6
+
+`RelationshipPolicyTest` prüft unbekannte/verbundene/veraltete Zustände,
+keine Selbstverknüpfung und Cache-Isolation zwischen Servern und Konten.
+`ConnectionPresentationTest` prüft Statuspriorität, getrennte Versionen,
+inklusive Startfenster und sichere PayPal.me-URLs mit negativen Kontrollen.
+`PersonalTipDraftPolicyTest` prüft unveränderte persönliche Texte und Grenzen.
+`ConnectionQualityComposeTest` prüft die entsprechenden echten Compose-
+Oberflächen einschließlich bewusster Freigabe eines eigenen Wunsches.
+
+Neue API-Tests prüfen die Rotation der zulässigen Tippmenge, persönliche
+Wünsche vor allgemeinen Tipps, konkrete Wärme- statt Berührungspräferenz,
+Varianten ohne Ausblenden und sichere Aktualisierung vorhandener Katalogtexte.
+Die PostgreSQL-Suite prüft zusätzlich Variantenvalidierung und den Abruf der
+echten Beziehung als Partner. Die klinische Wirksamkeit der Tipps und eine
+prospektive Vorhersagegenauigkeit sind damit ausdrücklich nicht bewiesen.
 
 ## Zusätzliche Prüfungen für 1.1.5
 

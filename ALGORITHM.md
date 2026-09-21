@@ -8,6 +8,20 @@ Verhütungsmethode.
 
 ## Genauigkeitsprüfung vom 21. September 2026
 
+### Darstellung ab 1.1.6
+
+Der Zeitraum ist ausdrücklich als **erwarteter Periodenbeginn** beschriftet,
+nicht als Dauer der Blutung. Die Oberfläche nennt die inklusive Anzahl
+möglicher Starttage und vollständiger beobachteter Zyklen. Unter drei Zyklen
+steht die geringe Datenbasis unmittelbar an der Prognose. Beispiel:
+9.–16. umfasst acht mögliche Starttage. Ein tatsächlicher Beginn am letzten
+Tag ist ein Treffer innerhalb des Fensters, aber kein Beleg für hohe Präzision.
+
+1.1.6 verändert die Formel nicht. Die Spanne wird weder an einen nachträglich
+bekannten Beginn angepasst noch rein optisch verengt. Fehlende Synchronisation
+kann zudem bedeuten, dass Server und Gerät unterschiedliche Eingaben besitzen;
+dies muss vor einer individuellen Genauigkeitsbewertung geklärt sein.
+
 Die Regressionstests prüfen die beschriebenen Rechenschritte, nicht eine
 klinische Treffergenauigkeit. Es gibt keine prospektive Validierung, gemessene
 persönliche Fehlerrate oder kalibrierte Abdeckungswahrscheinlichkeit des

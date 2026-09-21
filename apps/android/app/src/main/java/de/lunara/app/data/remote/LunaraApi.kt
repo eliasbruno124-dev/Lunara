@@ -64,6 +64,9 @@ interface LunaraApi {
     @GET suspend fun cycleProfile(@Url url: String): Response<CycleProfileDto>
     @PATCH suspend fun updateCycleProfile(@Url url: String, @Body request: UpdateCycleProfileRequest): Response<CycleProfileDto>
     @GET suspend fun todayTip(@Url url: String): Response<TodayTipDto>
+    @GET suspend fun personalTips(@Url url: String): Response<List<de.lunara.app.data.remote.dto.PersonalTipDto>>
+    @POST suspend fun createPersonalTip(@Url url: String, @Body request: de.lunara.app.data.remote.dto.CreatePersonalTipRequest): Response<de.lunara.app.data.remote.dto.PersonalTipDto>
+    @DELETE suspend fun disablePersonalTip(@Url url: String): Response<Unit>
     @POST suspend fun createCheckIn(@Url url: String, @Body request: CreateCheckInRequest): Response<CheckInDto>
     @POST suspend fun createInvitation(@Url url: String, @Body request: CreateInvitationRequest): Response<InvitationDto>
     @GET suspend fun openInvitations(@Url url: String): Response<List<InvitationDto>>

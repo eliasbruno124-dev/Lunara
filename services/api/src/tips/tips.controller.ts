@@ -28,6 +28,7 @@ import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import {
   CreateUserDefinedTipDto,
   TipFeedbackDto,
+  TodayTipQueryDto,
   UpdateUserDefinedTipDto,
   UserDefinedTipResponseDto,
 } from './tips.dto.js';
@@ -41,8 +42,8 @@ export class TipsController {
   constructor(private readonly tips: TipsService) {}
 
   @Get('today')
-  today(@CurrentUser() user: AuthenticatedUser) {
-    return this.tips.today(user);
+  today(@CurrentUser() user: AuthenticatedUser, @Query() query: TodayTipQueryDto) {
+    return this.tips.today(user, query.variant);
   }
 
   @Post(':id/feedback')

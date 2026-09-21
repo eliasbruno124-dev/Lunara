@@ -301,6 +301,21 @@ data class PartnerTipDto(
     val callToAction: String,
     val category: String,
     val applicablePhase: String? = null,
+    val selectionReason: String? = null,
+    val source: TipSourceDto? = null,
+)
+
+data class TipSourceDto(val title: String, val url: String)
+
+data class PersonalTipDto(val id: String, val titleDe: String, val bodyDe: String, val callToActionDe: String)
+data class CreatePersonalTipRequest(
+    val id: String,
+    val titleDe: String,
+    val bodyDe: String,
+    val callToActionDe: String,
+    val titleEn: String = titleDe,
+    val bodyEn: String = bodyDe,
+    val callToActionEn: String = callToActionDe,
 )
 
 data class PartnerDashboardDto(
@@ -339,6 +354,8 @@ data class InvitationDto(
 data class RelationshipMemberDto(
     val role: String,
     val disabled: Boolean = false,
+    val userId: String = "",
+    val displayName: String = "",
 )
 
 data class RelationshipDto(

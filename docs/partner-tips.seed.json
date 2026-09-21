@@ -6,1136 +6,1720 @@
   ],
   "tips": [
     {
-      "key": "communication-ask-before-help",
+      "key": "10000000-0000-4000-8000-000000000001",
       "category": "COMMUNICATION",
-      "priority": 80,
+      "priority": 100,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Erst fragen, dann handeln",
-          "body": "Unterstützung passt besser, wenn die andere Person selbst entscheiden kann, was gerade hilfreich ist.",
-          "callToAction": "Frag: „Was würde dir gerade guttun?“"
+          "title": "Eine Frage, zwei Möglichkeiten",
+          "body": "Ein konkretes Angebot lässt sich leichter beantworten als „Sag einfach Bescheid“.",
+          "callToAction": "„Soll ich das Essen übernehmen, oder möchtest du lieber etwas Zeit für dich?“"
         },
         "en": {
-          "title": "Ask before acting",
-          "body": "Support works better when the other person can decide what would actually be helpful right now.",
-          "callToAction": "Ask: “What would feel helpful right now?”"
+          "title": "One question, two options",
+          "body": "A specific offer is easier to answer than “Just let me know”.",
+          "callToAction": "“Shall I take care of dinner, or would some time to yourself be nicer?”"
         }
       }
     },
     {
-      "key": "communication-listen-before-advice",
+      "key": "10000000-0000-4000-8000-000000000002",
       "category": "COMMUNICATION",
-      "priority": 78,
+      "priority": 99,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Zuhören ohne Lösung",
-          "body": "Manchmal ist aufmerksames Zuhören hilfreicher als ein schneller Rat oder eine eigene Erklärung.",
-          "callToAction": "Frag, ob Zuhören oder gemeinsames Nachdenken gewünscht ist."
+          "title": "Offen zuhören",
+          "body": "Eine Antwort muss nicht sofort gelöst werden. Zuhören kann bereits entlasten.",
+          "callToAction": "Hör zu, ohne direkt einen Ratschlag anzuschließen."
         },
         "en": {
-          "title": "Listen without fixing",
-          "body": "Sometimes attentive listening is more helpful than quick advice or offering your own explanation.",
-          "callToAction": "Ask whether listening or thinking it through together is wanted."
+          "title": "Listen openly",
+          "body": "An answer does not always need an immediate solution. Listening can already help.",
+          "callToAction": "Listen without immediately adding advice."
         }
       }
     },
     {
-      "key": "communication-offer-two-options",
+      "key": "10000000-0000-4000-8000-000000000003",
       "category": "COMMUNICATION",
-      "priority": 66,
+      "priority": 98,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine einfache Wahl anbieten",
-          "body": "Zwei unverbindliche Möglichkeiten können leichter zu beantworten sein als eine sehr offene Frage.",
-          "callToAction": "Biete Nähe oder Ruhe an und akzeptiere auch ein Nein."
+          "title": "Wahl lassen",
+          "body": "Nähe und Ruhe können an verschiedenen Tagen unterschiedlich gut tun.",
+          "callToAction": "Frag, ob gerade Nähe, Ruhe oder etwas anderes gewünscht ist."
         },
         "en": {
-          "title": "Offer a simple choice",
-          "body": "Two low-pressure options can be easier to answer than a very open-ended question.",
-          "callToAction": "Offer company or quiet time, and accept no as an answer."
+          "title": "Leave the choice open",
+          "body": "Closeness and space can feel different from day to day.",
+          "callToAction": "Ask whether closeness, space, or something else is wanted."
         }
       }
     },
     {
-      "key": "communication-check-in-once",
+      "key": "10000000-0000-4000-8000-000000000004",
       "category": "COMMUNICATION",
-      "priority": 64,
+      "priority": 97,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein ruhiger Check-in genügt",
-          "body": "Eine freundliche Nachfrage zeigt Aufmerksamkeit, ohne die andere Person zu häufig zu unterbrechen.",
-          "callToAction": "Frag einmal nach und lass Zeit für eine Antwort."
+          "title": "Kurz abstimmen",
+          "body": "Ihr müsst heute kein großes Gespräch führen, um füreinander da zu sein.",
+          "callToAction": "„Hast du Lust auf zehn Minuten zusammen, oder passt später besser?“"
         },
         "en": {
-          "title": "One calm check-in is enough",
-          "body": "A friendly check-in shows care without repeatedly interrupting the other person.",
-          "callToAction": "Ask once and leave time for an answer."
+          "title": "A quick check-in",
+          "body": "Being there for each other does not require a long conversation today.",
+          "callToAction": "“Would you like ten minutes together, or would later be better?”"
         }
       }
     },
     {
-      "key": "communication-respect-decline",
+      "key": "10000000-0000-4000-8000-000000000005",
       "category": "COMMUNICATION",
-      "priority": 76,
+      "priority": 96,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein Nein respektieren",
-          "body": "Abgelehnte Hilfe ist keine Zurückweisung. Bedürfnisse können sich ändern und müssen nicht begründet werden.",
-          "callToAction": "Antworte freundlich und lass das Angebot ohne Druck stehen."
+          "title": "Ein Angebot reicht",
+          "body": "Du hast Hilfe angeboten und die Antwort war nein? Dann darf der Tag ganz normal weitergehen.",
+          "callToAction": "Sag „Alles klar“ und lass das Angebot stehen, ohne erneut nachzufragen."
         },
         "en": {
-          "title": "Respect a no",
-          "body": "Declining help is not personal rejection. Needs can change and do not require an explanation.",
-          "callToAction": "Respond kindly and leave the offer open without pressure."
+          "title": "One offer is enough",
+          "body": "You offered help and the answer was no? You can both get on with your day.",
+          "callToAction": "Say “All right” and leave the offer open without asking again."
         }
       }
     },
     {
-      "key": "communication-avoid-assumptions",
-      "category": "COMMUNICATION",
-      "priority": 82,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Nicht vom Zyklus auf Gefühle schließen",
-          "body": "Ein Kalendertag erklärt weder Stimmung noch Verhalten. Frag nach, statt eine Ursache zu unterstellen.",
-          "callToAction": "Sprich über die konkrete Situation, nicht über vermutete Zyklusgründe."
-        },
-        "en": {
-          "title": "Do not infer feelings from a cycle",
-          "body": "A calendar day does not explain mood or behavior. Ask instead of assigning a cause.",
-          "callToAction": "Talk about the situation, not an assumed cycle-related reason."
-        }
-      }
-    },
-    {
-      "key": "practical-help-take-one-task",
+      "key": "10000000-0000-4000-8000-000000000006",
       "category": "PRACTICAL_HELP",
-      "priority": 76,
+      "priority": 95,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine konkrete Aufgabe übernehmen",
-          "body": "Kleine, verlässlich erledigte Aufgaben entlasten oft mehr als ein allgemeines Hilfsangebot.",
-          "callToAction": "Übernimm heute eine vereinbarte Haushaltsaufgabe vollständig."
+          "title": "Die Küche ist schon erledigt",
+          "body": "Eine abgeschlossene Aufgabe spart nicht nur Arbeit, sondern auch eine weitere Absprache.",
+          "callToAction": "Wenn es zu eurer Aufteilung passt: Spülmaschine ausräumen, Arbeitsfläche abwischen, fertig."
         },
         "en": {
-          "title": "Take one concrete task",
-          "body": "A small task completed reliably can be more useful than a general offer to help.",
-          "callToAction": "Take full ownership of one agreed household task today."
+          "title": "The kitchen is already done",
+          "body": "A finished task saves work and another round of organising.",
+          "callToAction": "If it fits your shared responsibilities: unload the dishwasher and wipe the counter."
         }
       }
     },
     {
-      "key": "practical-help-reduce-decisions",
+      "key": "10000000-0000-4000-8000-000000000007",
       "category": "PRACTICAL_HELP",
-      "priority": 62,
+      "priority": 94,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Entscheidungen leichter machen",
-          "body": "Ein vorbereiteter, veränderbarer Vorschlag kann Denkarbeit abnehmen, ohne etwas zu bestimmen.",
-          "callToAction": "Mach einen konkreten Vorschlag und frag, ob er passt."
+          "title": "Fünf Minuten Entlastung",
+          "body": "Du brauchst keinen besonderen Anlass für eine kleine Alltagshilfe.",
+          "callToAction": "Nimm beim nächsten Weg den Müll mit oder räum die saubere Wäsche weg."
         },
         "en": {
-          "title": "Make decisions easier",
-          "body": "A prepared, flexible suggestion can reduce mental load without taking control.",
-          "callToAction": "Make one specific suggestion and ask whether it works."
+          "title": "Five minutes of relief",
+          "body": "A small everyday help does not need a special occasion.",
+          "callToAction": "Take the rubbish out on your next trip or put the clean laundry away."
         }
       }
     },
     {
-      "key": "practical-help-small-errand",
+      "key": "10000000-0000-4000-8000-000000000008",
       "category": "PRACTICAL_HELP",
-      "priority": 56,
+      "priority": 93,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen kleinen Weg abnehmen",
-          "body": "Ein kurzer Einkauf oder eine Abholung kann spürbar entlasten, wenn das vorher willkommen ist.",
-          "callToAction": "Frag, ob du heute einen konkreten Weg übernehmen kannst."
+          "title": "Den Einkauf komplett übernehmen",
+          "body": "Von der Liste bis zum Einräumen: Eine Aufgabe wirklich abzunehmen macht den Unterschied.",
+          "callToAction": "„Ich kaufe heute ein. Gibt es etwas, das ich nicht vergessen soll?“"
         },
         "en": {
-          "title": "Handle a small errand",
-          "body": "A quick shop or pickup can ease the day when that kind of help is welcome.",
-          "callToAction": "Ask whether you can take care of one specific errand today."
+          "title": "Own the whole shopping trip",
+          "body": "From checking the list to putting things away, owning the whole task makes a difference.",
+          "callToAction": "“I will do the shopping today. Is there anything I should not miss?”"
         }
       }
     },
     {
-      "key": "practical-help-protect-rest-time",
+      "key": "10000000-0000-4000-8000-000000000009",
       "category": "PRACTICAL_HELP",
-      "priority": 68,
+      "priority": 92,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Freiraum im Alltag schaffen",
-          "body": "Weniger Verpflichtungen können guttun, sofern die andere Person selbst entscheiden kann, wie sie die Zeit nutzt.",
-          "callToAction": "Biete an, eine Verpflichtung zu übernehmen oder zu verschieben."
+          "title": "Ein freier Abend",
+          "body": "Eine kleine erledigte Aufgabe kann später gemeinsame Zeit freihalten.",
+          "callToAction": "Erledige eine eurer offenen Alltagssachen, bevor ihr euch zusammensetzt."
         },
         "en": {
-          "title": "Create breathing room",
-          "body": "Fewer obligations may help, as long as the other person chooses how to use the time.",
-          "callToAction": "Offer to take over or reschedule one commitment."
+          "title": "Make room for the evening",
+          "body": "Finishing a small task now can free up time together later.",
+          "callToAction": "Finish one shared everyday task before you sit down together."
         }
       }
     },
     {
-      "key": "practical-help-follow-through",
+      "key": "10000000-0000-4000-8000-000000000010",
       "category": "PRACTICAL_HELP",
-      "priority": 74,
+      "priority": 91,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Zuverlässig zu Ende bringen",
-          "body": "Unterstützung wirkt besonders, wenn nach einer Zusage keine weitere Erinnerung oder Organisation nötig ist.",
-          "callToAction": "Erledige die zugesagte Aufgabe inklusive Aufräumen."
+          "title": "Eine Sache weniger",
+          "body": "Ein überschaubares Angebot ist oft hilfreicher als gleich den ganzen Tag umzuplanen.",
+          "callToAction": "„Ich kann heute kochen oder den Einkauf erledigen. Was wäre praktischer?“"
         },
         "en": {
-          "title": "Follow through reliably",
-          "body": "Support matters most when a promise does not create extra reminders or coordination.",
-          "callToAction": "Finish the promised task, including the cleanup."
+          "title": "One less thing",
+          "body": "A manageable offer can be more helpful than rearranging the whole day.",
+          "callToAction": "“I can cook or do the shopping today. Which would be more useful?”"
         }
       }
     },
     {
-      "key": "practical-help-adjust-shared-plan",
-      "category": "PRACTICAL_HELP",
-      "priority": 58,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Pläne gemeinsam anpassen",
-          "body": "Flexibilität ist hilfreich, ohne automatisch anzunehmen, dass ein gemeinsamer Plan abgesagt werden muss.",
-          "callToAction": "Frag, ob der Plan unverändert, kürzer oder an einem anderen Tag besser passt."
-        },
-        "en": {
-          "title": "Adjust plans together",
-          "body": "Flexibility can help without assuming that a shared plan needs to be cancelled.",
-          "callToAction": "Ask whether the plan works as is, shorter, or on another day."
-        }
-      }
-    },
-    {
-      "key": "comfort-offer-warmth",
+      "key": "10000000-0000-4000-8000-000000000011",
       "category": "COMFORT",
-      "priority": 64,
+      "priority": 90,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Wärme als Option anbieten",
-          "body": "Wärme ist für manche angenehm und für andere nicht. Ein kurzes Angebot lässt die Wahl offen.",
-          "callToAction": "Frag, ob Wärmflasche, Decke oder gar keine Wärme gewünscht ist."
+          "title": "Wärme griffbereit",
+          "body": "Wärme kann Periodenbeschwerden lindern, wenn sie als angenehm empfunden wird.",
+          "callToAction": "Biete eine warme, in ein Tuch gewickelte Wärmflasche an. Nicht direkt auf die Haut legen."
         },
         "en": {
-          "title": "Offer warmth as an option",
-          "body": "Warmth feels good to some people and not to others. A brief offer leaves the choice open.",
-          "callToAction": "Ask whether a hot-water bottle, blanket, or no warmth is preferred."
+          "title": "Warmth within reach",
+          "body": "Warmth may ease period discomfort when it feels comfortable.",
+          "callToAction": "Offer a warm hot-water bottle wrapped in a cloth. Do not put it directly on the skin."
         }
       }
     },
     {
-      "key": "comfort-calm-environment",
+      "key": "10000000-0000-4000-8000-000000000012",
       "category": "COMFORT",
-      "priority": 52,
+      "priority": 89,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine ruhige Umgebung ermöglichen",
-          "body": "Weniger Lärm und Unordnung können angenehm sein, sollten aber nicht ungefragt durchgesetzt werden.",
-          "callToAction": "Frag, ob Licht, Lautstärke oder Raum gerade angepasst werden sollen."
+          "title": "Lieblingsplatz vorbereiten",
+          "body": "Decke, Kissen und etwas zu trinken können einen ruhigen Moment gemütlicher machen.",
+          "callToAction": "„Ich mache es auf dem Sofa gemütlich. Magst du dazukommen?“"
         },
         "en": {
-          "title": "Make a calmer space possible",
-          "body": "Less noise and clutter can feel pleasant, but should not be imposed without asking.",
-          "callToAction": "Ask whether the light, noise, or room should be adjusted."
+          "title": "Make a favourite spot cosy",
+          "body": "A blanket, pillow and a drink can make a quiet moment more comfortable.",
+          "callToAction": "“I am making the sofa cosy. Would you like to join me?”"
         }
       }
     },
     {
-      "key": "comfort-choice-of-company",
+      "key": "10000000-0000-4000-8000-000000000013",
       "category": "COMFORT",
-      "priority": 67,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Nähe ohne Erwartung",
-          "body": "Gesellschaft kann wohltuend sein, solange daraus keine Pflicht zu Gespräch oder Körperkontakt entsteht.",
-          "callToAction": "Biete ruhige Gesellschaft an und lass die Form der Nähe wählen."
-        },
-        "en": {
-          "title": "Company without expectations",
-          "body": "Company can be comforting when it does not create an obligation to talk or be touched.",
-          "callToAction": "Offer quiet company and let the other person choose the kind of closeness."
-        }
-      }
-    },
-    {
-      "key": "comfort-gentle-movement",
-      "category": "COMFORT",
-      "priority": 44,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Bewegung nur als Angebot",
-          "body": "Ein kurzer Spaziergang kann angenehm sein, ist aber keine allgemeine Lösung und darf leicht abgelehnt werden.",
-          "callToAction": "Frag unverbindlich nach einem kurzen Spaziergang."
-        },
-        "en": {
-          "title": "Movement only as an option",
-          "body": "A short walk may feel good, but it is not a universal solution and must be easy to decline.",
-          "callToAction": "Casually offer a short walk."
-        }
-      }
-    },
-    {
-      "key": "comfort-shared-pain-support",
-      "category": "COMFORT",
-      "priority": 84,
-      "requiredSharedFields": ["sharePain", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Geteilte Schmerzen ernst nehmen",
-          "body": "Wenn Schmerzen freigegeben wurden, höre zu und respektiere, welche Unterstützung die betroffene Person selbst wählt.",
-          "callToAction": "Frag, ob Ruhe, Wärme, praktische Hilfe oder etwas anderes gewünscht ist."
-        },
-        "en": {
-          "title": "Take shared pain seriously",
-          "body": "When pain has been shared, listen and respect the support the affected person chooses for themselves.",
-          "callToAction": "Ask whether rest, warmth, practical help, or something else is wanted."
-        }
-      }
-    },
-    {
-      "key": "comfort-shared-cramps-options",
-      "category": "COMFORT",
-      "priority": 82,
-      "requiredSharedFields": ["shareSymptoms", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": ["CRAMPS"],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Bei geteilten Krämpfen nachfragen",
-          "body": "Krämpfe werden unterschiedlich erlebt. Vermeide ungefragte Ratschläge und orientiere dich an den geäußerten Wünschen.",
-          "callToAction": "Frag, welche kleine Erleichterung gerade willkommen wäre."
-        },
-        "en": {
-          "title": "Ask about shared cramps",
-          "body": "People experience cramps differently. Avoid unsolicited advice and follow the preferences that are expressed.",
-          "callToAction": "Ask what small comfort would be welcome right now."
-        }
-      }
-    },
-    {
-      "key": "space-space-without-distance",
-      "category": "SPACE",
-      "priority": 72,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Ruhe ist keine Distanz",
-          "body": "Gewünschter Freiraum kann Fürsorge sein und muss nicht als persönliche Ablehnung verstanden werden.",
-          "callToAction": "Respektiere Ruhe und signalisiere, dass du später erreichbar bist."
-        },
-        "en": {
-          "title": "Space is not distance",
-          "body": "Requested space can be a form of care and does not have to mean personal rejection.",
-          "callToAction": "Respect quiet time and say that you are available later."
-        }
-      }
-    },
-    {
-      "key": "space-agree-checkback-time",
-      "category": "SPACE",
-      "priority": 62,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Zeitpunkt fürs Wiederfragen klären",
-          "body": "Eine vereinbarte spätere Nachfrage schafft Ruhe, ohne dass jemand vergessen oder bedrängt wird.",
-          "callToAction": "Frag, ob und wann ein späterer Check-in angenehm wäre."
-        },
-        "en": {
-          "title": "Agree when to check back",
-          "body": "A mutually agreed later check-in creates space without leaving anyone forgotten or pressured.",
-          "callToAction": "Ask whether and when another check-in would feel comfortable."
-        }
-      }
-    },
-    {
-      "key": "space-quiet-company",
-      "category": "SPACE",
-      "priority": 55,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Stille Gesellschaft anbieten",
-          "body": "Manchmal passt gemeinsames Schweigen besser als Gespräch oder vollständiger Rückzug.",
-          "callToAction": "Biete an, einfach ruhig im selben Raum zu sein."
-        },
-        "en": {
-          "title": "Offer quiet company",
-          "body": "Sometimes sharing silence works better than conversation or complete separation.",
-          "callToAction": "Offer to simply be quietly present in the same room."
-        }
-      }
-    },
-    {
-      "key": "space-respect-boundaries",
-      "category": "SPACE",
-      "priority": 78,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Grenzen nicht verhandeln",
-          "body": "Eine klare Bitte um Ruhe braucht keine Diskussion und keine wiederholte Nachfrage.",
-          "callToAction": "Bestätige die Grenze freundlich und halte sie ein."
-        },
-        "en": {
-          "title": "Do not negotiate boundaries",
-          "body": "A clear request for space does not require debate or repeated questions.",
-          "callToAction": "Acknowledge the boundary kindly and honor it."
-        }
-      }
-    },
-    {
-      "key": "space-low-contact-plan",
-      "category": "SPACE",
-      "priority": 48,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Kontaktmenge gemeinsam festlegen",
-          "body": "Ein kurzes Zeichen kann genügen, wenn ausführliche Gespräche gerade nicht gewünscht sind.",
-          "callToAction": "Vereinbart ein einfaches Zeichen für „alles okay“."
-        },
-        "en": {
-          "title": "Agree on the amount of contact",
-          "body": "A brief signal can be enough when a longer conversation is not wanted.",
-          "callToAction": "Agree on a simple signal that means “I am okay.”"
-        }
-      }
-    },
-    {
-      "key": "space-protect-quiet-time",
-      "category": "SPACE",
-      "priority": 57,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Ruhezeit praktisch schützen",
-          "body": "Absprachen zu Klingeln, Telefonaten oder Aufgaben können ungestörte Zeit ermöglichen.",
-          "callToAction": "Übernimm nach Absprache eine mögliche Unterbrechung."
-        },
-        "en": {
-          "title": "Protect quiet time in practice",
-          "body": "Agreements about doorbells, calls, or chores can make uninterrupted time possible.",
-          "callToAction": "With permission, handle one likely interruption."
-        }
-      }
-    },
-    {
-      "key": "food-drink-offer-water",
-      "category": "FOOD_AND_DRINK",
-      "priority": 55,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Etwas zu trinken anbieten",
-          "body": "Eine kleine, unkomplizierte Geste kann aufmerksam sein, ohne daraus ein großes Thema zu machen.",
-          "callToAction": "Frag, ob du Wasser oder ein anderes Getränk mitbringen sollst."
-        },
-        "en": {
-          "title": "Offer something to drink",
-          "body": "A small, uncomplicated gesture can show care without making it a big event.",
-          "callToAction": "Ask whether you should bring water or another drink."
-        }
-      }
-    },
-    {
-      "key": "food-drink-simple-snack",
-      "category": "FOOD_AND_DRINK",
-      "priority": 50,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Einen Snack zur Wahl stellen",
-          "body": "Vorlieben sind persönlich. Ein Angebot ist hilfreicher als Annahmen darüber, worauf jemand Lust haben müsste.",
-          "callToAction": "Nenne zwei vorhandene Optionen und frag, ob eine davon passt."
-        },
-        "en": {
-          "title": "Offer a snack choice",
-          "body": "Preferences are personal. An offer is more helpful than assumptions about what someone should want.",
-          "callToAction": "Name two available options and ask whether either sounds good."
-        }
-      }
-    },
-    {
-      "key": "food-drink-ask-before-cooking",
-      "category": "FOOD_AND_DRINK",
-      "priority": 54,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Vor dem Kochen kurz abstimmen",
-          "body": "Geruch, Appetit und Vorlieben können jederzeit variieren, unabhängig vom Zyklus.",
-          "callToAction": "Frag nach einer einfachen Mahlzeit, bevor du sie zubereitest."
-        },
-        "en": {
-          "title": "Check before cooking",
-          "body": "Smell, appetite, and preferences can vary at any time, independently of the cycle.",
-          "callToAction": "Ask about a simple meal before preparing it."
-        }
-      }
-    },
-    {
-      "key": "food-drink-warm-drink",
-      "category": "FOOD_AND_DRINK",
-      "priority": 46,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Ein warmes Getränk anbieten",
-          "body": "Tee oder ein anderes warmes Getränk kann gemütlich sein, wenn es den persönlichen Vorlieben entspricht.",
-          "callToAction": "Frag nach dem gewünschten Getränk, statt einfach eines auszuwählen."
-        },
-        "en": {
-          "title": "Offer a warm drink",
-          "body": "Tea or another warm drink can feel comforting when it matches personal preferences.",
-          "callToAction": "Ask what drink is wanted instead of choosing one automatically."
-        }
-      }
-    },
-    {
-      "key": "food-drink-shared-nausea",
-      "category": "FOOD_AND_DRINK",
-      "priority": 79,
-      "requiredSharedFields": ["shareSymptoms", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": ["NAUSEA"],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Bei geteilter Übelkeit Wünsche erfragen",
-          "body": "Wenn Übelkeit freigegeben wurde, vermeide starke Gerüche und gut gemeinte Ernährungsvorgaben.",
-          "callToAction": "Frag, ob ein neutrales Getränk, etwas Leichtes oder lieber nichts gewünscht ist."
-        },
-        "en": {
-          "title": "Ask preferences when nausea is shared",
-          "body": "When nausea has been shared, avoid strong smells and well-meaning rules about food.",
-          "callToAction": "Ask whether a plain drink, something light, or nothing is preferred."
-        }
-      }
-    },
-    {
-      "key": "food-drink-shared-craving",
-      "category": "FOOD_AND_DRINK",
-      "priority": 60,
-      "requiredSharedFields": ["shareSymptoms", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": ["CRAVINGS"],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Vorlieben ohne Kommentar unterstützen",
-          "body": "Wenn Heißhunger geteilt wurde, sind wertende Bemerkungen über Essen oder Mengen nicht hilfreich.",
-          "callToAction": "Frag, ob du einen konkret gewünschten Snack mitbringen kannst."
-        },
-        "en": {
-          "title": "Support preferences without commentary",
-          "body": "When cravings have been shared, judgmental comments about food or quantity are not helpful.",
-          "callToAction": "Ask whether you can bring a specifically requested snack."
-        }
-      }
-    },
-    {
-      "key": "emotional-support-take-seriously",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 82,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Erleben ernst nehmen",
-          "body": "Gefühle und körperliches Erleben brauchen keine Bewertung, damit sie Aufmerksamkeit verdienen.",
-          "callToAction": "Bestätige, was du gehört hast, ohne es kleinzureden."
-        },
-        "en": {
-          "title": "Take their experience seriously",
-          "body": "Feelings and physical experiences do not need to be judged before they deserve attention.",
-          "callToAction": "Acknowledge what you heard without minimizing it."
-        }
-      }
-    },
-    {
-      "key": "emotional-support-no-silver-lining",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 68,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Nicht sofort positiv umdeuten",
-          "body": "Schnelle Aufmunterung kann unbeabsichtigt vermitteln, dass unangenehme Erfahrungen keinen Raum haben.",
-          "callToAction": "Sag: „Das klingt gerade wirklich anstrengend.“"
-        },
-        "en": {
-          "title": "Do not rush to a silver lining",
-          "body": "Quick encouragement can unintentionally suggest that difficult experiences are not allowed space.",
-          "callToAction": "Say: “That sounds genuinely difficult right now.”"
-        }
-      }
-    },
-    {
-      "key": "emotional-support-kind-message",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 50,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Eine freundliche Nachricht senden",
-          "body": "Eine kurze Nachricht ohne Antwortdruck kann Verbundenheit zeigen, auch wenn ihr gerade getrennt seid.",
-          "callToAction": "Schick einen ehrlichen Satz der Wertschätzung ohne Fragezeichen."
-        },
-        "en": {
-          "title": "Send a kind message",
-          "body": "A short message without pressure to reply can show connection while you are apart.",
-          "callToAction": "Send one sincere sentence of appreciation without a question."
-        }
-      }
-    },
-    {
-      "key": "emotional-support-protect-autonomy",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 74,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Selbstbestimmung unterstützen",
-          "body": "Fürsorge bedeutet, Entscheidungen zu erleichtern, nicht sie für die andere Person zu treffen.",
-          "callToAction": "Frag nach dem Wunsch und unterstütze die getroffene Entscheidung."
-        },
-        "en": {
-          "title": "Support autonomy",
-          "body": "Care means making choices easier, not making choices for the other person.",
-          "callToAction": "Ask what they want and support the choice they make."
-        }
-      }
-    },
-    {
-      "key": "emotional-support-shared-stress",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 77,
-      "requiredSharedFields": ["shareSymptoms", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": ["STRESS"],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Bei geteiltem Stress konkret entlasten",
-          "body": "Wenn Stress freigegeben wurde, hilft eine kleine konkrete Entlastung oft mehr als allgemeine Ratschläge.",
-          "callToAction": "Frag, welche eine Sache du heute abnehmen kannst."
-        },
-        "en": {
-          "title": "Offer concrete relief for shared stress",
-          "body": "When stress has been shared, one concrete reduction in workload often helps more than general advice.",
-          "callToAction": "Ask what one thing you can take off their plate today."
-        }
-      }
-    },
-    {
-      "key": "emotional-support-shared-mood",
-      "category": "EMOTIONAL_SUPPORT",
-      "priority": 65,
-      "requiredSharedFields": ["shareMood", "allowSymptomBasedTips"],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Geteilte Stimmung offen ansprechen",
-          "body": "Eine freigegebene Stimmung ist ein Hinweis, keine vollständige Erklärung für Bedürfnisse oder Verhalten.",
-          "callToAction": "Frag offen, welche Art von Kontakt heute passt."
-        },
-        "en": {
-          "title": "Approach a shared mood openly",
-          "body": "A shared mood is a clue, not a complete explanation of needs or behavior.",
-          "callToAction": "Ask openly what kind of contact feels right today."
-        }
-      }
-    },
-    {
-      "key": "period-days-gentle-planning",
-      "category": "PERIOD_DAYS",
-      "priority": 73,
-      "requiredSharedFields": ["sharePeriodDates"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Periodentag flexibel planen",
-          "body": "Ein geteilter Periodentag sagt nicht automatisch, wie es jemandem geht. Flexibilität kann trotzdem willkommen sein.",
-          "callToAction": "Frag, ob der heutige Plan unverändert gut passt."
-        },
-        "en": {
-          "title": "Plan a period day flexibly",
-          "body": "A shared period day does not automatically say how someone feels. Flexibility may still be welcome.",
-          "callToAction": "Ask whether today's plan still works as it is."
-        }
-      }
-    },
-    {
-      "key": "period-days-supplies-check",
-      "category": "PERIOD_DAYS",
-      "priority": 64,
-      "requiredSharedFields": ["sharePeriodDates"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Vorräte diskret prüfen",
-          "body": "Praktische Periodenprodukte sind persönlich. Nachfragen ist besser als eine Marke oder ein Produkt anzunehmen.",
-          "callToAction": "Frag diskret, ob etwas Bestimmtes besorgt werden soll."
-        },
-        "en": {
-          "title": "Check supplies discreetly",
-          "body": "Period products are personal. Asking is better than assuming a brand or product.",
-          "callToAction": "Discreetly ask whether anything specific should be picked up."
-        }
-      }
-    },
-    {
-      "key": "period-days-shared-flow",
-      "category": "PERIOD_DAYS",
-      "priority": 76,
-      "requiredSharedFields": ["sharePeriodDates", "shareFlow", "allowSymptomBasedTips"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Bei geteilter Blutungsstärke praktisch denken",
-          "body": "Wenn die Blutungsstärke freigegeben wurde, kann ein leichter zugänglicher Vorrat praktisch sein, ohne Aufmerksamkeit zu erzeugen.",
-          "callToAction": "Frag, ob Produkte oder frische Kleidung griffbereit sein sollen."
-        },
-        "en": {
-          "title": "Think practically when flow is shared",
-          "body": "When flow level has been shared, making supplies easy to reach can help without drawing attention.",
-          "callToAction": "Ask whether products or fresh clothing should be kept within reach."
-        }
-      }
-    },
-    {
-      "key": "period-days-shared-pain",
-      "category": "PERIOD_DAYS",
-      "priority": 86,
-      "requiredSharedFields": ["sharePeriodDates", "sharePain", "allowSymptomBasedTips"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Schmerzangaben nicht relativieren",
-          "body": "Wenn Schmerzen geteilt wurden, ist die Angabe der betroffenen Person maßgeblich. Vergleiche helfen nicht.",
-          "callToAction": "Frag nach gewünschter Unterstützung und höre der Antwort zu."
-        },
-        "en": {
-          "title": "Do not minimize shared pain",
-          "body": "When pain has been shared, the affected person's own report matters. Comparisons are not helpful.",
-          "callToAction": "Ask what support is wanted and listen to the answer."
-        }
-      }
-    },
-    {
-      "key": "period-days-shared-energy",
-      "category": "PERIOD_DAYS",
-      "priority": 69,
-      "requiredSharedFields": ["sharePeriodDates", "shareEnergy", "allowSymptomBasedTips"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Geteiltes Energieniveau berücksichtigen",
-          "body": "Ein freigegebenes Energieniveau kann bei der Tagesplanung helfen, ohne Fähigkeiten oder Stimmung zu bewerten.",
-          "callToAction": "Frag, welches Tempo heute angenehm ist."
-        },
-        "en": {
-          "title": "Consider shared energy level",
-          "body": "A shared energy level can inform planning without judging ability or mood.",
-          "callToAction": "Ask what pace feels comfortable today."
-        }
-      }
-    },
-    {
-      "key": "period-days-shared-sleep",
-      "category": "PERIOD_DAYS",
-      "priority": 66,
-      "requiredSharedFields": ["sharePeriodDates", "shareSleep", "allowSymptomBasedTips"],
-      "applicablePhase": ["MENSTRUAL"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Nach geteilter Schlafqualität sanft starten",
-          "body": "Wenn schlechter Schlaf freigegeben wurde, kann ein ruhiger Morgen hilfreich sein, ohne Leistungsfähigkeit vorwegzunehmen.",
-          "callToAction": "Frag, ob du am Morgen eine Aufgabe übernehmen sollst."
-        },
-        "en": {
-          "title": "Start gently when sleep quality is shared",
-          "body": "When poor sleep has been shared, a calmer morning may help without making assumptions about capability.",
-          "callToAction": "Ask whether you should handle one morning task."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-flexible-window",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 68,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Prognose als Zeitraum verstehen",
-          "body": "Der erwartete Zeitraum ist eine Schätzung, kein fester Termin und keine Aussage über das Befinden.",
-          "callToAction": "Plane in diesem Zeitraum etwas flexibel, ohne Erwartungen zu äußern."
-        },
-        "en": {
-          "title": "Treat the prediction as a range",
-          "body": "The expected window is an estimate, not a fixed date or a statement about how someone feels.",
-          "callToAction": "Keep plans somewhat flexible during the window without setting expectations."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-ask-early",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 62,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Unterstützung früh abstimmen",
-          "body": "Ein geteilter Prognosezeitraum kann Anlass sein, allgemeine Wünsche für die kommenden Tage zu klären.",
-          "callToAction": "Frag, ob für die nächsten Tage etwas vorbereitet werden soll."
-        },
-        "en": {
-          "title": "Coordinate support early",
-          "body": "A shared prediction window can be a prompt to clarify general preferences for the coming days.",
-          "callToAction": "Ask whether anything should be prepared for the next few days."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-no-mood-prediction",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 84,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Keine Stimmung vorhersagen",
-          "body": "Ein erwarteter Zyklusabschnitt erlaubt keine verlässliche Aussage über Gefühle, Verhalten oder Bedürfnisse.",
-          "callToAction": "Frag nach dem heutigen Befinden, ohne den Zyklus als Ursache zu nennen."
-        },
-        "en": {
-          "title": "Do not predict mood",
-          "body": "An estimated cycle phase cannot reliably determine feelings, behavior, or needs.",
-          "callToAction": "Ask how today feels without presenting the cycle as the cause."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-uncertainty",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 72,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Unsicherheit mitdenken",
-          "body": "Je weniger oder unregelmäßiger Daten vorliegen, desto eher kann der tatsächliche Beginn außerhalb des Fensters liegen.",
-          "callToAction": "Behandle den Zeitraum als Orientierung, nicht als Zusage."
-        },
-        "en": {
-          "title": "Keep uncertainty in mind",
-          "body": "With fewer or less regular data, the actual start is more likely to fall outside the window.",
-          "callToAction": "Use the range as guidance, not a promise."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-practical-preparation",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 55,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Praktisch statt aufdringlich vorbereiten",
-          "body": "Eine kleine Vorbereitung kann nützlich sein, wenn sie den bekannten Vorlieben entspricht und nicht kommentiert wird.",
-          "callToAction": "Frag, ob übliche Vorräte ergänzt werden sollen."
-        },
-        "en": {
-          "title": "Prepare practically, not intrusively",
-          "body": "A small preparation can be useful when it follows known preferences and is not made into a topic.",
-          "callToAction": "Ask whether familiar supplies should be restocked."
-        }
-      }
-    },
-    {
-      "key": "premenstrual-estimate-normal-plans",
-      "category": "PREMENSTRUAL_ESTIMATE",
-      "priority": 50,
-      "requiredSharedFields": ["sharePrediction"],
-      "applicablePhase": ["PREMENSTRUAL_ESTIMATE"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Alltag nicht vorsorglich einschränken",
-          "body": "Eine Prognose ist kein Grund, Aktivitäten oder Entscheidungen ohne Rücksprache zu ändern.",
-          "callToAction": "Behalte gemeinsame Pläne bei und biete unkomplizierte Anpassungen an."
-        },
-        "en": {
-          "title": "Do not restrict plans in advance",
-          "body": "A prediction is not a reason to change activities or decisions without asking.",
-          "callToAction": "Keep shared plans and make adjustments easy to request."
-        }
-      }
-    },
-    {
-      "key": "general-small-kindness",
-      "category": "GENERAL",
-      "priority": 52,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Kleine Geste, kein großes Thema",
-          "body": "Aufmerksame Kleinigkeiten können jederzeit guttun und müssen nicht mit Zyklusdaten begründet werden.",
-          "callToAction": "Tu heute eine kleine Sache, die im Alltag wirklich geschätzt wird."
-        },
-        "en": {
-          "title": "A small gesture, not a big event",
-          "body": "Thoughtful small actions can feel good at any time and need no explanation from cycle data.",
-          "callToAction": "Do one small thing that is genuinely appreciated in everyday life."
-        }
-      }
-    },
-    {
-      "key": "general-specific-offer",
-      "category": "GENERAL",
-      "priority": 61,
-      "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
-      "applicableSymptoms": [],
-      "enabled": true,
-      "translations": {
-        "de": {
-          "title": "Hilfe konkret anbieten",
-          "body": "„Sag Bescheid“ überlässt die gesamte Organisation der anderen Person. Ein konkretes Angebot ist leichter anzunehmen.",
-          "callToAction": "Biete eine bestimmte Aufgabe mit einem passenden Zeitpunkt an."
-        },
-        "en": {
-          "title": "Make support specific",
-          "body": "“Let me know” leaves all coordination to the other person. A specific offer is easier to accept.",
-          "callToAction": "Offer one particular task at a practical time."
-        }
-      }
-    },
-    {
-      "key": "general-protect-privacy",
-      "category": "GENERAL",
       "priority": 88,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Geteilte Daten bleiben privat",
-          "body": "Informationen aus Lunara sind für eure Unterstützung gedacht und gehören nicht in Gespräche mit Dritten.",
-          "callToAction": "Sprich außerhalb der App nur mit ausdrücklicher Zustimmung darüber."
+          "title": "Tempo reduzieren",
+          "body": "Nicht jeder Moment braucht Produktivität oder ein volles Programm.",
+          "callToAction": "Frag, ob ihr einen Plan heute vereinfachen möchtet."
         },
         "en": {
-          "title": "Shared data stays private",
-          "body": "Information from Lunara is intended to support your household and should not be discussed with others.",
-          "callToAction": "Only mention it outside the app with explicit permission."
+          "title": "Slow the pace",
+          "body": "Not every moment needs productivity or a full schedule.",
+          "callToAction": "Ask whether you should simplify a plan today."
         }
       }
     },
     {
-      "key": "general-app-is-context",
-      "category": "GENERAL",
+      "key": "10000000-0000-4000-8000-000000000014",
+      "category": "COMFORT",
+      "priority": 87,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Etwas leiser",
+          "body": "Eine angenehme Umgebung ist ganz individuell. Eine kleine Frage genügt.",
+          "callToAction": "„Soll ich den Fernseher leiser machen oder das Licht etwas dimmen?“"
+        },
+        "en": {
+          "title": "A little quieter",
+          "body": "A comfortable setting is personal. One small question is enough.",
+          "callToAction": "“Shall I turn down the television or dim the light a little?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000015",
+      "category": "COMFORT",
       "priority": 86,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die App ersetzt kein Gespräch",
-          "body": "Einträge und Prognosen geben begrenzten Kontext. Die Person selbst weiß am besten, was sie gerade braucht.",
-          "callToAction": "Nutze den Tipp als Gesprächseinstieg, nicht als Gewissheit."
+          "title": "Was hat zuletzt gutgetan?",
+          "body": "Eine bekannte Lieblingsgeste ist ein guter Ausgangspunkt, aber keine feste Vorgabe.",
+          "callToAction": "„Letztes Mal war die Decke schön. Möchtest du sie heute auch?“"
         },
         "en": {
-          "title": "The app does not replace conversation",
-          "body": "Logs and predictions provide limited context. The person themselves knows best what they need.",
-          "callToAction": "Use the tip to start a conversation, not as certainty."
+          "title": "What felt good last time?",
+          "body": "A familiar favourite gesture is a starting point, not a rule.",
+          "callToAction": "“You liked the blanket last time. Would you like it today too?”"
         }
       }
     },
     {
-      "key": "general-repair-misstep",
-      "category": "GENERAL",
-      "priority": 58,
+      "key": "10000000-0000-4000-8000-000000000016",
+      "category": "SPACE",
+      "priority": 85,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Danebengegangene Hilfe korrigieren",
-          "body": "Auch gut gemeinte Unterstützung kann unpassend sein. Eine kurze Entschuldigung schafft Raum für einen neuen Versuch.",
-          "callToAction": "Sag ehrlich sorry, frag neu und rechtfertige dich nicht ausführlich."
+          "title": "Ruhe wirklich möglich machen",
+          "body": "Wenn gerade Ruhe gewünscht ist, hilft ein störungsfreier Zeitraum mehr als häufiges Nachfragen.",
+          "callToAction": "„Ich kümmere mich eine Weile um die Alltagsdinge. Meld dich, wenn du etwas brauchst.“"
         },
         "en": {
-          "title": "Repair a missed attempt",
-          "body": "Even well-meant support can miss the mark. A brief apology makes room for a better attempt.",
-          "callToAction": "Apologize honestly, ask again, and avoid a long defense."
+          "title": "Make quiet time possible",
+          "body": "When quiet is wanted, uninterrupted time helps more than repeated questions.",
+          "callToAction": "“I will handle things for a while. Let me know if you need anything.”"
         }
       }
     },
     {
-      "key": "general-consistent-support",
+      "key": "10000000-0000-4000-8000-000000000017",
+      "category": "SPACE",
+      "priority": 84,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Erreichbar bleiben",
+          "body": "Raum geben und ansprechbar bleiben können gleichzeitig möglich sein.",
+          "callToAction": "Sag kurz, dass du erreichbar bist, und lass dann Ruhe."
+        },
+        "en": {
+          "title": "Stay available",
+          "body": "Giving space and remaining available can happen at the same time.",
+          "callToAction": "Say briefly that you are available, then allow quiet."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000018",
+      "category": "SPACE",
+      "priority": 83,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Einfach normal zusammen sein",
+          "body": "Eure gemeinsame Zeit muss sich nicht um Zyklusdaten drehen.",
+          "callToAction": "Schlag eure Lieblingsserie, ein Spiel oder einen ganz normalen Abend vor."
+        },
+        "en": {
+          "title": "Just spend time together",
+          "body": "Your time together does not need to revolve around cycle data.",
+          "callToAction": "Suggest your favourite show, a game, or an ordinary evening together."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000019",
+      "category": "SPACE",
+      "priority": 82,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eigene Zeit ermöglichen",
+          "body": "Ungestörte Zeit kann helfen, ohne dass etwas erklärt werden muss.",
+          "callToAction": "Übernimm eine Verpflichtung, damit etwas freie Zeit entsteht."
+        },
+        "en": {
+          "title": "Make room for personal time",
+          "body": "Uninterrupted time can help without requiring an explanation.",
+          "callToAction": "Take over one commitment to create some free time."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000020",
+      "category": "SPACE",
+      "priority": 81,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Signal vereinbaren",
+          "body": "Eine einfache Absprache kann Missverständnisse bei Ruhebedarf vermeiden.",
+          "callToAction": "Frag, welches Zeichen künftig „Ich brauche kurz Ruhe“ bedeuten darf."
+        },
+        "en": {
+          "title": "Agree on a signal",
+          "body": "A simple agreement can prevent misunderstandings when space is needed.",
+          "callToAction": "Ask what signal could mean “I need some quiet” in future."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000021",
+      "category": "FOOD_AND_DRINK",
+      "priority": 80,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Getränk mitbringen",
+          "body": "Eine kleine Aufmerksamkeit darf unkompliziert bleiben.",
+          "callToAction": "Frag nach einem Getränk oder bring das bekannte Lieblingsgetränk mit."
+        },
+        "en": {
+          "title": "Bring a drink",
+          "body": "A small gesture can stay simple and low-key.",
+          "callToAction": "Ask about a drink or bring the familiar favourite."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000022",
+      "category": "FOOD_AND_DRINK",
+      "priority": 79,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Zwei leckere Optionen",
+          "body": "Du kannst die Planung schon übernehmen und trotzdem eine echte Wahl lassen.",
+          "callToAction": "„Ich könnte Suppe oder Pasta machen. Worauf hast du mehr Lust?“"
+        },
+        "en": {
+          "title": "Two good options",
+          "body": "You can take care of the planning while still leaving a real choice.",
+          "callToAction": "“I could make soup or pasta. Which sounds better?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000023",
+      "category": "FOOD_AND_DRINK",
+      "priority": 78,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Etwas vorbereiten",
+          "body": "Eine vorbereitete Kleinigkeit kann Wege und Entscheidungen sparen.",
+          "callToAction": "Frag, ob du einen Snack oder eine Mahlzeit vorbereiten sollst."
+        },
+        "en": {
+          "title": "Prepare something",
+          "body": "Having something prepared can save effort and decisions.",
+          "callToAction": "Ask whether you should prepare a snack or meal."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000024",
+      "category": "FOOD_AND_DRINK",
+      "priority": 77,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Etwas für später",
+          "body": "Eine kleine Portion aufzuheben kann praktisch sein, ohne dass jetzt eine Entscheidung nötig ist.",
+          "callToAction": "„Ich mache mir etwas. Soll ich dir eine Portion für später mitmachen?“"
+        },
+        "en": {
+          "title": "Something for later",
+          "body": "Saving a portion can be useful without needing a decision about eating now.",
+          "callToAction": "“I am making some food. Shall I make you a portion for later?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000025",
+      "category": "FOOD_AND_DRINK",
+      "priority": 76,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Gemeinsam entscheiden",
+          "body": "Eine offene Frage kann zusätzliche Entscheidungsarbeit erzeugen.",
+          "callToAction": "Schlag zwei realistische Essensoptionen zur Auswahl vor."
+        },
+        "en": {
+          "title": "Decide together",
+          "body": "A very open question can create extra decision work.",
+          "callToAction": "Suggest two realistic meal options to choose from."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000026",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 75,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Zuhören oder mitdenken?",
+          "body": "Manchmal geht es ums Erzählen, manchmal um eine gemeinsame Lösung.",
+          "callToAction": "„Möchtest du, dass ich einfach zuhöre, oder sollen wir zusammen überlegen?“"
+        },
+        "en": {
+          "title": "Listen or think together?",
+          "body": "Sometimes it is about being heard; sometimes it is about finding a solution together.",
+          "callToAction": "“Would you like me to listen, or shall we think it through together?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000027",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 74,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Noch einen Moment zuhören",
+          "body": "Du musst nicht sofort eine passende Antwort parat haben.",
+          "callToAction": "Leg das Handy weg und lass die Geschichte erst einmal zu Ende erzählen."
+        },
+        "en": {
+          "title": "Listen a little longer",
+          "body": "You do not have to have the right answer immediately.",
+          "callToAction": "Put your phone away and let the story finish first."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000028",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 73,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Verlässlich sein",
+          "body": "Kleine eingehaltene Zusagen schaffen mehr Sicherheit als große Versprechen.",
+          "callToAction": "Halte heute eine konkrete Zusage zuverlässig ein."
+        },
+        "en": {
+          "title": "Be reliable",
+          "body": "Small promises kept build more trust than grand promises.",
+          "callToAction": "Reliably keep one specific promise today."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000029",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 72,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Wie war dein Tag wirklich?",
+          "body": "Eine offene Frage lässt Platz für das, was gerade tatsächlich wichtig ist.",
+          "callToAction": "„Was war heute schön, und was hat dich eher genervt?“"
+        },
+        "en": {
+          "title": "How was your day, really?",
+          "body": "An open question leaves room for what actually matters right now.",
+          "callToAction": "“What was good about today, and what was more frustrating?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000030",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 71,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Da sein",
+          "body": "Manchmal ist Begleitung hilfreicher als eine Lösung.",
+          "callToAction": "Biete an zuzuhören und frag, ob eine Lösung überhaupt gewünscht ist."
+        },
+        "en": {
+          "title": "Be present",
+          "body": "Sometimes companionship is more useful than a solution.",
+          "callToAction": "Offer to listen and ask whether a solution is wanted at all."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000031",
+      "category": "PERIOD_DAYS",
+      "priority": 70,
+      "requiredSharedFields": [
+        "sharePeriodDates"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Periodenprodukte parat?",
+          "body": "Wenn gerade eine Periode geteilt wird, kann ein kurzer Vorratscheck einen zusätzlichen Weg sparen.",
+          "callToAction": "„Soll ich deine gewohnten Periodenprodukte mitbringen? Schick mir gern ein Foto der Packung.“"
+        },
+        "en": {
+          "title": "Supplies on hand?",
+          "body": "During a shared period, checking supplies can save an extra trip.",
+          "callToAction": "“Shall I pick up your usual period products? You can send me a photo of the pack.”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000032",
+      "category": "PERIOD_DAYS",
+      "priority": 69,
+      "requiredSharedFields": [
+        "sharePeriodDates"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Ein Angebot für heute",
+          "body": "Eine eingetragene Periode sagt nicht, wie der Tag sich anfühlt. Ein konkretes Angebot lässt die Wahl offen.",
+          "callToAction": "„Ich kann heute das Abendessen übernehmen. Wäre das gut?“"
+        },
+        "en": {
+          "title": "An offer for today",
+          "body": "A recorded period does not tell you how the day feels. A concrete offer leaves the choice open.",
+          "callToAction": "“I can handle dinner today. Would that be good?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000033",
+      "category": "PERIOD_DAYS",
+      "priority": 68,
+      "requiredSharedFields": [
+        "sharePeriodDates"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Pläne flexibel halten",
+          "body": "Ein flexibler Plan lässt Raum, ohne Erwartungen vorzugeben.",
+          "callToAction": "Biete an, einen gemeinsamen Plan bei Bedarf anzupassen."
+        },
+        "en": {
+          "title": "Keep plans flexible",
+          "body": "A flexible plan makes room without setting expectations.",
+          "callToAction": "Offer to adjust a shared plan if needed."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000034",
+      "category": "PERIOD_DAYS",
+      "priority": 67,
+      "requiredSharedFields": [
+        "sharePeriodDates"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Für unterwegs vorbereitet",
+          "body": "Für einen gemeinsamen Ausflug können die vertrauten Alltagsdinge nützlich sein.",
+          "callToAction": "Frag vor dem Losgehen, ob Wasser oder die gewohnten Produkte mit in die Tasche sollen."
+        },
+        "en": {
+          "title": "Ready to head out",
+          "body": "Familiar everyday supplies can be useful for a trip together.",
+          "callToAction": "Before leaving, ask whether to pack water or the usual products."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000035",
+      "category": "PERIOD_DAYS",
+      "priority": 66,
+      "requiredSharedFields": [
+        "sharePeriodDates"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Bequem oder unterwegs?",
+          "body": "Ihr könnt gemeinsame Zeit so gestalten, wie sie heute für euch passt.",
+          "callToAction": "„Lieber gemütlich zu Hause oder kurz raus? Beides ist für mich okay.“"
+        },
+        "en": {
+          "title": "Cosy or out and about?",
+          "body": "You can shape your time together around what suits you today.",
+          "callToAction": "“Would you rather stay cosy at home or go out briefly? Either works for me.”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000036",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 65,
+      "requiredSharedFields": [
+        "sharePrediction"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Für die nächsten Tage vorbereitet",
+          "body": "Die Periode könnte sich nähern. Du kannst etwas Praktisches anbieten, ohne Beschwerden vorauszusetzen.",
+          "callToAction": "„Ich gehe einkaufen. Brauchst du für die nächsten Tage noch etwas Bestimmtes?“"
+        },
+        "en": {
+          "title": "Ready for the next few days",
+          "body": "The period may be approaching. You can offer practical help without assuming any discomfort.",
+          "callToAction": "“I am going shopping. Is there anything particular you need for the next few days?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000037",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 64,
+      "requiredSharedFields": [
+        "sharePrediction"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Vorausschauend planen",
+          "body": "Eine kleine organisatorische Reserve kann angenehm sein, ohne Verhalten vorauszusagen.",
+          "callToAction": "Halte einen kommenden Termin nach Möglichkeit flexibel."
+        },
+        "en": {
+          "title": "Plan with some room",
+          "body": "A little planning margin can help without predicting anyone’s behaviour.",
+          "callToAction": "Keep an upcoming appointment flexible where possible."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000038",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 63,
+      "requiredSharedFields": [
+        "sharePrediction"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Ein Abend ohne feste Pläne",
+          "body": "Wenn der erwartete Zeitraum näher rückt, kann ein flexibler gemeinsamer Abend eine angenehme Option sein.",
+          "callToAction": "„Wollen wir für den Abend nur etwas Lockeres planen und spontan entscheiden?“"
+        },
+        "en": {
+          "title": "An evening without fixed plans",
+          "body": "As the estimated window approaches, a flexible evening together can be a nice option.",
+          "callToAction": "“Shall we keep the evening low-key and decide on the day?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000039",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 62,
+      "requiredSharedFields": [
+        "sharePrediction"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eine Lieblingssache mitbringen",
+          "body": "Eine vertraute kleine Aufmerksamkeit braucht keine große Erklärung.",
+          "callToAction": "Frag beim Einkauf nach dem Lieblingssnack oder Lieblingsgetränk."
+        },
+        "en": {
+          "title": "Bring a familiar favourite",
+          "body": "A small favourite treat does not need a big explanation.",
+          "callToAction": "While shopping, ask about a favourite snack or drink."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000040",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 61,
+      "requiredSharedFields": [
+        "sharePrediction"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Spielraum im Kalender",
+          "body": "Der erwartete Beginn ist kein fester Termin. Gemeinsame Pläne dürfen offenbleiben.",
+          "callToAction": "Plant bei einer Verabredung eine unkomplizierte Alternative ein."
+        },
+        "en": {
+          "title": "Leave room in the calendar",
+          "body": "The estimated start is not a fixed appointment. Shared plans can stay flexible.",
+          "callToAction": "Have an easy alternative ready for a shared outing."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000041",
       "category": "GENERAL",
       "priority": 60,
       "requiredSharedFields": [],
-      "applicablePhase": ["ANY"],
+      "applicablePhase": [
+        "ANY"
+      ],
       "applicableSymptoms": [],
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Unterstützung nicht auf Zyklustage begrenzen",
-          "body": "Faire Aufgabenverteilung und respektvolle Kommunikation sind an jedem Tag wichtig, nicht nur rund um die Periode.",
-          "callToAction": "Prüft eine wiederkehrende Aufgabe auf faire Verteilung."
+          "title": "Eine kleine Nachricht",
+          "body": "Auch wenn ihr euch heute wenig seht, kann ein persönlicher Gruß Verbindung schaffen.",
+          "callToAction": "Schick eine kurze Nachricht darüber, worauf du dich mit euch beiden freust."
         },
         "en": {
-          "title": "Do not limit support to cycle days",
-          "body": "Fair division of work and respectful communication matter every day, not only around a period.",
-          "callToAction": "Review one recurring task for a fair division."
+          "title": "A small message",
+          "body": "Even if you barely see each other today, a personal message can help you feel connected.",
+          "callToAction": "Send a short message about something you look forward to together."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000042",
+      "category": "GENERAL",
+      "priority": 59,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Zehn Minuten zu zweit",
+          "body": "Gemeinsame Zeit muss nicht perfekt geplant oder besonders aufwendig sein.",
+          "callToAction": "„Hast du Lust auf einen Tee und zehn Minuten ohne Handys?“"
+        },
+        "en": {
+          "title": "Ten minutes together",
+          "body": "Time together does not have to be perfectly planned or elaborate.",
+          "callToAction": "“Would you like tea and ten minutes without our phones?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000043",
+      "category": "GENERAL",
+      "priority": 58,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eure kleine Wunschliste",
+          "body": "Die besten Ideen kommen oft von euch selbst, nicht aus einer App.",
+          "callToAction": "Sammelt drei kleine Dinge, mit denen ihr euch im Alltag gern eine Freude macht."
+        },
+        "en": {
+          "title": "Your small wish list",
+          "body": "The best ideas often come from you, not from an app.",
+          "callToAction": "Share three small everyday things you each enjoy receiving."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000044",
+      "category": "GENERAL",
+      "priority": 57,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Etwas Schönes bemerken",
+          "body": "Wertschätzung ist besonders persönlich, wenn sie sich auf etwas Konkretes bezieht.",
+          "callToAction": "Sag, welche kleine Geste oder gemeinsame Situation du heute schön fandest."
+        },
+        "en": {
+          "title": "Notice something good",
+          "body": "Appreciation feels personal when it refers to something specific.",
+          "callToAction": "Mention a small gesture or shared moment that you enjoyed today."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000045",
+      "category": "GENERAL",
+      "priority": 56,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eigene Bedürfnisse benennen",
+          "body": "Gute Begleitung schließt ehrliche, respektvolle Kommunikation auf beiden Seiten ein.",
+          "callToAction": "Sprich ein eigenes Bedürfnis ruhig aus, ohne Druck aufzubauen."
+        },
+        "en": {
+          "title": "Name your own needs",
+          "body": "Good support includes honest, respectful communication from both people.",
+          "callToAction": "State one need calmly without applying pressure."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000046",
+      "category": "COMMUNICATION",
+      "priority": 55,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Nachfragen statt merken müssen",
+          "body": "Niemand muss dauerhaft wissen, welche Unterstützung immer richtig ist.",
+          "callToAction": "Frag neu, auch wenn du eine frühere Antwort kennst."
+        },
+        "en": {
+          "title": "Ask again",
+          "body": "Nobody has to permanently know which support is always right.",
+          "callToAction": "Ask again even if you remember a previous answer."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000047",
+      "category": "PRACTICAL_HELP",
+      "priority": 54,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Den ganzen Schritt übernehmen",
+          "body": "Eine halb übernommene Aufgabe kann weiterhin Organisationsarbeit hinterlassen.",
+          "callToAction": "Erledige eine Aufgabe von Anfang bis Ende."
+        },
+        "en": {
+          "title": "Own the whole step",
+          "body": "A half-finished task can still leave organisational work behind.",
+          "callToAction": "Complete one task from start to finish."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000048",
+      "category": "COMFORT",
+      "priority": 53,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Berührung nicht voraussetzen",
+          "body": "Auch gut gemeinte Nähe sollte einvernehmlich sein.",
+          "callToAction": "Frag vor einer Umarmung oder Massage kurz nach."
+        },
+        "en": {
+          "title": "Do not assume touch",
+          "body": "Even well-meant closeness should be consensual.",
+          "callToAction": "Ask briefly before a hug or massage."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000049",
+      "category": "SPACE",
+      "priority": 52,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Ungestörte Pause",
+          "body": "Wenn Ruhe gewünscht ist, könnt ihr einen einfachen Zeitraum dafür verabreden.",
+          "callToAction": "„Ich lasse dir jetzt Zeit für dich. Passt es, wenn wir später zusammen essen?“"
+        },
+        "en": {
+          "title": "An uninterrupted break",
+          "body": "When space is wanted, you can agree on a simple time for it.",
+          "callToAction": "“I will leave you some time to yourself. Would dinner together later work?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000050",
+      "category": "FOOD_AND_DRINK",
+      "priority": 51,
+      "requiredSharedFields": [],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Vorräte ergänzen",
+          "body": "Bekannte Alltagsfavoriten verfügbar zu halten kann praktisch sein.",
+          "callToAction": "Frag, ob beim nächsten Einkauf etwas Bestimmtes mit soll."
+        },
+        "en": {
+          "title": "Restock favourites",
+          "body": "Keeping familiar everyday favourites available can be practical.",
+          "callToAction": "Ask whether anything specific should go on the next shopping list."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000051",
+      "category": "GENERAL",
+      "priority": 50,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "FOLLICULAR_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Zeit für etwas Gemeinsames",
+          "body": "Die frühe Phase ist geschätzt. Was heute Spaß macht, entscheidet ihr selbst.",
+          "callToAction": "„Hast du Lust auf einen kleinen Spaziergang oder lieber etwas zu Hause?“"
+        },
+        "en": {
+          "title": "Time for something together",
+          "body": "The early phase is only estimated. You decide what sounds enjoyable today.",
+          "callToAction": "“Would you like a short walk or something at home instead?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000052",
+      "category": "PRACTICAL_HELP",
+      "priority": 49,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "FOLLICULAR_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eine Sache gemeinsam planen",
+          "body": "Eine ruhige Gelegenheit kann gut sein, um etwas Schönes für die nächsten Tage zu überlegen.",
+          "callToAction": "Schlagt beide je eine kleine Sache vor, auf die ihr Lust habt."
+        },
+        "en": {
+          "title": "Plan one thing together",
+          "body": "A quiet moment can be a good time to think of something nice for the next few days.",
+          "callToAction": "Each suggest one small thing you would enjoy doing."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000053",
+      "category": "COMMUNICATION",
+      "priority": 48,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "FOLLICULAR_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Offen bleiben",
+          "body": "Menschen erleben dieselbe geschätzte Zyklusphase sehr unterschiedlich.",
+          "callToAction": "Frag offen nach Plänen oder Wünschen, statt etwas aus der Phase abzuleiten."
+        },
+        "en": {
+          "title": "Stay open",
+          "body": "People can experience the same estimated cycle phase very differently.",
+          "callToAction": "Ask openly about plans or wishes instead of inferring them from the phase."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000054",
+      "category": "GENERAL",
+      "priority": 47,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "LUTEAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Den Abend leichter machen",
+          "body": "Auch in einer geschätzten späteren Phase zählen eure tatsächlichen Wünsche.",
+          "callToAction": "„Ich übernehme heute die Küche. Magst du schon mal etwas für unseren Abend aussuchen?“"
+        },
+        "en": {
+          "title": "Make the evening easier",
+          "body": "Even in an estimated later phase, your actual wishes matter most.",
+          "callToAction": "“I will take care of the kitchen. Would you like to choose something for our evening?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000055",
+      "category": "COMMUNICATION",
+      "priority": 46,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "LUTEAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Neutral einchecken",
+          "body": "Ein kurzer Check-in kann hilfreich sein, solange er keine Beschwerden oder Stimmung unterstellt.",
+          "callToAction": "Frag: „Wie ist dein Tag gerade?“"
+        },
+        "en": {
+          "title": "Check in neutrally",
+          "body": "A brief check-in can help as long as it does not assume discomfort or mood.",
+          "callToAction": "Ask: “How is your day going?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000056",
+      "category": "PRACTICAL_HELP",
+      "priority": 45,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "LUTEAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Flexibilität anbieten",
+          "body": "Planungsspielraum kann immer nützlich sein; die Schätzung ist nur ein zusätzlicher Orientierungspunkt.",
+          "callToAction": "Biete an, einen Plan bei Bedarf unkompliziert anzupassen."
+        },
+        "en": {
+          "title": "Offer flexibility",
+          "body": "Planning room can always be useful; the estimate is only one additional point of reference.",
+          "callToAction": "Offer to adjust a plan easily if needed."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000057",
+      "category": "GENERAL",
+      "priority": 44,
+      "requiredSharedFields": [
+        "shareFertileWindow"
+      ],
+      "applicablePhase": [
+        "OVULATION_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Nähe ohne Zeitplan",
+          "body": "Ein geschätztes fruchtbares Fenster ist kein Termin für Nähe und bestätigt keinen Eisprung.",
+          "callToAction": "„Was wäre heute schöne gemeinsame Zeit für dich?“"
+        },
+        "en": {
+          "title": "Closeness without a schedule",
+          "body": "An estimated fertile window is not an appointment for intimacy and does not confirm ovulation.",
+          "callToAction": "“What would feel like nice time together today?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000058",
+      "category": "COMMUNICATION",
+      "priority": 43,
+      "requiredSharedFields": [
+        "shareFertileWindow"
+      ],
+      "applicablePhase": [
+        "OVULATION_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Wünsche in Ruhe besprechen",
+          "body": "Falls Familienplanung für euch ein Thema ist, muss nicht alles in diesem Moment entschieden werden. Die Schätzung ist keine Verhütungsmethode.",
+          "callToAction": "„Möchtest du darüber sprechen, oder lieber ein anderes Mal?“"
+        },
+        "en": {
+          "title": "Talk about wishes calmly",
+          "body": "If family planning is relevant to you, not everything needs deciding right now. This estimate is not contraception.",
+          "callToAction": "“Would you like to talk about it, or leave it for another time?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000059",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 42,
+      "requiredSharedFields": [
+        "shareFertileWindow"
+      ],
+      "applicablePhase": [
+        "OVULATION_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Gemeinsam ohne Erwartungsdruck",
+          "body": "Das geschätzte Fenster bestimmt weder eure Wünsche noch eure Entscheidungen.",
+          "callToAction": "Plant etwas Schönes, das nichts mit dem Kalender zu tun hat."
+        },
+        "en": {
+          "title": "Together without pressure",
+          "body": "An estimated window does not determine your wishes or decisions.",
+          "callToAction": "Plan something enjoyable that has nothing to do with the calendar."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000060",
+      "category": "COMFORT",
+      "priority": 41,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "CRAMPS",
+        "Krämpfe",
+        "Cramps"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Wärme oder Ruhe?",
+          "body": "Krämpfe wurden heute geteilt. Wärme kann helfen, muss aber angenehm sein.",
+          "callToAction": "Biete eine warme Wärmflasche im Tuch an oder nimm eine Aufgabe ab. Kein Druck, wenn lieber Ruhe gewünscht ist."
+        },
+        "en": {
+          "title": "Warmth or quiet?",
+          "body": "Cramps were shared today. Warmth may help but should feel comfortable.",
+          "callToAction": "Offer a warm hot-water bottle wrapped in a cloth or take over a task. Respect a preference for quiet instead."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000061",
+      "category": "COMFORT",
+      "priority": 40,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "HEADACHE",
+        "Kopfschmerzen",
+        "Headache"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Licht und Lautstärke abstimmen",
+          "body": "Kopfschmerzen wurden heute geteilt. Kleine Änderungen der Umgebung können angeboten werden.",
+          "callToAction": "„Möchtest du es dunkler oder leiser haben? Ich kann auch später telefonieren.“"
+        },
+        "en": {
+          "title": "Check light and sound",
+          "body": "A headache was shared today. You can offer small adjustments to the surroundings.",
+          "callToAction": "“Would you prefer less light or noise? I can make my call later.”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000062",
+      "category": "PRACTICAL_HELP",
+      "priority": 39,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "FATIGUE",
+        "Müdigkeit",
+        "Fatigue"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Eine Aufgabe abnehmen",
+          "body": "Müdigkeit wurde heute geteilt. Ein konkretes Angebot spart zusätzliche Planung.",
+          "callToAction": "„Ich kümmere mich um das Essen und räume danach auf. Passt das für dich?“"
+        },
+        "en": {
+          "title": "Take one task off the list",
+          "body": "Tiredness was shared today. A concrete offer saves extra planning.",
+          "callToAction": "“I can handle dinner and the cleaning up afterwards. Would that work for you?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000063",
+      "category": "FOOD_AND_DRINK",
+      "priority": 38,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "NAUSEA",
+        "Übelkeit",
+        "Nausea"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Vorsichtig etwas anbieten",
+          "body": "Übelkeit wurde heute geteilt. Was angenehm ist, kann sehr unterschiedlich sein.",
+          "callToAction": "„Magst du ein Getränk, etwas Einfaches zu essen oder gerade lieber nichts?“"
+        },
+        "en": {
+          "title": "Make a gentle offer",
+          "body": "Nausea was shared today. What feels comfortable can vary a lot.",
+          "callToAction": "“Would you like a drink, something simple to eat, or nothing just now?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000064",
+      "category": "EMOTIONAL_SUPPORT",
+      "priority": 37,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "STRESS",
+        "Stress"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Den Kopf etwas freier bekommen",
+          "body": "Stress wurde heute geteilt. Es muss nicht sofort eine Lösung geben.",
+          "callToAction": "„Soll ich zuhören, etwas Organisatorisches übernehmen oder dir Raum lassen?“"
+        },
+        "en": {
+          "title": "Make a little breathing room",
+          "body": "Stress was shared today. There does not have to be an immediate solution.",
+          "callToAction": "“Shall I listen, take care of something practical, or give you some space?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000065",
+      "category": "COMFORT",
+      "priority": 36,
+      "requiredSharedFields": [
+        "shareSymptoms"
+      ],
+      "applicablePhase": [
+        "ANY"
+      ],
+      "applicableSymptoms": [
+        "BACK_PAIN",
+        "Rückenschmerzen",
+        "Back pain"
+      ],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Den nächsten Weg übernehmen",
+          "body": "Rückenschmerzen wurden heute geteilt. Biete eine kleine Hilfe an, ohne eine Behandlung vorzuschlagen.",
+          "callToAction": "„Soll ich dir Wasser und das Ladegerät mitbringen, damit du nicht extra aufstehen musst?“"
+        },
+        "en": {
+          "title": "Save an extra trip",
+          "body": "Back pain was shared today. Offer a small practical help without suggesting a treatment.",
+          "callToAction": "“Shall I bring water and your charger so you do not have to get up just for that?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000066",
+      "category": "PERIOD_DAYS",
+      "priority": 35,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Alles griffbereit",
+          "body": "Die Menstruationsphase wird mit dir geteilt. Ein kleines Hilfsangebot lässt die Wünsche offen.",
+          "callToAction": "„Soll ich dir Wasser, eine Decke oder etwas anderes mitbringen?“"
+        },
+        "en": {
+          "title": "Everything within reach",
+          "body": "The menstrual phase is shared with you. A small offer leaves preferences open.",
+          "callToAction": "“Shall I bring water, a blanket, or something else?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000067",
+      "category": "COMMUNICATION",
+      "priority": 34,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Raum für einen normalen Tag",
+          "body": "Auch während einer geteilten Periode darf gemeinsame Zeit einfach schön sein.",
+          "callToAction": "Frag, auf welche gemeinsame Kleinigkeit heute Lust besteht."
+        },
+        "en": {
+          "title": "Room for an ordinary day",
+          "body": "Even during a shared period, time together can simply be enjoyable.",
+          "callToAction": "Ask what small thing you might enjoy doing together today."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000068",
+      "category": "PRACTICAL_HELP",
+      "priority": 33,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "MENSTRUATION"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Heute kochst du",
+          "body": "Eine konkrete Entlastung kann angeboten werden, ohne Beschwerden vorauszusetzen.",
+          "callToAction": "„Ich würde heute kochen. Lieber dein Lieblingsgericht oder etwas Einfaches?“"
+        },
+        "en": {
+          "title": "Dinner is on you today",
+          "body": "You can offer practical relief without assuming discomfort.",
+          "callToAction": "“I would like to cook today. Your favourite, or something simple?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000069",
+      "category": "PREMENSTRUAL_ESTIMATE",
+      "priority": 32,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Vorräte entspannt prüfen",
+          "body": "Die geschätzte Phase kann auf einen nahenden Beginn hinweisen, ist aber kein fester Termin.",
+          "callToAction": "Frag beim nächsten Einkauf, ob vertraute Produkte oder Lieblingssnacks fehlen."
+        },
+        "en": {
+          "title": "Check supplies without a rush",
+          "body": "The estimated phase may suggest an approaching start, but it is not a fixed date.",
+          "callToAction": "On your next shopping trip, ask whether familiar supplies or favourite snacks are running low."
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000070",
+      "category": "COMMUNICATION",
+      "priority": 31,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Einfach mal nach dem Tag fragen",
+          "body": "Was heute wichtig ist, erfahrt ihr im Gespräch und nicht aus einer Phasenanzeige.",
+          "callToAction": "„Wie läuft dein Tag? Gibt es etwas, das ich dir heute abnehmen kann?“"
+        },
+        "en": {
+          "title": "Ask about the day",
+          "body": "A conversation tells you what matters today, not a phase label.",
+          "callToAction": "“How is your day going? Is there anything I can take off your list?”"
+        }
+      }
+    },
+    {
+      "key": "10000000-0000-4000-8000-000000000071",
+      "category": "PRACTICAL_HELP",
+      "priority": 30,
+      "requiredSharedFields": [
+        "sharePhase"
+      ],
+      "applicablePhase": [
+        "PREMENSTRUAL_ESTIMATE"
+      ],
+      "applicableSymptoms": [],
+      "enabled": true,
+      "translations": {
+        "de": {
+          "title": "Plan B darf gemütlich sein",
+          "body": "Die geschätzte Phase ist nur eine Orientierung. Ihr könnt nach Lust und Bedarf entscheiden.",
+          "callToAction": "„Wenn wir keine Lust auf den Ausflug haben, machen wir es uns einfach zu Hause schön.“"
+        },
+        "en": {
+          "title": "A cosy plan B",
+          "body": "The estimated phase is only a guide. You can decide based on what you actually want.",
+          "callToAction": "“If we do not feel like going out, we can have a nice time at home instead.”"
         }
       }
     }

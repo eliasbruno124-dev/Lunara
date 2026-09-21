@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -217,12 +218,9 @@ fun MainShell(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lunara", fontWeight = FontWeight.SemiBold) },
+                title = { Text(stringResource(R.string.brand_name), fontWeight = FontWeight.SemiBold) },
                 actions = {
-                    StatusPill(
-                        stringResource(if (isLocalMode) R.string.local_mode_badge else R.string.offline_badge),
-                        Modifier.padding(end = 12.dp),
-                    )
+                    SyncStatusAction(preferences, state, viewModel::syncNow, openSessionRecovery)
                 },
             )
         },
@@ -310,6 +308,9 @@ fun MainShell(
                         checkInSent = state.checkInSent,
                         checkInError = state.checkInError,
                         onCheckIn = viewModel::sendCheckIn,
+                        relationship = state.relationship,
+                        onRelationshipRefresh = viewModel::refreshInvitation,
+                        onNextTip = viewModel::nextPartnerTip,
                     )
                 }
             }
@@ -350,6 +351,8 @@ fun MainShell(
                     state.checkInSent,
                     state.checkInError,
                     viewModel::sendCheckIn,
+                    onNextTip = viewModel::nextPartnerTip,
+                    refreshing = state.partnerDashboardRefreshing,
                 )
             }
             composable(MainDestination.SETTINGS.route) {
@@ -370,7 +373,7 @@ fun MainShell(
                     cycleProfile = state.cycleProfile,
                     carePreferences = state.carePreferences,
                     invitation = state.invitation,
-                    partnerConnected = state.partnerConnected,
+                    relationship = state.relationship,
                     settingsBusy = state.settingsBusy,
                     settingsError = state.settingsError,
                     passwordChangeStatus = state.passwordChangeStatus,
@@ -537,7 +540,7 @@ fun TrackerDashboard(
     }
     val dailyLogResolving = dailyLogs.any { it.localDate == today && it.syncState == "RESOLVING" }
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        Modifier.fillMaxSize().padding(horizontal = 20.dp).testTag("tracker-dashboard"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
@@ -562,6 +565,7 @@ fun TrackerDashboard(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            PredictionExplanation(it)
                         }
                     }
                 },
@@ -902,6 +906,9 @@ fun PartnerDashboard(
     onCheckIn: (String) -> Unit = {},
     refreshing: Boolean = false,
     lastSyncAt: String? = null,
+    relationship: de.lunara.app.data.repository.RelationshipState = de.lunara.app.data.repository.RelationshipState(),
+    onRelationshipRefresh: () -> Unit = {},
+    onNextTip: () -> Unit = {},
 ) {
     val checkInPrompt = stringResource(R.string.check_in)
     val locale = LocalLocale.current.platformLocale
@@ -914,7 +921,7 @@ fun PartnerDashboard(
         }
     }
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        Modifier.fillMaxSize().padding(horizontal = 20.dp).testTag("partner-dashboard"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
@@ -925,6 +932,7 @@ fun PartnerDashboard(
                 modifier = Modifier.padding(top = 20.dp),
             )
         }
+        item { RelationshipCard(relationship, onRelationshipRefresh) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
@@ -952,7 +960,9 @@ fun PartnerDashboard(
                 stringResource(R.string.estimated_period),
                 prediction?.takeIf { it.available }?.let { formatRange(it.predictedStartFrom, it.predictedStartTo) }
                     ?: stringResource(R.string.not_enough_data),
-                action = { StatusPill(stringResource(R.string.estimated_label)) },
+                action = {
+                    prediction?.takeIf { it.available }?.let { PredictionExplanation(it) }
+                },
             )
         }
         PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
@@ -991,6 +1001,8 @@ fun PartnerDashboard(
                                 color = MaterialTheme.colorScheme.tertiary,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                            TextButton(onClick = onNextTip, enabled = !refreshing) { Text(stringResource(R.string.tip_next)) }
+                            TipBasis(tip)
                         }
                     },
                 )
@@ -1518,6 +1530,8 @@ private fun SupportScreen(
     checkInSent: Boolean,
     checkInError: Boolean,
     onCheckIn: (String) -> Unit,
+    onNextTip: () -> Unit = {},
+    refreshing: Boolean = false,
 ) {
     val checkInPrompt = stringResource(R.string.check_in)
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -1541,6 +1555,8 @@ private fun SupportScreen(
                                 StatusPill(stringResource(R.string.tip_uses_shared_phase))
                             }
                             Text(tip.callToAction, color = MaterialTheme.colorScheme.tertiary)
+                            TextButton(onClick = onNextTip, enabled = !refreshing) { Text(stringResource(R.string.tip_next)) }
+                            TipBasis(tip)
                         }
                     },
                 )
@@ -2118,7 +2134,7 @@ private fun SettingsScreen(
     cycleProfile: CycleProfileDto?,
     carePreferences: CarePreferencesDto?,
     invitation: de.lunara.app.data.remote.dto.InvitationDto?,
-    partnerConnected: Boolean,
+    relationship: de.lunara.app.data.repository.RelationshipState,
     settingsBusy: Boolean,
     settingsError: Boolean,
     passwordChangeStatus: PasswordChangeStatus,
@@ -2277,7 +2293,7 @@ private fun SettingsScreen(
             }
         } else {
             item { SettingHeader(stringResource(R.string.server_information)) }
-            item { SettingText(Icons.Rounded.Info, session.serverName, "${session.serverVersion} · ${BuildConfig.VERSION_NAME}") }
+            item { SettingText(Icons.Rounded.Info, session.serverName, stringResource(R.string.server_version_explicit, ConnectionPresentation.version(session.serverVersion))) }
             item { SettingHeader(stringResource(R.string.account_security)) }
             item {
                 SettingText(
@@ -2407,6 +2423,11 @@ private fun SettingsScreen(
                 )
             }
         }
+        item { SettingText(Icons.Rounded.Info, stringResource(R.string.app_information), stringResource(R.string.app_version_explicit, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)) }
+        item { DonationButton() }
+        if (!isLocalMode) {
+            item { RelationshipCard(relationship, onRefreshInvitation) }
+        }
         if (session.role == UserRole.TRACKER && !isLocalMode) {
             item { SettingHeader(stringResource(R.string.partner_connect)) }
             item {
@@ -2416,12 +2437,12 @@ private fun SettingsScreen(
                     stringResource(R.string.partner_connect_summary),
                     action = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (partnerConnected) {
+                            if (relationship.connected) {
                                 Text(
                                     stringResource(R.string.partner_connected),
                                     fontWeight = FontWeight.Bold,
                                 )
-                            } else {
+                            } else if (relationship.known && !relationship.unavailable) {
                                 OutlinedButton(
                                     onClick = {
                                         invitationToAccept = ""
@@ -2475,7 +2496,7 @@ private fun SettingsScreen(
                             }
                             Button(
                                 onClick = onCreateInvitation,
-                                enabled = !settingsBusy && invitation == null && !partnerConnected,
+                                enabled = !settingsBusy && invitation == null && relationship.known && !relationship.connected && !relationship.unavailable,
                             ) {
                                 Text(stringResource(R.string.create_invitation))
                             }
@@ -2498,6 +2519,7 @@ private fun SettingsScreen(
                 }
             }
             item { SettingHeader(stringResource(R.string.care_preferences)) }
+            item { PersonalTipsPanel(session.userId, preferences.baseUrl) }
             item {
                 Text(
                     stringResource(R.string.care_preferences_summary),
@@ -3225,7 +3247,9 @@ private fun SettingSwitch(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.padding(vertical = 10.dp),
+        modifier.fillMaxWidth()
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChecked)
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null)
@@ -3233,7 +3257,7 @@ private fun SettingSwitch(
             Text(title, fontWeight = FontWeight.SemiBold)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        Switch(checked, onChecked, enabled = enabled)
+        Switch(checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

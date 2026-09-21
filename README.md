@@ -15,7 +15,27 @@ Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
 nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## Release 1.1.5
+## Release 1.1.6
+
+Eure Partnerverknüpfung wird unabhängig vom Datenabgleich geprüft; ein
+Abruffehler bedeutet nicht „getrennt“. Bestätigte Verbindungen bleiben
+verschlüsselt zwischengespeichert und werden offline als letzter bekannter
+Stand gekennzeichnet. Der Statusknopf erläutert Betriebsmodus, letzte
+Aktualisierung, offene Änderungen und nötige Anmeldung. App- und Serverversion
+sind getrennt beschriftet.
+
+50 der 71 deutschen/englischen Katalogtipps wurden konkreter formuliert.
+**Was mir wirklich hilft** erlaubt ausdrücklich freigegebene eigene Wünsche,
+die unverändert und vorrangig erscheinen. Ein anderer Vorschlag ist per Button
+abrufbar. Quellen und Grenzen: [Qualität der Tipps](docs/TIP_QUALITY.md).
+
+Der freiwillige PayPal-Button öffnet nach Bestätigung einen externen Link.
+Keine Zahlungs-SDKs, keine automatische Zahlung, keine Daten im Link. Für eine
+eigene Marke `donation_url` in `apps/android/app/src/main/res/values/brand.xml`
+ändern oder leeren. Der voreingestellte PayPal.me-Name stammt vom Betreiber;
+die Kontoinhaberschaft wurde nicht durch eine Zahlung verifiziert.
+
+### Automatische Synchronisierung seit 1.1.5
 
 Android erneuert die Anmeldung und synchronisiert automatisch. Verlorene
 Erneuerungsantworten werden sicher wiederholt; Netzfehler behalten ihre
@@ -175,12 +195,12 @@ cd apps/android
 ```
 
 Die tatsächlich ausgeführte Prüfmatrix steht in [`TESTING.md`](TESTING.md)
-und [`FINAL_REPORT.md`](FINAL_REPORT.md). Kompilierte Instrumentierung ist dort
-ausdrücklich nicht als auf einem Gerät ausgeführter Test ausgewiesen.
+und [`FINAL_REPORT.md`](FINAL_REPORT.md). Kompilierung, Emulatorläufe und
+Prüfungen auf tatsächlichen Handys werden dort getrennt ausgewiesen.
 
 ## Android-Artefakte
 
-Erfolgreich gebaute Release-1.1.4-Artefakte liegen unter `artifacts/`:
+Erfolgreich gebaute Release-1.1.6-Artefakte liegen unter `artifacts/`:
 
 - `lunara-debug.apk` – Production-Debug/Testinstallation mit Debugsignatur und
   HTTPS-only; sie kann Passwort-/Headerauth testen, ihr Debugzertifikat erfüllt
