@@ -6,6 +6,31 @@ Lunara berechnet eine vorsichtige, nachvollziehbare Zeitspanne. Das Ergebnis ist
 keine medizinische Prognose, kein Ovulationsnachweis und keine
 Verhütungsmethode.
 
+## Genauigkeitsprüfung vom 21. September 2026
+
+Die Regressionstests prüfen die beschriebenen Rechenschritte, nicht eine
+klinische Treffergenauigkeit. Es gibt keine prospektive Validierung, gemessene
+persönliche Fehlerrate oder kalibrierte Abdeckungswahrscheinlichkeit des
+angezeigten Zeitfensters. `HIGH` ist eine interne Heuristik und bedeutet nicht
+„medizinisch sehr präzise“.
+
+Beim unabhängigen Review wurden folgende Grenzen reproduziert:
+
+- Sechs 28-Tage-Zyklen und anschließend eine 365-Tage-Erfassungslücke können
+  weiterhin `HIGH` und eine Halbbreite von zwei Tagen ergeben: Der große
+  Abstand wird vor der Vertrauensberechnung aus dem Modell ausgeschlossen.
+  Fruchtbarkeit wird in diesem Fall korrekt nicht geschätzt.
+- Die Folge 15, 90, 15 Tage liefert zwar `LOW`, aber wegen MAD = 0 nur eine
+  Halbbreite von drei Tagen. Der robuste Bereich ist kein Intervall mit
+  zugesicherter Trefferwahrscheinlichkeit.
+- Die Endspanne berücksichtigt den Median der Blutungsdauer, nicht deren
+  eigene Streuung. Unterschiedlich lange Blutungen verbreitern sie daher nicht.
+
+Diese Einschränkungen sind in 1.1.5 nicht durch Änderungen der Formel behoben.
+Das Update betrifft die Anmeldung und Synchronisierung. Eine künftig besser
+kalibrierte Unsicherheitsdarstellung benötigt getrennte, übereinstimmende
+Änderungen an Server, Android-Soloalgorithmus und PWA sowie passende Testdaten.
+
 ## Eingaben
 
 - nicht gelöschte Periodenstarts der Tracker-Person als lokale Kalenderdaten

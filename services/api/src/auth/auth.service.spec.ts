@@ -45,6 +45,7 @@ function createService(prisma: Record<string, unknown>): AuthService {
     config as never,
     jwt as never,
     oidcVerifier as never,
+    {} as never,
   );
 }
 
@@ -396,6 +397,7 @@ describe('AuthService.refresh OIDC revalidation', () => {
       config as never,
       jwt as never,
       oidcVerifier as never,
+      {} as never,
     );
     return { service, prisma, tx, oidcVerifier };
   }
@@ -542,6 +544,7 @@ describe('AuthService.setup', () => {
       config as never,
       {} as never,
       {} as never,
+      {} as never,
     );
 
     const error: unknown = await service
@@ -615,6 +618,7 @@ describe('AuthService.setup', () => {
       config as never,
       jwt as never,
       {} as never,
+      {} as never,
     );
 
     await service.setup({
@@ -674,6 +678,7 @@ describe('AuthService.register', () => {
     const service = new AuthService(
       prisma as never,
       config as never,
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -754,6 +759,7 @@ describe('AuthService.register', () => {
       prisma as never,
       config as never,
       jwt as never,
+      {} as never,
       {} as never,
     );
 

@@ -59,7 +59,11 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('auth/refresh')
   refresh(@Body() dto: RefreshDto): Promise<AuthResponse> {
-    return this.auth.refresh(dto.refreshToken, dto.oidcAccessToken);
+    return this.auth.refresh(
+      dto.refreshToken,
+      dto.oidcAccessToken,
+      dto.refreshRequestId,
+    );
   }
 
   @ApiBearerAuth()

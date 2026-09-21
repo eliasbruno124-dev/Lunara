@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.5 – 2026-09-21
+
+- Android erneuert Anmeldungen automatisch mit einer dauerhaft gespeicherten
+  Anfrage-ID. Die API kann verlorene Refresh-Antworten sicher wiederholen,
+  ohne eine absichtlich widerrufene Sitzung wiederzubeleben.
+- Bereits abgelaufene Anmeldungen lassen sich im selben Konto über Banner
+  oder Einstellungen erneuern; lokale Daten, Mutation-IDs, Cursor und
+  Freigaben bleiben erhalten. Falsche Identitäten werden nicht übernommen.
+- Netz-/Serverfehler werden mit Backoff wiederholt. Verzögerte Fehler einer
+  alten Anfrage sperren keine inzwischen erfolgreich erneuerten Zugangsdaten.
+- Partnerdaten werden auch bei fehlgeschlagenem optionalem Tippabruf
+  aktualisiert; veraltete Daten und letzte Aktualisierung werden sichtbar.
+- Gerätewiderruf und administrative Abmeldung sind gegen parallele
+  Refresh-Rotation serialisiert. Wiederholungsbelege verwenden eine von
+  Gesundheitsnotizen kryptografisch getrennte Verschlüsselung.
+- Gezielt gepatchte Abhängigkeiten: Multer 2.3.0, js-yaml 3.15.2/4.3.2 und
+  Sharp 0.35.4. Keine automatische Major-Migration des Backend-Frameworks.
+- Grenzen der Prognosegenauigkeit dokumentiert; die Formel bleibt unverändert
+  und ist nicht klinisch validiert.
+
 ## 1.1.4 – 2026-09-08
 
 - Partner-Einladungen bleiben bei der Authentik-Anmeldung erhalten. Die PWA

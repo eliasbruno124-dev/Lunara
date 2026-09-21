@@ -15,7 +15,19 @@ Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
 nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## Release 1.1.4
+## Release 1.1.5
+
+Android erneuert die Anmeldung und synchronisiert automatisch. Verlorene
+Erneuerungsantworten werden sicher wiederholt; Netzfehler behalten ihre
+wartenden Einträge. Ist eine frühere Sitzung bereits ungültig, erlaubt
+**Anmeldung erneuern** die Anmeldung im selben Konto ohne Datenverlust.
+
+Die signierte `artifacts/lunara-release.apk` als Update auf beiden Geräten
+installieren, **nicht vorher deinstallieren oder App-Daten löschen**. Eine
+geänderte Freigabe wird nicht automatisch aktiviert. Genauigkeitsgrenzen der
+Zyklusprognose stehen in [ALGORITHM.md](ALGORITHM.md).
+
+### Weiterhin enthalten: Einladungen aus 1.1.4
 
 Partner-Einladungen bleiben bei Authentik-Anmeldungen erhalten und lassen sich
 auch direkt in Android unter **Einstellungen → Partner verbinden** eingeben

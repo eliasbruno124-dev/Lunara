@@ -154,12 +154,14 @@ class ApiClientFactory @Inject constructor(
         gateway: GatewayCredentials?,
         accessToken: String?,
         outerBearerOverride: String? = null,
+        useStoredAuthentik: Boolean = true,
     ): LunaraApi {
         val gatewayOrigin = GatewayOrigin.fromBaseUrl(baseUrl)
         val pendingBearer = outerBearerOverride?.takeIf(String::isNotBlank)
-        val gatewayEnabled = gateway != null || pendingBearer != null || authentik.isConfiguredFor(baseUrl)
+        val gatewayEnabled = gateway != null || pendingBearer != null ||
+            (useStoredAuthentik && authentik.isConfiguredFor(baseUrl))
         val bearerProvider = {
-            pendingBearer ?: run {
+            pendingBearer ?: if (!useStoredAuthentik) null else run {
                 BlockingTokenBridgePolicy.requireBackgroundThread(
                     Looper.myLooper() == Looper.getMainLooper(),
                 )

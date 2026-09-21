@@ -184,6 +184,7 @@ async function disableUser(
   if (!account) throw new Error(`User not found: ${userId}`);
   const now = new Date();
   const result = await prisma.$transaction(async (tx) => {
+    await lockUserAuthentication(tx, userId);
     const disabled = await tx.user.updateMany({
       where: { id: userId, disabledAt: null },
       data: { disabledAt: now },
@@ -218,6 +219,7 @@ async function revokeAllSessions(
   });
   if (!account) throw new Error(`User not found: ${userId}`);
   const count = await prisma.$transaction(async (tx) => {
+    await lockUserAuthentication(tx, userId);
     const revoked = await tx.deviceSession.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },

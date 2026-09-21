@@ -7,6 +7,8 @@ import de.lunara.app.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import de.lunara.app.data.remote.dto.OidcMetaDto
 import de.lunara.app.data.repository.SessionSecrets
+import de.lunara.app.data.repository.SessionRecoveryPolicy
+import java.io.IOException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -27,6 +29,10 @@ import kotlin.coroutines.resumeWithException
 
 class AuthentikAuthorizationException(message: String, cause: Throwable? = null) :
     Exception(message, cause)
+
+/** Only a definitive provider rejection requires a new interactive login, not a network outage. */
+class AuthentikSessionExpiredException(cause: Throwable? = null) :
+    IOException("Authentik session requires authentication", cause)
 
 class PendingAuthentikSession internal constructor(
     internal val authState: AuthState,
@@ -164,13 +170,15 @@ class AuthentikAuthManager @Inject constructor(
 
     fun currentAccessTokenFor(baseUrl: String): String? {
         val snapshot = secrets.authentikSnapshot()
-        if (snapshot.baseUrl != runCatching { canonicalBaseUrl(baseUrl) }.getOrNull()) return null
+        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return null
+        if (SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) != expectedBase) return null
         return readState(snapshot.stateJson)?.accessToken?.takeIf(String::isNotBlank)
     }
 
     fun isConfiguredFor(baseUrl: String): Boolean {
         val snapshot = secrets.authentikSnapshot()
-        return snapshot.baseUrl == runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() &&
+        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return false
+        return SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) == expectedBase &&
             readState(snapshot.stateJson) != null
     }
 
@@ -187,27 +195,31 @@ class AuthentikAuthManager @Inject constructor(
 
     suspend fun refreshFor(baseUrl: String): Boolean = refreshMutex.withLock {
         val snapshot = secrets.authentikSnapshot()
-        if (snapshot.baseUrl != runCatching { canonicalBaseUrl(baseUrl) }.getOrNull()) {
+        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return@withLock false
+        if (SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) != expectedBase) {
             return@withLock false
         }
         val state = readState(snapshot.stateJson) ?: return@withLock false
-        val refreshed = runCatching {
-            suspendCancellableCoroutine<String> { continuation ->
-                state.performActionWithFreshTokens(
-                    authorizationService,
-                    NoClientAuthentication.INSTANCE,
-                ) { accessToken, _, failure ->
-                    when {
-                        failure != null -> continuation.resumeWithException(failure)
-                        accessToken.isNullOrBlank() -> continuation.resumeWithException(
-                            AuthentikAuthorizationException("OIDC refresh returned no access token"),
-                        )
-                        else -> continuation.resume(accessToken)
-                    }
+        suspendCancellableCoroutine<String> { continuation ->
+            state.performActionWithFreshTokens(
+                authorizationService,
+                NoClientAuthentication.INSTANCE,
+            ) { accessToken, _, failure ->
+                when {
+                    failure != null -> continuation.resumeWithException(
+                        if (failure.type == AuthorizationException.TYPE_OAUTH_TOKEN_ERROR &&
+                            failure.error in setOf("invalid_grant", "invalid_client", "unauthorized_client", "invalid_token")
+                        ) AuthentikSessionExpiredException(failure)
+                        else IOException("Authentik token refresh could not complete", failure),
+                    )
+                    accessToken.isNullOrBlank() -> continuation.resumeWithException(
+                        IOException("OIDC refresh returned no access token"),
+                    )
+                    else -> continuation.resume(accessToken)
                 }
             }
-        }.isSuccess
-        refreshed && secrets.replaceAuthentikStateIfCurrent(
+        }
+        secrets.replaceAuthentikStateIfCurrent(
             snapshot.generation,
             state.jsonSerializeString(),
         )
@@ -237,10 +249,9 @@ class AuthentikAuthManager @Inject constructor(
     }
 
     private fun canonicalBaseUrl(raw: String): String {
-        val parsed = URI(raw.trim())
+        val normalized = requireNotNull(SessionRecoveryPolicy.normalizedBaseUrl(raw))
         // External bearer tokens are never sent over the development HTTP mode.
-        require(parsed.scheme == "https")
-        require(parsed.host != null && parsed.userInfo == null && parsed.query == null && parsed.fragment == null)
-        return raw.trim().trimEnd('/') + "/"
+        require(URI(normalized).scheme == "https")
+        return normalized
     }
 }

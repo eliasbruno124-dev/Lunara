@@ -20,6 +20,9 @@ import de.lunara.app.notifications.NotificationDataCache
 import de.lunara.app.data.prediction.LocalPredictionEngine
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @Singleton
 class DashboardRepository @Inject constructor(
@@ -30,33 +33,59 @@ class DashboardRepository @Inject constructor(
     private val database: LunaraDatabase,
     private val gson: Gson,
     private val notificationDataCache: NotificationDataCache,
+    private val credentialGate: SessionCredentialGate,
 ) {
-    suspend fun partnerDashboard(expectedUserId: String): PartnerDashboardDto {
-        val base = preferences.state.first().baseUrl ?: throw ApiException(400)
-        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
-            .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
-        if (response.code() == 401 && connectionRepository.refresh()) {
-            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+    private val partnerRefreshMutex = Mutex()
+
+    suspend fun partnerDashboard(expectedUserId: String): PartnerDashboardDto = partnerRefreshMutex.withLock {
+        val generation = credentialGate.snapshot()
+        val initial = preferences.state.first()
+        val base = initial.baseUrl ?: throw ApiException(400)
+        if (!PartnerRefreshPolicy.canCommit(expectedUserId, base, initial)) throw SessionChangedException()
+        var requestToken = secrets.accessToken
+        val dashboard = try {
+            var response = apiFactory.create(base, secrets.gatewayCredentials, requestToken)
                 .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
+            if (response.code() == 401 && connectionRepository.refresh()) {
+                requestToken = secrets.accessToken
+                response = apiFactory.create(base, secrets.gatewayCredentials, requestToken)
+                    .partnerDashboard(endpoint(base, "api/v1/partner/dashboard"))
+            }
+            PartnerRefreshPolicy.permitted(response.requireBody())
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            // A response captured before a successful recovery must not flag the renewed session.
+            if (credentialGate.snapshot() == generation && secrets.accessToken == requestToken) {
+                connectionRepository.recordAuthenticationFailure(failure, base, expectedUserId, requestToken)
+            }
+            throw failure
         }
-        val dashboard = response.requireBody()
-        var tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
-            .todayTip(endpoint(base, "api/v1/tips/today"))
-        if (tipResponse.code() == 401 && connectionRepository.refresh()) {
-            tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+        val updatedAt = Instant.now().toString()
+        suspend fun saveCurrent(payload: PartnerDashboardDto) = ProcessSyncGate.serialized {
+            val committed = credentialGate.commitIfCurrent(generation) {
+                val current = preferences.state.first()
+                if (!PartnerRefreshPolicy.canCommit(expectedUserId, base, current)) return@commitIfCurrent false
+                database.partnerDashboardDao().save(
+                    PartnerDashboardEntity(payloadJson = gson.toJson(payload), updatedAt = updatedAt),
+                )
+                true
+            }
+            if (!committed) throw SessionChangedException()
+        }
+        // Commit permitted health data immediately, even if the optional tip service is unavailable.
+        saveCurrent(dashboard)
+        val completeDashboard = PartnerRefreshPolicy.withOptionalTip(dashboard) {
+            var tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .todayTip(endpoint(base, "api/v1/tips/today"))
+            if (tipResponse.code() == 401 && connectionRepository.refresh()) {
+                tipResponse = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                    .todayTip(endpoint(base, "api/v1/tips/today"))
+            }
+            tipResponse.requireBody().tip
         }
-        val completeDashboard = dashboard.copy(tip = tipResponse.requireBody().tip)
-        ProcessSyncGate.serialized {
-            if (preferences.state.first().session?.userId != expectedUserId) throw SessionChangedException()
-            database.partnerDashboardDao().save(
-                PartnerDashboardEntity(
-                    payloadJson = gson.toJson(completeDashboard),
-                    updatedAt = Instant.now().toString(),
-                ),
-            )
-        }
-        return completeDashboard
+        saveCurrent(completeDashboard)
+        completeDashboard
     }
 
     suspend fun cachedPartnerDashboard(): PartnerDashboardDto? = database.partnerDashboardDao().current()?.let {
@@ -66,6 +95,18 @@ class DashboardRepository @Inject constructor(
     fun observeCachedPartnerDashboard(): Flow<PartnerDashboardDto?> =
         database.partnerDashboardDao().observeCurrent().map { cached ->
             cached?.let { runCatching { gson.fromJson(it.payloadJson, PartnerDashboardDto::class.java) }.getOrNull() }
+        }
+
+    fun observePartnerDashboardSnapshot(): Flow<PartnerDashboardSnapshot?> =
+        database.partnerDashboardDao().observeCurrent().map { cached ->
+            cached?.let {
+                runCatching {
+                    PartnerDashboardSnapshot(
+                        PartnerRefreshPolicy.permitted(gson.fromJson(it.payloadJson, PartnerDashboardDto::class.java)),
+                        it.updatedAt,
+                    )
+                }.getOrNull()
+            }
         }
 
     suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {

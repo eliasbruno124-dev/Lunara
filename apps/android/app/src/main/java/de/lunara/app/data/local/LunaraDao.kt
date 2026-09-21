@@ -150,6 +150,12 @@ interface MutationDao {
     @Query("UPDATE mutation_queue SET state = 'PENDING' WHERE state = 'IN_FLIGHT'")
     suspend fun releaseInterrupted()
 
+    @Query("SELECT * FROM mutation_queue WHERE state IN (:states)")
+    suspend fun recoveryCandidates(states: List<String>): List<MutationEntity>
+
+    @Update
+    suspend fun updateRecoveryRetries(mutations: List<MutationEntity>)
+
     @Query("SELECT COUNT(*) FROM mutation_queue WHERE state IN ('PENDING', 'IN_FLIGHT', 'FAILED', 'CONFLICT')")
     fun observeCount(): Flow<Int>
 

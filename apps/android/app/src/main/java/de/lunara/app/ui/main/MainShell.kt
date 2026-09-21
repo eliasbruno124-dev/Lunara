@@ -147,7 +147,9 @@ import com.journeyapps.barcodescanner.ScanContract
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.Instant
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -176,6 +178,22 @@ fun MainShell(
     val dailyLogSavedMessage = stringResource(if (isLocalMode) R.string.daily_log_saved_local else R.string.daily_log_saved_offline)
     val dailyLogFailedMessage = stringResource(R.string.daily_log_change_failed)
     val passwordChangedMessage = stringResource(R.string.password_change_success)
+    val sessionRecoveredMessage = stringResource(R.string.session_recovery_success)
+    var showSessionRecovery by rememberSaveable(session.userId) { mutableStateOf(false) }
+    val recoveryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        viewModel.completeSessionRecovery(result.data)
+    }
+    val openSessionRecovery = {
+        viewModel.dismissSessionRecovery()
+        showSessionRecovery = true
+    }
+
+    LaunchedEffect(state.recoveryStatus) {
+        if (state.recoveryStatus == SessionRecoveryStatus.SUCCESS) {
+            showSessionRecovery = false
+            viewModel.dismissSessionRecovery()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -190,6 +208,7 @@ fun MainShell(
                     MainEvent.DailyLogSaved -> dailyLogSavedMessage
                     MainEvent.DailyLogFailed -> dailyLogFailedMessage
                     MainEvent.PasswordChanged -> passwordChangedMessage
+                    MainEvent.SessionRecovered -> sessionRecoveredMessage
                 },
             )
         }
@@ -227,10 +246,24 @@ fun MainShell(
             }
         },
     ) { insets ->
+        Column(Modifier.fillMaxSize().padding(insets)) {
+            if (SessionRecoveryUiPolicy.showBanner(preferences.appMode, session.userId, preferences.reauthenticationRequired)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.session_recovery_required), style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(R.string.session_recovery_preserves_data), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = openSessionRecovery) { Text(stringResource(R.string.renew_login)) }
+                    }
+                }
+            }
         NavHost(
             navController = navController,
             startDestination = MainDestination.TODAY.route,
-            modifier = Modifier.padding(insets),
+            modifier = Modifier.weight(1f),
         ) {
             composable(MainDestination.TODAY.route) {
                 if (session.role == UserRole.TRACKER) {
@@ -271,6 +304,8 @@ fun MainShell(
                         displayName = session.displayName,
                         dashboard = state.partnerDashboard,
                         unavailable = state.partnerDashboardUnavailable,
+                        refreshing = state.partnerDashboardRefreshing,
+                        lastSyncAt = state.partnerDashboardLastSyncAt,
                         onRefresh = viewModel::refreshPartnerDashboard,
                         checkInSent = state.checkInSent,
                         checkInError = state.checkInError,
@@ -330,6 +365,7 @@ fun MainShell(
                     onDarkMode = viewModel::setDarkMode,
                     onNotificationPreferences = viewModel::setNotificationPreferences,
                     onSync = viewModel::syncNow,
+                    onRenewSession = openSessionRecovery,
                     sharing = state.sharing,
                     cycleProfile = state.cycleProfile,
                     carePreferences = state.carePreferences,
@@ -359,7 +395,101 @@ fun MainShell(
                 )
             }
         }
+        }
     }
+    if (showSessionRecovery && !isLocalMode) {
+        SessionRecoveryDialog(
+            displayName = session.displayName,
+            status = state.recoveryStatus,
+            showAuthentik = state.oidc.status?.enabled != false,
+            showPassword = state.oidc.status?.passwordLoginEnabled != false,
+            onAuthentik = { viewModel.beginSessionRecovery { recoveryLauncher.launch(it) } },
+            onPassword = viewModel::recoverWithPassword,
+            onDismiss = {
+                viewModel.dismissSessionRecovery()
+                showSessionRecovery = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun SessionRecoveryDialog(
+    displayName: String,
+    status: SessionRecoveryStatus,
+    showAuthentik: Boolean,
+    showPassword: Boolean,
+    onAuthentik: () -> Unit,
+    onPassword: (String, String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    // Credentials deliberately remain in memory, never SavedInstanceState or preferences.
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!status.busy) onDismiss() },
+        title = { Text(stringResource(R.string.renew_login)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.session_recovery_account, displayName))
+                Text(stringResource(R.string.session_recovery_preserves_data))
+                if (showAuthentik) {
+                    OutlinedButton(onClick = onAuthentik, enabled = !status.active, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.session_recovery_authentik))
+                    }
+                }
+                if (showPassword) {
+                    Text(stringResource(R.string.session_recovery_password_hint), style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it.take(64) },
+                        label = { Text(stringResource(R.string.username)) },
+                        enabled = !status.active,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = limitAccountPasswordInput(it) },
+                        label = { Text(stringResource(R.string.password)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        enabled = !status.active,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Button(
+                        onClick = {
+                            val submittedPassword = password
+                            password = ""
+                            onPassword(username.trim(), submittedPassword)
+                        },
+                        enabled = !status.active && username.isNotBlank() && password.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.session_recovery_password)) }
+                }
+                val message = when (status) {
+                    SessionRecoveryStatus.PREPARING, SessionRecoveryStatus.SUBMITTING -> R.string.session_recovery_busy
+                    SessionRecoveryStatus.WAITING_BROWSER -> R.string.session_recovery_browser_pending
+                    SessionRecoveryStatus.CANCELLED -> R.string.session_recovery_cancelled
+                    SessionRecoveryStatus.WRONG_ACCOUNT -> R.string.session_recovery_wrong_account
+                    SessionRecoveryStatus.FAILED -> R.string.session_recovery_failed
+                    else -> null
+                }
+                if (message != null) {
+                    Text(
+                        stringResource(message),
+                        color = if (status == SessionRecoveryStatus.WRONG_ACCOUNT || status == SessionRecoveryStatus.FAILED) {
+                            MaterialTheme.colorScheme.error
+                        } else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !status.busy) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 private val MainDestination.route: String get() = name.lowercase()
@@ -770,8 +900,19 @@ fun PartnerDashboard(
     checkInSent: Boolean = false,
     checkInError: Boolean = false,
     onCheckIn: (String) -> Unit = {},
+    refreshing: Boolean = false,
+    lastSyncAt: String? = null,
 ) {
     val checkInPrompt = stringResource(R.string.check_in)
+    val locale = LocalLocale.current.platformLocale
+    val lastSyncLabel = remember(lastSyncAt, locale) {
+        lastSyncAt?.let {
+            runCatching {
+                DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                    .withLocale(locale).withZone(ZoneId.systemDefault()).format(Instant.parse(it))
+            }.getOrNull()
+        }
+    }
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -783,6 +924,26 @@ fun PartnerDashboard(
                 body = stringResource(R.string.privacy_guard),
                 modifier = Modifier.padding(top = 20.dp),
             )
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    lastSyncLabel?.let { stringResource(R.string.last_sync_value, it) }
+                        ?: stringResource(R.string.last_sync_never),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (unavailable) {
+                    Text(
+                        stringResource(if (dashboard == null) R.string.partner_dashboard_unavailable else R.string.partner_dashboard_cached),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                OutlinedButton(onClick = onRefresh, enabled = !refreshing, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = null)
+                    Text(stringResource(if (refreshing) R.string.partner_dashboard_refreshing else R.string.sync_now), Modifier.padding(start = 8.dp))
+                }
+            }
         }
         item {
             val prediction = dashboard?.prediction
@@ -843,14 +1004,6 @@ fun PartnerDashboard(
         }
         if (checkInSent) item { Text(stringResource(R.string.check_in_sent), color = MaterialTheme.colorScheme.tertiary) }
         if (checkInError) item { Text(stringResource(R.string.check_in_error), color = MaterialTheme.colorScheme.error) }
-        if (unavailable) {
-            item {
-                OutlinedButton(onClick = onRefresh, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null)
-                    Text(stringResource(R.string.sync_now), Modifier.padding(start = 8.dp))
-                }
-            }
-        }
         item { Spacer(Modifier.height(16.dp)) }
     }
 }
@@ -1960,6 +2113,7 @@ private fun SettingsScreen(
     onDarkMode: (Boolean) -> Unit,
     onNotificationPreferences: (NotificationPreferences) -> Unit,
     onSync: () -> Unit,
+    onRenewSession: () -> Unit,
     sharing: SharingSettingsDto?,
     cycleProfile: CycleProfileDto?,
     carePreferences: CarePreferencesDto?,
@@ -2125,6 +2279,14 @@ private fun SettingsScreen(
             item { SettingHeader(stringResource(R.string.server_information)) }
             item { SettingText(Icons.Rounded.Info, session.serverName, "${session.serverVersion} · ${BuildConfig.VERSION_NAME}") }
             item { SettingHeader(stringResource(R.string.account_security)) }
+            item {
+                SettingText(
+                    Icons.Rounded.Lock,
+                    stringResource(R.string.renew_login),
+                    stringResource(R.string.session_recovery_preserves_data),
+                    onRenewSession,
+                )
+            }
         }
         if (!isLocalMode && oidc.status?.enabled == true) {
             item {

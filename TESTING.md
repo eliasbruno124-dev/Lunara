@@ -1,7 +1,35 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Stand: Releasekandidat 1.1.0 am 25. August 2026.
+Testquellen. Aktuelle 1.1.5-Ergebnisse stehen in `FINAL_REPORT.md`; die Matrix
+unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.1.5
+
+`services/api/test/refresh-replay.e2e-spec.ts` prüft gegen eine echte,
+isolierte PostgreSQL-Instanz Antwortverlust, parallele identische Refreshes,
+Widerruf der Ersatzsitzung, späte bekannte Wiederholungen, unbekannte
+Tokenwiederverwendung, Gerätefamilien-Isolation und parallele Abmeldungen.
+Der End-to-End-Fall wiederholt dieselbe Offline-Mutation und prüft exakt
+einen gespeicherten und für den Partner freigegebenen Periodeneintrag.
+
+Diese zusätzliche Suite verlangt ausdrücklich eine Datenbank mit
+`lunara_sync115_test` im Namen. Sie erstellt und entfernt ausschließlich eigene
+synthetische Fixtures. Keine produktive Datenbank als Testziel verwenden.
+
+Neue Android-Policytests prüfen Identitäts-/Servergrenzen, Abbruchzustände,
+Anmeldefehler gegenüber Netzfehlern, erhaltene Mutation-IDs, veraltete
+Antworten nach einer Tokenrotation sowie Partneraktualisierung ohne Tipps.
+`SessionSecretsTest` prüft die über Neustarts stabile Refresh-Anfrage-ID.
+Es handelt sich um JVM-/Robolectric-Tests, nicht um einen bestätigten Lauf auf
+dem tatsächlichen Telefon. Instrumentierungsquellen werden kompiliert;
+Browserlogin, Energiesparmodus und Zwei-Geräte-Synchronisierung müssen auch
+mit den installierten Geräten geprüft werden.
+
+Nach erfolgreicher API-Aktualisierung: beide APKs aktualisieren, eine eventuell
+angezeigte alte Anmeldung einmalig im selben Konto erneuern, einen Eintrag
+offline anlegen, Netzwerk einschalten und den freigegebenen Partnerstand
+prüfen. Nicht abmelden, solange noch lokale Einträge hochgeladen werden sollen.
 
 ## Verifizierte 1.1.0-Matrix
 

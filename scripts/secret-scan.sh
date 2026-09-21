@@ -21,6 +21,7 @@ pattern_report="$(git ls-files -co --exclude-standard -z \
   | grep -vE '^README\.md:[0-9]+:https://\{BENUTZERNAME\}:\{AUTHENTIK-APP-PASSWORT\}@lunara\.3li361\.de$' \
   | grep -vE '^FINAL_REPORT\.md:[0-9]+:https://lunara-native-app:APP-PASSWORT@lunara\.3li361\.de$' \
   | grep -vE '^DEPLOYMENT\.md:[0-9]+:.*https://gateway-user:gateway-pass@lunara\.3li361\.de.*$' \
+  | grep -vE '^apps/android/app/src/test/java/de/lunara/app/data/repository/SessionRecoveryPolicyTest\.kt:[0-9]+:[[:space:]]*listOf\("https://user:password@lunara\.example/", "https://lunara\.example/\?key=value",$' \
   | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.de</string>$' \
   | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.com</string>$' \
   | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="gateway_hint">Trage die normale HTTPS-Adresse ein\. Falls der Server eine eigene Header-Auth-Adresse bereitstellt, kannst du einmalig https://benutzer:app-passwort@dein-server\.example einfügen\. Lunara trennt und verschlüsselt diese Zugangsdaten anschließend\.</string>$' \

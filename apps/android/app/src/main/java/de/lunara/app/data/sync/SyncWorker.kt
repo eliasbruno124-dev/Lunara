@@ -18,11 +18,13 @@ import de.lunara.app.data.repository.ApiException
 import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.ApiClientFactory
+import de.lunara.app.data.remote.LunaraApi
 import de.lunara.app.data.remote.dto.SyncMutationDto
 import de.lunara.app.data.remote.dto.SyncRequest
 import de.lunara.app.data.repository.ConnectionRepository
 import de.lunara.app.data.repository.MutationTimestampPolicy
 import de.lunara.app.data.repository.SessionSecrets
+import de.lunara.app.data.repository.SessionCredentialGate
 import de.lunara.app.data.repository.endpoint
 import de.lunara.app.data.repository.requireBody
 import kotlinx.coroutines.flow.first
@@ -49,11 +51,37 @@ class SyncWorker @AssistedInject constructor(
     private val connectionRepository: ConnectionRepository,
     private val syncScheduler: SyncScheduler,
     private val gson: Gson,
+    private val credentialGate: SessionCredentialGate,
 ) : CoroutineWorker(context, params) {
+    private var requestAccessToken: String? = null
+    private var requestCredentialGeneration: Long = -1L
+
+    private fun syncApi(base: String): LunaraApi {
+        requestCredentialGeneration = credentialGate.snapshot()
+        requestAccessToken = secrets.accessToken
+        return apiFactory.create(base, secrets.gatewayCredentials, requestAccessToken)
+    }
+
+    private suspend fun pauseRejectedRequest(failure: Throwable): Result {
+        val current = preferences.state.first()
+        val base = current.baseUrl
+        val session = current.session
+        val marked = base != null && session != null && connectionRepository.recordAuthenticationFailure(
+            failure, base, session.userId, requestAccessToken, requestCredentialGeneration,
+        )
+        database.mutationDao().releaseInterrupted()
+        // Another repository may have rotated B -> C while this worker awaited B's 401.
+        // Leave that valid C session usable, preserve the mutation budget, and retry with C.
+        return if (marked || preferences.state.first().reauthenticationRequired) Result.success() else Result.retry()
+    }
+
     override suspend fun doWork(): Result = ProcessSyncGate.serialized {
         runCatching { doSerializedWork() }.getOrElse { throwable ->
             if (throwable is CancellationException) throw throwable
-            if (runAttemptCount >= MutationQueuePolicy.MAX_ATTEMPTS) Result.failure() else Result.retry()
+            val action = SessionRecoverySyncPolicy.failureAction(throwable, runAttemptCount)
+            if (action == RecoveryFailureAction.PAUSE_AUTHENTICATION) {
+                pauseRejectedRequest(throwable)
+            } else if (action == RecoveryFailureAction.FAIL) Result.failure() else Result.retry()
         }
     }
 
@@ -61,12 +89,19 @@ class SyncWorker @AssistedInject constructor(
         val state = preferences.state.first()
         if (state.appMode == AppMode.LOCAL) return Result.success()
         val base = state.baseUrl ?: return Result.success()
+        val session = state.session ?: return Result.success()
+        if (state.reauthenticationRequired) return Result.success()
+        val initialAccessToken = secrets.accessToken
+        if (initialAccessToken.isNullOrBlank() && secrets.refreshToken.isNullOrBlank()) {
+            connectionRepository.recordAuthenticationFailure(ApiException(401), base, session.userId, initialAccessToken)
+            return Result.success()
+        }
         // Never issue /sync without a Lunara access token. A refresh token may restore the
         // authenticated session first; without either credential there is nothing safe to send.
         when (SyncAuthenticationPolicy.decide(state.session != null, secrets.accessToken, secrets.refreshToken)) {
             SyncAuthenticationAction.SKIP -> return Result.success()
             SyncAuthenticationAction.REFRESH -> if (!connectionRepository.refresh()) {
-                return if (runAttemptCount >= MutationQueuePolicy.MAX_ATTEMPTS) Result.failure() else Result.retry()
+                return if (preferences.state.first().reauthenticationRequired) Result.success() else Result.retry()
             }
             SyncAuthenticationAction.SYNC -> Unit
         }
@@ -90,6 +125,14 @@ class SyncWorker @AssistedInject constructor(
                 synchronizeBatch(base, state.session?.userId.orEmpty(), pending)
             }.exceptionOrNull()
             if (failure != null) {
+                if (failure is CancellationException) throw failure
+                val attempt = pending.maxOfOrNull { it.attemptCount } ?: runAttemptCount
+                val action = SessionRecoverySyncPolicy.failureAction(failure, attempt)
+                if (action == RecoveryFailureAction.PAUSE_AUTHENTICATION) {
+                    // Auth rejection is not a failed health mutation. Preserve UUID, payload,
+                    // cursor and attempt budget until this same account explicitly recovers.
+                    return pauseRejectedRequest(failure)
+                }
                 if (
                     failure is ApiException &&
                     failure.status == 409 &&
@@ -106,12 +149,11 @@ class SyncWorker @AssistedInject constructor(
                     }
                     return Result.failure()
                 }
-                val attempt = pending.maxOfOrNull { it.attemptCount } ?: runAttemptCount
                 val next = MutationTimestampPolicy.format(
                     now.plusMillis(MutationQueuePolicy.nextDelayMillis(attempt)),
                 )
                 val errorCode = failure.javaClass.simpleName.take(64)
-                val terminal = MutationQueuePolicy.isTerminalAfterNextFailure(attempt)
+                val terminal = action == RecoveryFailureAction.FAIL
                 if (ids.isNotEmpty()) {
                     if (terminal) database.mutationDao().markFailed(ids, errorCode)
                     else database.mutationDao().retry(ids, next, errorCode)
@@ -151,18 +193,18 @@ class SyncWorker @AssistedInject constructor(
         )
 
         var body = if (pending.isNotEmpty()) {
-            var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            var response = syncApi(base)
                 .sync(endpoint(base, "api/v1/sync"), request)
             if (response.code() == 401 && connectionRepository.refresh()) {
-                response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                response = syncApi(base)
                     .sync(endpoint(base, "api/v1/sync"), request)
             }
             response.requireBody()
         } else {
-            var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            var response = syncApi(base)
                 .pullSync(endpoint(base, "api/v1/sync"), storedCursor)
             if (response.code() == 401 && connectionRepository.refresh()) {
-                response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                response = syncApi(base)
                     .pullSync(endpoint(base, "api/v1/sync"), storedCursor)
             }
             val pull = response.requireBody()
@@ -258,10 +300,10 @@ class SyncWorker @AssistedInject constructor(
             check(pageCount < MAX_PAGES_PER_RUN) { "Sync page limit exceeded" }
             pageCount += 1
 
-            var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            var response = syncApi(base)
                 .pullSync(endpoint(base, "api/v1/sync"), body.cursor)
             if (response.code() == 401 && connectionRepository.refresh()) {
-                response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                response = syncApi(base)
                     .pullSync(endpoint(base, "api/v1/sync"), body.cursor)
             }
             val pull = response.requireBody()

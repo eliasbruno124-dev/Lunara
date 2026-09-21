@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import de.lunara.app.core.model.AppSession
 import de.lunara.app.core.model.UserRole
+import de.lunara.app.data.repository.SessionRecoveryPolicy
 import de.lunara.app.notifications.NotificationPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -61,6 +62,7 @@ data class AppPreferencesState(
     val localLutealLength: Int? = null,
     val localPredictionPaused: Boolean = false,
     val localSpecialMode: String = "NONE",
+    val reauthenticationRequired: Boolean = false,
 )
 
 @Singleton
@@ -112,6 +114,10 @@ class AppPreferences @Inject constructor(
             localLutealLength = values[LOCAL_LUTEAL_LENGTH]?.takeIf { it in 8..20 },
             localPredictionPaused = values[LOCAL_PREDICTION_PAUSED] ?: false,
             localSpecialMode = values[LOCAL_SPECIAL_MODE].orEmpty().ifBlank { "NONE" },
+            reauthenticationRequired = SessionRecoveryPolicy.markerMatches(
+                appMode, values[BASE_URL], userId, role,
+                values[REAUTHENTICATION_BASE_URL], values[REAUTHENTICATION_USER_ID], values[REAUTHENTICATION_ROLE],
+            ),
         )
     }
 
@@ -132,6 +138,35 @@ class AppPreferences @Inject constructor(
             it[DISPLAY_NAME] = displayName
             it[ROLE] = role.name
         }
+    }
+
+    /** The marker cannot escape its exact server/account/role, including across process death. */
+    suspend fun setReauthenticationRequired(
+        expectedBaseUrl: String,
+        expectedUserId: String,
+        expectedRole: UserRole,
+        required: Boolean,
+    ): Boolean {
+        var updated = false
+        context.lunaraDataStore.edit { values ->
+            val base = SessionRecoveryPolicy.normalizedBaseUrl(expectedBaseUrl)
+            if (base != null && values[APP_MODE] != AppMode.LOCAL.name &&
+                base == SessionRecoveryPolicy.normalizedBaseUrl(values[BASE_URL]) &&
+                values[USER_ID] == expectedUserId && values[ROLE] == expectedRole.name
+            ) {
+                if (required) {
+                    values[REAUTHENTICATION_BASE_URL] = base
+                    values[REAUTHENTICATION_USER_ID] = expectedUserId
+                    values[REAUTHENTICATION_ROLE] = expectedRole.name
+                } else {
+                    values.remove(REAUTHENTICATION_BASE_URL)
+                    values.remove(REAUTHENTICATION_USER_ID)
+                    values.remove(REAUTHENTICATION_ROLE)
+                }
+                updated = true
+            }
+        }
+        return updated
     }
 
     /**
@@ -245,6 +280,9 @@ class AppPreferences @Inject constructor(
         val USERNAME = stringPreferencesKey("session.username")
         val DISPLAY_NAME = stringPreferencesKey("session.display_name")
         val ROLE = stringPreferencesKey("session.role")
+        val REAUTHENTICATION_BASE_URL = stringPreferencesKey("session.reauthentication.base_url")
+        val REAUTHENTICATION_USER_ID = stringPreferencesKey("session.reauthentication.user_id")
+        val REAUTHENTICATION_ROLE = stringPreferencesKey("session.reauthentication.role")
         val PRIVACY_MODE = booleanPreferencesKey("privacy.flag_secure")
         val USE_SYSTEM_THEME = booleanPreferencesKey("appearance.system")
         val DARK_MODE = booleanPreferencesKey("appearance.dark")

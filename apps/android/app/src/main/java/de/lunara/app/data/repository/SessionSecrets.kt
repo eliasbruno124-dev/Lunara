@@ -2,6 +2,8 @@ package de.lunara.app.data.repository
 
 import de.lunara.app.core.network.GatewayCredentials
 import de.lunara.app.core.security.SecretStore
+import java.security.MessageDigest
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,6 +17,23 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
     var refreshToken: String?
         get() = store.getString(REFRESH)
         set(value) = store.putString(REFRESH, value)
+
+    /** A logical rotation keeps its request ID through network loss and process restart. */
+    @Synchronized
+    fun refreshRequestIdFor(refreshToken: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(refreshToken.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val stored = store.getString(REFRESH_REQUEST)?.split(':', limit = 2)
+        if (stored?.size == 2 && stored[0] == digest) {
+            val requestId = runCatching { UUID.fromString(stored[1]).toString() }.getOrNull()
+            if (requestId != null && requestId == stored[1]) return requestId
+        }
+        return UUID.randomUUID().toString().also { store.putString(REFRESH_REQUEST, "$digest:$it") }
+    }
+
+    @Synchronized
+    fun clearRefreshRequestId() = store.putString(REFRESH_REQUEST, null)
 
     @Synchronized
     fun authentikSnapshot(): AuthentikSecretSnapshot = AuthentikSecretSnapshot(
@@ -72,6 +91,7 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
     fun clearAccountSecrets() {
         accessToken = null
         refreshToken = null
+        clearRefreshRequestId()
         clearAuthentik()
         activeInvitationJson = null
         pendingInvitationCode = null
@@ -87,6 +107,7 @@ class SessionSecrets @Inject constructor(private val store: SecretStore) {
     private companion object {
         const val ACCESS = "session.access_token"
         const val REFRESH = "session.refresh_token"
+        const val REFRESH_REQUEST = "session.refresh_request.v1"
         const val AUTHENTIK_STATE = "gateway.authentik_state.v1"
         const val AUTHENTIK_BASE_URL = "gateway.authentik_base_url.v1"
         const val ACTIVE_INVITATION = "relationship.active_invitation.v1"

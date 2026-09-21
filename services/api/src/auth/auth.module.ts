@@ -6,6 +6,7 @@ import { AuthService } from './auth.service.js';
 import { OidcController } from './oidc.controller.js';
 import { OidcService } from './oidc.service.js';
 import { OidcTokenVerifier } from './oidc-token-verifier.js';
+import { EncryptionService } from '../common/security/encryption.service.js';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { OidcTokenVerifier } from './oidc-token-verifier.js';
     }),
   ],
   controllers: [AuthController, OidcController],
-  providers: [AuthService, OidcService, OidcTokenVerifier],
+  providers: [AuthService, OidcService, OidcTokenVerifier, EncryptionService],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

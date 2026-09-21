@@ -45,6 +45,38 @@ API-Prozess kann den Schlüssel und entschlüsselte Werte auslesen.
 
 ## Gateway-Modi
 
+### Erneuerung und Wiederholungen ab 1.1.5
+
+Die Android-App erneuert Access- und Refresh-Tokens automatisch. Verlorene
+Refresh-Antworten können mit derselben zufälligen, Keystore-geschützt
+persistierten Anfrage-UUID wiederholt werden. `DeviceSession` enthält weiterhin
+nur den Refresh-Hash. Der begrenzt gültige Wiederholungsbeleg enthält dagegen
+eine AES-GCM-verschlüsselte Ersatzberechtigung, niemals einen Klartext-Token
+oder Access-JWT. Dafür wird ein zweckgebundener Schlüssel aus dem Master-Key
+abgeleitet; der Notiz-Entschlüsselungspfad kann diesen Beleg nicht öffnen.
+
+Anfrage, ursprüngliche Sitzung, Benutzer, Beziehung und Ablauf sind gebunden.
+Die Ersatzsitzung muss weiterhin aktiv sein; OIDC verlangt weiterhin die
+verknüpfte externe Identität. Ein bekannter verspäteter Retry kann keine neuere
+Sitzung widerrufen. Unbekannte Wiederverwendung bleibt ein Sicherheitsfehler.
+Der Master-Key schützt jetzt auch diese kurzlebigen Wiederholungsbelege;
+Datenbank plus Master-Key bleiben hochsensible Backupbestandteile.
+
+Eine ausdrückliche erneute Anmeldung ist nur für denselben Server, dieselbe
+Benutzer-ID und dieselbe Rolle zulässig. Abbruch, falsches Konto und Netzfehler
+löschen weder die SQLCipher-Datenbank noch wartende Mutationen. Bereits
+widerrufene oder vom Identitätsanbieter beendete Sitzungen werden nicht
+automatisch wiederhergestellt. Niemals App-Daten löschen oder deinstallieren,
+um noch nicht synchronisierte Einträge zu retten.
+
+Ein Gerätewiderruf aus einer noch gültigen Sitzung sperrt die gesamte
+betroffene Gerätefamilie, auch wenn parallel rotiert wird. Administrativer
+Sitzungswiderruf verwendet dieselbe Benutzersperre. Der HTTP-Logout benötigt
+weiterhin ein gültiges Access-Token: Besitzt ein Gerät ausschließlich einen
+bereits verbrauchten Token, kann die serverseitige Abmeldung scheitern. In
+diesem Fall die Sitzung von einem anderen angemeldeten Gerät oder über das
+Adminwerkzeug widerrufen; lokales Abmelden allein ist keine Serverbestätigung.
+
 ### Direct
 
 Traefik leitet direkt zu Lunara. Persönliche Lunara-Access-Tokens werden als

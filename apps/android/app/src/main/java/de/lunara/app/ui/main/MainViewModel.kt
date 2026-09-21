@@ -19,6 +19,8 @@ import de.lunara.app.data.remote.dto.CarePreferencesDto
 import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import de.lunara.app.data.remote.dto.OidcStatusDto
 import de.lunara.app.data.repository.DashboardRepository
+import de.lunara.app.data.repository.PartnerRefreshPolicy
+import de.lunara.app.data.repository.PartnerRefreshState
 import de.lunara.app.data.repository.PeriodRepository
 import de.lunara.app.data.repository.HouseholdRepository
 import de.lunara.app.data.repository.ApiException
@@ -53,6 +55,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import java.time.LocalDate
+import java.time.Instant
 
 data class MainUiState(
     val sessionUserId: String? = null,
@@ -66,6 +69,9 @@ data class MainUiState(
     val darkMode: Boolean = false,
     val partnerDashboard: PartnerDashboardDto? = null,
     val partnerDashboardUnavailable: Boolean = false,
+    val partnerDashboardRefreshing: Boolean = false,
+    val partnerDashboardLastSyncAt: String? = null,
+    val recoveryStatus: SessionRecoveryStatus = SessionRecoveryStatus.IDLE,
     val checkInSent: Boolean = false,
     val checkInError: Boolean = false,
     val invitation: InvitationDto? = null,
@@ -95,6 +101,7 @@ sealed interface MainEvent {
     data object DailyLogSaved : MainEvent
     data object DailyLogFailed : MainEvent
     data object PasswordChanged : MainEvent
+    data object SessionRecovered : MainEvent
 }
 
 data class OidcLinkUiState(
@@ -120,12 +127,14 @@ private data class SessionUiExtras(
     val oidc: OidcLinkUiState,
     val backupStatus: LocalBackupStatus,
     val periodFailureRevision: Long,
+    val recoveryStatus: SessionRecoveryStatus,
 )
 
 private data class SessionBinding(
     val userId: String?,
     val role: UserRole?,
     val appMode: AppMode,
+    val baseUrl: String?,
 )
 
 @HiltViewModel
@@ -141,8 +150,8 @@ class MainViewModel @Inject constructor(
     private val connectionRepository: ConnectionRepository,
     private val portableBackupRepository: PortableLocalBackupRepository,
 ) : ViewModel() {
-    private val partnerDashboard = MutableStateFlow<PartnerDashboardDto?>(null)
-    private val partnerUnavailable = MutableStateFlow(false)
+    private val partnerRefresh = MutableStateFlow(PartnerRefreshState())
+    private val recoveryStatus = MutableStateFlow(SessionRecoveryStatus.IDLE)
     private val checkInSent = MutableStateFlow(false)
     private val checkInError = MutableStateFlow(false)
     private val invitation = MutableStateFlow<InvitationDto?>(null)
@@ -184,14 +193,10 @@ class MainViewModel @Inject constructor(
             isLocalMode = prefs.appMode == AppMode.LOCAL,
         )
     }
-    private val dashboardState = combine(
-        partnerDashboard,
-        partnerUnavailable,
-    ) { partner, unavailable -> partner to unavailable }
     private val sessionExtras = combine(
         checkInSent, checkInError, invitation, partnerConnected, sharing, settingsBusy, settingsError,
         trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, oidc, backupStatus,
-        periodFailureRevision,
+        periodFailureRevision, recoveryStatus,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
@@ -208,11 +213,12 @@ class MainViewModel @Inject constructor(
             oidc = values[11] as OidcLinkUiState,
             backupStatus = values[12] as LocalBackupStatus,
             periodFailureRevision = values[13] as Long,
+            recoveryStatus = values[14] as SessionRecoveryStatus,
         )
     }
     val state: StateFlow<MainUiState> = combine(
         localState,
-        dashboardState,
+        partnerRefresh,
         sessionOwnerId,
         sessionExtras,
     ) { local, dashboard, ownerId, extra ->
@@ -222,8 +228,11 @@ class MainViewModel @Inject constructor(
             local
         } else {
             local.copy(
-                partnerDashboard = dashboard.first,
-                partnerDashboardUnavailable = dashboard.second,
+                partnerDashboard = dashboard.snapshot?.dashboard,
+                partnerDashboardUnavailable = dashboard.unavailable,
+                partnerDashboardRefreshing = dashboard.refreshing,
+                partnerDashboardLastSyncAt = dashboard.snapshot?.updatedAt,
+                recoveryStatus = extra.recoveryStatus,
                 checkInSent = extra.checkInSent,
                 checkInError = extra.checkInError,
                 invitation = extra.invitation,
@@ -245,7 +254,7 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             preferences.state
-                .map { state -> SessionBinding(state.session?.userId, state.session?.role, state.appMode) }
+                .map { state -> SessionBinding(state.session?.userId, state.session?.role, state.appMode, state.baseUrl) }
                 .distinctUntilChanged()
                 .collectLatest { binding ->
                     sessionOperations?.cancel()
@@ -271,10 +280,9 @@ class MainViewModel @Inject constructor(
                         syncScheduler.requestImmediate()
                         coroutineScope {
                             launch {
-                                dashboardRepository.observeCachedPartnerDashboard().collectLatest { cached ->
+                                dashboardRepository.observePartnerDashboardSnapshot().collectLatest { cached ->
                                     ifCurrentSession(session.userId) {
-                                        partnerDashboard.value = cached
-                                        if (cached != null) partnerUnavailable.value = false
+                                        partnerRefresh.value = PartnerRefreshPolicy.cached(partnerRefresh.value, cached)
                                     }
                                 }
                             }
@@ -320,8 +328,8 @@ class MainViewModel @Inject constructor(
         sessionOwnerId.value = null
         preferencesStateRole = null
         preferencesStateMode = null
-        partnerDashboard.value = null
-        partnerUnavailable.value = false
+        partnerRefresh.value = PartnerRefreshState()
+        recoveryStatus.value = SessionRecoveryStatus.IDLE
         checkInSent.value = false
         checkInError.value = false
         invitation.value = null
@@ -451,24 +459,92 @@ class MainViewModel @Inject constructor(
     }
 
     fun refreshPartnerDashboard() {
-        if (preferencesStateMode == AppMode.LOCAL) return
+        if (preferencesStateMode == AppMode.LOCAL || preferencesStateRole != UserRole.PARTNER) return
         val ownerId = sessionOwnerId.value ?: return
         launchForSession(ownerId) { refreshPartnerDashboardNow(ownerId) }
     }
 
     private suspend fun refreshPartnerDashboardNow(ownerId: String) {
-        runSessionOperation { dashboardRepository.partnerDashboard(ownerId) }
-            .onSuccess {
+        if (partnerRefresh.value.refreshing) return
+        ifCurrentSession(ownerId) { partnerRefresh.value = partnerRefresh.value.copy(refreshing = true) }
+        try {
+            runSessionOperation { dashboardRepository.partnerDashboard(ownerId) }
+                .onSuccess {
+                    ifCurrentSession(ownerId) {
+                        partnerRefresh.value = PartnerRefreshPolicy.succeeded(partnerRefresh.value, it, Instant.now().toString())
+                    }
+                }
+                .onFailure {
+                    ifCurrentSession(ownerId) { partnerRefresh.value = PartnerRefreshPolicy.failed(partnerRefresh.value) }
+                }
+        } finally {
+            ifCurrentSession(ownerId) { partnerRefresh.value = partnerRefresh.value.copy(refreshing = false) }
+        }
+    }
+
+    fun beginSessionRecovery(onReady: (Intent) -> Unit) {
+        val ownerId = sessionOwnerId.value ?: return
+        val mode = preferencesStateMode ?: return
+        if (!SessionRecoveryUiPolicy.canStart(mode, ownerId, recoveryStatus.value)) return
+        recoveryStatus.value = SessionRecoveryStatus.PREPARING
+        launchForSession(ownerId) {
+            try {
+                runSessionOperation { connectionRepository.reauthenticationIntent() }
+                    .onSuccess { intent ->
+                        ifCurrentSession(ownerId) {
+                            recoveryStatus.value = SessionRecoveryStatus.WAITING_BROWSER
+                            try {
+                                onReady(intent)
+                            } catch (_: Exception) {
+                                recoveryStatus.value = SessionRecoveryStatus.FAILED
+                            }
+                        }
+                    }
+                    .onFailure { error -> ifCurrentSession(ownerId) { recoveryStatus.value = SessionRecoveryUiPolicy.failure(error) } }
+            } finally {
                 ifCurrentSession(ownerId) {
-                    partnerDashboard.value = it
-                    partnerUnavailable.value = false
+                    if (recoveryStatus.value == SessionRecoveryStatus.PREPARING) recoveryStatus.value = SessionRecoveryStatus.IDLE
                 }
             }
-            .onFailure {
+        }
+    }
+
+    fun completeSessionRecovery(result: Intent?) {
+        if (preferencesStateMode != AppMode.SERVER || !SessionRecoveryUiPolicy.canCompleteBrowser(recoveryStatus.value)) return
+        val ownerId = sessionOwnerId.value ?: return
+        submitSessionRecovery(ownerId) { connectionRepository.reauthenticateWithAuthentik(result) }
+    }
+
+    fun recoverWithPassword(username: String, password: String) {
+        val ownerId = sessionOwnerId.value ?: return
+        val mode = preferencesStateMode ?: return
+        if (!SessionRecoveryUiPolicy.canStart(mode, ownerId, recoveryStatus.value) || username.isBlank() || password.isEmpty()) return
+        submitSessionRecovery(ownerId) { connectionRepository.reauthenticateWithPassword(username, password) }
+    }
+
+    private fun submitSessionRecovery(ownerId: String, authenticate: suspend () -> Unit) {
+        recoveryStatus.value = SessionRecoveryStatus.SUBMITTING
+        launchForSession(ownerId) {
+            try {
+                runSessionOperation { authenticate() }
+                    .onSuccess {
+                        ifCurrentSession(ownerId) {
+                            recoveryStatus.value = SessionRecoveryStatus.SUCCESS
+                            _events.tryEmit(MainEvent.SessionRecovered)
+                        }
+                        if (preferencesStateRole == UserRole.PARTNER) refreshPartnerDashboardNow(ownerId)
+                    }
+                    .onFailure { error -> ifCurrentSession(ownerId) { recoveryStatus.value = SessionRecoveryUiPolicy.failure(error) } }
+            } finally {
                 ifCurrentSession(ownerId) {
-                    if (partnerDashboard.value == null) partnerUnavailable.value = true
+                    if (recoveryStatus.value == SessionRecoveryStatus.SUBMITTING) recoveryStatus.value = SessionRecoveryStatus.IDLE
                 }
             }
+        }
+    }
+
+    fun dismissSessionRecovery() {
+        recoveryStatus.value = SessionRecoveryUiPolicy.dismissed(recoveryStatus.value)
     }
 
     fun refreshTrackerPrediction() {

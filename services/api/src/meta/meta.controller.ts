@@ -16,6 +16,7 @@ export interface MetaResponse {
   gatewayHeaderName: 'X-Lunara-Authorization';
   authenticationMethods: Array<'PASSWORD' | 'OIDC'>;
   primaryAuthenticationMethod: 'PASSWORD' | 'OIDC';
+  refreshIdempotencySupported: true;
   oidc?: {
     providerName: string;
     issuer: string;
@@ -76,6 +77,7 @@ export class MetaController {
           : ['PASSWORD', 'OIDC']
         : ['PASSWORD'],
       primaryAuthenticationMethod: oidcPrimary ? 'OIDC' : 'PASSWORD',
+      refreshIdempotencySupported: true,
       ...(oidcEnabled
         ? {
             oidc: {

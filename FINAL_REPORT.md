@@ -1,4 +1,125 @@
-# Lunara 1.1.4 – Einladungskorrektur
+# Lunara 1.1.5 – Anmeldung und automatische Synchronisierung
+
+Stand: 21. September 2026. API produktiv aktualisiert, signiertes Android-
+Upgrade gebaut und geprüft. GitHub-Veröffentlichung ist noch im Abschlusslauf.
+
+## Aktuelles Ergebnis
+
+Die vorhandene NestJS-/Prisma-/PostgreSQL-API und native Compose-App werden
+weiterverwendet; keine Datenbankmigration, Kontozusammenführung oder Änderung
+von Freigaben. Eine persistierte zufällige Anfrage-ID ermöglicht automatische
+Wiederholung einer verlorenen Refresh-Antwort. Der serverseitige Beleg ist
+zweckgebunden verschlüsselt und verlangt weiterhin eine aktive Gerätesitzung,
+passende Identität und gegebenenfalls einen gültigen Authentik-Nachweis.
+
+Bereits ungültige Anmeldungen lassen sich über **Anmeldung erneuern** im selben
+Konto wiederherstellen, ohne Datenbank, Schlüssel, Cursor oder Mutation-IDs zu
+löschen. Fehlgeschlagene/abgebrochene Anmeldungen übernehmen keine fremde
+Identität. Netzfehler werden mit Backoff wiederholt; veraltete 401-Antworten
+sperren keine inzwischen erneuerte Sitzung. Partnerdaten werden unabhängig
+vom optionalen Tippabruf gespeichert und mit Aktualisierungsstatus angezeigt.
+
+## Tatsächlich geprüfte Ergebnisse 1.1.5
+
+- API: 30 Jest-Suites, **249 Tests** erfolgreich; ESLint und Nest-Build bestehen.
+- PWA: 13 Testdateien, **50 Tests** erfolgreich; TypeScript und Vite-Build bestehen.
+- PostgreSQL: frische isolierte 18.6-Instanz ohne Hostport, acht Migrationen,
+  zwei Suites mit **10 bestandenen Integrationstests**. Enthalten: Antwortverlust,
+  identische parallele Refreshes, Replay/Widerruf, konkurrierender Logout,
+  administrativer Widerruf und ein genau einmal freigegebener Partnerdatensatz.
+- Android: beide Varianten je **46 Suites / 235 Tests**, keine Fehler oder
+  übersprungenen Tests. Beide Lints: keine Fehler, 68 lokale bzw. 67 Produktions-
+  warnungen. Instrumentierungsquellen erfolgreich kompiliert, nicht ausgeführt.
+- Debug-APK, unsigned Release-APK/AAB sowie signierte Release-APK/AAB erfolgreich
+  gebaut. `apksigner` bestätigt denselben Signierer wie 1.1.4, Paket
+  `de.lunara.app`, Version 1.1.5, versionCode 16, Android 8 oder neuer.
+- Docker-Multistage-Image erfolgreich gebaut, `lunara-api:1.1.5` produktiv gesund.
+  Image SHA-256:
+  `34bc66e489c8b6432b0ac1e6950c93ba42e739a1fc5fb16f494abf876afb4900`.
+- `/health` und `/ready`: HTTP 200. Öffentliches `/api/v1/meta`: 1.1.5 und
+  `refreshIdempotencySupported=true`. Unangemeldetes `/api/v1/me`: weiterhin
+  Authentik-Redirect, HTTP 302.
+- OpenAPI exportiert, gepinnter Kotlin-Generator ausgeführt, Hashprüfung bestanden.
+- Aktuelle npm-Prüfung nach gezielten Updates: keine bekannten Treffer, sowohl
+  vollständiger als auch produktiver Abhängigkeitsbaum. Keine Sicherheitsgarantie.
+- Gezielter und High-Entropy-Secret-Scan sowie `git diff --check` erfolgreich.
+  Kein lokales gitleaks; GitHub-CI wurde nicht eigens ausgelöst.
+
+Ausgeführte Befehle: `npm run lint`, `npm test`, `npm run build`,
+`npm run prisma:validate`, `npm run prisma:migrate:deploy`, `npm run test:e2e`,
+`npm audit`, `node packages/openapi-client/scripts/check-generated.mjs`,
+`scripts/secret-scan.sh`; Android-Gradle mit `testLocalDebugUnitTest`,
+`testProductionDebugUnitTest`, `lintLocalDebug`, `lintProductionDebug`,
+`compileProductionDebugAndroidTestKotlin`, `assembleProductionDebug`,
+`assembleProductionRelease`, `bundleProductionRelease`; anschließend signierter
+Build mit ausschließlich serverlokalem Schlüssel. Docker-Build über
+`infra/docker/api.Dockerfile`, Update nur mit `scripts/compose.sh up -d --no-deps api`.
+
+Der erste Gesamtlauf enthielt einen Lint-Analysefehler während gleichzeitiger
+Quellkorrektur; der abschließende eingefrorene Lauf bestand. Die APK-Gateprüfung
+wurde vor Abschluss der Signierung einmal negativ ausgeführt und anschließend
+mit dem tatsächlich signierten Artefakt erfolgreich wiederholt. Frühere
+fehlgeschlagene Zwischenläufe werden nicht als Erfolg gezählt.
+
+## Artefakte und Installation
+
+Verzeichnis: `/root/Lunara-invitation-fix/artifacts/`
+
+- `lunara-release.apk`: empfohlene signierte Aktualisierung.
+- `lunara-debug.apk`: Debug-Build, nicht als Ersatz für eine anders signierte Installation.
+- `lunara-release-unsigned.apk` und `lunara-release-unsigned.aab`: eigene Signierung.
+- `lunara-play-upload.aab`: signierter Bundle-Build, nicht in Play Console validiert.
+- `SHA256SUMS`: tatsächlich verifizierte Prüfsummen.
+
+Release-APK SHA-256:
+`9ba76c78edfe9b267a82ba581632366d569b5f14f20107f5bc1bf745a139c778`.
+
+Auf beiden Handys die Release-APK **über die vorhandene Installation installieren**.
+Nicht deinstallieren, nicht App-Daten löschen und nicht zum Reparieren abmelden.
+Falls **Anmeldung erneuern** angezeigt wird, einmalig dasselbe Konto auswählen.
+Danach werden wartende Einträge automatisch synchronisiert. Der Partner sieht
+weiterhin nur ausdrücklich freigegebene Felder.
+
+## Servereingriff und Rückweg
+
+Vor dem Eingriff wurde ein eng benanntes Backup unter `/var/backups/lunara/`
+angelegt: PostgreSQL-Dump mit lesbarem Inhaltsverzeichnis, bisherige Konfiguration,
+betroffene Quellen und alte signierte APK. Geheimnisse blieben ausschließlich auf
+dem Server. Der neue Dump wurde nicht vollständig in eine zweite Datenbank
+restauriert; die historische Restoreprüfung unten ist keine neue Restoreprüfung.
+
+Nur der Lunara-API-Container wurde ersetzt. Die 51 anderen zuvor laufenden
+Dienstcontainer einschließlich Lunara-PostgreSQL behielten ihre Container-IDs.
+PostgreSQL 18.6, Authentik, Pangolin, Traefik und Emby wurden nicht neu gestartet
+oder umkonfiguriert. Datenbankinhalte, bestehende Konten und Freigaben wurden
+nicht administrativ verändert. Das vorherige API-Image und das private Backup
+stehen für einen API-only-Rollback bereit; kein Datenbank-Downgrade nötig.
+
+## Bekannte Grenzen und nächste Prüfung
+
+- Kein Test auf den tatsächlichen zwei Handys, kein ausgeführter Emulator-
+  Instrumentierungstest. Einträge, die bislang ausschließlich auf einem Handy
+  liegen, sind erst nach dortiger Aktualisierung/Anmeldung tatsächlich übertragbar.
+- Automatisch bedeutet: nach Änderungen sofort geplant, bei geöffneter App
+  etwa jede Minute, im Hintergrund periodisch alle sechs Stunden. Android kann
+  Hintergrundarbeit wegen Energiesparen weiter verzögern; kein permanenter Push.
+- Widerruf, lange Inaktivität, gelöschte Konten oder Ablauf beim Identitätsanbieter
+  können eine bewusste Anmeldung erfordern. Unbegrenzte Anmeldung wird nicht
+  garantiert. Logout mit bereits ungültigem Access-Token ist serverseitig
+  best-effort; Gerätewiderruf aus anderer aktiver Sitzung/Adminwerkzeug bleibt möglich.
+- Der neue Android-Refresh-Retryvertrag ist optional und kompatibel. Die PWA
+  wurde regressionsgeprüft, ihr Client implementiert diesen neuen Retryvertrag
+  jedoch noch nicht.
+- Prognose `lunara-robust-v2` ist nicht klinisch validiert. Tests prüfen Rechen-
+  verhalten, keine medizinische Präzision. Lange Erfassungslücken, einzelne stark
+  abweichende Zyklen und schwankende Blutungsdauern können zu optimistischen
+  Zeitfenstern führen. Die drei reproduzierten Grenzen stehen in `ALGORITHM.md`;
+  die Formel wurde in diesem Sync-Update nicht verändert. Fruchtbarkeit bleibt
+  eine grobe Schätzung, kein Ovulationsnachweis und keine Verhütungsmethode.
+
+---
+
+## Historischer Abschlussbericht 1.1.4 – Einladungskorrektur
 
 Stand: 8. September 2026. Server/PWA produktiv aktualisiert;
 Android-Build einschließlich Signierung erfolgreich und im privaten

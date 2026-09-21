@@ -22,6 +22,7 @@ describe('MetaController', () => {
       await expect(controller.getMeta()).resolves.toMatchObject({
         setupRequired,
         gatewayMode: 'direct',
+        refreshIdempotencySupported: true,
       });
       expect(prisma.serverState.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: 1 },

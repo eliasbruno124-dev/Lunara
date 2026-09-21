@@ -107,6 +107,7 @@ function addResponseContracts(document) {
         serverTime: { type: 'string', format: 'date-time' },
         gatewayHeaderName: { type: 'string', enum: ['X-Lunara-Authorization'] },
         gatewayMode: { type: 'string', enum: ['direct', 'authentik'] },
+        refreshIdempotencySupported: booleanSchema(),
         authenticationMethods: {
           type: 'array',
           items: { type: 'string', enum: ['PASSWORD', 'OIDC'] },

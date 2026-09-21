@@ -866,6 +866,9 @@
           "oidc": {
             "$ref": "#/components/schemas/OidcMetaResponse"
           },
+          "refreshIdempotencySupported": {
+            "type": "boolean"
+          },
           "registrationEnabled": {
             "type": "boolean"
           },
@@ -1230,6 +1233,11 @@
             "description": "Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity",
             "type": "string",
             "writeOnly": true
+          },
+          "refreshRequestId": {
+            "description": "Persist one random UUID per refresh token and reuse it for every retry, including after process restart",
+            "format": "uuid",
+            "type": "string"
           },
           "refreshToken": {
             "type": "string",
@@ -2056,7 +2064,7 @@
     "contact": {},
     "description": "Versioned API for the self-hosted Lunara Android application. Health information is returned according to server-side role and sharing checks.",
     "title": "Lunara API",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "x-api-version": "v1",
     "x-generated-from": "services/api Nest metadata"
   },

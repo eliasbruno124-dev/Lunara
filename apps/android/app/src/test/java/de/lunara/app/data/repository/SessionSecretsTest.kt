@@ -4,10 +4,32 @@ import de.lunara.app.core.security.SecretStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SessionSecretsTest {
+    @Test
+    fun `rotation request persists across restart and uncertain response loss`() {
+        val storage = InMemorySecretStore()
+        val firstProcess = SessionSecrets(storage)
+        val request = firstProcess.refreshRequestIdFor("synthetic-refresh-before-rotation")
+        val restarted = SessionSecrets(storage)
+        assertEquals(request, restarted.refreshRequestIdFor("synthetic-refresh-before-rotation"))
+        assertNotEquals(request, restarted.refreshRequestIdFor("synthetic-new-refresh"))
+    }
+
+    @Test
+    fun `logout and completed recovery discard old retry request`() {
+        val secrets = SessionSecrets(InMemorySecretStore())
+        val first = secrets.refreshRequestIdFor("synthetic-token")
+        secrets.clearRefreshRequestId()
+        val second = secrets.refreshRequestIdFor("synthetic-token")
+        assertNotEquals(first, second)
+        secrets.clearAccountSecrets()
+        assertNotEquals(second, secrets.refreshRequestIdFor("synthetic-token"))
+    }
+
     @Test
     fun `late Authentik refresh cannot restore state after logout`() {
         val secrets = SessionSecrets(InMemorySecretStore())

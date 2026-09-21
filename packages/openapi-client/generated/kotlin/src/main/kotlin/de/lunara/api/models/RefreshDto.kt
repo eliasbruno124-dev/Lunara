@@ -32,6 +32,7 @@ import com.squareup.moshi.JsonClass
  *
  * @param refreshToken
  * @param oidcAccessToken Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity
+ * @param refreshRequestId Persist one random UUID per refresh token and reuse it for every retry, including after process restart
  */
 
 
@@ -42,7 +43,11 @@ data class RefreshDto (
 
     /* Required only when rotating an OIDC-authenticated Lunara session; must be a fresh token for the originally linked identity */
     @Json(name = "oidcAccessToken")
-    val oidcAccessToken: kotlin.String? = null
+    val oidcAccessToken: kotlin.String? = null,
+
+    /* Persist one random UUID per refresh token and reuse it for every retry, including after process restart */
+    @Json(name = "refreshRequestId")
+    val refreshRequestId: java.util.UUID? = null
 
 ) {
 

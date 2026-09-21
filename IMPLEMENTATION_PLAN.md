@@ -1,6 +1,29 @@
 # Lunara – Implementierungsplan
 
-Stand: 25. August 2026, Release 1.1.0
+Aktueller Nachtrag: 21. September 2026, Synchronisierungsupdate 1.1.5.
+
+## Reihenfolge für 1.1.5
+
+1. Bestehende lokale und produktive Quellen ausschließlich lesend vergleichen;
+   Geräte- und Beziehungsdaten nicht verändern.
+2. Automatische Refresh-Wiederholungen bei verlorenen Antworten absichern:
+   dauerhafte clientseitige Anfrage-UUID, verschlüsselter serverseitiger
+   Wiederholungsbeleg, weiterhin gültige Geräte-/Identitätsprüfung.
+3. Bereits ungültige Anmeldungen im bestehenden Konto erneuerbar machen,
+   ohne lokale Daten, Queue, Cursor, Schlüssel oder Freigaben zu löschen.
+4. Partneransicht unabhängig von optionalen Tipps aktualisieren und veralteten
+   Stand kenntlich machen; Netzfehler automatisch mit Backoff wiederholen.
+5. Unabhängiger Sicherheitsreview, echte PostgreSQL-Integration, Android-
+   Unit-Tests/Lint/Build und Vergleich mit dem bisherigen Signierzertifikat.
+6. Enges Serverbackup, ausschließlich API aktualisieren, Healthchecks prüfen
+   und einen privaten GitHub-Release mit signiertem Upgrade veröffentlichen.
+
+Keine allgemeine Authentik-Umgehung, keine Wiederbelebung widerrufener Geräte,
+keine Änderung bestehender Datenschutzfreigaben. Android-Hintergrundarbeit
+bleibt vom Betriebssystem abhängig. Ein bereits widerrufenes Konto benötigt
+einmalig eine bewusste Anmeldung; gewöhnliche Erneuerungen erfolgen automatisch.
+
+Die folgenden Architekturabschnitte dokumentieren die fortgeführte Basis 1.1.0.
 
 ## Zielbild
 

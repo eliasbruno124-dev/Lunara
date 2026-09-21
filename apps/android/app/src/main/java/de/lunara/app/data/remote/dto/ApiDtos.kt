@@ -21,6 +21,7 @@ data class MetaDto(
     /** Present on servers that explicitly support Authentik-primary enrollment. */
     val primaryAuthenticationMethod: String? = null,
     val oidc: OidcMetaDto? = null,
+    val refreshIdempotencySupported: Boolean = false,
 )
 
 data class HealthDto(val status: String)
@@ -121,6 +122,8 @@ data class RefreshRequest(
     val refreshToken: String,
     /** Required by the server only when this Lunara session was created through OIDC. */
     val oidcAccessToken: String? = null,
+    /** Stable across retries of the same rotation; omitted for older servers. */
+    val refreshRequestId: String? = null,
 )
 
 data class LogoutRequest(val refreshToken: String)

@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Matches,
   MaxLength,
@@ -107,6 +108,15 @@ export class RefreshDto {
   @MinLength(32)
   @MaxLength(256)
   refreshToken!: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Persist one random UUID per refresh token and reuse it for every retry, including after process restart',
+  })
+  @IsOptional()
+  @IsUUID()
+  refreshRequestId?: string;
 
   @ApiPropertyOptional({
     writeOnly: true,

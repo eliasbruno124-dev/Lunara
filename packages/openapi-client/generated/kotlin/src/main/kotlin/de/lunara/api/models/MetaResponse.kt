@@ -41,6 +41,7 @@ import com.squareup.moshi.JsonClass
  * @param setupRequired
  * @param version
  * @param oidc
+ * @param refreshIdempotencySupported
  */
 
 
@@ -74,7 +75,10 @@ data class MetaResponse (
     val version: kotlin.String,
 
     @Json(name = "oidc")
-    val oidc: OidcMetaResponse? = null
+    val oidc: OidcMetaResponse? = null,
+
+    @Json(name = "refreshIdempotencySupported")
+    val refreshIdempotencySupported: kotlin.Boolean? = null
 
 ) {
 

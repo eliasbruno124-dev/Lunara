@@ -2,6 +2,7 @@ package de.lunara.app.data.repository
 
 import android.content.Intent
 import android.os.Build
+import androidx.room.withTransaction
 import de.lunara.app.core.model.AppSession
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.core.network.ParsedServerAddress
@@ -24,14 +25,22 @@ import de.lunara.app.data.remote.dto.RegisterRequest
 import de.lunara.app.data.remote.dto.SetupRequest
 import de.lunara.app.data.sync.SyncScheduler
 import de.lunara.app.data.sync.ProcessSyncGate
+import de.lunara.app.data.sync.SessionRecoverySyncPolicy
 import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.security.AuthentikAuthManager
+import de.lunara.app.security.PendingAuthentikSession
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import net.openid.appauth.AuthorizationException
 import java.util.Locale
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -63,6 +72,157 @@ class ConnectionRepository @Inject constructor(
     private val database: LunaraDatabase,
 ) {
     private val refreshMutex = Mutex()
+    private val metadataMutex = Mutex()
+    private val metadata = mutableMapOf<String, MetaDto>()
+    private data class RecoveryAttempt(val identity: RecoveryIdentity, val generation: Long)
+    private val pendingRecovery = AtomicReference<RecoveryAttempt?>(null)
+
+    private suspend fun publicMetadata(base: String): MetaDto = metadataMutex.withLock {
+        val key = SessionRecoveryPolicy.normalizedBaseUrl(base) ?: throw ApiException(400, "server_not_configured")
+        metadata[key] ?: apiFactory.create(base, secrets.gatewayCredentials, null, useStoredAuthentik = false)
+            .meta(endpoint(base, "api/v1/meta")).requireBody().also { metadata[key] = it }
+    }
+
+    private suspend fun recoveryAttempt(): RecoveryAttempt {
+        val generation = credentialGate.snapshot()
+        val identity = SessionRecoveryPolicy.identity(preferences.state.first())
+            ?: throw ApiException(401, "not_authenticated")
+        return RecoveryAttempt(identity, generation)
+    }
+
+    suspend fun recoveryUsesAuthentik(): Boolean {
+        val attempt = recoveryAttempt()
+        val meta = publicMetadata(attempt.identity.baseUrl)
+        return meta.oidc != null && (authentik.isConfiguredFor(attempt.identity.baseUrl) ||
+            meta.primaryAuthenticationMethod == "OIDC" || "OIDC" in meta.authenticationMethods)
+    }
+
+    /** Launching the browser saves only an in-memory proof of the existing vault's identity. */
+    suspend fun reauthenticationIntent(): Intent {
+        val attempt = recoveryAttempt()
+        val oidc = publicMetadata(attempt.identity.baseUrl).oidc ?: throw ApiException(404, "oidc_disabled")
+        val intent = authentik.authorizationIntent(oidc)
+        requireCurrentRecovery(attempt)
+        pendingRecovery.set(attempt)
+        return intent
+    }
+
+    suspend fun reauthenticateWithAuthentik(result: Intent?): AppSession {
+        val attempt = pendingRecovery.getAndSet(null)
+            ?: throw CredentialGenerationChangedException()
+        if (result == null) throw SessionRecoveryCancelledException()
+        val authorizationFailure = AuthorizationException.fromIntent(result)
+        if (authorizationFailure != null &&
+            authorizationFailure.type == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW.type &&
+            authorizationFailure.code == AuthorizationException.GeneralErrors.USER_CANCELED_AUTH_FLOW.code) {
+            throw SessionRecoveryCancelledException()
+        }
+        requireCurrentRecovery(attempt)
+        val pending = authentik.completeAuthorization(result)
+        return recoverSession(attempt, pending) { base, api ->
+            api.oidcLogin(
+                endpoint(base, "api/v1/auth/oidc/login"),
+                OidcLoginRequest(accessToken = pending.accessToken, deviceName = deviceName(), createIfMissing = false),
+            ).requireBody()
+        }
+    }
+
+    suspend fun reauthenticateWithPassword(username: String, password: String): AppSession =
+        recoverSession(recoveryAttempt()) { base, api ->
+            api.login(endpoint(base, "api/v1/auth/login"), LoginRequest(username.trim(), password, deviceName()))
+                .requireBody()
+        }
+
+    private suspend fun requireCurrentRecovery(attempt: RecoveryAttempt) {
+        currentCoroutineContext().ensureActive()
+        if (!SessionRecoveryPolicy.canCommit(attempt.identity,
+                SessionRecoveryPolicy.identity(preferences.state.first()), attempt.identity,
+                attempt.generation, credentialGate.snapshot())) {
+            throw CredentialGenerationChangedException()
+        }
+    }
+
+    private suspend fun recoverSession(
+        attempt: RecoveryAttempt,
+        pendingAuthentik: PendingAuthentikSession? = null,
+        call: suspend (String, de.lunara.app.data.remote.LunaraApi) -> AuthResponseDto,
+    ): AppSession = ProcessSyncGate.serialized {
+        // Same ordering as a worker and the local wiper. No WorkManager cancellation while
+        // holding this gate: an active worker may need it to finish cancellation.
+        refreshMutex.withLock {
+            requireCurrentRecovery(attempt)
+            val base = attempt.identity.baseUrl
+            val auth = call(base, apiFactory.create(base, secrets.gatewayCredentials, null,
+                outerBearerOverride = pendingAuthentik?.accessToken, useStoredAuthentik = false))
+            val role = runCatching { UserRole.valueOf(auth.user.role) }.getOrNull()
+                ?: throw ApiException(409, "recovery_identity_mismatch")
+            if (auth.user.id != attempt.identity.userId || role != attempt.identity.role) {
+                throw ApiException(409, "recovery_identity_mismatch")
+            }
+            require(auth.refreshToken.isNotBlank() && auth.accessToken.isNotBlank()) { "Authentication returned empty credentials" }
+            currentCoroutineContext().ensureActive()
+            val committed = credentialGate.commitIfCurrent(attempt.generation) {
+                val current = preferences.state.first()
+                if (!SessionRecoveryPolicy.canCommit(attempt.identity, SessionRecoveryPolicy.identity(current),
+                        RecoveryIdentity(base, auth.user.id, role), attempt.generation, credentialGate.snapshot())) {
+                    return@commitIfCurrent false
+                }
+                currentCoroutineContext().ensureActive()
+                // Once the verified commit starts, finish its small durable writes even if
+                // the activity closes. Neither cancelled nor rejected logins enter this block.
+                withContext(NonCancellable) {
+                    secrets.refreshToken = auth.refreshToken
+                    secrets.accessToken = auth.accessToken
+                    secrets.clearRefreshRequestId()
+                    if (pendingAuthentik != null) {
+                        authentik.commit(base, pendingAuthentik)
+                        secrets.gatewayCredentials = null
+                    } else {
+                        // A successful explicit password login must not retain a rejected
+                        // provider session that would block every subsequent request.
+                        authentik.clear()
+                    }
+                    val now = MutationTimestampPolicy.format(Instant.now())
+                    database.withTransaction {
+                        val retryable = database.mutationDao().recoveryCandidates(SessionRecoverySyncPolicy.recoverableStates)
+                        database.mutationDao().updateRecoveryRetries(retryable.map {
+                            SessionRecoverySyncPolicy.afterRecovery(it, now)
+                        })
+                    }
+                    preferences.setReauthenticationRequired(base, auth.user.id, role, false)
+                    // Invalidate browser attempts and failures captured before this replacement.
+                    credentialGate.invalidate()
+                    syncScheduler.schedulePeriodic()
+                    syncScheduler.requestImmediate()
+                    syncScheduler.requestManual()
+                }
+                true
+            }
+            if (!committed) throw CredentialGenerationChangedException()
+            preferences.state.first().session ?: throw CredentialGenerationChangedException()
+        }
+    }
+
+    suspend fun recordAuthenticationFailure(
+        failure: Throwable,
+        expectedBaseUrl: String,
+        expectedUserId: String,
+        expectedAccessToken: String? = null,
+        expectedGeneration: Long = credentialGate.snapshot(),
+    ): Boolean {
+        if (!SessionRecoverySyncPolicy.requiresReauthentication(failure)) return false
+        return credentialGate.commitIfCurrent(expectedGeneration) {
+            val current = preferences.state.first()
+            val identity = SessionRecoveryPolicy.identity(current) ?: return@commitIfCurrent false
+            if (identity.baseUrl != SessionRecoveryPolicy.normalizedBaseUrl(expectedBaseUrl) ||
+                identity.userId != expectedUserId ||
+                !SessionRecoverySyncPolicy.canMarkAuthenticationFailure(expectedAccessToken, secrets.accessToken,
+                    expectedGeneration, credentialGate.snapshot())) {
+                return@commitIfCurrent false
+            }
+            preferences.setReauthenticationRequired(identity.baseUrl, identity.userId, identity.role, true)
+        }
+    }
 
     suspend fun startLocalMode(displayName: String): AppSession {
         require(preferences.state.first().session == null) { "An active account must be removed first" }
@@ -430,19 +590,45 @@ class ConnectionRepository @Inject constructor(
     suspend fun refresh(): Boolean = refreshMutex.withLock {
         val generation = credentialGate.snapshot()
         val state = preferences.state.first()
+        if (state.reauthenticationRequired) return@withLock false
         val base = state.baseUrl ?: return@withLock false
-        val refresh = secrets.refreshToken ?: return@withLock false
-        val hasAuthentikSession = authentik.isConfiguredFor(base)
-        if (hasAuthentikSession && !authentik.refreshFor(base)) {
+        val session = state.session ?: return@withLock false
+        val originalAccess = secrets.accessToken
+        val refresh = secrets.refreshToken
+        if (refresh.isNullOrBlank()) {
+            recordAuthenticationFailure(ApiException(401), base, session.userId, originalAccess, generation)
             return@withLock false
         }
-        val oidcAccessToken = if (hasAuthentikSession) authentik.currentAccessTokenFor(base) else null
-        val response = apiFactory.create(base, secrets.gatewayCredentials, null).refresh(
-            endpoint(base, "api/v1/auth/refresh"),
-            RefreshRequest(refresh, oidcAccessToken),
-        )
-        if (!response.isSuccessful || response.body() == null) return@withLock false
-        val auth = response.body()!!
+        val auth = try {
+            val supportsReplay = publicMetadata(base).refreshIdempotencySupported
+            val hasAuthentikSession = authentik.isConfiguredFor(base)
+            if (hasAuthentikSession && !authentik.refreshFor(base)) return@withLock false
+            val oidcAccessToken = if (hasAuthentikSession) authentik.currentAccessTokenFor(base) else null
+            var requestId: String? = null
+            val requestStillCurrent = credentialGate.commitIfCurrent(generation) {
+                if (SessionRecoveryPolicy.identity(preferences.state.first()) != SessionRecoveryPolicy.identity(state) ||
+                    secrets.refreshToken != refresh) return@commitIfCurrent false
+                if (supportsReplay) requestId = secrets.refreshRequestIdFor(refresh)
+                true
+            }
+            if (!requestStillCurrent) return@withLock false
+            apiFactory.create(base, secrets.gatewayCredentials, null).refresh(
+                endpoint(base, "api/v1/auth/refresh"),
+                RefreshRequest(refresh, oidcAccessToken, requestId),
+            ).requireBody()
+        } catch (failure: Throwable) {
+            if (SessionRecoverySyncPolicy.requiresReauthentication(failure)) {
+                recordAuthenticationFailure(failure, base, session.userId, originalAccess, generation)
+                return@withLock false
+            }
+            // Transport uncertainty must keep the same persisted request UUID for replay.
+            throw failure
+        }
+        if (auth.user.id != session.userId || auth.user.role != session.role.name ||
+            auth.accessToken.isBlank() || auth.refreshToken.isBlank()) {
+            recordAuthenticationFailure(ApiException(401), base, session.userId, originalAccess, generation)
+            return@withLock false
+        }
         // Refresh rotation is committed as one serialized operation. Other repositories cannot
         // race the same refresh token and accidentally overwrite the newer rotated credential.
         // Persist the rotated refresh credential first: after an interruption it can still mint
@@ -452,13 +638,14 @@ class ConnectionRepository @Inject constructor(
             val current = preferences.state.first()
             if (
                 current.baseUrl != base ||
-                current.session == null ||
+                SessionRecoveryPolicy.identity(current) != SessionRecoveryPolicy.identity(state) ||
                 secrets.refreshToken != refresh
             ) {
                 return@commitIfCurrent false
             }
             secrets.refreshToken = auth.refreshToken
             secrets.accessToken = auth.accessToken
+            secrets.clearRefreshRequestId()
             true
         }
     }
@@ -483,10 +670,12 @@ class ConnectionRepository @Inject constructor(
             if (current.baseUrl != base || current.session != null) {
                 return@commitIfCurrent false
             }
-            secrets.accessToken = auth.accessToken
             secrets.refreshToken = auth.refreshToken
+            secrets.accessToken = auth.accessToken
+            secrets.clearRefreshRequestId()
             onCommitted(base)
             if (persistSession) preferences.saveSession(auth.user.id, auth.user.username, auth.user.displayName, role)
+            if (persistSession) preferences.setReauthenticationRequired(base, auth.user.id, role, false)
             true
         }
         if (!committed) throw CredentialGenerationChangedException()

@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   AuditEventType,
+  IdempotencyKey,
   PreferredLanguage,
   Prisma,
   SessionAuthMethod,
@@ -28,6 +29,7 @@ import {
   markServerBootstrapped,
 } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
+import { EncryptionService } from '../common/security/encryption.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ChangePasswordDto,
@@ -55,6 +57,25 @@ const DUMMY_PASSWORD_HASH =
 
 const PASSWORD_CHANGE_FORBIDDEN_MESSAGE =
   'Password change could not be authorized';
+
+const REFRESH_REPLAY_PATH = '/api/v1/auth/refresh';
+const REFRESH_REPLAY_TTL_MS = 30 * 86_400_000;
+const REFRESH_REPLAY_PURPOSE = 'auth-refresh-replay-v1';
+
+interface RefreshReplayEnvelope {
+  version: 1;
+  recordId: string;
+  userId: string;
+  householdId: string;
+  key: string;
+  method: 'POST';
+  path: typeof REFRESH_REPLAY_PATH;
+  requestHash: string;
+  expiresAt: string;
+  originalSessionId: string;
+  sessionId: string;
+  refreshToken: string;
+}
 
 class PasswordChangeRaceError extends Error {}
 
@@ -102,6 +123,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
     private readonly oidcVerifier: OidcTokenVerifier,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async setup(dto: SetupDto): Promise<AuthResponse> {
@@ -381,9 +403,13 @@ export class AuthService {
   async refresh(
     rawToken: string,
     oidcAccessToken?: string,
+    refreshRequestId?: string,
   ): Promise<AuthResponse> {
     const tokenHash = this.hashToken(rawToken);
     const replacementToken = this.createOpaqueToken();
+    const replayKey = refreshRequestId
+      ? `auth-refresh:${refreshRequestId.toLowerCase()}`
+      : undefined;
     const initialTokenRecord = await this.prisma.deviceSession.findUnique({
       where: { refreshTokenHash: tokenHash },
       select: {
@@ -437,13 +463,6 @@ export class AuthService {
       });
       if (!tokenRecord)
         throw new UnauthorizedException('Invalid or expired refresh token');
-      if (tokenRecord.revokedAt) {
-        await tx.deviceSession.updateMany({
-          where: { tokenFamilyId: tokenRecord.tokenFamilyId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        return { reuseDetected: true as const };
-      }
       if (
         tokenRecord.authMethod !== initialTokenRecord.authMethod ||
         tokenRecord.externalIdentityId !==
@@ -455,6 +474,80 @@ export class AuthService {
             oidcProof.subject !== tokenRecord.externalIdentity.subject))
       ) {
         throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      if (replayKey) {
+        const cached = await tx.idempotencyKey.findUnique({
+          where: {
+            userId_key: { userId: initialTokenRecord.userId, key: replayKey },
+          },
+        });
+        // A known retry must never fall through to family-reuse detection,
+        // even when its successor has since rotated, expired or been revoked.
+        if (cached) {
+          const replay = this.decryptRefreshReplay(
+            cached,
+            initialTokenRecord.userId,
+            replayKey,
+            tokenHash,
+            tokenRecord.id,
+          );
+          const replacement = await tx.deviceSession.findUnique({
+            where: { id: replay.sessionId },
+            include: {
+              user: {
+                include: {
+                  memberships: { take: 1, orderBy: { createdAt: 'asc' } },
+                },
+              },
+              externalIdentity: { select: { issuer: true, subject: true } },
+            },
+          });
+          const membership = replacement?.user.memberships[0];
+          if (
+            !replacement ||
+            !membership ||
+            !tokenRecord.revokedAt ||
+            replacement.userId !== initialTokenRecord.userId ||
+            replacement.user.disabledAt ||
+            replacement.revokedAt ||
+            replacement.expiresAt <= new Date() ||
+            replacement.rotatedFromId !== tokenRecord.id ||
+            replacement.tokenFamilyId !== tokenRecord.tokenFamilyId ||
+            replacement.refreshTokenHash !==
+              this.hashToken(replay.refreshToken) ||
+            membership.householdId !== cached.householdId ||
+            replacement.authMethod !== tokenRecord.authMethod ||
+            replacement.externalIdentityId !== tokenRecord.externalIdentityId ||
+            (replacement.authMethod === SessionAuthMethod.OIDC &&
+              (!oidcProof ||
+                !replacement.externalIdentity ||
+                oidcProof.issuer !== replacement.externalIdentity.issuer ||
+                oidcProof.subject !== replacement.externalIdentity.subject))
+          ) {
+            throw new UnauthorizedException('Invalid or expired refresh token');
+          }
+          return {
+            reuseDetected: false as const,
+            identity: {
+              id: replacement.user.id,
+              username: replacement.user.username,
+              displayName: replacement.user.displayName,
+              preferredLanguage: replacement.user.preferredLanguage,
+              role: membership.role,
+              householdId: membership.householdId,
+            },
+            sessionId: replacement.id,
+            refreshToken: replay.refreshToken,
+          };
+        }
+      }
+      if (tokenRecord.revokedAt) {
+        await tx.deviceSession.updateMany({
+          where: { tokenFamilyId: tokenRecord.tokenFamilyId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        return { reuseDetected: true as const };
       }
 
       const old = await tx.deviceSession.findUnique({
@@ -502,6 +595,50 @@ export class AuthService {
           externalIdentityId: old.externalIdentityId ?? undefined,
         },
       );
+      if (replayKey) {
+        const recordId = randomUUID();
+        const expiresAt = new Date(
+          Math.min(
+            Date.now() + REFRESH_REPLAY_TTL_MS,
+            replacement.expiresAt.getTime(),
+          ),
+        );
+        const envelope: RefreshReplayEnvelope = {
+          version: 1,
+          recordId,
+          userId: old.userId,
+          householdId: membership.householdId,
+          key: replayKey,
+          method: 'POST',
+          path: REFRESH_REPLAY_PATH,
+          requestHash: tokenHash,
+          expiresAt: expiresAt.toISOString(),
+          originalSessionId: old.id,
+          sessionId: replacement.id,
+          refreshToken: replacementToken,
+        };
+        // Commit the rotation and authenticated ciphertext together. Neither a
+        // refresh credential nor an access JWT is stored as plaintext JSON.
+        await tx.idempotencyKey.create({
+          data: {
+            id: recordId,
+            userId: old.userId,
+            householdId: membership.householdId,
+            key: replayKey,
+            method: 'POST',
+            path: REFRESH_REPLAY_PATH,
+            requestHash: tokenHash,
+            responseStatus: 201,
+            responseBody: {
+              encryptedRefreshReplay: this.encryption.encryptForPurpose(
+                JSON.stringify(envelope),
+                REFRESH_REPLAY_PURPOSE,
+              ),
+            },
+            expiresAt,
+          },
+        });
+      }
       if (
         old.authMethod === SessionAuthMethod.OIDC &&
         old.externalIdentityId
@@ -522,6 +659,7 @@ export class AuthService {
           householdId: membership.householdId,
         },
         sessionId: replacement.id,
+        refreshToken: replacementToken,
       };
     });
     if (result.reuseDetected) {
@@ -532,28 +670,75 @@ export class AuthService {
     return this.buildAuthResponse(
       result.identity,
       result.sessionId,
-      replacementToken,
+      result.refreshToken,
     );
   }
 
-  async logout(user: AuthenticatedUser, rawToken?: string): Promise<void> {
-    const filter = rawToken
-      ? { userId: user.userId, refreshTokenHash: this.hashToken(rawToken) }
-      : { id: user.sessionId, userId: user.userId };
-    const result = await this.prisma.deviceSession.updateMany({
-      where: { ...filter, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-    if (result.count > 0) {
-      await this.prisma.auditEvent.create({
-        data: {
-          householdId: user.householdId,
-          actorUserId: user.userId,
-          type: AuditEventType.SESSION_REVOKED,
-          metadata: {},
-        },
-      });
+  private decryptRefreshReplay(
+    cached: IdempotencyKey,
+    userId: string,
+    key: string,
+    requestHash: string,
+    originalSessionId: string,
+  ): RefreshReplayEnvelope {
+    try {
+      const body = cached.responseBody;
+      if (
+        cached.userId !== userId ||
+        cached.key !== key ||
+        cached.requestHash !== requestHash ||
+        cached.method !== 'POST' ||
+        cached.path !== REFRESH_REPLAY_PATH ||
+        cached.responseStatus !== 201 ||
+        cached.expiresAt <= new Date() ||
+        !body ||
+        typeof body !== 'object' ||
+        Array.isArray(body) ||
+        typeof body.encryptedRefreshReplay !== 'string'
+      ) {
+        throw new Error('Invalid replay binding');
+      }
+      const envelope: unknown = JSON.parse(
+        this.encryption.decryptForPurpose(
+          body.encryptedRefreshReplay,
+          REFRESH_REPLAY_PURPOSE,
+        ),
+      );
+      if (!envelope || typeof envelope !== 'object') {
+        throw new Error('Invalid replay envelope');
+      }
+      const value = envelope as Partial<RefreshReplayEnvelope>;
+      if (
+        value.version !== 1 ||
+        value.recordId !== cached.id ||
+        value.userId !== userId ||
+        value.householdId !== cached.householdId ||
+        value.key !== key ||
+        value.method !== cached.method ||
+        value.path !== cached.path ||
+        value.requestHash !== requestHash ||
+        value.expiresAt !== cached.expiresAt.toISOString() ||
+        value.originalSessionId !== originalSessionId ||
+        typeof value.sessionId !== 'string' ||
+        typeof value.refreshToken !== 'string' ||
+        !/^[A-Za-z0-9_-]{64}$/u.test(value.refreshToken)
+      ) {
+        throw new Error('Invalid replay envelope');
+      }
+      return value as RefreshReplayEnvelope;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
+  }
+
+  async logout(user: AuthenticatedUser, rawToken?: string): Promise<void> {
+    await this.revokeSessionFamily(
+      user,
+      rawToken
+        ? { refreshTokenHash: this.hashToken(rawToken) }
+        : { id: user.sessionId },
+      {},
+    );
   }
 
   async changePassword(
@@ -658,18 +843,42 @@ export class AuthService {
     user: AuthenticatedUser,
     sessionId: string,
   ): Promise<void> {
-    const result = await this.prisma.deviceSession.updateMany({
-      where: { id: sessionId, userId: user.userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-    if (result.count === 0) return;
-    await this.prisma.auditEvent.create({
-      data: {
-        householdId: user.householdId,
-        actorUserId: user.userId,
-        type: AuditEventType.SESSION_REVOKED,
-        metadata: { sessionId },
-      },
+    await this.revokeSessionFamily(user, { id: sessionId }, { sessionId });
+  }
+
+  private async revokeSessionFamily(
+    user: AuthenticatedUser,
+    selector: { id: string } | { refreshTokenHash: string },
+    metadata: Prisma.InputJsonObject,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await lockUserAuthentication(tx, user.userId);
+      // The client may still know only the consumed parent after a lost
+      // rotation response, or its access guard may have run before rotation.
+      // Resolve that exact device family under the refresh lock; never revoke
+      // unrelated devices, and never let an in-flight refresh outlive logout.
+      const session = await tx.deviceSession.findUnique({
+        where: selector,
+        select: { userId: true, tokenFamilyId: true },
+      });
+      if (!session || session.userId !== user.userId) return;
+      const revoked = await tx.deviceSession.updateMany({
+        where: {
+          userId: user.userId,
+          tokenFamilyId: session.tokenFamilyId,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+      if (revoked.count === 0) return;
+      await tx.auditEvent.create({
+        data: {
+          householdId: user.householdId,
+          actorUserId: user.userId,
+          type: AuditEventType.SESSION_REVOKED,
+          metadata,
+        },
+      });
     });
   }
 

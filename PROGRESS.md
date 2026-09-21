@@ -1,5 +1,18 @@
 # Lunara – Fortschritt
 
+## 1.1.5 – automatische Anmeldung und Synchronisierung, 21. September 2026
+
+- [x] Getrennter Arbeitsbaum; keine Änderungen an vorhandenen Konten oder Freigaben.
+- [x] Persistierte Refresh-Anfrage-ID und verschlüsselter Wiederholungsbeleg für verlorene Antworten implementiert.
+- [x] Erneute Anmeldung im bestehenden Konto, ohne Queue, Cursor oder lokale Gesundheitsdaten zu löschen.
+- [x] Wiederholung bei Netz-/Serverfehlern, sichtbarer Authentifizierungsfehler und geschützter Partner-Cache.
+- [x] Erste echte PostgreSQL-Prüfung: sieben Szenarien erfolgreich, einschließlich Antwortverlust und genau einmal sichtbarem Partnerdatensatz.
+- [x] Abschließende Regression: API 249, PWA 50, PostgreSQL 10 Tests; Android je 235 Tests und beide Lints bestanden.
+- [x] Signierter APK-Upgrade mit unveränderter App-ID/Signatur; enges API-only-Live-Update gesund.
+- [ ] Privaten GitHub-Release veröffentlichen und hochgeladene Prüfsummen gegenprüfen.
+
+Historische Ergebnisse unten gelten für den jeweils genannten älteren Release.
+
 ## 1.1.4 – Einladungskorrektur, 8. September 2026
 
 - [x] Separater Arbeitsbaum bewahrt bestehende lokale Änderungen und übernimmt den neueren Live-Stand.
