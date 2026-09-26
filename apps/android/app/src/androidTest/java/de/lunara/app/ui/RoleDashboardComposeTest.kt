@@ -59,6 +59,7 @@ class RoleDashboardComposeTest {
                 )
             }
         }
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("period-start"))
         compose.onNodeWithText("Periode begonnen").assertIsDisplayed().performClick()
         assertEquals(1, starts)
     }
@@ -101,6 +102,7 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("period-end"))
         compose.onNodeWithTag("period-end").assertIsDisplayed().performClick()
         assertEquals("ongoing", ended)
         compose.onNodeWithTag("period-done").assertIsDisplayed().assertIsNotEnabled()
@@ -129,6 +131,7 @@ class RoleDashboardComposeTest {
                 )
             }
         }
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("today-log"))
         compose.onNodeWithText("Heute eintragen").performClick()
         compose.onNodeWithText("Speichern").assertIsDisplayed().performClick()
         assertEquals(TodayLogDraft(null, null, null, null, null, emptyList()), draft)
@@ -171,6 +174,7 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasTestTag("today-log"))
         compose.onNodeWithTag("today-log").performClick()
         compose.onNodeWithTag("today-log-save").performClick()
 
@@ -185,6 +189,7 @@ class RoleDashboardComposeTest {
         compose.setContent {
             LunaraTheme { PartnerDashboard("Sam", PartnerDashboardDto(), false, {}) }
         }
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Es werden ausschließlich freigegebene Informationen angezeigt."))
         compose.onNodeWithText("Es werden ausschließlich freigegebene Informationen angezeigt.").assertIsDisplayed()
         compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Heute ist kein Tipp freigegeben oder verfügbar."))
         compose.onNodeWithText("Heute ist kein Tipp freigegeben oder verfügbar.").assertIsDisplayed()
@@ -236,9 +241,12 @@ class RoleDashboardComposeTest {
         compose.onNodeWithText("Lutealphase, geschätzt").assertIsDisplayed()
         compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Geschätztes fruchtbares Fenster"))
         compose.onNodeWithText("Geschätztes fruchtbares Fenster").assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Nur eine grobe kalendarische Schätzung: keine Aussage über einen tatsächlichen Eisprung und nicht zur Verhütung verwenden."))
         compose.onNodeWithText(
             "Nur eine grobe kalendarische Schätzung: keine Aussage über einen tatsächlichen Eisprung und nicht zur Verhütung verwenden.",
         ).assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Warum dieser Tipp?"))
+        compose.onNodeWithText("Warum dieser Tipp?").performClick()
         compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText("Berücksichtigt eine freigegebene Phase"))
         compose.onNodeWithText("Berücksichtigt eine freigegebene Phase").assertIsDisplayed()
     }
@@ -380,6 +388,7 @@ class RoleDashboardComposeTest {
             }
         }
 
+        compose.onNodeWithTag("tracker-dashboard").performScrollToNode(hasText("Konflikte auflösen"))
         compose.onNodeWithText("Konflikte auflösen").performClick()
         assertEquals(0, resolutions)
         compose.onNodeWithText("Serverfassung verwenden").performClick()

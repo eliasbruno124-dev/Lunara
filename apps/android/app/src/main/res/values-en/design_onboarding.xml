@@ -1,0 +1,14 @@
+<resources>
+    <string name="design_intro_eyebrow">Your private cycle journal</string>
+    <string name="design_intro_title">Your rhythm.\nYour space.</string>
+    <string name="design_intro_body">Make room for how you feel. Notice your patterns. And choose what you share.</string>
+    <string name="design_local_path_summary">No account. Encrypted on your device. Partner sharing is unavailable in this mode.</string>
+    <string name="design_server_path_summary">Sync with your own server or accept an invitation. You choose what to share.</string>
+    <string name="design_server_step">01 · Connection</string>
+    <string name="design_account_step">02 · Your account</string>
+    <string name="design_server_intro">Connect Lunara to your own server. Enter its address or scan a server QR code.</string>
+    <string name="design_gateway_help">Address and header-auth help</string>
+    <string name="design_gateway_help_close">Close address help</string>
+    <string name="design_show_secret">Show %1$s</string>
+    <string name="design_hide_secret">Hide %1$s</string>
+</resources>

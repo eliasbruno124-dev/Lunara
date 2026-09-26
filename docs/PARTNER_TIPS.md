@@ -1,7 +1,10 @@
 # Partner tips: seed data and privacy rules
 
-Lunara's runtime source is `services/api/src/tips/tip-catalog.ts` with text
-revisions in `tip-editorial.ts`. `docs/partner-tips.seed.json` is a generated
+Lunara's runtime source is `services/api/src/tips/tip-catalog.ts` with complete
+DE/EN copy for all 71 stable identities in `tip-editorial.ts`. There is no
+legacy-copy fallback. Internal action/preference mappings live in
+`tip-care-actions.ts`; they do not change the database or public DTO.
+`docs/partner-tips.seed.json` is a generated
 snapshot, not a separate database seed. Its keys are the actual stable UUIDs.
 After building the API, run `node scripts/export-tip-catalog.mjs`; add `--check`
 to verify that the snapshot still matches. Built-in records are immutable from
@@ -10,7 +13,12 @@ See [TIP_QUALITY.md](TIP_QUALITY.md) for personal wishes, sources and limitation
 
 The tips are deliberately small, optional suggestions. They do not diagnose,
 prescribe treatment, infer emotions from a cycle phase, or replace a direct
-conversation. The default principle is: ask first, then act.
+conversation. Follow an existing agreement for your own/shared routine jobs;
+ask before touch, personal belongings, spending or changing another person's
+plans. Do not turn every card into another question or a task for the tracker.
+Every card has a specific situation, bounded action and relevant boundary.
+If it does not fit today, skip it. See the editorial rubric and sourced limits
+in [TIP_QUALITY.md](TIP_QUALITY.md).
 
 ## Seed schema
 
@@ -53,26 +61,36 @@ The server selects a tip from a privacy-filtered context. Current behaviour:
    `allowSymptomBasedTips`, then match only against the already filtered set
    of shared symptom keys.
 6. Apply phase matching only after its disclosure gate is satisfied:
-   `MENSTRUAL` requires `sharePeriodDates`,
+   `MENSTRUATION` requires the declared `sharePeriodDates` or `sharePhase`,
    `PREMENSTRUAL_ESTIMATE` derived from the prediction requires
    `sharePrediction`, and any other phase-specific item requires
-   `sharePhase`. The phase tag itself grants no permission.
+   `sharePhase`; `OVULATION_ESTIMATE` always needs `shareFertileWindow`.
+   The phase tag itself grants no permission, even for a custom tip that omits
+   `requiredSharedFields`. A private day excludes every dependent tip,
+   including field-only custom wishes without a phase/symptom tag.
 7. Exclude suggestions that conflict with care preferences or a custom
    unhelpful-action rule. Prefer explicitly liked actions, but never infer a
-   preference from health data.
+   preference from health data. Built-in actions are explicitly mapped; the
+   words in a warning or a broad category are not evidence of a liked action.
+   A false likes flag is unspecified, not an explicit prohibition. Free-text
+   unhelpful actions use normalized substring matching against the CTA and
+   known action aliases; this does not understand arbitrary synonyms/negations.
 8. Exclude dismissed tips. Helpful feedback, explicitly liked actions and
    permitted phase/symptom context qualify a suggestion for the relevant pool.
    There is currently no independent partner-side per-category frequency control.
 9. Put explicitly shared personal wishes first. Rotate the permitted catalogue
    deterministically each day, giving the relevant pool two days out of three
-   and general ideas the third day when both are available. `variant=0..100`
+   and general ideas the third day when both are available. Categories are
+   interleaved within each pool without inspecting excluded tips. A skewed
+   pool, pool boundary or personal-wish priority can still repeat a category.
+   `variant=0..100`
    browses the eligible deck without changing feedback. Return one tip.
 10. If no data-dependent item is eligible, use a general item with empty
     `requiredSharedFields`, `ANY`, and no symptoms. Returning no tip is also
     valid when tips are disabled.
 
 The stable deck uses a SHA-256 hash of the authenticated user UUID and tip
-UUID, then rotates by local date. It is variety, not cryptography for an
+UUID, interleaves categories, then rotates by local date. It is variety, not cryptography for an
 authorization decision. Only eligible candidates participate. A change to
 sharing or personal wishes can change the deck; ordering never grants access.
 
@@ -80,9 +98,13 @@ sharing or personal wishes can change the deck; ordering never grants access.
 
 - A tip with a failed sharing requirement must not be returned, hinted at,
   counted, or used to alter visible ranking.
-- Symptom matching is allowed only when both the data field and
-  `allowSymptomBasedTips` are enabled. For pain, mood, flow, energy, and
-  sleep, the corresponding dedicated sharing switch is also required.
+- Symptom matching uses only explicitly shared `customSymptoms` keys and
+  requires both `shareSymptoms` and `allowSymptomBasedTips`. Numeric pain,
+  mood, flow, energy, sleep and notes are never converted into symptom keys,
+  even when their dedicated sharing switch is enabled. A custom wish may
+  explicitly require such a sharing switch, but that is a permission condition,
+  not a classifier of the field's value. Explicitly shared fatigue is distinct
+  from the separate private energy field.
 - The API response contains the selected localized copy and safe metadata.
   `selectionReason` is only a broad label: personal request, care preference,
   shared symptom/context, or general idea. It includes no symptom keys, pain
@@ -142,7 +164,8 @@ At minimum, automated tests should prove:
 - disabling one required field makes the dependent tip ineligible;
 - symptom tips require both `shareSymptoms` and
   `allowSymptomBasedTips`;
-- pain, mood, flow, energy, and sleep tips require their dedicated switches;
+- private notes and pain/mood/flow/energy/sleep values never produce symptom
+  matches; any explicitly declared dedicated switch is required;
 - private-day and sharing-pause modes remove all data-dependent candidates;
 - changing a permission prevents a previously eligible tip from being returned
   immediately;
@@ -150,3 +173,10 @@ At minimum, automated tests should prove:
   tenant's candidate set;
 - the response and structured logs contain no unshared symptom, note or severity;
   only the documented coarse selection label is returned, not the matched value.
+- category interleaving preserves every eligible ID; inserting a disallowed
+  health candidate cannot change the displayed deck, even if it has feedback;
+- care preferences match concrete built-in actions, not incidental words:
+  liking warmth does not favour hugs, liking conversation does not favour
+  asking again after a no, and own reminders do not favour reminders to the tracker;
+- known empty-action and unsafe-claim fixtures fail the editorial tripwires,
+  and both warmth cards retain consent, cloth and personal temperature checks.

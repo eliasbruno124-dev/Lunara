@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -237,7 +238,7 @@ class CalendarPeriodComposeTest {
             .assertHasNoClickAction()
             .assertContentDescriptionContains("Möglicher Periodentag, geschätzt", substring = true)
 
-        compose.onNodeWithTag("calendar-current-month").performClick()
+        compose.onNodeWithTag("calendar-current-month").performScrollTo().performClick()
         compose.onNodeWithTag("calendar-month-$currentMonth").assertIsDisplayed()
     }
 

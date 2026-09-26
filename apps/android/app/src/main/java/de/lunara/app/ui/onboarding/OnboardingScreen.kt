@@ -1,34 +1,37 @@
 package de.lunara.app.ui.onboarding
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +51,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,9 +66,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.lunara.app.BuildConfig
 import de.lunara.app.R
-import de.lunara.app.core.branding.BrandTokens
 import de.lunara.app.data.remote.dto.MetaDto
 import de.lunara.app.ui.components.LunaraHeader
+import de.lunara.app.ui.components.LunaraWordmark
 import de.lunara.app.ui.scanner.lunaraQrScanOptions
 import de.lunara.app.ui.theme.LunaraTheme
 import com.google.zxing.client.android.Intents
@@ -132,12 +138,17 @@ fun OnboardingScreen(
         contentAlignment = Alignment.TopCenter,
     ) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            Modifier.widthIn(max = 640.dp).fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (state.stage != OnboardingStage.INTRO) {
-                IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back_label))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back_label))
+                    }
+                    Spacer(Modifier.weight(1f))
+                    LunaraWordmark(compact = true)
                 }
             }
             when (state.stage) {
@@ -175,41 +186,88 @@ fun OnboardingScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun IntroStep(
     language: String,
     onLanguage: (String) -> Unit,
     onContinue: () -> Unit,
     onLocalMode: () -> Unit,
 ) {
-    Spacer(Modifier.height(32.dp))
-    Box(
-        Modifier.size(88.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-        contentAlignment = Alignment.Center,
+    LunaraWordmark()
+    Column(
+        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("◌", style = MaterialTheme.typography.displaySmall, color = BrandTokens.Aubergine)
+        Text(
+            stringResource(R.string.design_intro_eyebrow).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.tertiary,
+        )
+        Text(
+            stringResource(R.string.design_intro_title),
+            style = MaterialTheme.typography.displaySmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            stringResource(R.string.design_intro_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
-    LunaraHeader(
-        eyebrow = BrandTokens.name,
-        title = stringResource(R.string.app_intro_title),
-        body = stringResource(R.string.app_intro_body),
-    )
-    Text(stringResource(R.string.language_label), style = MaterialTheme.typography.titleMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilterChip(language == "de", { onLanguage("de") }, { Text(stringResource(R.string.language_german)) })
-        FilterChip(language == "en", { onLanguage("en") }, { Text(stringResource(R.string.language_english)) })
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            stringResource(R.string.language_label),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.align(Alignment.CenterVertically).padding(end = 4.dp),
+        )
+        FilterChip(language == "de", { onLanguage("de") }, { Text(stringResource(R.string.language_german)) }, modifier = Modifier.heightIn(min = 48.dp))
+        FilterChip(language == "en", { onLanguage("en") }, { Text(stringResource(R.string.language_english)) }, modifier = Modifier.heightIn(min = 48.dp))
     }
     NoticeCard(stringResource(R.string.medical_notice))
-    Button(onLocalMode, Modifier.fillMaxWidth().height(54.dp).testTag("local-mode-start")) {
-        Icon(Icons.Rounded.Lock, contentDescription = null)
-        Text(stringResource(R.string.use_on_this_device), Modifier.padding(start = 10.dp))
-    }
-    Text(
-        stringResource(R.string.local_mode_intro_summary),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    OutlinedButton(onContinue, Modifier.fillMaxWidth().height(54.dp)) {
-        Text(stringResource(R.string.connect_server_and_partner))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(
+            onClick = onLocalMode,
+            modifier = Modifier.fillMaxWidth().testTag("local-mode-start"),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ) {
+            Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null)
+                }
+                Text(stringResource(R.string.use_on_this_device), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.design_local_path_summary), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        Surface(
+            onClick = onContinue,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 88.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.background,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        ) {
+            Row(
+                Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.connect_server_and_partner), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.design_server_path_summary),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }
 
@@ -224,7 +282,6 @@ private fun LocalModeStep(
         title = stringResource(R.string.local_mode_title),
         body = stringResource(R.string.local_mode_setup_summary),
     )
-    NoticeCard(stringResource(R.string.local_mode_privacy_notice))
     OutlinedTextField(
         value = state.displayName,
         onValueChange = onDisplayName,
@@ -233,13 +290,14 @@ private fun LocalModeStep(
         isError = state.error == OnboardingError.DISPLAY_NAME,
         modifier = Modifier.fillMaxWidth().testTag("local-display-name"),
     )
+    NoticeCard(stringResource(R.string.local_mode_privacy_notice))
     ErrorText(state.error)
     Button(
         onClick = onSubmit,
         enabled = !state.isBusy,
-        modifier = Modifier.fillMaxWidth().height(54.dp).testTag("local-mode-confirm"),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("local-mode-confirm"),
     ) {
-        if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+        if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
         else Icon(Icons.Rounded.Lock, contentDescription = null)
         Text(stringResource(R.string.start_local_mode), Modifier.padding(start = 10.dp))
     }
@@ -268,9 +326,9 @@ private fun ServerStep(
         }
     }
     LunaraHeader(
-        eyebrow = "2 / 3",
+        eyebrow = stringResource(R.string.design_server_step),
         title = stringResource(R.string.server_connect_title),
-        body = stringResource(R.string.gateway_hint),
+        body = stringResource(R.string.design_server_intro),
     )
     OutlinedTextField(
         value = state.serverUrl,
@@ -296,7 +354,7 @@ private fun ServerStep(
                 }
             }
         } else null,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     )
     OutlinedButton(
         onClick = {
@@ -304,11 +362,12 @@ private fun ServerStep(
                 lunaraQrScanOptions(scanPrompt),
             )
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
     ) {
         Icon(Icons.Rounded.Search, contentDescription = null)
         Text(stringResource(R.string.scan_server_qr), Modifier.padding(start = 8.dp))
     }
+    GatewayHelp()
     if (BuildConfig.ALLOW_INSECURE_HTTP) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = state.allowInsecureHttp, onCheckedChange = onAllowHttp)
@@ -320,10 +379,10 @@ private fun ServerStep(
     Button(
         onClick = onTestConnection,
         enabled = !state.isBusy,
-        modifier = Modifier.fillMaxWidth().height(54.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
     ) {
         if (state.isBusy) {
-            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
             Text(stringResource(R.string.testing_connection), Modifier.padding(start = 12.dp))
         } else {
             Icon(Icons.Rounded.CheckCircle, contentDescription = null)
@@ -333,6 +392,22 @@ private fun ServerStep(
 }
 
 @Composable
+private fun GatewayHelp() {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        TextButton(onClick = { expanded = !expanded }, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                stringResource(if (expanded) R.string.design_gateway_help_close else R.string.design_gateway_help),
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+        if (expanded) NoticeCard(stringResource(R.string.gateway_hint))
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun AuthStep(
     state: OnboardingUiState,
     onAuthMode: (AuthMode) -> Unit,
@@ -355,29 +430,33 @@ private fun AuthStep(
         AuthMode.REGISTER -> R.string.register_title
         AuthMode.JOIN -> R.string.join_title
     }
-    LunaraHeader(eyebrow = "3 / 3", title = stringResource(title))
+    LunaraHeader(eyebrow = stringResource(R.string.design_account_step), title = stringResource(title))
     state.meta?.let {
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = null)
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
                 Text(
                     stringResource(R.string.connected_to, it.name, it.version, it.apiVersion),
-                    modifier = Modifier.padding(start = 12.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
                 )
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
     if (state.meta?.setupRequired != true) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(state.authMode == AuthMode.LOGIN, { onAuthMode(AuthMode.LOGIN) }, { Text(stringResource(R.string.use_login)) })
-            FilterChip(state.authMode == AuthMode.JOIN, { onAuthMode(AuthMode.JOIN) }, { Text(stringResource(R.string.use_invitation)) })
-        }
-        if (registrationAvailable(state) && !primaryAuthentikIdentity) {
-            FilterChip(
-                state.authMode == AuthMode.REGISTER,
-                { onAuthMode(AuthMode.REGISTER) },
-                { Text(stringResource(R.string.use_registration)) },
-            )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FilterChip(state.authMode == AuthMode.LOGIN, { onAuthMode(AuthMode.LOGIN) }, { Text(stringResource(R.string.use_login)) }, modifier = Modifier.heightIn(min = 48.dp))
+            FilterChip(state.authMode == AuthMode.JOIN, { onAuthMode(AuthMode.JOIN) }, { Text(stringResource(R.string.use_invitation)) }, modifier = Modifier.heightIn(min = 48.dp))
+            if (registrationAvailable(state) && !primaryAuthentikIdentity) {
+                FilterChip(
+                    state.authMode == AuthMode.REGISTER,
+                    { onAuthMode(AuthMode.REGISTER) },
+                    { Text(stringResource(R.string.use_registration)) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                )
+            }
         }
     }
 
@@ -385,7 +464,7 @@ private fun AuthStep(
         Button(
             onClick = onAuthentikLogin,
             enabled = !state.isBusy,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
         ) {
             Icon(Icons.Rounded.Lock, contentDescription = null)
             Text(
@@ -428,7 +507,7 @@ private fun AuthStep(
             OutlinedButton(
                 onClick = onAuthentikLogin,
                 enabled = !state.isBusy && !state.authentikGatewayReady,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Icon(
                     if (state.authentikGatewayReady) Icons.Rounded.CheckCircle else Icons.Rounded.Lock,
@@ -459,7 +538,7 @@ private fun AuthStep(
             label = { Text(stringResource(R.string.display_name)) },
             singleLine = true,
             isError = state.error == OnboardingError.DISPLAY_NAME,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         )
     }
     if (state.authMode == AuthMode.SETUP) {
@@ -502,7 +581,7 @@ private fun AuthStep(
                     lunaraQrScanOptions(invitationScanPrompt),
                 )
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) {
             Icon(Icons.Rounded.Search, contentDescription = null)
             Text(stringResource(R.string.scan_invitation_qr), Modifier.padding(start = 8.dp))
@@ -511,10 +590,10 @@ private fun AuthStep(
             Button(
                 onClick = if (state.invitationConfirmationReady) onSubmit else onAuthentikLogin,
                 enabled = !state.isBusy,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 if (state.isBusy) {
-                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
                 } else {
                     Icon(Icons.Rounded.Lock, contentDescription = null)
                 }
@@ -561,8 +640,8 @@ private fun AuthStep(
             AuthMode.REGISTER -> R.string.create_relationship
             AuthMode.JOIN -> R.string.connect_with_invitation
         }
-        Button(onSubmit, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-            if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+        Button(onSubmit, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+            if (state.isBusy) CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
             else Icon(Icons.Rounded.Lock, contentDescription = null)
             Text(stringResource(button), Modifier.padding(start = 10.dp))
         }
@@ -586,7 +665,7 @@ private fun SecretField(value: String, onValue: (String) -> Unit, label: String,
             IconButton(onClick = { visible = !visible }) {
                 Icon(
                     if (visible) Icons.Rounded.Lock else Icons.Rounded.Info,
-                    contentDescription = if (visible) "Hide" else "Show",
+                    contentDescription = stringResource(if (visible) R.string.design_hide_secret else R.string.design_show_secret, label),
                 )
             }
         },
@@ -596,12 +675,13 @@ private fun SecretField(value: String, onValue: (String) -> Unit, label: String,
 
 @Composable
 private fun RoleCard(isTracker: Boolean) {
-    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-        Column(Modifier.padding(18.dp)) {
+    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(stringResource(if (isTracker) R.string.role_tracker_title else R.string.role_partner_title), style = MaterialTheme.typography.titleMedium)
             Text(
                 stringResource(if (isTracker) R.string.role_tracker_subtitle else R.string.role_partner_subtitle),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
     }
@@ -609,11 +689,18 @@ private fun RoleCard(isTracker: Boolean) {
 
 @Composable
 private fun NoticeCard(text: String, isError: Boolean = false) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
-        ),
-    ) { Text(text, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) }
+    val contentColor = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        modifier = Modifier.fillMaxWidth().background(
+            if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+            RoundedCornerShape(12.dp),
+        ).padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Rounded.Info, contentDescription = null, tint = contentColor, modifier = Modifier.padding(top = 2.dp).size(16.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = contentColor, modifier = Modifier.weight(1f))
+    }
 }
 
 @Composable
@@ -653,7 +740,12 @@ private fun ErrorText(error: OnboardingError?) {
         OnboardingError.GENERIC -> R.string.error_generic
         null -> return
     }
-    Text(stringResource(id), color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { contentDescription = "Error" })
+    Text(
+        stringResource(id),
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 @Preview(showBackground = true, locale = "de")

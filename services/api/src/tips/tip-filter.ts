@@ -6,6 +6,7 @@ import {
   TipCategory,
   TipFeedback,
 } from '@prisma/client';
+import { catalogActionAliases, catalogCareActions } from './tip-care-actions.js';
 
 export type SelectableTip = PartnerTip & { feedback: TipFeedback[] };
 
@@ -13,6 +14,7 @@ export interface TipSelectionContext {
   applicablePhases: CyclePhase[];
   sharedSymptoms: string[];
   carePreferences: CarePreferences | null;
+  privateDay?: boolean;
 }
 
 const EMPTY_CONTEXT: TipSelectionContext = {
@@ -32,7 +34,11 @@ export function eligibleTips(
   return tips.filter((tip) => {
     if (!tip.enabled || sharing.disabledTipCategories.includes(tip.category)) return false;
     if (tip.feedback.some((feedback) => feedback.dismissed)) return false;
+    if (context.privateDay && (tip.requiredSharedFields.length || tip.applicablePhase || tip.applicableSymptoms.length)) return false;
     if (!tip.requiredSharedFields.every((field) => fields[field] === true)) return false;
+    // Defence in depth for user-authored tips whose requiredSharedFields may
+    // omit a phase gate. A context tag can never grant a sharing permission.
+    if (tip.applicablePhase && !phaseShared(tip.applicablePhase, sharing)) return false;
     if (tip.applicablePhase && !context.applicablePhases.includes(tip.applicablePhase)) {
       return false;
     }
@@ -47,11 +53,28 @@ export function eligibleTips(
   });
 }
 
+function phaseShared(phase: CyclePhase, sharing: SharingSettings): boolean {
+  if (phase === CyclePhase.OVULATION_ESTIMATE) return sharing.shareFertileWindow === true;
+  if (phase === CyclePhase.MENSTRUATION) return sharing.sharePhase === true || sharing.sharePeriodDates === true;
+  if (phase === CyclePhase.PREMENSTRUAL_ESTIMATE) return sharing.sharePhase === true || sharing.sharePrediction === true;
+  return sharing.sharePhase === true;
+}
+
 export function carePreferenceScore(
   tip: SelectableTip,
   care: CarePreferences | null,
 ): number {
   if (!care) return 0;
+  const actions = catalogCareActions(tip);
+  if (actions !== null) {
+    const preferred = {
+      warmth: care.likesWarmth, cuddling: care.likesCuddling, space: care.likesSpace,
+      snacks: care.likesSnacks, conversation: care.likesConversation,
+      household: care.likesHouseholdHelp, reminders: care.likesReminders,
+    };
+    return actions.reduce((score, action) => score + (preferred[action] ? 3 : 0), 0)
+      + stringArray(care.customHelpfulActions).filter((helpful) => phrasesOverlap(actionText(tip), helpful)).length * 4;
+  }
   let score = 0;
   // Match the action, not just a broad category: liking warmth does not mean
   // wanting a cuddle, a massage, or a changed evening plan.
@@ -68,7 +91,7 @@ export function carePreferenceScore(
     score += 2;
   }
   if (tip.category === TipCategory.PRACTICAL_HELP && care.likesHouseholdHelp) score += 3;
-  if (care.likesReminders && textContainsAny(tipText(tip), ['erinner', 'remind'])) score += 2;
+  if (care.likesReminders && textContainsAny(actionText(tip), ['erinner', 'remind'])) score += 2;
 
   for (const helpful of stringArray(care.customHelpfulActions)) {
     if (phrasesOverlap(actionText(tip), helpful)) score += 4;
@@ -94,19 +117,8 @@ function contradictsCarePreferences(
   );
 }
 
-function tipText(tip: SelectableTip): string {
-  return [
-    tip.titleDe,
-    tip.bodyDe,
-    tip.callToActionDe,
-    tip.titleEn,
-    tip.bodyEn,
-    tip.callToActionEn,
-  ].join(' ');
-}
-
 function actionText(tip: SelectableTip): string {
-  return `${tip.callToActionDe} ${tip.callToActionEn}`;
+  return `${tip.callToActionDe} ${tip.callToActionEn} ${catalogActionAliases(tip)}`;
 }
 
 function stringArray(value: unknown): string[] {

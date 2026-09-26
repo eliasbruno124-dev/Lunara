@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import de.lunara.app.ui.onboarding.OnboardingScreen
 import de.lunara.app.ui.onboarding.AuthMode
@@ -37,7 +38,7 @@ class OnboardingComposeTest {
             }
         }
 
-        compose.onNodeWithText("Server oder Partner verbinden").performClick()
+        compose.onNodeWithText("Server oder Partner verbinden").performScrollTo().performClick()
         assertEquals(1, continued)
     }
 
@@ -57,7 +58,7 @@ class OnboardingComposeTest {
             }
         }
 
-        compose.onNodeWithText("Nur auf diesem Gerät").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Nur auf diesem Gerät").performScrollTo().assertIsDisplayed().performClick()
         assertEquals(1, localSelected)
     }
 
@@ -79,7 +80,7 @@ class OnboardingComposeTest {
         }
 
         compose.onNodeWithText("Server-URL").performTextReplacement("https://lunara.example.de")
-        compose.onNodeWithText("Verbindung testen").performClick()
+        compose.onNodeWithText("Verbindung testen").performScrollTo().performClick()
         assertEquals("https://lunara.example.de", value)
         assertEquals(1, tests)
     }
@@ -178,8 +179,8 @@ class OnboardingComposeTest {
             }
         }
 
-        compose.onNodeWithText("Einladungscode").assertIsDisplayed()
-        compose.onNodeWithText("Einladung mit Authentik einlösen").assertIsDisplayed()
+        compose.onNodeWithText("Einladungscode").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Einladung mit Authentik einlösen").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Benutzername").assertDoesNotExist()
         compose.onNodeWithText("Passwort").assertDoesNotExist()
         compose.onNodeWithText("Anzeigename").assertDoesNotExist()
@@ -204,7 +205,7 @@ class OnboardingComposeTest {
             }
         }
 
-        compose.onNodeWithText("Beziehung starten").assertIsDisplayed()
+        compose.onNodeWithText("Beziehung starten").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Name des Haushalts").assertDoesNotExist()
     }
 

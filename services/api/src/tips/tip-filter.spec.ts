@@ -1,5 +1,7 @@
 import { CyclePhase, TipCategory } from '@prisma/client';
 import { carePreferenceScore, eligibleTips } from './tip-filter.js';
+import { TIP_CATALOG } from './tip-catalog.js';
+import { SelectableTip } from './tip-filter.js';
 
 describe('eligibleTips', () => {
   it('a warmth preference does not boost an unrelated cuddle or general comfort suggestion', () => {
@@ -119,5 +121,66 @@ describe('eligibleTips', () => {
     expect(carePreferenceScore(tips[0], care)).toBeGreaterThan(
       carePreferenceScore(tips[1], care),
     );
+  });
+
+  const builtIns: SelectableTip[] = TIP_CATALOG.map((tip) => ({ ...tip,
+    applicablePhase: tip.applicablePhase ?? null, applicableSymptoms: tip.applicableSymptoms ?? [],
+    enabled: true, feedback: [], createdByUserId: null, householdId: null,
+    createdAt: new Date(0), updatedAt: new Date(0),
+  }));
+
+  it('matches the actual built-in action, not a category, incidental word or warning', () => {
+    const score = (number: number, preference: string) => carePreferenceScore(builtIns[number - 1]!, { [preference]: true, customHelpfulActions: [] } as never);
+    expect(score(11, 'likesWarmth')).toBeGreaterThan(0);
+    expect(score(48, 'likesWarmth')).toBe(0);
+    expect(score(48, 'likesCuddling')).toBeGreaterThan(0);
+    expect(score(3, 'likesCuddling')).toBe(0); // company is not touch
+    expect(score(50, 'likesSnacks')).toBeGreaterThan(0);
+    expect(score(63, 'likesSnacks')).toBe(0); // nausea offer is not a snack
+    expect(score(2, 'likesConversation')).toBeGreaterThan(0);
+    expect(score(5, 'likesConversation')).toBe(0); // accepting no is not an invitation to talk
+    expect(score(28, 'likesReminders')).toBe(0); // remembering YOUR promise
+    expect(score(56, 'likesReminders')).toBe(0);
+    expect(score(32, 'likesHouseholdHelp')).toBeGreaterThan(0); // real cooking action, despite PERIOD_DAYS category
+  });
+
+  it('understands built-in action aliases for exact unhelpful phrases without treating warmth as touch', () => {
+    const context = { applicablePhases: [], sharedSymptoms: [], carePreferences: { customUnhelpfulActions: ['Berührung', 'warmth'], customHelpfulActions: [] } as never };
+    const allowed = eligibleTips(builtIns, settings, context);
+    expect(allowed).not.toContain(builtIns[10]);
+    expect(allowed).not.toContain(builtIns[47]);
+    expect(allowed).toContain(builtIns[5]);
+  });
+
+  it('does not attach global care tags to a user-authored colliding ID', () => {
+    const personal = { ...builtIns[10]!, category: TipCategory.USER_DEFINED, createdByUserId: 'tracker', householdId: 'pair', callToActionDe: 'Bitte bring Wasser.', callToActionEn: 'Please bring water.' };
+    expect(carePreferenceScore(personal, { likesWarmth: true, customHelpfulActions: [] } as never)).toBe(0);
+  });
+
+  it.each([
+    ['shareSymptoms', false, true], ['allowSymptomBasedTips', true, false],
+  ])('withdrawal of %s hides every symptom card even with stale matching context', (_name, shareSymptoms, allowSymptomBasedTips) => {
+    const context = { applicablePhases: [], sharedSymptoms: ['CRAMPS', 'HEADACHE', 'FATIGUE', 'NAUSEA', 'STRESS', 'BACK_PAIN'], carePreferences: null };
+    const control = eligibleTips(builtIns, { ...settings as object, shareSymptoms: true, allowSymptomBasedTips: true } as never, context);
+    expect(control.filter((tip) => tip.applicableSymptoms.length)).toHaveLength(6);
+    const revoked = eligibleTips(builtIns, { ...settings as object, shareSymptoms, allowSymptomBasedTips } as never, context);
+    expect(revoked.every((tip) => !tip.applicableSymptoms.length)).toBe(true);
+  });
+
+  it('phase context alone never grants permission, including a user-defined tip missing its declared gate', () => {
+    const phaseTip = { ...builtIns[50]!, requiredSharedFields: [], category: TipCategory.USER_DEFINED };
+    const context = { applicablePhases: [CyclePhase.FOLLICULAR_ESTIMATE], sharedSymptoms: [], carePreferences: null };
+    expect(eligibleTips([phaseTip], { ...settings as object, sharePhase: true } as never, context)).toEqual([phaseTip]);
+    expect(eligibleTips([phaseTip], settings, context)).toEqual([]);
+  });
+
+  it('private days reject field-only dependent wishes as well as phase/symptom cards', () => {
+    const fieldOnly = { ...builtIns[0]!, id: 'private-field-wish', category: TipCategory.USER_DEFINED, requiredSharedFields: ['sharePain'] };
+    const context = { applicablePhases: [CyclePhase.MENSTRUATION], sharedSymptoms: ['CRAMPS'], carePreferences: null };
+    const allSharing = { ...settings as object, sharePain: true, sharePeriodDates: true, sharePhase: true, shareSymptoms: true, allowSymptomBasedTips: true } as never;
+    expect(eligibleTips([fieldOnly], allSharing, context)).toEqual([fieldOnly]);
+    const privateAllowed = eligibleTips([...builtIns, fieldOnly], allSharing, { ...context, privateDay: true });
+    expect(privateAllowed.length).toBeGreaterThan(0);
+    expect(privateAllowed.every((tip) => !tip.requiredSharedFields.length && !tip.applicablePhase && !tip.applicableSymptoms.length)).toBe(true);
   });
 });

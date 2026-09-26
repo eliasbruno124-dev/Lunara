@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+- Neue Journal-Gestaltung für Android und Web: Petrol/Elfenbein, redaktionelle
+  Typografie, eigenständige Hauptansichten und zusammenpassender Dunkelmodus.
+- Android-Einstellungen in erreichbare Kategorien gegliedert; Today-Aktionen,
+  Partnerunterstützung und Prognose klarer gewichtet.
+- Tipps als konkrete Alltagshandlungen statt allgemeiner Sinnsprüche;
+  stabile IDs, persönliche Wünsche und Freigabefilter bleiben erhalten.
+- Kalenderweiterentwicklung ohne Änderung vorhandener Zeitraum-/Syncdaten.
+- Zusätzliche Darstellungs- und Interaktionsprüfungen; genaue Ergebnisse im
+  Abschlussbericht. Vorhersageformel und Konten werden nicht geändert.
+
 ## 1.1.6 – 2026-09-21
 
 - Partnerverknüpfung für beide Rollen unabhängig von Einladungen abrufen;

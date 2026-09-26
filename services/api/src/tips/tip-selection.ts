@@ -22,8 +22,8 @@ export function selectPartnerTip(
     carePreferenceScore(tip, context.carePreferences) > 0 ||
     tip.category === TipCategory.USER_DEFINED || tip.feedback.some((f) => f.helpful === true),
   );
-  const relevant = ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && matches(tip));
-  const general = ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && !matches(tip));
+  const relevant = spreadCategories(ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && matches(tip)));
+  const general = spreadCategories(ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && !matches(tip)));
   const rotate = (pool: SelectableTip[], offset: number) => {
     if (!pool.length) return pool;
     const index = ((offset % pool.length) + pool.length) % pool.length;
@@ -39,4 +39,28 @@ export function selectPartnerTip(
     : day;
   const deck = [...rotate(personal, day), ...rotate(primary, index), ...rotate(secondary, day)];
   return deck[variant % deck.length];
+}
+
+/** Interleave each eligible pool, preserving the per-person hash order within
+ * categories. Do not peek at excluded candidates: even their count is private.
+ * Repeated categories remain possible when one category outnumbers the rest.
+ */
+function spreadCategories(ordered: SelectableTip[]): SelectableTip[] {
+  const buckets = new Map<TipCategory, SelectableTip[]>();
+  for (const tip of ordered) {
+    const bucket = buckets.get(tip.category) ?? [];
+    bucket.push(tip);
+    buckets.set(tip.category, bucket);
+  }
+  const result: SelectableTip[] = [];
+  let previous: TipCategory | undefined;
+  while (result.length < ordered.length) {
+    const available = [...buckets.entries()].filter(([, tips]) => tips.length > 0);
+    const alternatives = available.filter(([category]) => category !== previous);
+    const [category, tips] = (alternatives.length ? alternatives : available)
+      .sort((a, b) => b[1].length - a[1].length)[0]!;
+    result.push(tips.shift()!);
+    previous = category;
+  }
+  return result;
 }

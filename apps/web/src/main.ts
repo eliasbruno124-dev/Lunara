@@ -100,6 +100,7 @@ class LunaraWebApp {
   private calendarMonth = monthKey();
   private language: Language = localStorage.getItem('lunara-language') === 'en' ? 'en' : 'de';
   private theme: ThemePreference = this.loadTheme();
+  private readonly expandedSettings = new Set(['preferences']);
   private syncState: SyncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
   private installPrompt: BeforeInstallPromptEvent | null = null;
   private syncing = false;
@@ -461,7 +462,7 @@ class LunaraWebApp {
       this.render();
     });
     card.append(accept, discard);
-    main.append(card);
+    main.append(this.loginIntroduction(), card);
     return main;
   }
 
@@ -496,7 +497,7 @@ class LunaraWebApp {
 
   private loginView(): HTMLElement {
     if (!this.loginChoice) return this.modeChoiceView();
-    const main = element('main', 'login-page');
+    const main = element('main', 'login-page auth-page');
     main.id = 'main-content';
     const card = element('section', 'login-card');
     const brand = element('div', 'brand-lockup');
@@ -511,8 +512,10 @@ class LunaraWebApp {
     const notice = element('p', 'notice', this.t('medicalNotice'));
     if (this.loginChoice === 'local') {
       const localPanel = this.localVaultPanel();
-      card.append(brand, notice, localPanel);
-      main.append(card);
+      card.append(brand, notice, localPanel, button('text-button language-toggle', this.language === 'de' ? 'English' : 'Deutsch', () => {
+        this.setLanguage(this.language === 'de' ? 'en' : 'de');
+      }));
+      main.append(this.loginIntroduction(), card);
       return main;
     }
     const form = element('form', 'login-form');
@@ -670,7 +673,7 @@ class LunaraWebApp {
         this.render();
       }),
     );
-    main.append(card);
+    main.append(this.loginIntroduction(), card);
     return main;
   }
 
@@ -678,13 +681,10 @@ class LunaraWebApp {
     const main = element('main', 'login-page');
     main.id = 'main-content';
     const card = element('section', 'login-card mode-choice');
-    const logo = element('img', 'choice-logo') as HTMLImageElement;
-    logo.src = '/icons/lunara.svg';
-    logo.alt = '';
     card.append(
-      logo,
+      element('p', 'eyebrow', this.t('getStarted')),
       element('h1', '', this.t('chooseMode')),
-      element('p', 'notice', this.t('medicalNotice')),
+      element('p', 'subtle', this.t('modeChoiceHint')),
     );
     const choices = element('div', 'mode-grid');
     const server = button('mode-button', this.t('ownServer'), async () => {
@@ -704,14 +704,34 @@ class LunaraWebApp {
     choices.append(server, local);
     card.append(
       choices,
+      element('p', 'medical-footnote', this.t('medicalNotice')),
       button(
         'text-button language-toggle',
         this.language === 'de' ? 'English' : 'Deutsch',
         () => this.setLanguage(this.language === 'de' ? 'en' : 'de'),
       ),
     );
-    main.append(card);
+    main.append(this.loginIntroduction(), card);
     return main;
+  }
+
+  private loginIntroduction(): HTMLElement {
+    const introduction = element('section', 'login-introduction');
+    const brand = element('div', 'compact-brand');
+    const logo = element('img');
+    logo.src = '/icons/lunara.svg';
+    logo.alt = '';
+    brand.append(logo, element('strong', '', 'Lunara'));
+    const ornament = element('div', 'orbit-mark');
+    ornament.setAttribute('aria-hidden', 'true');
+    introduction.append(
+      brand,
+      ornament,
+      element('p', 'editorial-title', this.t('welcomeHeadline')),
+      element('p', 'introduction-copy', this.t('welcomeDescription')),
+      element('p', 'eyebrow introduction-note', this.t('welcomeNote')),
+    );
+    return introduction;
   }
 
   private localVaultPanel(): HTMLElement {
@@ -951,33 +971,68 @@ class LunaraWebApp {
   }
 
   private todayView(): HTMLElement {
-    const view = element('div', 'view-stack');
+    const isTracker = this.user?.role === 'TRACKER';
+    const view = element('div', `view-stack today-view${isTracker ? '' : ' partner-view'}`);
+    const lead = element('div', 'journal-lead');
+    const rail = element('aside', 'journal-rail');
+    rail.setAttribute('aria-label', this.t('overview'));
     const greeting = element('section', 'hero-card');
+    const date = new Intl.DateTimeFormat(this.language === 'de' ? 'de-DE' : 'en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    }).format(new Date());
     greeting.append(
-      element('p', 'eyebrow', this.user?.role === 'TRACKER' ? this.t('roleTracker') : this.t('rolePartner')),
+      element('p', 'eyebrow', `${this.t('today')} · ${date}`),
       element('h1', '', this.t('hello', { name: this.user?.displayName ?? '' })),
     );
-    if (this.user?.role === 'TRACKER') {
+    if (isTracker) {
       const active = this.activePeriod();
+      greeting.append(
+        element('p', 'hero-description', this.t('todayTrackerHint')),
+        element('p', `period-state${active ? ' is-active' : ''}`, active
+          ? this.t('periodActiveSince', { date: formatDate(active.startDate, this.language) })
+          : this.t('noActivePeriod')),
+      );
       const action = button('period-action', active ? this.t('endPeriod') : this.t('startPeriod'), async () => {
         if (active) await this.endPeriod(active, todayIso());
         else await this.startPeriod(todayIso());
       });
       action.disabled = this.syncing || this.localVaultCoordinator.busy;
-      action.append(element('span', 'action-icon', active ? '✓' : '+'));
+      const icon = element('span', 'action-icon', active ? '✓' : '+');
+      icon.setAttribute('aria-hidden', 'true');
+      action.append(icon);
       greeting.append(action);
+      const calendarAction = button('text-button calendar-shortcut', this.t('recordAnotherDate'), () => {
+        this.screen = 'calendar';
+        this.render();
+      });
+      greeting.append(calendarAction);
+    } else {
+      greeting.append(element('p', 'hero-description', this.t('todayPartnerHint')));
     }
-    view.append(greeting, this.predictionCard());
-    if (this.user?.role === 'PARTNER') view.append(this.tipCard());
-    else view.append(this.recentPeriodsCard());
+    lead.append(greeting);
+    rail.append(this.predictionCard());
+    if (isTracker) {
+      rail.append(this.recentPeriodsCard());
+    } else {
+      lead.append(this.tipCard());
+      const relationship = element('section', 'relationship-note');
+      relationship.append(
+        element('p', 'eyebrow', this.t('rolePartner')),
+        element('h2', '', this.t('sharedWithYou')),
+        element('p', 'subtle', this.t('partnerPrivacyHint')),
+      );
+      rail.append(relationship);
+    }
+    view.append(lead, rail);
     view.append(element('p', 'medical-footnote', this.t('predictionDisclaimer')));
     return view;
   }
 
   private predictionCard(): HTMLElement {
-    const card = element('section', 'info-card prediction-summary');
+    const card = element('section', 'prediction-summary');
     const title = element('div', 'card-heading');
-    title.append(element('span', 'estimate-dot'), element('h2', '', this.t('nextPeriod')));
+    title.append(element('h2', '', this.t('nextPeriod')));
+    card.append(element('p', 'eyebrow', this.t('estimated')));
     card.append(title);
     if (
       this.prediction?.available &&
@@ -1001,25 +1056,29 @@ class LunaraWebApp {
           : 'confidenceLow';
       card.append(element('p', 'subtle', this.t('confidence', { value: this.t(confidenceKey) })));
     } else {
-      card.append(element('p', 'subtle', this.t('noPrediction')));
+      card.append(element('p', 'subtle', this.t(this.user?.role === 'PARTNER' ? 'noPartnerPrediction' : 'noPrediction')));
     }
     return card;
   }
 
   private tipCard(): HTMLElement {
     const tip = this.partnerTip;
-    const card = element('section', 'info-card tip-card');
+    const card = element('section', 'tip-card');
     card.append(
       element('p', 'eyebrow', this.t('partnerSuggestion')),
       element('h2', '', tip?.title ?? this.t('support')),
       element('p', '', tip?.body ?? this.t('defaultTip')),
     );
-    if (tip?.callToAction) card.append(element('p', 'tip-action', tip.callToAction));
+    if (tip?.callToAction) {
+      const action = element('div', 'tip-action');
+      action.append(element('p', 'eyebrow', this.t('tryToday')), element('p', '', tip.callToAction));
+      card.append(action);
+    }
     return card;
   }
 
   private recentPeriodsCard(): HTMLElement {
-    const card = element('section', 'info-card');
+    const card = element('section', 'history-summary');
     card.append(element('h2', '', this.t('history')));
     const list = element('ul', 'period-list');
     for (const period of this.periods.slice(0, 4)) {
@@ -1037,7 +1096,14 @@ class LunaraWebApp {
   }
 
   private calendarView(): HTMLElement {
-    const view = element('div', 'view-stack');
+    const view = element('div', 'view-stack calendar-view');
+    const heading = element('header', 'page-heading');
+    heading.append(
+      element('p', 'eyebrow', this.t('yourEntries')),
+      element('h1', '', this.t('calendar')),
+      element('p', 'subtle', this.t(this.user?.role === 'TRACKER' ? 'calendarTrackerHint' : 'calendarPartnerHint')),
+    );
+    view.append(heading);
     const calendarPeriods = this.periods.map((period) => ({
       ...period,
       endDate: period.endDate ?? (period.startDate <= todayIso() ? todayIso() : period.startDate),
@@ -1048,12 +1114,14 @@ class LunaraWebApp {
       periods: calendarPeriods,
       prediction: this.prediction,
       initialMonth: this.calendarMonth,
+      selectedDate: this.selectedDate,
       onMonthChange: (month) => {
         this.calendarMonth = month;
       },
       onSelect: (date) => {
         this.selectedDate = date;
         this.render();
+        this.root.querySelector<HTMLButtonElement>(`.calendar-day[data-date="${date}"]`)?.focus({ preventScroll: true });
       },
     });
     view.append(calendar.element, this.calendarLegend());
@@ -1106,8 +1174,10 @@ class LunaraWebApp {
 
   private settingsView(): HTMLElement {
     const view = element('div', 'view-stack settings-view');
-    view.append(element('h1', '', this.t('settings')));
-    const account = element('section', 'info-card setting-card');
+    const heading = element('header', 'page-heading');
+    heading.append(element('p', 'eyebrow', this.t('yourLunara')), element('h1', '', this.t('settings')));
+    view.append(heading);
+    const account = element('section', 'account-summary');
     account.append(
       element('h2', '', this.user?.displayName ?? ''),
       element('p', 'subtle', `@${this.user?.username ?? ''} · ${this.user?.role === 'TRACKER' ? this.t('roleTracker') : this.t('rolePartner')}`),
@@ -1158,19 +1228,40 @@ class LunaraWebApp {
       () => this.logout(),
     );
     if (this.localMode) logout.disabled = this.localVaultCoordinator.busy;
-    view.append(account, language, appearance, server);
+    view.append(account, this.settingsGroup('preferences', 'preferencesGroup', 'preferencesHint', language, appearance));
     if (!this.localMode && this.user?.role === 'TRACKER') {
-      view.append(this.partnerInvitationCard(), this.manualInvitationAcceptanceCard());
+      view.append(this.settingsGroup('sharing', 'sharingGroup', 'sharingHint', this.partnerInvitationCard(), this.manualInvitationAcceptanceCard()));
     }
     if (this.localMode) {
       view.append(
-        this.backupCard(),
-        button('secondary-button', this.t('lockVault'), () => this.lockLocalVault()),
+        this.settingsGroup('data', 'dataGroup', 'dataHint', this.backupCard(),
+          button('secondary-button', this.t('lockVault'), () => this.lockLocalVault())),
       );
     }
-    if (install) view.append(install);
-    view.append(logout);
+    const appItems = install ? [server, install] : [server];
+    view.append(this.settingsGroup('app', 'appGroup', 'appHint', ...appItems));
+    const accountActions = element('div', 'account-actions');
+    accountActions.append(logout);
+    view.append(accountActions);
     return view;
+  }
+
+  private settingsGroup(id: string, title: MessageKey, description: MessageKey, ...children: HTMLElement[]): HTMLElement {
+    const group = element('details', 'settings-group');
+    group.dataset.group = id;
+    group.open = this.expandedSettings.has(id);
+    const summary = element('summary');
+    const labels = element('span', 'settings-group-label');
+    labels.append(element('strong', '', this.t(title)), element('span', 'subtle', this.t(description)));
+    summary.append(labels);
+    const content = element('div', 'settings-group-content');
+    content.append(...children);
+    group.append(summary, content);
+    group.addEventListener('toggle', () => {
+      if (group.open) this.expandedSettings.add(id);
+      else this.expandedSettings.delete(id);
+    });
+    return group;
   }
 
   private partnerInvitationCard(): HTMLElement {
@@ -1459,7 +1550,7 @@ class LunaraWebApp {
 
   private bottomNavigation(): HTMLElement {
     const navigation = element('nav', 'bottom-nav');
-    navigation.setAttribute('aria-label', this.t('settings'));
+    navigation.setAttribute('aria-label', this.t('mainNavigation'));
     const items: Array<[Screen, string, string]> = [
       ['today', '⌂', this.t('today')],
       ['calendar', '▦', this.t('calendar')],
@@ -1471,7 +1562,9 @@ class LunaraWebApp {
         this.selectedDate = null;
         this.render();
       });
-      item.prepend(element('span', 'nav-icon', icon));
+      const symbol = element('span', 'nav-icon', icon);
+      symbol.setAttribute('aria-hidden', 'true');
+      item.prepend(symbol);
       item.setAttribute('aria-current', screen === this.screen ? 'page' : 'false');
       navigation.append(item);
     }

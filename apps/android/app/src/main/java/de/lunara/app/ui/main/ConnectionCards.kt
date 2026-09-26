@@ -4,12 +4,16 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,6 +23,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -72,13 +80,30 @@ internal fun SyncStatusAction(preferences: AppPreferencesState, state: MainUiSta
 }
 
 @Composable
-internal fun RelationshipCard(state: RelationshipState, onRefresh: () -> Unit) {
+internal fun RelationshipCard(state: RelationshipState, onRefresh: () -> Unit, compact: Boolean = false) {
+    var details by remember { mutableStateOf(false) }
     val summary = when {
         !state.known -> stringResource(if (state.unavailable) R.string.relationship_unknown else R.string.relationship_loading)
         state.connected -> state.peerName?.let { stringResource(R.string.relationship_with, it) } ?: stringResource(R.string.partner_connected)
         else -> stringResource(R.string.relationship_none)
     }
-    InsightCard(Icons.Rounded.FavoriteBorder, stringResource(R.string.relationship_title), summary, action = {
+    if (compact) {
+        Surface(onClick = { details = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Column(Modifier.weight(1f)) {
+                    Text(summary, style = MaterialTheme.typography.labelLarge)
+                    if (state.known && state.unavailable) Text(stringResource(R.string.journal_relationship_last_confirmed), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        if (details) AlertDialog(
+            onDismissRequest = { details = false },
+            title = { Text(stringResource(R.string.relationship_title)) },
+            text = { Column(Modifier.verticalScroll(rememberScrollState())) { RelationshipCard(state, onRefresh) } },
+            confirmButton = { TextButton(onClick = { details = false }) { Text(stringResource(R.string.close)) } },
+        )
+    } else InsightCard(Icons.Rounded.FavoriteBorder, stringResource(R.string.relationship_title), summary, action = {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (state.connected) Text(stringResource(R.string.relationship_sharing_independent), style = MaterialTheme.typography.bodySmall)
             if (state.unavailable && state.known) Text(stringResource(R.string.relationship_cached, state.checkedAt?.let(::readableTimestamp) ?: "—"), style = MaterialTheme.typography.bodySmall)

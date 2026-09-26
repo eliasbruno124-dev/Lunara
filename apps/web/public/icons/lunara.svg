@@ -1,14 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">Lunara</title>
-  <defs>
-    <linearGradient id="g" x1="72" y1="64" x2="436" y2="448" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#713c61"/>
-      <stop offset="0.52" stop-color="#c86563"/>
-      <stop offset="1" stop-color="#4f8e88"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="116" fill="#f8f3f3"/>
-  <path d="M364 126a156 156 0 1 0 19 234" fill="none" stroke="url(#g)" stroke-width="54" stroke-linecap="round"/>
-  <circle cx="368" cy="147" r="38" fill="#4f8e88"/>
-  <circle cx="378" cy="350" r="29" fill="#c86563"/>
+  <rect width="512" height="512" rx="116" fill="#F7F4ED"/>
+  <path d="M354 367 A146 146 0 1 1 354 145 M285 352 A100 100 0 0 1 220 161" fill="none" stroke="#173E43" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="389" cy="205" r="19" fill="#D97762"/>
 </svg>

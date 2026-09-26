@@ -1,5 +1,32 @@
 # Lunara – Fortschritt
 
+## 1.2.0 – vollständige Gestaltungs- und Tippüberarbeitung (in Arbeit)
+
+Unterbrochen nach gemeldetem Systemabsturz am 26.09.2026. Ein Android-Build
+inklusive beider JVM-Test-/Lintvarianten war erfolgreich; danach vorgenommene
+UI-Korrekturen sind noch nicht abschließend gebaut. Die Instrumentierung
+wurde während des Laufs unterbrochen. Web-Lint, 60 Tests, Build und ein
+synthetischer Browserlauf waren erfolgreich; die visuelle Abnahme ist offen.
+Kein 1.2.0-Deployment, kein signierter 1.2.0-Release und kein GitHub-Upload.
+Nach Neustart melden bestehende API 1.1.6 und PostgreSQL gesund. Die beiden
+temporären Testcontainer sind beendet. Ursache des Absturzes nicht belegt;
+das verfügbare Journal des vorherigen Boots enthält keine zeitlich passenden
+Absturzmeldungen. Weitere Builds und Emulatorläufe bleiben vorerst pausiert.
+
+Fortgesetzt auf ausdrücklichen Wunsch: keine weiteren lokalen Emulatorläufe.
+Lokale Prüfungen laufen einzeln, auf eine CPU sowie begrenzten RAM ohne
+Container-Swap beschränkt und mit vorgeschalteter Speicherdruckprüfung.
+Eine gezielte manuelle Geräteprüfung wird auf einem GitHub-gehosteten Runner
+vorbereitet; normale Push-Workflows bleiben mit `[skip ci]` unterdrückt.
+
+- [x] Arbeitsbaum sauber; produktiver Quellstand identisch, ausschließlich lesend geprüft.
+- [x] Gestaltungsrichtung, Zuständigkeiten und überprüfbare Abnahmekriterien festgelegt.
+- [ ] Android-Designsystem, Einrichtung und Hauptansichten neu gestaltet.
+- [ ] Web-App gestalterisch und strukturell angeglichen.
+- [ ] Tippinhalte und Auswahl auf konkrete Alltagshilfe überarbeitet.
+- [ ] Regressionstests, echte Builds und visuelle Prüfung abgeschlossen.
+- [ ] Gesichertes API-only-Update und signierter privater GitHub-Release geprüft.
+
 ## 1.1.6 – Qualitätskorrektur
 
 - [x] Gemeldete fehlende Partneranzeige ohne Konten-/Datenänderung diagnostiziert; Beziehungen für beide Rollen unabhängig geprüft.

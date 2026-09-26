@@ -279,7 +279,7 @@ export class TipsService {
     return {
       trackerId: tracker.userId,
       sharing,
-      selection: { applicablePhases, sharedSymptoms, carePreferences },
+      selection: { applicablePhases, sharedSymptoms, carePreferences, privateDay: privateToday },
       date,
     };
   }

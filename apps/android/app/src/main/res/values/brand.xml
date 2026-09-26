@@ -2,10 +2,10 @@
 <resources>
     <!-- Rename Lunara here and in BrandTokens.kt; no screen hard-codes the name. -->
     <string name="brand_name" translatable="false">Lunara</string>
-    <color name="brand_aubergine">#5B355D</color>
-    <color name="brand_coral">#D86F61</color>
-    <color name="brand_teal">#397D79</color>
-    <color name="brand_cream">#FFF8F4</color>
+    <color name="brand_aubergine">#173E43</color>
+    <color name="brand_coral">#D97762</color>
+    <color name="brand_teal">#41685D</color>
+    <color name="brand_cream">#F7F4ED</color>
     <!-- Empty hides the voluntary support button in a rebranded self-build. -->
     <string name="donation_url" translatable="false">https://paypal.me/eliasbruno124</string>
 </resources>

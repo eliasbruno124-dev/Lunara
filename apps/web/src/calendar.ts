@@ -29,6 +29,7 @@ export interface CalendarOptions {
   periods: PeriodEvent[];
   prediction: Prediction | null;
   initialMonth?: string;
+  selectedDate?: string | null;
   onSelect?: (date: string) => void;
   onMonthChange?: (month: string) => void;
 }
@@ -43,6 +44,7 @@ export class SwipeCalendar {
 
   constructor(private options: CalendarOptions) {
     this.month = options.initialMonth ?? monthKey();
+    this.selected = options.selectedDate ?? null;
     this.firstMonth = addMonths(monthKey(), -120);
     this.lastMonth = addMonths(monthKey(), 60);
     this.element = document.createElement('section');
@@ -65,14 +67,18 @@ export class SwipeCalendar {
       this.pointerStart = null;
     });
     this.element.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') this.move(-1);
-      if (event.key === 'ArrowRight') this.move(1);
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        this.move(event.key === 'ArrowLeft' ? -1 : 1);
+        this.element.focus();
+      }
     });
     this.render();
   }
 
   update(options: Partial<CalendarOptions>): void {
     this.options = { ...this.options, ...options };
+    if (options.selectedDate !== undefined) this.selected = options.selectedDate;
     this.render();
   }
 
@@ -100,10 +106,25 @@ export class SwipeCalendar {
     const heading = document.createElement('h2');
     heading.textContent = formatMonth(this.month, this.options.language);
     heading.setAttribute('aria-live', 'polite');
-    const hint = document.createElement('span');
+    const controls = document.createElement('div');
+    controls.className = 'calendar-controls';
+    for (const direction of [-1, 1] as const) {
+      const control = document.createElement('button');
+      control.type = 'button';
+      control.className = 'month-button';
+      control.textContent = direction === -1 ? '←' : '→';
+      control.setAttribute('aria-label', translate(this.options.language, direction === -1 ? 'previousMonth' : 'nextMonth'));
+      control.disabled = direction === -1 ? this.month <= this.firstMonth : this.month >= this.lastMonth;
+      control.addEventListener('click', () => {
+        this.move(direction);
+        this.element.querySelectorAll<HTMLButtonElement>('.month-button')[direction === -1 ? 0 : 1]?.focus();
+      });
+      controls.append(control);
+    }
+    const hint = document.createElement('p');
     hint.className = 'swipe-hint';
-    hint.textContent = `↔ ${translate(this.options.language, 'swipeHint')}`;
-    header.append(heading, hint);
+    hint.textContent = translate(this.options.language, 'swipeHint');
+    header.append(heading, controls);
 
     const weekdays = document.createElement('div');
     weekdays.className = 'calendar-weekdays';
@@ -118,7 +139,7 @@ export class SwipeCalendar {
 
     const grid = document.createElement('div');
     grid.className = 'calendar-grid';
-    grid.setAttribute('role', 'grid');
+    grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', formatMonth(this.month, this.options.language));
     for (const cell of calendarCells(this.month)) {
       if (!cell.isoDate || cell.day === null) {
@@ -130,7 +151,7 @@ export class SwipeCalendar {
       }
       grid.append(this.dayButton(cell.isoDate, cell.day));
     }
-    this.element.append(header, weekdays, grid);
+    this.element.append(header, weekdays, grid, hint);
   }
 
   private dayButton(date: string, day: number): HTMLButtonElement {
@@ -160,7 +181,9 @@ export class SwipeCalendar {
     if (predicted) button.classList.add('predicted');
     if (fertile) button.classList.add('fertile');
     if (date === todayIso()) button.classList.add('is-today');
+    if (date === todayIso()) button.setAttribute('aria-current', 'date');
     if (date === this.selected) button.classList.add('selected');
+    button.setAttribute('aria-pressed', String(date === this.selected));
     button.dataset.date = date;
     const number = document.createElement('span');
     number.className = 'day-number';

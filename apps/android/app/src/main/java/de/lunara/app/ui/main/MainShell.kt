@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -27,11 +28,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.List
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -66,6 +69,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,6 +90,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -137,6 +142,7 @@ import de.lunara.app.security.limitAccountPasswordInput
 import de.lunara.app.notifications.NotificationPreferences
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
+import de.lunara.app.ui.components.LunaraWordmark
 import de.lunara.app.ui.components.StatusPill
 import de.lunara.app.ui.components.QrCode
 import de.lunara.app.ui.onboarding.canonicalInvitationLink
@@ -218,7 +224,8 @@ fun MainShell(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.brand_name), fontWeight = FontWeight.SemiBold) },
+                title = { LunaraWordmark(compact = true) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 actions = {
                     SyncStatusAction(preferences, state, viewModel::syncNow, openSessionRecovery)
                 },
@@ -226,7 +233,7 @@ fun MainShell(
         },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                 destinations.forEach { destination ->
                     NavigationBarItem(
                         selected = selected == destination.route,
@@ -541,41 +548,16 @@ fun TrackerDashboard(
     val dailyLogResolving = dailyLogs.any { it.localDate == today && it.syncState == "RESOLVING" }
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp).testTag("tracker-dashboard"),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
             LunaraHeader(
-                eyebrow = stringResource(R.string.today),
+                eyebrow = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(LocalLocale.current.platformLocale)),
                 title = stringResource(R.string.tracker_greeting, displayName),
                 modifier = Modifier.padding(top = 20.dp),
             )
         }
-        item {
-            InsightCard(
-                Icons.Rounded.DateRange,
-                stringResource(R.string.estimated_period),
-                prediction?.takeIf { it.available }?.let { formatRange(it.predictedStartFrom, it.predictedStartTo) }
-                    ?: stringResource(R.string.not_enough_data),
-                action = {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StatusPill(stringResource(R.string.estimated_label))
-                        prediction?.takeIf { it.available }?.let {
-                            Text(
-                                stringResource(R.string.prediction_basis, it.basedOnCycleCount, localizedConfidence(it.confidence)),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            PredictionExplanation(it)
-                        }
-                    }
-                },
-            )
-        }
-        PredictionPresentationPolicy.fertileWindow(prediction)?.let { fertileWindow ->
-            item {
-                FertilityEstimateCard(fertileWindow)
-            }
-        }
+        item { PredictionHero(prediction) }
         item {
             Button(
                 onClick = {
@@ -592,7 +574,7 @@ fun TrackerDashboard(
                 enabled = periodAction.enabled && periodAction.type != PeriodPrimaryActionType.DONE,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
+                    .heightIn(min = 60.dp)
                     .semantics { role = Role.Button }
                     .testTag(
                         when (periodAction.type) {
@@ -645,7 +627,7 @@ fun TrackerDashboard(
             OutlinedButton(
                 onClick = { showTodayLog = true },
                 enabled = !dailyLogResolving,
-                modifier = Modifier.fillMaxWidth().height(56.dp).testTag("today-log"),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("today-log"),
             ) {
                 Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
                 Text(stringResource(R.string.today_log), Modifier.padding(start = 10.dp))
@@ -654,30 +636,28 @@ fun TrackerDashboard(
         dailyLogs.firstOrNull()?.let { latest ->
             item { DailyLogRow(latest) }
         }
+        PredictionPresentationPolicy.fertileWindow(prediction)?.let { fertileWindow ->
+            item { FertilityEstimateCard(fertileWindow) }
+        }
         if (showSync) {
             item {
-                InsightCard(
-                    Icons.Rounded.Refresh,
-                    stringResource(R.string.sync_status),
-                    syncDescription(pendingMutations, conflictMutations, lastSyncAt),
-                    action = {
-                        Column(horizontalAlignment = Alignment.End) {
-                            TextButton(onClick = onSync) {
-                                Icon(Icons.Rounded.Refresh, contentDescription = null)
-                                Text(stringResource(R.string.sync_now), Modifier.padding(start = 6.dp))
-                            }
-                            if (conflictMutations > 0) {
-                                TextButton(onClick = { showDiscardConflicts = true }) {
-                                    Text(stringResource(R.string.resolve_sync_conflicts))
-                                }
-                            }
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(syncDescription(pendingMutations, conflictMutations, lastSyncAt), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = onSync) {
+                            Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.sync_now))
                         }
-                    },
-                )
+                    }
+                    if (conflictMutations > 0) {
+                        TextButton(onClick = { showDiscardConflicts = true }) {
+                            Text(stringResource(R.string.resolve_sync_conflicts))
+                        }
+                    }
+                }
             }
         }
         if (periods.isNotEmpty()) {
-            item { Text(stringResource(R.string.history), style = MaterialTheme.typography.titleLarge) }
+            item { JournalSection(stringResource(R.string.journal_recent_entries)) }
             items(periods.take(3), key = { it.id }) { period ->
                 EditablePeriodRow(
                     period = period,
@@ -928,55 +908,18 @@ fun PartnerDashboard(
             LunaraHeader(
                 eyebrow = stringResource(R.string.today),
                 title = stringResource(R.string.partner_greeting, displayName),
-                body = stringResource(R.string.privacy_guard),
                 modifier = Modifier.padding(top = 20.dp),
             )
         }
-        item { RelationshipCard(relationship, onRelationshipRefresh) }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    lastSyncLabel?.let { stringResource(R.string.last_sync_value, it) }
-                        ?: stringResource(R.string.last_sync_never),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (unavailable) {
-                    Text(
-                        stringResource(if (dashboard == null) R.string.partner_dashboard_unavailable else R.string.partner_dashboard_cached),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
-                }
-                OutlinedButton(onClick = onRefresh, enabled = !refreshing, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null)
-                    Text(stringResource(if (refreshing) R.string.partner_dashboard_refreshing else R.string.sync_now), Modifier.padding(start = 8.dp))
-                }
-            }
-        }
-        item {
-            val prediction = dashboard?.prediction
-            InsightCard(
-                Icons.Rounded.DateRange,
-                stringResource(R.string.estimated_period),
-                prediction?.takeIf { it.available }?.let { formatRange(it.predictedStartFrom, it.predictedStartTo) }
-                    ?: stringResource(R.string.not_enough_data),
-                action = {
-                    prediction?.takeIf { it.available }?.let { PredictionExplanation(it) }
-                },
-            )
-        }
-        PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
+        item { RelationshipCard(relationship, onRelationshipRefresh, compact = true) }
+        if (unavailable) {
             item {
-                InsightCard(
-                    Icons.Rounded.Info,
-                    stringResource(R.string.current_estimated_phase),
-                    localizedPhase(phase),
-                    action = { StatusPill(stringResource(R.string.estimated_label)) },
+                Text(
+                    stringResource(if (dashboard == null) R.string.partner_dashboard_unavailable else R.string.partner_dashboard_cached),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
-        }
-        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
-            item { FertilityEstimateCard(fertileWindow) }
         }
         item {
             val tip = dashboard?.tip
@@ -987,35 +930,41 @@ fun PartnerDashboard(
                     stringResource(R.string.no_partner_tip_available),
                 )
             } else {
-                InsightCard(
-                    Icons.Rounded.Star,
-                    tip.title,
-                    tip.body,
-                    action = {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            PredictionPresentationPolicy.phaseAwareTipPhase(dashboard)?.let {
-                                StatusPill(stringResource(R.string.tip_uses_shared_phase))
-                            }
-                            Text(
-                                tip.callToAction,
-                                color = MaterialTheme.colorScheme.tertiary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            TextButton(onClick = onNextTip, enabled = !refreshing) { Text(stringResource(R.string.tip_next)) }
-                            TipBasis(tip)
-                        }
-                    },
-                )
+                PartnerActionCard(tip, onNextTip, refreshing, PredictionPresentationPolicy.phaseAwareTipPhase(dashboard) != null)
             }
         }
         item {
-            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(Icons.Rounded.FavoriteBorder, contentDescription = null)
                 Text(stringResource(R.string.check_in), Modifier.padding(start = 10.dp))
             }
         }
         if (checkInSent) item { Text(stringResource(R.string.check_in_sent), color = MaterialTheme.colorScheme.tertiary) }
         if (checkInError) item { Text(stringResource(R.string.check_in_error), color = MaterialTheme.colorScheme.error) }
+        item { JournalSection(stringResource(R.string.journal_shared_overview), subtitle = stringResource(R.string.privacy_guard)) }
+        item {
+            if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction)) PredictionHero(dashboard?.prediction)
+            else InsightCard(Icons.Rounded.DateRange, stringResource(R.string.journal_partner_prediction_empty), stringResource(R.string.journal_partner_prediction_empty_body))
+        }
+        PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
+            item {
+                SettingText(Icons.Rounded.Info, localizedPhase(phase), stringResource(R.string.current_estimated_phase))
+            }
+        }
+        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
+            item { FertilityEstimateCard(fertileWindow) }
+        }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    lastSyncLabel?.let { stringResource(R.string.last_sync_value, it) } ?: stringResource(R.string.last_sync_never),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onRefresh, enabled = !refreshing) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = stringResource(if (refreshing) R.string.partner_dashboard_refreshing else R.string.sync_now))
+                }
+            }
+        }
         item { Spacer(Modifier.height(16.dp)) }
     }
 }
@@ -1084,6 +1033,8 @@ internal fun CalendarScreen(
     val locale = LocalLocale.current.platformLocale
     val predictionBand = remember(prediction) { CalendarPredictionBand.from(prediction) }
     val fertilityRange = remember(prediction) { PredictionPresentationPolicy.fertileWindow(prediction) }
+    var showCalendarHelp by remember { mutableStateOf(false) }
+    val calendarFontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     LaunchedEffect(periods, pendingNewStartDate, pendingNewEndDate) {
         val pendingStart = pendingNewStartDate ?: return@LaunchedEffect
         if (
@@ -1137,17 +1088,13 @@ internal fun CalendarScreen(
             pendingEditorFailureRevision = null
         }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item {
             LunaraHeader(
+                eyebrow = stringResource(R.string.journal_calendar_eyebrow),
                 title = stringResource(R.string.calendar),
-                body = stringResource(
-                    if (role == UserRole.TRACKER) {
-                        R.string.calendar_tracker_hint
-                    } else {
-                        R.string.privacy_guard
-                    },
-                ),
+                body = stringResource(if (role == UserRole.TRACKER) R.string.journal_calendar_hint else R.string.privacy_guard),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
         }
         item {
@@ -1155,7 +1102,7 @@ internal fun CalendarScreen(
                 state = monthPagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(432.dp)
+                    .height((432 * calendarFontScale).dp)
                     .testTag("calendar-month-pager"),
                 key = { page ->
                     CalendarMonthPagingPolicy.monthForPage(page, lastCalendarMonth).toString()
@@ -1180,7 +1127,7 @@ internal fun CalendarScreen(
                             .align(Alignment.CenterHorizontally)
                             .semantics { heading() }
                             .testTag("calendar-month-title-$pageMonth"),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Row(Modifier.fillMaxWidth()) {
@@ -1196,7 +1143,7 @@ internal fun CalendarScreen(
                         Row(Modifier.fillMaxWidth()) {
                             week.forEach { date ->
                                 if (date == null) {
-                                    Spacer(Modifier.weight(1f).height(52.dp))
+                                    Spacer(Modifier.weight(1f).height((52 * calendarFontScale).dp))
                                 } else {
                                     val selectable = role == UserRole.TRACKER && !date.isAfter(today)
                                     val ownPeriod = periodForDate(periods, date, today)
@@ -1266,6 +1213,14 @@ internal fun CalendarScreen(
         if (fertilityRange != null) {
             item { FertilitySafetyNotice() }
         }
+        if (role == UserRole.TRACKER) {
+            item {
+                TextButton(onClick = { showCalendarHelp = true }) {
+                    Icon(Icons.Rounded.Info, contentDescription = null)
+                    Text(stringResource(R.string.journal_calendar_help), Modifier.padding(start = 8.dp))
+                }
+            }
+        }
         if (month != currentMonth) {
             item {
                 TextButton(
@@ -1277,6 +1232,13 @@ internal fun CalendarScreen(
             }
         }
     }
+
+    if (showCalendarHelp) AlertDialog(
+        onDismissRequest = { showCalendarHelp = false },
+        title = { Text(stringResource(R.string.journal_calendar_help)) },
+        text = { Text(stringResource(R.string.calendar_tracker_hint)) },
+        confirmButton = { TextButton(onClick = { showCalendarHelp = false }) { Text(stringResource(R.string.close)) } },
+    )
 
     selectedNewStart?.let { rawStart ->
         PeriodCreateDialog(
@@ -1368,7 +1330,7 @@ private fun DayCell(
     val predictionOutline = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.82f)
     val cardModifier = modifier
         .padding(2.dp)
-        .height(52.dp)
+        .height((52 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp)
         .semantics { contentDescription = listOfNotNull(description, actionDescription).joinToString(". ") }
         .then(
             if (onClick != null) {
@@ -1460,7 +1422,7 @@ internal fun calendarRangeContains(
 }
 
 @Composable
-private fun HistoryScreen(
+internal fun HistoryScreen(
     periods: List<PeriodEntity>,
     prediction: PredictionDto?,
     onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
@@ -1475,7 +1437,7 @@ private fun HistoryScreen(
         if (values.size % 2 == 1) values[values.size / 2] else (values[values.size / 2 - 1] + values[values.size / 2]) / 2
     }
     LazyColumn(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { LunaraHeader(title = stringResource(R.string.cycle_insights), body = stringResource(R.string.recorded_cycles, lengths.size)) }
+        item { LunaraHeader(eyebrow = stringResource(R.string.journal_your_history), title = stringResource(R.string.cycle_insights), body = stringResource(R.string.recorded_cycles, lengths.size)) }
         if (lengths.isEmpty()) {
             item { InsightCard(Icons.AutoMirrored.Rounded.List, stringResource(R.string.history), stringResource(R.string.single_record_history)) }
         } else {
@@ -1485,6 +1447,7 @@ private fun HistoryScreen(
                     StatCard(stringResource(R.string.median_cycle), median ?: 0, Modifier.weight(1f))
                 }
             }
+            item { CycleLengthJournal(starts, lengths) }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCard(stringResource(R.string.shortest_cycle), lengths.minOrNull() ?: 0, Modifier.weight(1f))
@@ -1516,16 +1479,16 @@ private fun HistoryScreen(
 
 @Composable
 private fun StatCard(title: String, days: Int, modifier: Modifier = Modifier) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(stringResource(R.string.days_value, days), style = MaterialTheme.typography.titleLarge)
+    Card(modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.days_value, days), style = MaterialTheme.typography.headlineSmall)
         }
     }
 }
 
 @Composable
-private fun SupportScreen(
+internal fun SupportScreen(
     dashboard: PartnerDashboardDto?,
     checkInSent: Boolean,
     checkInError: Boolean,
@@ -1545,25 +1508,11 @@ private fun SupportScreen(
                     stringResource(R.string.no_partner_tip_available),
                 )
             } else {
-                InsightCard(
-                    Icons.Rounded.Star,
-                    tip.title,
-                    tip.body,
-                    action = {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            PredictionPresentationPolicy.phaseAwareTipPhase(dashboard)?.let {
-                                StatusPill(stringResource(R.string.tip_uses_shared_phase))
-                            }
-                            Text(tip.callToAction, color = MaterialTheme.colorScheme.tertiary)
-                            TextButton(onClick = onNextTip, enabled = !refreshing) { Text(stringResource(R.string.tip_next)) }
-                            TipBasis(tip)
-                        }
-                    },
-                )
+                PartnerActionCard(tip, onNextTip, refreshing, PredictionPresentationPolicy.phaseAwareTipPhase(dashboard) != null)
             }
         }
         item {
-            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            FilledTonalButton(onClick = { onCheckIn(checkInPrompt) }, enabled = !checkInSent, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(Icons.Rounded.FavoriteBorder, contentDescription = null)
                 Text(stringResource(R.string.check_in), Modifier.padding(start = 10.dp))
             }
@@ -1928,7 +1877,7 @@ private fun PeriodRangePicker(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(392.dp)
+                .height((392 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp)
                 .testTag("period-range-month-pager"),
             userScrollEnabled = enabled,
             key = { page -> CalendarMonthPagingPolicy.monthForPage(page, currentMonth).toString() },
@@ -1966,7 +1915,7 @@ private fun PeriodRangePicker(
                     Row(Modifier.fillMaxWidth()) {
                         week.forEach { date ->
                             if (date == null) {
-                                Spacer(Modifier.weight(1f).height(48.dp))
+                                Spacer(Modifier.weight(1f).height((48 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp))
                             } else {
                                 PeriodRangePickerDay(
                                     date = date,
@@ -2016,7 +1965,7 @@ private fun PeriodRangePickerDay(
         enabled = enabled,
         modifier = modifier
             .padding(2.dp)
-            .height(48.dp)
+            .height((48 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp)
             .testTag("period-picker-day-$date")
             .semantics {
                 contentDescription = "$formattedDate. $status"
@@ -2121,7 +2070,7 @@ private fun PeriodRangeSummary(
 }
 
 @Composable
-private fun SettingsScreen(
+internal fun SettingsScreen(
     session: AppSession,
     preferences: AppPreferencesState,
     onPrivacyMode: (Boolean) -> Unit,
@@ -2158,6 +2107,10 @@ private fun SettingsScreen(
     onLogout: () -> Unit,
 ) {
     val isLocalMode = preferences.appMode == AppMode.LOCAL
+    var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
+    val settingsListState = rememberLazyListState()
+    BackHandler(settingsSection != null) { settingsSection = null }
+    LaunchedEffect(settingsSection) { settingsListState.scrollToItem(0) }
     var confirmLogout by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
     var showAuthentikLinkDialog by remember { mutableStateOf(false) }
@@ -2232,8 +2185,33 @@ private fun SettingsScreen(
             onClearPasswordChangeStatus()
         }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        item { LunaraHeader(title = stringResource(R.string.settings), modifier = Modifier.padding(vertical = 18.dp)) }
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp).testTag("settings-screen"), state = settingsListState, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        item {
+            if (settingsSection != null) TextButton(onClick = { settingsSection = null }) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
+                Text(stringResource(R.string.journal_settings_back), Modifier.padding(start = 8.dp))
+            }
+            LunaraHeader(
+                title = stringResource(settingsSection?.title ?: R.string.settings),
+                body = if (settingsSection == null) stringResource(R.string.journal_settings_intro) else null,
+                modifier = Modifier.padding(vertical = 18.dp),
+            )
+        }
+        if (settingsSection == null) {
+            items(availableSettingsSections(session.role, isLocalMode), key = { it.name }) { section ->
+                SettingsCategoryRow(section, when (section) {
+                    SettingsSection.APPEARANCE -> Icons.Rounded.Settings
+                    SettingsSection.CYCLE -> Icons.Rounded.DateRange
+                    SettingsSection.PARTNER -> Icons.Rounded.FavoriteBorder
+                    SettingsSection.SHARING -> Icons.Rounded.Lock
+                    SettingsSection.CARE -> Icons.Rounded.Star
+                    SettingsSection.NOTIFICATIONS -> Icons.Rounded.Notifications
+                    SettingsSection.ACCOUNT -> Icons.Rounded.Lock
+                    SettingsSection.ABOUT -> Icons.Rounded.Info
+                }) { settingsSection = section }
+            }
+        }
+        if (settingsSection == SettingsSection.ACCOUNT) {
         if (isLocalMode) {
             item { SettingHeader(stringResource(R.string.local_storage_title)) }
             item {
@@ -2345,6 +2323,11 @@ private fun SettingsScreen(
         if (!isLocalMode && oidc.error) {
             item { Text(stringResource(R.string.authentik_link_failed), color = MaterialTheme.colorScheme.error) }
         }
+        if (!isLocalMode) {
+            item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
+        }
+        }
+        if (settingsSection == SettingsSection.APPEARANCE) {
         item { SettingHeader(stringResource(R.string.appearance)) }
         item { SettingSwitch(Icons.Rounded.Settings, stringResource(R.string.system_theme), null, preferences.useSystemTheme, onUseSystemTheme) }
         item { SettingSwitch(Icons.Rounded.Settings, stringResource(R.string.dark_mode), null, preferences.darkMode, onDarkMode, !preferences.useSystemTheme) }
@@ -2358,9 +2341,8 @@ private fun SettingsScreen(
                 onPrivacyMode,
             )
         }
-        if (!isLocalMode) {
-            item { SettingText(Icons.Rounded.Refresh, stringResource(R.string.sync_now), null, onSync) }
         }
+        if (settingsSection == SettingsSection.NOTIFICATIONS) {
         item { SettingHeader(stringResource(R.string.notifications)) }
         item {
             val hasRuntimePermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -2413,7 +2395,8 @@ private fun SettingsScreen(
                 onUpdate = onNotificationPreferences,
             )
         }
-        if (session.role == UserRole.TRACKER) {
+        }
+        if (settingsSection == SettingsSection.CYCLE && session.role == UserRole.TRACKER) {
             item { SettingHeader(stringResource(R.string.fertility_predictions)) }
             item {
                 FertilityPredictionControl(
@@ -2423,12 +2406,14 @@ private fun SettingsScreen(
                 )
             }
         }
-        item { SettingText(Icons.Rounded.Info, stringResource(R.string.app_information), stringResource(R.string.app_version_explicit, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)) }
-        item { DonationButton() }
-        if (!isLocalMode) {
+        if (settingsSection == SettingsSection.ABOUT) {
+            item { SettingText(Icons.Rounded.Info, stringResource(R.string.app_information), stringResource(R.string.app_version_explicit, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)) }
+            item { DonationButton() }
+        }
+        if (!isLocalMode && settingsSection == SettingsSection.PARTNER) {
             item { RelationshipCard(relationship, onRefreshInvitation) }
         }
-        if (session.role == UserRole.TRACKER && !isLocalMode) {
+        if (session.role == UserRole.TRACKER && !isLocalMode && settingsSection == SettingsSection.PARTNER) {
             item { SettingHeader(stringResource(R.string.partner_connect)) }
             item {
                 InsightCard(
@@ -2507,6 +2492,8 @@ private fun SettingsScreen(
                     },
                 )
             }
+        }
+        if (session.role == UserRole.TRACKER && !isLocalMode && settingsSection == SettingsSection.SHARING) {
             item { SettingHeader(stringResource(R.string.sharing_settings)) }
             item { Text(stringResource(R.string.sharing_preview_default), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             sharing?.let { current ->
@@ -2518,6 +2505,8 @@ private fun SettingsScreen(
                     )
                 }
             }
+        }
+        if (session.role == UserRole.TRACKER && !isLocalMode && settingsSection == SettingsSection.CARE) {
             item { SettingHeader(stringResource(R.string.care_preferences)) }
             item { PersonalTipsPanel(session.userId, preferences.baseUrl) }
             item {
@@ -2535,8 +2524,9 @@ private fun SettingsScreen(
                     )
                 }
             }
-            if (settingsError) item { Text(stringResource(R.string.settings_save_error), color = MaterialTheme.colorScheme.error) }
         }
+        if (settingsError && settingsSection != null) item { Text(stringResource(R.string.settings_save_error), color = MaterialTheme.colorScheme.error) }
+        if (settingsSection == SettingsSection.ACCOUNT) {
         item { HorizontalDivider(Modifier.padding(vertical = 10.dp)) }
         item {
             SettingText(
@@ -2544,6 +2534,7 @@ private fun SettingsScreen(
                 stringResource(if (isLocalMode) R.string.local_delete_and_switch else R.string.logout),
                 if (isLocalMode) stringResource(R.string.local_delete_and_switch_summary) else null,
             ) { confirmLogout = true }
+        }
         }
         item { Spacer(Modifier.height(20.dp)) }
     }

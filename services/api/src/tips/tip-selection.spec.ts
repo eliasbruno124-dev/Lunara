@@ -1,7 +1,7 @@
 import { CyclePhase, TipCategory } from '@prisma/client';
 import { TIP_CATALOG } from './tip-catalog.js';
 import { EDITORIAL_COPY } from './tip-editorial.js';
-import { eligibleTips, SelectableTip, TipSelectionContext } from './tip-filter.js';
+import { carePreferenceScore, eligibleTips, SelectableTip, TipSelectionContext } from './tip-filter.js';
 import { selectPartnerTip } from './tip-selection.js';
 
 const context: TipSelectionContext = { applicablePhases: [], sharedSymptoms: [], carePreferences: null };
@@ -21,6 +21,7 @@ describe('partner suggestion deck', () => {
   });
   it('keeps 71 stable unique translated IDs and updates only existing editorial slots', () => {
     expect(TIP_CATALOG).toHaveLength(71);
+    expect(Object.keys(EDITORIAL_COPY)).toHaveLength(71);
     expect(new Set(TIP_CATALOG.map((tip) => tip.id)).size).toBe(71);
     expect(Object.keys(EDITORIAL_COPY).every((key) => Number(key) >= 1 && Number(key) <= 71)).toBe(true);
     for (const tip of TIP_CATALOG) {
@@ -67,7 +68,50 @@ describe('partner suggestion deck', () => {
     const allowed = eligibleTips(candidates, sharing, selection);
     expect(allowed.some((tip) => tip.callToActionDe.includes('Spülmaschine'))).toBe(false);
     const chosen = [0, 1, 2].map((day) => selectPartnerTip(allowed, 'p', `2026-09-${21 + day}`, selection));
-    expect(chosen.filter((tip) => tip?.category === TipCategory.PRACTICAL_HELP)).toHaveLength(2);
+    expect(chosen.filter((tip) => tip && carePreferenceScore(tip, selection.carePreferences) > 0)).toHaveLength(2);
     expect(eligibleTips(candidates, { ...sharing as object, sharingPaused: true } as never)).toEqual([]);
+  });
+
+  it('interleaves categories inside the general deck without duplicating or losing IDs', () => {
+    const balanced = [TipCategory.COMFORT, TipCategory.SPACE, TipCategory.PRACTICAL_HELP].flatMap((category) =>
+      Array.from({ length: 4 }, (_, i) => ({ ...candidates[0]!, id: `${category}-${i}`, category })),
+    );
+    const deck = balanced.map((_, variant) => selectPartnerTip(balanced, 'p', '2026-09-21', context, variant)!);
+    expect(new Set(deck.map((tip) => tip.id)).size).toBe(balanced.length);
+    for (let i = 1; i < deck.length; i++) expect(deck[i]!.category).not.toBe(deck[i - 1]!.category);
+  });
+
+  it('adding excluded health candidates cannot change visible ranking for any variant', () => {
+    const general = candidates.filter((tip) => !tip.requiredSharedFields.length && !tip.applicablePhase && !tip.applicableSymptoms.length);
+    const hidden = candidates.filter((tip) => !general.includes(tip)).map((tip) => ({ ...tip, feedback: [{ helpful: true, dismissed: false }] } as SelectableTip));
+    const allowed = eligibleTips([...general, ...hidden], sharing, context);
+    expect(allowed.map((tip) => tip.id)).toEqual(general.map((tip) => tip.id));
+    for (let variant = 0; variant <= 100; variant++) {
+      expect(selectPartnerTip(allowed, 'p', '2026-09-21', context, variant)?.id)
+        .toBe(selectPartnerTip(general, 'p', '2026-09-21', context, variant)?.id);
+    }
+  });
+
+  it('helpful feedback increases relevance but cannot override a dismissal or disabled category', () => {
+    const helpful = { ...candidates[0]!, feedback: [{ helpful: true, dismissed: false }] } as SelectableTip;
+    const general = { ...candidates[5]!, id: 'general-control' };
+    const selected = [21, 22, 23].map((day) => selectPartnerTip([helpful, general], 'p', `2026-09-${day}`, context));
+    expect(selected.filter((tip) => tip === helpful)).toHaveLength(2);
+    const dismissed = { ...helpful, feedback: [{ helpful: true, dismissed: true }] } as SelectableTip;
+    expect(eligibleTips([dismissed, general], sharing, context)).toEqual([general]);
+    expect(eligibleTips([helpful, general], { ...sharing as object, disabledTipCategories: [helpful.category] } as never, context)).toEqual([general]);
+  });
+
+  it('rotates multiple personal wishes first without rewriting or mixing their language slots', () => {
+    const wishes = ['Bitte um 18 Uhr.', 'Bitte erst morgen.'].map((text, i) => ({
+      ...candidates[0]!, id: `wish-${i}`, category: TipCategory.USER_DEFINED,
+      householdId: 'pair', createdByUserId: 'tracker', callToActionDe: text, callToActionEn: text,
+    }));
+    const selected = [21, 22].map((day) => selectPartnerTip([...candidates.slice(0, 2), ...wishes], 'p', `2026-09-${day}`, context)!);
+    expect(new Set(selected.map((tip) => tip.id)).size).toBe(2);
+    selected.forEach((tip) => {
+      expect(wishes).toContain(tip);
+      expect(tip.callToActionDe).toBe(tip.callToActionEn);
+    });
   });
 });

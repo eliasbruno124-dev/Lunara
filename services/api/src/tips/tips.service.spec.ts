@@ -1,12 +1,14 @@
 import {
   CyclePhase,
   PreferredLanguage,
+  SharingSettings,
   TipCategory,
   UserRole,
 } from '@prisma/client';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
 import { PredictionResult } from '../prediction/prediction.algorithm.js';
 import { TipsService } from './tips.service.js';
+import { TIP_CATALOG } from './tip-catalog.js';
 
 const partner: AuthenticatedUser = {
   userId: 'partner-id',
@@ -135,6 +137,59 @@ describe('TipsService privacy-aware context', () => {
     }
     await expect(service.today(partner, 101)).rejects.toThrow('Invalid tip variant');
     await expect(service.today(partner, -1)).rejects.toThrow('Invalid tip variant');
+  });
+
+  it('does not turn private notes, pain, mood, energy or sleep into a shared symptom', async () => {
+    const tip = selectableTip({ ...TIP_CATALOG[59]!, applicablePhase: null });
+    const prisma = prismaFor([tip], { shareSymptoms: true, allowSymptomBasedTips: true, shareNotes: true });
+    prisma.dailyLog.findUnique.mockResolvedValue({ customSymptoms: [], notes: 'CRAMPS HEADACHE FATIGUE STRESS', painLevel: 10, mood: 'LOW', energy: 'LOW', sleep: 'POOR', deletedAt: null } as never);
+    const service = new TipsService(prisma as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    expect((await service.today(partner)).tip).toBeNull();
+    // Positive control: only an explicitly shared custom-symptom key qualifies.
+    prisma.dailyLog.findUnique.mockResolvedValue({ customSymptoms: ['CRAMPS'], notes: 'DO_NOT_SERIALIZE', painLevel: 10, deletedAt: null } as never);
+    const result = await service.today(partner);
+    expect(result.tip?.selectionReason).toBe('SHARED_SYMPTOM');
+    expect(Object.keys(result.tip!)).toEqual(['id', 'category', 'title', 'body', 'callToAction', 'applicablePhase', 'selectionReason', 'source']);
+    expect(JSON.stringify(result)).not.toMatch(/DO_NOT_SERIALIZE|painLevel|customSymptoms|"CRAMPS"/);
+    expect(prisma.partnerTip.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { enabled: true, OR: [
+        { category: { not: TipCategory.USER_DEFINED }, createdByUserId: null, householdId: null },
+        { category: TipCategory.USER_DEFINED, createdByUserId: 'tracker-id', householdId: 'relationship-id' },
+      ] },
+      include: { feedback: { where: { userId: 'partner-id' } } },
+    }));
+  });
+
+  it('revocation and private dates affect the next request, not just the next process', async () => {
+    const tip = selectableTip({ ...TIP_CATALOG[59]!, applicablePhase: null });
+    const prisma = prismaFor([tip], { shareSymptoms: true, allowSymptomBasedTips: true });
+    const shared = await prisma.sharingSettings.findUnique() as SharingSettings;
+    prisma.dailyLog.findUnique.mockResolvedValue({ customSymptoms: ['CRAMPS'], deletedAt: null } as never);
+    const service = new TipsService(prisma as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    expect((await service.today(partner)).tip?.id).toBe(tip.id);
+    prisma.sharingSettings.findUnique.mockResolvedValue({ ...shared, allowSymptomBasedTips: false });
+    expect((await service.today(partner)).tip).toBeNull();
+    prisma.sharingSettings.findUnique.mockResolvedValue({ ...shared, privateDate: new Date('2026-09-14T00:00:00Z') } as never);
+    expect((await service.today(partner)).tip).toBeNull();
+    prisma.sharingSettings.findUnique.mockResolvedValue({ ...shared, sharingPaused: true });
+    expect((await service.today(partner)).tip).toBeNull();
+  });
+
+  it('a private date also suppresses a field-only custom wish and keeps a general wish available', async () => {
+    const fieldOnly = selectableTip({ id: 'field-wish', category: TipCategory.USER_DEFINED, requiredSharedFields: ['sharePain'], createdByUserId: 'tracker-id', householdId: 'relationship-id' });
+    const general = selectableTip({ id: 'general-wish', category: TipCategory.USER_DEFINED, callToActionDe: 'Bitte den Müll rausbringen.', createdByUserId: 'tracker-id', householdId: 'relationship-id' });
+    const prisma = prismaFor([fieldOnly, general], { sharePain: true, privateDate: new Date('2026-09-14T00:00:00Z') });
+    const service = new TipsService(prisma as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    const result = await service.today(partner);
+    expect(result.tip?.id).toBe('general-wish');
+    expect(result.tip?.callToAction).toBe('Bitte den Müll rausbringen.');
+    expect(result.tip?.selectionReason).toBe('PERSONAL_REQUEST');
+  });
+
+  it('returns one whole locale and never assigns a health source to a personal wish', async () => {
+    const tip = selectableTip({ ...TIP_CATALOG[10]!, applicablePhase: null, category: TipCategory.USER_DEFINED, createdByUserId: 'tracker-id', householdId: 'relationship-id', titleDe: 'Eigener Wunsch', titleEn: 'Own wish', bodyEn: 'Please use my words.', callToActionEn: 'Please bring my usual tea.' });
+    const service = new TipsService(prismaFor([tip], {}) as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    expect((await service.today({ ...partner, preferredLanguage: PreferredLanguage.EN })).tip).toMatchObject({ title: 'Own wish', body: 'Please use my words.', callToAction: 'Please bring my usual tea.', selectionReason: 'PERSONAL_REQUEST', source: null });
   });
 });
 

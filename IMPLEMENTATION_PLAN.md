@@ -1,5 +1,24 @@
 # Lunara – Implementierungsplan
 
+## 1.2.0 – Gestaltung und konkrete Partnerunterstützung
+
+1. Bestehende Funktionsverträge und produktive Quellen vergleichen; keine
+   Konten, Zyklusdaten, Verknüpfungen oder Freigaben ändern.
+2. Ein eigenständiges Journal-Design umsetzen: warmes Elfenbein, tiefes Petrol,
+   redaktionelle Typografie, gezielte Akzente und klare Aktionshierarchie.
+3. Android-Einrichtung, Heute, Kalender, Verlauf/Unterstützung und gruppierte
+   Einstellungen sowie die responsive Web-App durchgängig überarbeiten.
+4. Tipps als konkrete Unterstützungssituationen redigieren; persönliche
+   Wünsche, Einwilligung und Datenschutz bleiben maßgeblich. Keine Diagnosen,
+   keine aus dem Zyklus abgeleiteten Gefühle, keine behauptete Fachprüfung.
+5. Automatische Regressionstests, tatsächliche visuelle Prüfung in beiden
+   Themes, DE/EN und Android-Build/Upgrade mit bestehender Signatur.
+6. Enges Backup, ausschließlich Lunara-API aktualisieren, Dateninvarianten
+   prüfen und getestete Artefakte privat ohne unnötige CI-Mails veröffentlichen.
+
+Die medizinische Vorhersage wird für dieses Gestaltungsupdate nicht verändert.
+Ein engeres Zeitfenster wäre ohne neue Evidenz keine Qualitätsverbesserung.
+
 ## 1.1.6 – Verknüpfung, verständlicher Status und bessere Unterstützung
 
 1. Produktive Mitgliedschaften ausschließlich lesend prüfen; Anzeigeprobleme,
