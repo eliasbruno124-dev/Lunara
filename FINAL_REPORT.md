@@ -1,4 +1,162 @@
-# Lunara 1.1.6 – persönliche Unterstützung und klare Verbindung
+# Lunara 1.2.0 – das persönliche Zyklusjournal
+
+Stand: 26. September 2026. API/Web produktiv aktualisiert; signiertes
+Android-Update gebaut und geprüft. Alle sechs Dateien sind im privaten
+GitHub-Releasepaket hochgeladen und gegen lokale Größe/SHA-256 geprüft.
+Die Freigabe des Pakets wird am unten verlinkten GitHub-Release ausgewiesen.
+
+## Umsetzung 1.2.0
+
+Die bestehende Architektur bleibt erhalten: NestJS/Prisma/PostgreSQL,
+native Kotlin-/Compose-App mit verschlüsselter Room-Datenbank und installierbare
+PWA. Keine Authentifizierungs-, Konten- oder Datenbankmigration. Die
+Vorhersageformel `lunara-robust-v2` wurde nicht verändert oder kosmetisch
+präziser dargestellt.
+
+- Neues Journal-Design für Android und Web: Elfenbein/Petrol/Salbei, sparsame
+  Korallakzente, lokale Serifentitel und klare Aktionsbereiche statt einer
+  gleichgewichteten Kartenliste. Neue eigene Vektorzeichen und adaptive Icons.
+- Tracker: verständlicher Schätzzeitraum, leicht erreichbarer Periodenstart
+  beziehungsweise Abschluss, Tageseintrag und tatsächlicher Verlauf.
+- Partner: Verbindung und konkrete Unterstützung zuerst, danach ausschließlich
+  freigegebene Vorschau. Tipptext, kleine Handlung und aufklappbare Begründung
+  sind getrennt; Hinweise bleiben von Freigaben und Vorlieben abhängig.
+- Wischkalender und antippbare Periodenbereiche bleiben erhalten. Gruppierte
+  Einstellungen haben einen klaren Zurückweg. Deutsch/Englisch sowie Hell/Dunkel
+  sind umgesetzt; größere Schrift erhält flexible Höhen und scrollbare Dialoge.
+- Alle 71 DE/EN-Katalogtipps überarbeitet, mit stabilen IDs für Feedback und
+  Ausblendungen. Zuordnung tatsächlicher Hilfshandlungen statt unscharfer
+  Schlüsselwortwertung; persönliche Wünsche weiterhin vorrangig. Ein gefundener
+  Datenschutzfehler ist behoben: Private Tage unterdrücken auch feldabhängige
+  eigene Hinweise ohne zusätzliche Phasen-/Symptommarkierung.
+- Keine externen Schriften, Werbung, Analyse- oder Tippgenerierung zur Laufzeit.
+  Die Formulierungen sind keine klinisch geprüfte Therapie und kein Versprechen,
+  dass ein Vorschlag einer bestimmten Person tatsächlich hilft.
+
+## Tatsächlich ausgeführte Prüfungen 1.2.0
+
+- API: 31 Suites / 278 Tests, ESLint, Nest-Build und Prisma-Validierung bestanden.
+- Temporäres echtes PostgreSQL: acht Migrationen, 2 Suites / 10 Integrationstests
+  bestanden; unter anderem getrennte Beziehungen, Rollen/Freigaben, Refresh-
+  Wiederholung und genau einmal sichtbare Offline-Mutation.
+- PWA: 14 Testdateien / 60 Tests, TypeScript und Vite-Build bestanden.
+  Browserprüfung in sieben synthetischen Rollen-/Sprach-/Themen-/Breitenfällen
+  zwischen 320 und 1280 Pixeln: keine JavaScriptfehler oder horizontales
+  Überlaufen. Kalender und Einstellungen nach abgeschlossener Animation geprüft.
+- Android: je 51 Suites / 253 JVM-Tests in beiden Varianten, keine Fehler oder
+  ausgelassenen Tests. Lint ohne Fehler, aber 88 lokale beziehungsweise 87
+  Produktionswarnungen; insbesondere Versionshinweise, Pluralkandidaten und
+  ungenutzte Ressourcen. Kein behaupteter warnungsfreier Build.
+- Android-Instrumentierung: alle 54 Tests auf Deutsch und zusätzlich alle
+  9 Gestaltungsfälle auf Englisch bestanden. GitHub-Lauf `36266996136`, Commit
+  `1f6ae277e4846fab56a68281adc86e483b304c11`, API-36-Emulator. 18 synthetische
+  Design-Screenshots heruntergeladen, Dateiintegrität/Sprachen geprüft und
+  zentrale Ansichten beider Themes/Sprachen sowie größere Schrift angesehen.
+- Debug, unsigned Release-APK/AAB und signierte Release-APK/AAB gebaut.
+  Paket `de.lunara.app`, versionCode 18, Version 1.2.0. Signaturprüfung gegen
+  1.1.6 bestanden. Das ist kein ausgeführter Upgrade auf eurem physischen Gerät.
+- Docker-Multistage-Image gebaut und isoliert gestartet: UID 10001,
+  schreibgeschütztes Root-Dateisystem, Health/Ready/PWA/Manifest/Icon HTTP 200,
+  Meta 1.2.0, unangemeldeter direkter API-Zugriff HTTP 401.
+
+Image SHA-256:
+`6b7f999e3aba00d43019dcfd08c2955a5678343a93d74e9700c48fae91bc4aa5`.
+
+Release-APK SHA-256:
+`1d372ef457c4ae2730269be74806bfd99331634e6c9640771da28f4f7a71960b`.
+
+Ausgeführt: `npm run prisma:generate`, `npm run prisma:validate`,
+`npm run prisma:migrate:deploy`, API-Lint/Tests/Build, `npm run test:e2e`,
+Web `icons:generate`, Lint/Tests/Build, Tipp-Snapshotprüfung und der synthetische
+Playwright-Browserlauf. Android: `testLocalDebugUnitTest`,
+`testProductionDebugUnitTest`, `lintLocalDebug`, `lintProductionDebug`,
+`assembleProductionDebugAndroidTest`, `assembleProductionDebug`,
+`assembleProductionRelease`, `bundleProductionRelease`; danach signierter
+Build mit ausschließlich serverlokalem Schlüssel, `apksigner verify` und
+`sha256sum -c`. Docker: Multistage-Build und isolierter read-only Smoke-Test.
+`git diff --check` sowie gezielter und High-Entropy-Secret-Scan bestanden.
+`gitleaks` ist lokal nicht installiert; ein neuer vollständiger History-Scan
+wird für diese Veröffentlichung nicht behauptet.
+
+## Unterbrechung und sichere Fortsetzung
+
+Der erste lokale Instrumentierungslauf wurde während eines tatsächlichen
+Hostabsturzes unterbrochen; er zählt nicht als bestanden. Die genaue Ursache
+ist aus den verfügbaren Logs nicht nachgewiesen. Danach wurde kein lokaler
+Emulator erneut gestartet. Lokale Builds wurden serialisiert, auf eine CPU und
+begrenzten RAM ohne Container-Swap beschränkt, mit vorgeschaltetem
+Speicherdruck-Check. Die Geräteprüfung wurde auf einen kurzlebigen
+GitHub-gehosteten Runner verlagert. Der erste Hosted-Versuch scheiterte vor dem
+Build am nicht mehr verfügbaren SDK-Paket `tools`; der Workflow fordert nun
+ausdrücklich `platform-tools` an. Normale Push-Workflows bleiben per
+`[skip ci]` unterdrückt; keine PR-Benachrichtigungskette wurde angelegt.
+
+Der folgende vollständige Geräteversuch bestand 53 von 54 Tests. Ein älterer
+Kalendertest suchte einen noch nicht komponierten Lazy-Listenfuß. Er scrollt
+jetzt zuerst die äußere Liste zum Button und danach wieder zum aktuellen
+Monat; der bestehende Bedienumfang blieb geprüft. Erst der oben angegebene
+erneute Gesamtlauf mit zusätzlichem englischem Durchlauf zählt als Erfolg.
+
+## Produktivwechsel 1.2.0
+
+Vor dem API-only-Wechsel wurden PostgreSQL-Dump, Konfiguration, Quellen und
+vorherige APK eng begrenzt unter `/var/backups/lunara/` gesichert. Das
+Dump-Inhaltsverzeichnis wurde gelesen; kein vollständiger Restore wurde in
+diesem Durchlauf durchgeführt. Master-Key und Datenbankbackup gehören zusammen.
+Die isolierte Imageprüfung nutzte ausschließlich synthetische Testdaten.
+
+`scripts/compose.sh config --quiet` und anschließend
+`scripts/compose.sh up -d --no-deps api` wurden ausgeführt. Intern liefern
+Health/Ready/PWA HTTP 200, öffentlich meldet `/api/v1/meta` Version 1.2.0;
+unangemeldetes `/api/v1/me` bleibt mit Authentik-Redirect geschützt (302).
+Der API-Container ist gesund, läuft als UID/GID 10001 und mit read-only Root.
+48 andere laufende Container behalten ihre IDs, einschließlich PostgreSQL.
+Hauptstack, Emby, Traefik und Authentik wurden nicht verändert.
+
+Vor-/Nachher-Fingerabdrücke für Konten, Partnerzuordnungen, Gesundheitsdaten,
+Einstellungen und persönliche Wünsche sind gleich. Bei den externen
+Identitäten änderte sich das Nutzungsdatum `lastUsedAt`; alle dauerhaften
+Zuordnungsfelder wurden zusätzlich gegen das Backup geprüft und sind gleich.
+Keine Anmeldedaten oder privaten Datensätze wurden dafür in den Bericht kopiert.
+
+## Grenzen und Installation
+
+Kein Test auf euren realen Handys, kein vollständiger unabhängiger
+Barrierefreiheitsaudit, keine neu nachgewiesene medizinische Präzision.
+Fertilität bleibt eine unsichere Schätzung, keine Verhütungsmethode. Android
+kann Hintergrundarbeit durch Energiesparregeln verzögern; widerrufene Sitzungen
+benötigen eine erneute Anmeldung. Bereits gesehene Partnerdaten lassen sich
+nicht rückwirkend ungesehen machen. Der Hostabsturz gilt nicht als diagnostiziert
+oder abschließend behoben.
+
+Bei Schriftfaktor 1,6 brechen lange Navigationsbeschriftungen teilweise mitten
+im Wort um. Sie bleiben bedienbar; dies ist eine verbleibende Gestaltungsgrenze.
+Längere Partnertexte benötigen Scrollen. Eine reine `assertIsDisplayed`-Prüfung
+belegt nicht, dass eine ganze Karte ohne Scrollen in den Bildschirm passt.
+
+Projektverzeichnis: `/root/Lunara-invitation-fix/`.
+Signierte Datei darin: `artifacts/lunara-release.apk`.
+Zusätzlich: `lunara-debug.apk`, `lunara-release-unsigned.apk`,
+`lunara-release-unsigned.aab`, `lunara-play-upload.aab`, `SHA256SUMS`.
+Das signierte AAB wurde nicht in der Google Play Console validiert.
+
+Privater Bezug, GitHub-Anmeldung mit Repository-Zugriff erforderlich:
+
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.2.0
+
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.2.0/lunara-release.apk
+
+Auf beiden Android-Geräten die signierte Release-APK über die vorhandene App
+installieren, nicht deinstallieren oder App-Daten löschen. Eine bestehende
+Partnerverknüpfung benötigt keine neue Einladung. Für eigene Neuinstallationen
+gelten `DEPLOYMENT.md`, eigene Secrets und eine konfigurierbare HTTPS-Domain.
+Rückweg: vorheriges API-Image und gesicherte Konfiguration; keine Schemaänderung
+zurückzunehmen. Kein Datenbank-Restore über seitdem neu erfasste Einträge und
+kein erzwungener Android-Downgrade durch Deinstallation.
+
+---
+
+# Historischer Bericht: Lunara 1.1.6 – persönliche Unterstützung und klare Verbindung
 
 Stand: 21. September 2026. Bestehende NestJS-/Prisma-/PostgreSQL-API,
 verschlüsselte native Compose-App und PWA weiterverwendet. Kein neues

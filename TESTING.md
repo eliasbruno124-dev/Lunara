@@ -1,8 +1,68 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Aktuelle 1.1.6-Ergebnisse stehen in `FINAL_REPORT.md`; die Matrix
-unten ist als historische 1.1.0-Prüfung erhalten.
+Testquellen. Der verifizierte 1.2.0-Prüfstand wird in `FINAL_REPORT.md`
+ausgewiesen; laufende oder noch nicht ausgewertete Prüfungen zählen nicht als
+bestanden. Die Matrix unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.2.0
+
+Die folgenden Abschnitte beschreiben die vorhandenen Testquellen und ihren
+Prüfumfang, nicht das Ergebnis eines noch laufenden Builds oder Gerätetests.
+
+`SettingsSectionsTest` prüft die verfügbaren Einstellungskategorien für
+Tracker, Partner und Solomodus: Trackerbereiche bleiben rollenbeschränkt,
+Solo behält Konto-/Backup- und Zykluseinstellungen ohne Serververknüpfung.
+`JournalPredictionPolicyTest` prüft die Anzeige eines gültigen Schätzfensters
+und das Ausblenden bei pausierter Prognose, fehlenden oder ungültigen Daten
+sowie umgekehrter Datumsreihenfolge.
+
+`RedesignComposeTest` verwendet ausschließlich synthetische Daten. Die
+Instrumentierungsfälle prüfen unter anderem die erreichbare Periodenaktion,
+den Ausblick im Dunkelmodus, Partnerverbindung und Tippkarte, Wischen im
+Kalender, erfasste Verlaufslängen, Öffnen und Verlassen einer
+Einstellungskategorie sowie die sichtbare Solooption beim Einstieg. Zusätzliche
+Fälle verwenden Schriftfaktor 1,6 und prüfen die Periodenaktion und die
+aufklappbare Begründung der Tippauswahl. Screenshots entstehen aus den echten
+Compose-Oberflächen, nicht aus echten Konten. Das ersetzt weder eine
+vollständige Geräte-/Sprachmatrix noch einen TalkBack- oder
+Barrierefreiheitsaudit.
+
+Die API-Testquellen ergänzen die 71 stabilen IDs und vollständigen DE/EN-Texte
+um konkrete Handlungszuordnungen für Vorlieben, unveränderte persönliche
+Wünsche, Kategorieabwechslung ohne Verlust zulässiger IDs und Ausschlüsse vor
+dem Ranking. Widerrufene Symptomfreigaben und private Tage dürfen abhängige
+Tipps nicht ausgeben; private Tage schließen auch feldabhängige eigene
+Wünsche ohne Phasen-/Symptomkennzeichnung aus. Notizen, numerische Schmerzen,
+Stimmung, Energie und Schlaf werden nicht zu geteilten Symptomschlüsseln
+umgedeutet. Textmuster mit positiven und negativen Kontrollen sind begrenzte
+Regressionstests, kein Nachweis medizinischer oder redaktioneller Qualität.
+
+### Manueller Geräteworkflow auf einem gehosteten Runner
+
+Auf GitHub unter **Actions → Android CI → Run workflow** den zu prüfenden
+Branch wählen und **ui_only** aktivieren. Der manuelle
+`workflow_dispatch`-Lauf startet dann nur den Job `device-validation` aus
+`.github/workflows/android.yml`; die separaten Lint-, JVM-Test- und
+Release-Build-Jobs laufen dabei nicht mit.
+
+Der Gerätejob baut Production-Debug- und Instrumentierungs-APK, startet einen
+API-36-Emulator auf einem kurzlebigen GitHub-gehosteten Runner und führt
+`scripts/android-ui-ci.sh` aus. Das Skript prüft zunächst die gesamte
+Instrumentierung mit deutscher App-Sprache, danach bei Erfolg
+`RedesignComposeTest` nochmals auf Englisch. Protokolle und synthetische
+Screenshots liegen im Workflow-Artefakt `android-device-validation`;
+`scripts/verify-android-instrumentation.mjs` prüft vollständig gemeldete
+Testergebnisse statt allein den Rückgabecode von `adb` zu akzeptieren.
+Screenshots müssen zusätzlich angesehen werden.
+
+Keinen lokalen Emulator auf dem produktiven Heimserver starten. Das
+Geräteskript verweigert die Ausführung außerhalb eines GitHub-gehosteten
+Runners. Weder echte Konten noch produktive Datenbanken sind Testfixtures.
+Ein erfolgreicher Emulatorlauf würde noch keinen physischen Kameratest,
+interaktiven Authentik-Browserlogin oder Test auf allen Herstellergeräten
+belegen. Lauf-ID, Commit, Ergebnis und manuelle Sichtprüfung gehören in den
+finalen Prüfbericht; hier wird kein ausstehender Lauf als bestanden geführt.
 
 ## Zusätzliche Prüfungen für 1.1.6
 
@@ -178,7 +238,7 @@ Die Android-JVM-Suites decken unter anderem ab:
 - Für Google Play ist die App-Link-Prüfung nach Aktivierung von Play App
   Signing mit dem separaten Play-App-Signing-Zertifikat zu wiederholen.
 
-## Nicht als bestanden behauptet
+## Nicht als bestanden behauptet (historischer Prüfstand 1.1.0)
 
 - Instrumentierte Compose-/Room-/WorkManager-Tests wurden nicht auf einem
   Gerät ausgeführt.

@@ -15,7 +15,38 @@ Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
 nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## Release 1.1.6
+## Release 1.2.0
+
+Android und PWA erhalten eine zusammenhängende Journal-Gestaltung mit warmem
+Elfenbein, tiefem Petrol und zurückhaltendem Korallakzent. Serifentitel und
+klare Daten- und Aktionsbereiche geben Heute, Kalender und Verlauf eine neue
+Hierarchie; Hell- und Dunkelmodus verwenden ausschließlich lokale Schriften.
+Gestaltung und Grenzen: [DESIGN.md](docs/DESIGN.md).
+
+Die Android-Einstellungen öffnen zuerst benannte Kategorien statt einer
+langen Liste. Je nach Rolle und Betriebsmodus sind Darstellung,
+Zyklus & Schätzungen, Partner verbinden, Datenschutzfreigaben, Was mir hilft,
+Benachrichtigungen, Konto und Sicherheit sowie Diese Android-App erreichbar.
+**Alle Einstellungen** oder System-Zurück führt aus einer Kategorie zur
+Übersicht. Die PWA gruppiert Einstellungen in aufklappbaren Bereichen.
+
+Alle 71 Katalogtipps sind auf Deutsch und Englisch redaktionell überarbeitet:
+erkennbare Situation, konkrete kleine Handlung und eine passende Grenze für
+Zustimmung oder Privatsphäre. Stabile IDs erhalten vorhandene Ausblendungen
+und Feedback; persönliche Wünsche bleiben unverändert und vorrangig.
+Vorlieben beziehen sich bei Katalogtipps auf die tatsächliche Handlung:
+Wärme ist keine Berührung, eine eigene Erinnerung keine Erinnerung an die
+Tracker-Person. Private Tage schließen auch eigene Wünsche aus, die nur an
+eine Datenfreigabe gebunden sind. Phasen- und Symptomfreigaben werden vor der
+Auswahl geprüft. Quellen und Einschränkungen der Worterkennung stehen in
+[Qualität der Tipps](docs/TIP_QUALITY.md) und [PARTNER_TIPS.md](docs/PARTNER_TIPS.md).
+
+Konten, Offline-Daten und Freigaben werden durch die Neugestaltung nicht
+migriert. Den tatsächlich verifizierten Build-, Test- und Auslieferungsstand
+dokumentiert [FINAL_REPORT.md](FINAL_REPORT.md); vorhandene Testquellen allein
+belegen keinen bestandenen Geräte- oder Barrierefreiheitstest.
+
+### Weiterhin enthalten: Verbindungsstatus aus 1.1.6
 
 Eure Partnerverknüpfung wird unabhängig vom Datenabgleich geprüft; ein
 Abruffehler bedeutet nicht „getrennt“. Bestätigte Verbindungen bleiben
@@ -24,7 +55,8 @@ Stand gekennzeichnet. Der Statusknopf erläutert Betriebsmodus, letzte
 Aktualisierung, offene Änderungen und nötige Anmeldung. App- und Serverversion
 sind getrennt beschriftet.
 
-50 der 71 deutschen/englischen Katalogtipps wurden konkreter formuliert.
+In 1.1.6 wurden zunächst 50 der 71 deutschen/englischen Katalogtipps konkreter
+formuliert.
 **Was mir wirklich hilft** erlaubt ausdrücklich freigegebene eigene Wünsche,
 die unverändert und vorrangig erscheinen. Ein anderer Vorschlag ist per Button
 abrufbar. Quellen und Grenzen: [Qualität der Tipps](docs/TIP_QUALITY.md).
@@ -85,7 +117,8 @@ Modus erzeugt kein Serverkonto und führt keine Netzwerk-Synchronisierung aus.
 Die Room-Datenbank ist mit SQLCipher verschlüsselt; ihr Schlüssel ist an den
 Android Keystore des Geräts gebunden.
 
-Für einen Gerätewechsel wird unter **Einstellungen → Portables Backup** eine
+Für einen Gerätewechsel wird unter **Einstellungen → Konto und Sicherheit →
+Portables verschlüsseltes Backup → Backup erstellen** eine
 `.lunara`-Datei erstellt. Sie enthält Profil, Einstellungen, Perioden und
 Tageslogs und ist mit PBKDF2-HMAC-SHA256 und AES-256-GCM geschützt. Über den
 Android-Systemdateidialog kann als Ziel auch ein installierter Anbieter wie
@@ -93,9 +126,10 @@ Google Drive, Nextcloud, USB-Speicher oder ein lokaler Ordner gewählt werden.
 Lunara integriert dafür kein Google-SDK und erhält keinen allgemeinen Zugriff
 auf das Cloudkonto.
 
-Auf dem neuen Gerät wird erneut der Solomodus gewählt und die Datei über
-**Backup importieren** geöffnet. Ein Import-Journal vollendet einen nach dem
-Room-Commit unterbrochenen Einstellungsimport beim nächsten Start idempotent.
+Auf dem neuen Gerät wird erneut der Solomodus gewählt und die Datei im selben
+Einstellungsbereich über **Backup wiederherstellen** geöffnet. Ein
+Import-Journal vollendet einen nach dem Room-Commit unterbrochenen
+Einstellungsimport beim nächsten Start idempotent.
 Die Passphrase wird nicht gespeichert und kann nicht wiederhergestellt werden.
 Android-Cloudbackup und automatische Gerät-zu-Gerät-Übertragung sind bewusst
 deaktiviert, damit kein unbrauchbarer lokaler Zustand ohne den nicht
@@ -200,7 +234,8 @@ Prüfungen auf tatsächlichen Handys werden dort getrennt ausgewiesen.
 
 ## Android-Artefakte
 
-Erfolgreich gebaute Release-1.1.6-Artefakte liegen unter `artifacts/`:
+Release-Artefakte werden unter `artifacts/` bereitgestellt. Die tatsächlich
+geprüfte Version und der Buildstatus stehen in [FINAL_REPORT.md](FINAL_REPORT.md):
 
 - `lunara-debug.apk` – Production-Debug/Testinstallation mit Debugsignatur und
   HTTPS-only; sie kann Passwort-/Headerauth testen, ihr Debugzertifikat erfüllt

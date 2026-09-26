@@ -50,3 +50,12 @@ klinische Validierung. Redaktion und Grenzen: [TIP_QUALITY.md](TIP_QUALITY.md).
 Visuelle Prüfungen benutzen ausschließlich synthetische Konten und Daten.
 Ein Emulator-/Browser-Test ersetzt keine Prüfung auf jedem Herstellergerät
 oder einen vollständigen unabhängigen Barrierefreiheitsaudit.
+
+## Tatsächliche Ansichten
+
+Aus Compose-Instrumentierung beziehungsweise Browserprüfung, ausschließlich
+mit synthetischen Daten. Keine gerenderten Produkt-Mock-ups.
+
+<img src="screenshots/android-tracker-light.png" width="260" alt="Android-Startseite mit geschätztem Beginn und Periodenaktion im hellen Journal-Design">
+<img src="screenshots/android-tracker-dark.png" width="260" alt="Dieselbe Android-Startseite im dunklen Design">
+<img src="screenshots/web-settings.png" width="260" alt="Gruppierte Einstellungen der mobilen Web-App">

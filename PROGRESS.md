@@ -1,8 +1,8 @@
 # Lunara – Fortschritt
 
-## 1.2.0 – vollständige Gestaltungs- und Tippüberarbeitung (in Arbeit)
+## 1.2.0 – Gestaltungs- und Tippüberarbeitung
 
-Unterbrochen nach gemeldetem Systemabsturz am 26.09.2026. Ein Android-Build
+Zwischenstand beim Abbruch: unterbrochen nach gemeldetem Systemabsturz am 26.09.2026. Ein Android-Build
 inklusive beider JVM-Test-/Lintvarianten war erfolgreich; danach vorgenommene
 UI-Korrekturen sind noch nicht abschließend gebaut. Die Instrumentierung
 wurde während des Laufs unterbrochen. Web-Lint, 60 Tests, Build und ein
@@ -11,7 +11,7 @@ Kein 1.2.0-Deployment, kein signierter 1.2.0-Release und kein GitHub-Upload.
 Nach Neustart melden bestehende API 1.1.6 und PostgreSQL gesund. Die beiden
 temporären Testcontainer sind beendet. Ursache des Absturzes nicht belegt;
 das verfügbare Journal des vorherigen Boots enthält keine zeitlich passenden
-Absturzmeldungen. Weitere Builds und Emulatorläufe bleiben vorerst pausiert.
+Absturzmeldungen. Weitere Arbeiten wurden bis zur erneuten Aufforderung pausiert.
 
 Fortgesetzt auf ausdrücklichen Wunsch: keine weiteren lokalen Emulatorläufe.
 Lokale Prüfungen laufen einzeln, auf eine CPU sowie begrenzten RAM ohne
@@ -21,11 +21,16 @@ vorbereitet; normale Push-Workflows bleiben mit `[skip ci]` unterdrückt.
 
 - [x] Arbeitsbaum sauber; produktiver Quellstand identisch, ausschließlich lesend geprüft.
 - [x] Gestaltungsrichtung, Zuständigkeiten und überprüfbare Abnahmekriterien festgelegt.
-- [ ] Android-Designsystem, Einrichtung und Hauptansichten neu gestaltet.
-- [ ] Web-App gestalterisch und strukturell angeglichen.
-- [ ] Tippinhalte und Auswahl auf konkrete Alltagshilfe überarbeitet.
-- [ ] Regressionstests, echte Builds und visuelle Prüfung abgeschlossen.
-- [ ] Gesichertes API-only-Update und signierter privater GitHub-Release geprüft.
+- [x] Android-Designsystem, Einrichtung und Hauptansichten neu gestaltet.
+- [x] Web-App gestalterisch und strukturell angeglichen.
+- [x] Alle 71 DE/EN-Texte und Auswahl auf konkrete Alltagshilfe überarbeitet.
+- [x] API 278, PostgreSQL 10, Web 60 Tests; Android je 253 JVM-Tests, beide Lints und 54 DE + 9 EN Gerätetests bestanden.
+- [x] Echte APK-/AAB-/Docker-Builds und visuelle Prüfung mit synthetischen Daten abgeschlossen.
+- [x] Gesichertes API-only-Update gesund; Gesundheitsdaten, Einstellungen und Partnerzuordnungen unverändert, 48 andere Container-IDs erhalten.
+- [x] Sechs signierte/unsignierte Artefakte samt Prüfsummen im privaten GitHub-Releasepaket hochgeladen und geprüft; Freigabestatus am Release ausgewiesen.
+
+Abschlussstand und bekannte Grenzen stehen in `FINAL_REPORT.md`. Die
+Prognoseformel blieb unverändert; keine neue medizinische Präzision behauptet.
 
 ## 1.1.6 – Qualitätskorrektur
 
