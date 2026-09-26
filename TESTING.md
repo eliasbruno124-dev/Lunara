@@ -1,9 +1,23 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Der verifizierte 1.2.0-Prüfstand wird in `FINAL_REPORT.md`
+Testquellen. Der verifizierte 1.2.1-Prüfstand wird in `FINAL_REPORT.md`
 ausgewiesen; laufende oder noch nicht ausgewertete Prüfungen zählen nicht als
 bestanden. Die Matrix unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.2.1
+
+`RedesignComposeTest` prüft den Ausblick im ersten sichtbaren Bereich der
+Partneransicht und die darunter per Scroll erreichbare Tippkarte. Ein eigener
+Fall prüft die private Platzhalteransicht ohne freigegebene Prognose. Beide
+werden auf Deutsch und Englisch als echte Compose-Ansichten aufgenommen.
+
+`TipSourcePolicyTest` und `tip-source.test.ts` prüfen die exakte öffentliche
+Quellenliste gegen HTTP, ähnliche Fremddomains, URL-Zugangsdaten sowie private
+Query-/Fragmentanhänge. Quellen werden nicht im Hintergrund angefragt. Die
+Browser-Sichtprüfung misst zusätzlich die echte Reihenfolge im DOM und die
+vertikalen Kartenpositionen zwischen 320 und 1280 Pixeln. Laufende Prüfungen
+werden erst nach vollständigem Ergebnis in `FINAL_REPORT.md` gezählt.
 
 ## Zusätzliche Prüfungen für 1.2.0
 

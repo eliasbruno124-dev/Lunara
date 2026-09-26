@@ -29,6 +29,7 @@ import de.lunara.app.data.preferences.AppPreferencesState
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
+import de.lunara.app.data.remote.dto.TipSourceDto
 import de.lunara.app.data.repository.RelationshipState
 import de.lunara.app.ui.components.LunaraWordmark
 import de.lunara.app.ui.main.*
@@ -50,9 +51,9 @@ class RedesignComposeTest {
     }
     private val prediction = PredictionDto(confidence = "MEDIUM", basedOnCycleCount = 5, predictedStartFrom = today.plusDays(2).toString(), predictedStartTo = today.plusDays(6).toString())
     private val tip get() = if (compose.activity.resources.configuration.locales[0].language == "en") {
-        PartnerTipDto("visual-tip", "Dinner, from start to finish", "If dinner is still undecided, handle the shopping and washing up too. The planning should not fall back to the other person.", "Suggest a familiar meal, make it and leave the kitchen ready for tomorrow.", "PRACTICAL_HELP", selectionReason = "CARE_PREFERENCE")
+        PartnerTipDto("visual-tip", "Day one starts a new cycle", "The first day of bleeding counts as cycle day one. The calendar starts again; your familiar small routines can carry on as usual.", "Pick up the period products you have already agreed on during your next shop. Then that supply is topped up.", "PERIOD_DAYS", selectionReason = "SHARED_CONTEXT", source = TipSourceDto("NHS · Menstrual cycle", "https://www.nhs.uk/conditions/periods/fertility-in-the-menstrual-cycle/"))
     } else {
-        PartnerTipDto("visual-tip", "Das Abendessen ist erledigt", "Wenn Kochen heute bei euch offen ist: Übernimm auch den Einkauf und das Aufräumen. So bleibt nicht die Planung bei der anderen Person hängen.", "Schlag ein vertrautes Gericht vor und kümmere dich nach dem Essen um die Küche.", "PRACTICAL_HELP", selectionReason = "CARE_PREFERENCE")
+        PartnerTipDto("visual-tip", "Tag eins heißt: neuer Zyklus", "Der erste Blutungstag zählt als erster Zyklustag. Der Kalender beginnt neu; eure vertrauten kleinen Routinen können ganz normal weitergehen.", "Nimm beim nächsten Einkauf die bereits besprochenen Periodenprodukte mit. Dann ist dieser Vorrat wieder aufgefüllt.", "PERIOD_DAYS", selectionReason = "SHARED_CONTEXT", source = TipSourceDto("NHS · Menstrual cycle", "https://www.nhs.uk/conditions/periods/fertility-in-the-menstrual-cycle/"))
     }
 
     @Test fun trackerLightHasOneReachablePrimaryAction() {
@@ -71,11 +72,25 @@ class RedesignComposeTest {
         capture("tracker-dark")
     }
 
-    @Test fun partnerActionAndRelationshipAreNotHiddenByTechnicalDetails() {
+    @Test fun partnerForecastComesFirstAndSuggestionRemainsReachable() {
         compose.setContent { Frame(partner = true) { PartnerDashboard("Sam", PartnerDashboardDto(prediction = prediction, tip = tip), false, {}, relationship = RelationshipState(known = true, connected = true, peerName = "Alex")) } }
         compose.onNodeWithText(compose.activity.getString(R.string.relationship_with, "Alex")).assertIsDisplayed()
-        compose.onNodeWithTag("partner-action-card").assertIsDisplayed()
+        // The old tip-first layout put this forecast below the fold. Assert the
+        // real initial viewport, then verify the suggestion is still reachable.
+        compose.onNodeWithTag("prediction-hero").assertIsDisplayed()
         capture("partner-light")
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(tip.title))
+        compose.onNodeWithText(tip.title).assertIsDisplayed()
+        capture("partner-tip")
+    }
+
+    @Test fun unsharedPredictionKeepsPrivatePlaceholderBeforeSuggestion() {
+        compose.setContent { Frame(partner = true) { PartnerDashboard("Sam", PartnerDashboardDto(prediction = null, tip = tip), false, {}, relationship = RelationshipState(known = true, connected = true, peerName = "Alex")) } }
+        compose.onNodeWithTag("prediction-hero").assertDoesNotExist()
+        compose.onNodeWithText(compose.activity.getString(R.string.journal_partner_prediction_empty)).assertIsDisplayed()
+        capture("partner-private")
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(tip.title))
+        compose.onNodeWithText(tip.title).assertIsDisplayed()
     }
 
     @Test fun calendarRemainsSwipeableInNewTheme() {
@@ -125,9 +140,12 @@ class RedesignComposeTest {
         }
         compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(compose.activity.getString(R.string.journal_why_this_tip)))
         compose.onNodeWithText(compose.activity.getString(R.string.journal_why_this_tip)).performClick()
-        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(compose.activity.getString(R.string.tip_reason_preference)))
-        compose.onNodeWithText(compose.activity.getString(R.string.tip_reason_preference)).assertIsDisplayed()
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(compose.activity.getString(R.string.tip_reason_context)))
+        compose.onNodeWithText(compose.activity.getString(R.string.tip_reason_context)).assertIsDisplayed()
         capture("partner-large-type")
+        val reference = compose.activity.getString(R.string.tip_source_background, "NHS")
+        compose.onNodeWithTag("partner-dashboard").performScrollToNode(hasText(reference))
+        compose.onNodeWithText(reference).assertIsDisplayed()
     }
 
     @Test fun onboardingShowsLocalAndServerChoices() {
@@ -157,7 +175,7 @@ class RedesignComposeTest {
     }
 
     @Composable private fun SettingsFixture() = SettingsScreen(
-        session = AppSession("visual", "Alex", UserRole.TRACKER, "Testserver", "1.2.0"), preferences = AppPreferencesState(),
+        session = AppSession("visual", "Alex", UserRole.TRACKER, "Testserver", "1.2.1"), preferences = AppPreferencesState(),
         onPrivacyMode = {}, onUseSystemTheme = {}, onDarkMode = {}, onNotificationPreferences = {}, onSync = {}, onRenewSession = {},
         sharing = null, cycleProfile = null, carePreferences = null, invitation = null, relationship = RelationshipState(known = true, connected = true, peerName = "Sam"),
         settingsBusy = false, settingsError = false, passwordChangeStatus = PasswordChangeStatus.IDLE, oidc = OidcLinkUiState(), backupStatus = LocalBackupStatus.IDLE,

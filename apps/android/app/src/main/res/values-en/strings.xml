@@ -475,6 +475,7 @@
     <string name="tip_reason_context">Matches shared cycle information</string>
     <string name="tip_reason_general">A general idea — not an inference about wellbeing</string>
     <string name="tip_source_nhs">Background: NHS · opens browser</string>
+    <string name="tip_source_background">Background: %1$s · opens browser</string>
     <string name="journal_prediction_empty">Your rhythm,\none entry at a time.</string>
     <string name="journal_prediction_empty_body">When enough entries are available, an estimated start window will appear here.</string>
     <string name="journal_estimated_start">Estimated start · not a fixed date</string>
@@ -482,7 +483,7 @@
     <string name="journal_confidence">Confidence: %1$s</string>
     <string name="journal_details">Details</string>
     <string name="journal_support_today">FOR YOUR EVERYDAY</string>
-    <string name="journal_one_action">One concrete action</string>
+    <string name="journal_one_action">An idea for today</string>
     <string name="journal_why_this_tip">Why this tip?</string>
     <string name="journal_settings_appearance">Theme and screenshot protection</string>
     <string name="journal_settings_cycle">Cycle &amp; estimates</string>

@@ -1,5 +1,19 @@
 # Lunara – Implementierungsplan
 
+## 1.2.1 – Vorhersage zuerst, natürlichere Partner-Tipps
+
+1. Partner-Startseite in Android und PWA umordnen: geteilter Ausblick vor Tipp.
+2. Alle DE/EN-Tipps auf natürlichen Ton, nützlichen Kontext und eine kleine
+   passende Handlung redigieren. Öffentlich sichtbare Beschreibungen von
+   Flo for Partners dienen als Format-Inspiration, keine Premium-Inhalte
+   werden übernommen. Persönliche Wünsche und Freigaben bleiben maßgeblich.
+3. Reihenfolge, private Zustände, Auswahl und Texte automatisiert prüfen;
+   echte Android-Geräteprüfung ausschließlich auf gehostetem Runner.
+4. Signiertes Update mit bestehender Identität bauen, nach engem Backup nur
+   Lunara aktualisieren und geprüfte Artefakte privat veröffentlichen.
+
+Keine Änderung der Prognoseformel, Identitätsverknüpfung oder Gesundheitsdaten.
+
 ## 1.2.0 – Gestaltung und konkrete Partnerunterstützung
 
 1. Bestehende Funktionsverträge und produktive Quellen vergleichen; keine

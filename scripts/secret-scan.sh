@@ -44,6 +44,8 @@ unset pattern_report
 # High-entropy candidates are counted without echoing their values.
 entropy_report="$(git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
+  | sed 's@https://www\.nhs\.uk/conditions/periods/fertility-in-the-menstrual-cycle/@PUBLIC-MEDICAL-REFERENCE@g; s@https://help\.flo\.health/hc/en-us/articles/360061400591-What-are-Flo-stories@PUBLIC-PRODUCT-REFERENCE@g' \
+  | grep -E '^[^:]+:[0-9]+:.*[A-Za-z0-9+/=_-]{48,}' \
   | grep -Ev '(package-lock\.json|gradle-wrapper\.properties|sha256|integrity|distributionUrl|docs/partner-tips\.seed\.json|@sha256:|^[^:]*Dockerfile:[0-9]+:[a-f0-9]{64}$|^docker-compose\.yml:[0-9]+:[a-f0-9]{64}$)' \
   | grep -Ev '(^\.env\.example:|^infra/docker/docker-compose\.test\.yml:|^scripts/(build-android|secret-scan|e2e)\.sh:|^packages/openapi-client/scripts/(export-openapi\.mjs|generate-kotlin\.sh):)' \
   | grep -Ev '(^DEPLOYMENT\.md:[0-9]+:.*(/var/backups/lunara/lunara-YYYYMMDDTHHMMSSZ-XXXXXXXX\.tar\.gz|LUNARA_UPLOAD_KEYSTORE=/sicherer/pfad/lunara-upload\.p12).*$|^docs/GOOGLE_PLAY_RELEASE\.md:[0-9]+:.*https://support\.google\.com/googleplay/android-developer/answer/[0-9]+.*$)' \

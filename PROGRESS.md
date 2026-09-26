@@ -1,5 +1,14 @@
 # Lunara – Fortschritt
 
+## 1.2.1 – Partneransicht und Tippredaktion
+
+- [x] Öffentliche Flo-for-Partners-Beschreibungen und medizinische Primärquellen geprüft; keine Einsicht in die Premium-Bezahlinhalte behauptet.
+- [x] Reihenfolge in Android und PWA auf Vorhersage vor Tipp umgestellt.
+- [ ] Natürlichere vollständige DE/EN-Redaktion, passende Auswahl und Freigaberegressionen.
+- [ ] Tests, Builds und tatsächliche mobile Ansichten geprüft.
+- [ ] Signierter privater Release und gesichertes API-only-Deployment verifiziert.
+
+
 ## 1.2.0 – Gestaltungs- und Tippüberarbeitung
 
 Zwischenstand beim Abbruch: unterbrochen nach gemeldetem Systemabsturz am 26.09.2026. Ein Android-Build

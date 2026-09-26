@@ -921,6 +921,19 @@ fun PartnerDashboard(
                 )
             }
         }
+        item { JournalSection(stringResource(R.string.journal_shared_overview), subtitle = stringResource(R.string.privacy_guard)) }
+        item {
+            if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction)) PredictionHero(dashboard?.prediction)
+            else InsightCard(Icons.Rounded.DateRange, stringResource(R.string.journal_partner_prediction_empty), stringResource(R.string.journal_partner_prediction_empty_body))
+        }
+        PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
+            item {
+                SettingText(Icons.Rounded.Info, localizedPhase(phase), stringResource(R.string.current_estimated_phase))
+            }
+        }
+        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
+            item { FertilityEstimateCard(fertileWindow) }
+        }
         item {
             val tip = dashboard?.tip
             if (tip == null) {
@@ -941,19 +954,6 @@ fun PartnerDashboard(
         }
         if (checkInSent) item { Text(stringResource(R.string.check_in_sent), color = MaterialTheme.colorScheme.tertiary) }
         if (checkInError) item { Text(stringResource(R.string.check_in_error), color = MaterialTheme.colorScheme.error) }
-        item { JournalSection(stringResource(R.string.journal_shared_overview), subtitle = stringResource(R.string.privacy_guard)) }
-        item {
-            if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction)) PredictionHero(dashboard?.prediction)
-            else InsightCard(Icons.Rounded.DateRange, stringResource(R.string.journal_partner_prediction_empty), stringResource(R.string.journal_partner_prediction_empty_body))
-        }
-        PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
-            item {
-                SettingText(Icons.Rounded.Info, localizedPhase(phase), stringResource(R.string.current_estimated_phase))
-            }
-        }
-        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
-            item { FertilityEstimateCard(fertileWindow) }
-        }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

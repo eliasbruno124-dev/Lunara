@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1
+
+- Partner-Startseite: freigegebene Vorhersage vor dem Tipp, auf Android und Web.
+- Natürlichere DE/EN-Texte mit kurzer Einordnung und einer praktischen Idee;
+  stabile Katalog-IDs und persönliche Wünsche bleiben erhalten.
+- Öffentliche Hintergrundquellen werden nur aus einer exakten geprüften Liste
+  angeboten; keine privaten Daten in den Links und kein automatischer Aufruf.
+- Fehlender PWA-Tipp wird als nicht verfügbar angezeigt, nicht durch einen
+  ungefragten allgemeinen Ratschlag ersetzt.
+- Regressionstests für private Ansichten und sichere Quellenverweise.
+
 ## 1.2.0
 
 - Neue Journal-Gestaltung für Android und Web: Petrol/Elfenbein, redaktionelle

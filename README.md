@@ -15,7 +15,21 @@ Google-Play-Services-Pflicht. Die App ist kein Medizinprodukt, diagnostiziert
 nichts, bestätigt keine Ovulation und darf nicht als Verhütungsmethode
 verwendet werden.
 
-## Release 1.2.0
+## Release 1.2.1
+
+Auf der Partner-Startseite steht der freigegebene Ausblick jetzt vor dem Tipp,
+auf Android und im Browser. Ohne Freigabe erscheint weiterhin kein privater
+Zeitraum. Die Tipps verbinden kurze Einordnung und eine kleine Idee für euch;
+medizinische Hintergrundlinks öffnen nur auf Wunsch eine geprüfte öffentliche
+Quelle. Es gibt keine automatisch erzeugten Tagesdiagnosen oder Gefühle aus
+einer Kalenderschätzung. Die Prognoseformel bleibt unverändert.
+
+Als Format-Inspiration dienen die öffentlich beschriebenen kurzen Erklärungen
+und praktischen Ideen von [Flo for Partners](https://flo.health/product-tour/flo-for-partners).
+Lunara übernimmt keine Premium-Texte und behauptet weder Zugang zur
+Bezahlschranke noch eine Zusammenarbeit mit Flo.
+
+### Journal-Gestaltung seit 1.2.0
 
 Android und PWA erhalten eine zusammenhängende Journal-Gestaltung mit warmem
 Elfenbein, tiefem Petrol und zurückhaltendem Korallakzent. Serifentitel und
@@ -31,8 +45,8 @@ Benachrichtigungen, Konto und Sicherheit sowie Diese Android-App erreichbar.
 Übersicht. Die PWA gruppiert Einstellungen in aufklappbaren Bereichen.
 
 Alle 71 Katalogtipps sind auf Deutsch und Englisch redaktionell überarbeitet:
-erkennbare Situation, konkrete kleine Handlung und eine passende Grenze für
-Zustimmung oder Privatsphäre. Stabile IDs erhalten vorhandene Ausblendungen
+kurzer verständlicher Kontext und eine praktische, freiwillige Idee.
+Stabile IDs erhalten vorhandene Ausblendungen
 und Feedback; persönliche Wünsche bleiben unverändert und vorrangig.
 Vorlieben beziehen sich bei Katalogtipps auf die tatsächliche Handlung:
 Wärme ist keine Berührung, eine eigene Erinnerung keine Erinnerung an die

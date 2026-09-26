@@ -475,6 +475,7 @@
     <string name="tip_reason_context">Passend zu freigegebenen Zyklusinformationen</string>
     <string name="tip_reason_general">Allgemeine Idee – kein Rückschluss auf das Befinden</string>
     <string name="tip_source_nhs">Hintergrund: NHS · öffnet den Browser</string>
+    <string name="tip_source_background">Hintergrund: %1$s · öffnet den Browser</string>
     <string name="journal_prediction_empty">Dein Rhythmus,\nnach und nach.</string>
     <string name="journal_prediction_empty_body">Sobald genügend Einträge vorliegen, erscheint hier ein geschätzter Startzeitraum.</string>
     <string name="journal_estimated_start">Geschätzter Beginn · kein festes Datum</string>
@@ -482,7 +483,7 @@
     <string name="journal_confidence">Sicherheit: %1$s</string>
     <string name="journal_details">Einordnung</string>
     <string name="journal_support_today">FÜR EUREN ALLTAG</string>
-    <string name="journal_one_action">Eine konkrete Sache</string>
+    <string name="journal_one_action">Eine Idee für heute</string>
     <string name="journal_why_this_tip">Warum dieser Tipp?</string>
     <string name="journal_settings_appearance">Design und Screenshot-Schutz</string>
     <string name="journal_settings_cycle">Zyklus &amp; Schätzungen</string>

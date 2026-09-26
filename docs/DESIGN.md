@@ -18,7 +18,7 @@ es stellt weder Ovulation noch einen gemessenen Zyklusfortschritt dar.
 | Ansicht | Im Vordergrund | Dahinter / auf Anfrage |
 |---|---|---|
 | Heute · Tracker | Zeitraum, Periode beginnen/beenden, Tag erfassen | Erklärung der Unsicherheit, letzter Abgleich, letzte Einträge |
-| Heute · Partner | Verbindung, konkrete Unterstützung, Check-in | ausschließlich geteilter Ausblick, Phase und Abgleich |
+| Heute · Partner | Verbindung, ausschließlich geteilter Ausblick und Phase | darunter Tipp, Check-in und letzter Abgleich |
 | Kalender | wischbare Monate und antippbare Zeiträume | Erfassungsanleitung, Legende und Sicherheitshinweise |
 | Verlauf | erfasste Längen, übersichtliche Kennzahlen | einzeln bearbeitbare Aufzeichnungen |
 | Einstellungen | benannte Kategorien | die tatsächlich zugehörigen Bedienelemente |
@@ -32,7 +32,9 @@ bleiben direkt bei der optionalen Schätzung sichtbar.
 
 Ein Tipp ist keine Schlagzeile über den Zustand einer Person. Die Karte
 trennt Kontext und eine konkrete Handlung. „Warum dieser Tipp?“ erklärt die
-zulässige Auswahlgrundlage; persönliche Wünsche bleiben wichtiger als der
+zulässige Auswahlgrundlage; „Eine Idee für heute“ bleibt ein Angebot und keine
+Anweisung. Quellenlinks für Hintergrundwissen öffnen nur auf Wunsch den
+Browser. Persönliche Wünsche bleiben wichtiger als der
 Katalog. Keine Generierung zur Laufzeit und keine angebliche fachliche oder
 klinische Validierung. Redaktion und Grenzen: [TIP_QUALITY.md](TIP_QUALITY.md).
 

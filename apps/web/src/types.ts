@@ -131,6 +131,7 @@ export interface PartnerTip {
   body?: string;
   callToAction?: string;
   category?: string;
+  source?: { title: string; url: string } | null;
 }
 
 export interface SyncMutation {

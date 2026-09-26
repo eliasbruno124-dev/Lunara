@@ -165,9 +165,10 @@ internal fun TipBasis(tip: PartnerTipDto) {
     Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
     val context = LocalContext.current
     val source = tip.source
-    if (source?.url == "https://www.nhs.uk/symptoms/period-pain/") {
+    val publisher = TipSourcePolicy.publisher(source?.url)
+    if (source != null && publisher != null) {
         TextButton(onClick = {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(source.url)).addCategory(Intent.CATEGORY_BROWSABLE)) }
-        }) { Text(stringResource(R.string.tip_source_nhs)) }
+        }) { Text(stringResource(R.string.tip_source_background, publisher)) }
     }
 }

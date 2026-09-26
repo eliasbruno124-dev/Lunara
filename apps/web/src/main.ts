@@ -12,6 +12,7 @@ import {
   type PortableBackupExtras,
 } from './backup';
 import { SwipeCalendar } from './calendar';
+import { tipSourcePublisher } from './tip-source';
 import { formatDate, monthKey, todayIso } from './date';
 import {
   clearLocalPrivateData,
@@ -1010,11 +1011,10 @@ class LunaraWebApp {
       greeting.append(element('p', 'hero-description', this.t('todayPartnerHint')));
     }
     lead.append(greeting);
-    rail.append(this.predictionCard());
     if (isTracker) {
-      rail.append(this.recentPeriodsCard());
+      rail.append(this.predictionCard(), this.recentPeriodsCard());
     } else {
-      lead.append(this.tipCard());
+      lead.append(this.predictionCard(), this.tipCard());
       const relationship = element('section', 'relationship-note');
       relationship.append(
         element('p', 'eyebrow', this.t('rolePartner')),
@@ -1073,6 +1073,14 @@ class LunaraWebApp {
       const action = element('div', 'tip-action');
       action.append(element('p', 'eyebrow', this.t('tryToday')), element('p', '', tip.callToAction));
       card.append(action);
+    }
+    const publisher = tipSourcePublisher(tip?.source?.url);
+    if (publisher && tip?.source) {
+      const reference = element('a', 'text-button tip-reference', this.t('tipBackground', { publisher }));
+      reference.href = tip.source.url;
+      reference.target = '_blank';
+      reference.rel = 'noopener noreferrer';
+      card.append(reference);
     }
     return card;
   }
