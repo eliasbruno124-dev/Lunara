@@ -4,6 +4,8 @@ Lunara's runtime source is `services/api/src/tips/tip-catalog.ts` with complete
 DE/EN copy for all 71 stable identities in `tip-editorial.ts`. There is no
 legacy-copy fallback. Internal action/preference mappings live in
 `tip-care-actions.ts`; they do not change the database or public DTO.
+`tip-sources.ts` assigns four fixed primary-source URLs to 23 built-in cards,
+using the existing nullable source field. It never attributes personal content.
 `docs/partner-tips.seed.json` is a generated
 snapshot, not a separate database seed. Its keys are the actual stable UUIDs.
 After building the API, run `node scripts/export-tip-catalog.mjs`; add `--check`
@@ -16,7 +18,11 @@ prescribe treatment, infer emotions from a cycle phase, or replace a direct
 conversation. Follow an existing agreement for your own/shared routine jobs;
 ask before touch, personal belongings, spending or changing another person's
 plans. Do not turn every card into another question or a task for the tracker.
-Every card has a specific situation, bounded action and relevant boundary.
+Every card has short context and a concrete invitation or action. Phase-sharing
+cards include a brief educational fact; original date ideas are not presented
+as hormone-based prescriptions. Boundaries are stated where needed, without
+repeating a lecture on every card. Public Flo descriptions inspired the format,
+not copied Premium content or a claim of equivalent medical review.
 If it does not fit today, skip it. See the editorial rubric and sourced limits
 in [TIP_QUALITY.md](TIP_QUALITY.md).
 
@@ -75,12 +81,16 @@ The server selects a tip from a privacy-filtered context. Current behaviour:
    A false likes flag is unspecified, not an explicit prohibition. Free-text
    unhelpful actions use normalized substring matching against the CTA and
    known action aliases; this does not understand arbitrary synonyms/negations.
-8. Exclude dismissed tips. Helpful feedback, explicitly liked actions and
-   permitted phase/symptom context qualify a suggestion for the relevant pool.
+8. Exclude dismissed tips. Permitted phase/symptom context forms the contextual
+   pool. Helpful feedback and explicitly liked actions form a separate preferred
+   pool, so broad care preferences cannot crowd out shared cycle context.
    There is currently no independent partner-side per-category frequency control.
 9. Put explicitly shared personal wishes first. Rotate the permitted catalogue
-   deterministically each day, giving the relevant pool two days out of three
-   and general ideas the third day when both are available. Categories are
+   deterministically each day, giving the contextual pool two days out of three
+   and general ideas the third day when both are available. Without contextual
+   candidates, the preferred pool receives those two slots. All remaining
+   eligible entries stay in the variant deck; with only one pool, use that pool.
+   Categories are
    interleaved within each pool without inspecting excluded tips. A skewed
    pool, pool boundary or personal-wish priority can still repeat a category.
    `variant=0..100`
@@ -109,7 +119,8 @@ sharing or personal wishes can change the deck; ordering never grants access.
   `selectionReason` is only a broad label: personal request, care preference,
   shared symptom/context, or general idea. It includes no symptom keys, pain
   level, log values, notes or excluded candidates. A source link is attached only
-  to the two matching global warmth tips, never inferred for a user-authored tip.
+  to the 23 mapped global cards, never inferred for user-authored or household
+  content. A source supports factual context, not the original relationship idea.
 - Copy must not interpolate a person's name, a symptom value, a severity, a
   note, a predicted emotion, or an unshared event. Built-in copy remains static.
 - A sharing change, partner disconnect, private day, or global sharing pause
@@ -133,8 +144,9 @@ Built-in and user-defined tips should:
 - use gender-neutral language and avoid role or relationship stereotypes;
 - describe options, not commands directed at the tracker;
 - preserve autonomy and make declining help easy;
-- avoid medical advice, diagnoses, medication suggestions, or claims about
-  ovulation, fertility, pregnancy, or emotional state;
+- avoid diagnoses, medication suggestions and individual claims about
+  ovulation, fertility, pregnancy or emotional state; brief sourced general
+  cycle facts and appropriately conditional help-seeking information are allowed;
 - call predictions estimates and never present them as exact;
 - avoid implying that a cycle phase explains behavior;
 - remain useful when read without hidden health context.
@@ -180,3 +192,6 @@ At minimum, automated tests should prove:
   asking again after a no, and own reminders do not favour reminders to the tracker;
 - known empty-action and unsafe-claim fixtures fail the editorial tripwires,
   and both warmth cards retain consent, cloth and personal temperature checks.
+- broad care preferences cannot crowd eligible shared context out of its slots;
+- all educational phase-sharing cards have a fixed factual source, and no
+  household or personal card inherits one even if its ID collides with a built-in.

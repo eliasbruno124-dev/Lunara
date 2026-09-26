@@ -61,3 +61,9 @@ mit synthetischen Daten. Keine gerenderten Produkt-Mock-ups.
 <img src="screenshots/android-tracker-light.png" width="260" alt="Android-Startseite mit geschätztem Beginn und Periodenaktion im hellen Journal-Design">
 <img src="screenshots/android-tracker-dark.png" width="260" alt="Dieselbe Android-Startseite im dunklen Design">
 <img src="screenshots/web-settings.png" width="260" alt="Gruppierte Einstellungen der mobilen Web-App">
+
+Partneransicht ab 1.2.1: zuerst der freigegebene Ausblick, darunter der Tipp.
+Die zweite Aufnahme zeigt den weiter nach unten gescrollten Bildschirm.
+
+<img src="screenshots/android-partner-forecast-121.png" width="260" alt="Android-Partneransicht mit der freigegebenen Vorhersage vor dem Tipp">
+<img src="screenshots/android-partner-tip-121.png" width="260" alt="Darunterliegende Tippkarte mit kurzer Einordnung und einer Idee für heute">

@@ -9,10 +9,10 @@ export type CareAction = 'warmth' | 'cuddling' | 'space' | 'snacks' | 'conversat
 export const CARE_ACTION_IDS: Record<CareAction, readonly number[]> = {
   warmth: [11, 60],
   cuddling: [48],
-  space: [14, 16, 17, 18, 19, 20, 49, 61],
+  space: [14, 16, 17, 19, 20, 49, 61],
   snacks: [50],
-  conversation: [2, 26, 29, 42, 58, 67],
-  household: [1, 4, 6, 7, 8, 9, 10, 16, 19, 22, 23, 24, 25, 31, 32, 34, 36, 43, 45, 46, 47, 52, 54, 62, 66, 68, 69],
+  conversation: [2, 18, 26, 29, 30, 38, 42, 58, 67, 70],
+  household: [1, 4, 6, 7, 8, 9, 10, 16, 19, 22, 23, 24, 25, 27, 31, 32, 36, 39, 43, 45, 46, 52, 62, 66, 68, 69],
   // Setting your OWN reminder is not a reminder sent to the tracker.
   reminders: [],
 };

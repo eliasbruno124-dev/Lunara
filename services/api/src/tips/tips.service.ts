@@ -24,6 +24,7 @@ import {
 import { TIP_CATALOG } from './tip-catalog.js';
 import { applicableTipPhases } from './tip-phase.js';
 import { selectPartnerTip } from './tip-selection.js';
+import { catalogTipSource } from './tip-sources.js';
 import {
   CreateUserDefinedTipDto,
   TipFeedbackDto,
@@ -65,12 +66,10 @@ export class TipsService {
         callToAction: german ? chosen.callToActionDe : chosen.callToActionEn,
         applicablePhase: chosen.applicablePhase,
         selectionReason: chosen.category === TipCategory.USER_DEFINED ? 'PERSONAL_REQUEST'
-          : carePreferenceScore(chosen, selection.carePreferences) > 0 ? 'CARE_PREFERENCE'
-            : chosen.applicableSymptoms.length > 0 ? 'SHARED_SYMPTOM'
-              : chosen.applicablePhase ? 'SHARED_CONTEXT' : 'GENERAL',
-        source: chosen.createdByUserId === null && chosen.householdId === null && chosen.category !== TipCategory.USER_DEFINED &&
-          ['10000000-0000-4000-8000-000000000011', '10000000-0000-4000-8000-000000000060'].includes(chosen.id)
-          ? { title: 'NHS: Period pain', url: 'https://www.nhs.uk/symptoms/period-pain/' } : null,
+          : chosen.applicableSymptoms.length > 0 ? 'SHARED_SYMPTOM'
+            : chosen.applicablePhase ? 'SHARED_CONTEXT'
+              : carePreferenceScore(chosen, selection.carePreferences) > 0 ? 'CARE_PREFERENCE' : 'GENERAL',
+        source: catalogTipSource(chosen),
       },
       date,
     };

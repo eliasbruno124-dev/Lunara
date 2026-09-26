@@ -5,6 +5,8 @@
 - Partner-Startseite: freigegebene Vorhersage vor dem Tipp, auf Android und Web.
 - Natürlichere DE/EN-Texte mit kurzer Einordnung und einer praktischen Idee;
   stabile Katalog-IDs und persönliche Wünsche bleiben erhalten.
+- Zulässiger Phasen-/Symptomkontext wird nicht mehr durch breite allgemeine
+  Vorlieben verdrängt; persönliche Wünsche und Freigaben bleiben maßgeblich.
 - Öffentliche Hintergrundquellen werden nur aus einer exakten geprüften Liste
   angeboten; keine privaten Daten in den Links und kein automatischer Aufruf.
 - Fehlender PWA-Tipp wird als nicht verfügbar angezeigt, nicht durch einen

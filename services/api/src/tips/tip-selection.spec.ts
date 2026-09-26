@@ -72,6 +72,26 @@ describe('partner suggestion deck', () => {
     expect(eligibleTips(candidates, { ...sharing as object, sharingPaused: true } as never)).toEqual([]);
   });
 
+  it('does not let broad liked actions crowd the shared phase out of its two contextual slots', () => {
+    const selection = { ...context, applicablePhases: [CyclePhase.MENSTRUATION], carePreferences: { likesHouseholdHelp: true, likesConversation: true, customHelpfulActions: [] } as never };
+    const allowed = eligibleTips(candidates, { ...sharing as object, sharePhase: true, sharePeriodDates: true } as never, selection);
+    for (let start = 1; start <= 25; start += 3) {
+      const chosen = [0, 1, 2].map((offset) => selectPartnerTip(allowed, 'p', `2026-09-${String(start + offset).padStart(2, '0')}`, selection));
+      expect(chosen.filter((tip) => tip?.applicablePhase === CyclePhase.MENSTRUATION)).toHaveLength(2);
+    }
+    const deck = allowed.map((_, variant) => selectPartnerTip(allowed, 'p', '2026-09-21', selection, variant)!.id);
+    expect(new Set(deck)).toEqual(new Set(allowed.map((tip) => tip.id)));
+  });
+
+  it('keeps the matching shared symptom in contextual slots when household help is liked', () => {
+    const selection = { ...context, sharedSymptoms: ['CRAMPS'], carePreferences: { likesHouseholdHelp: true, customHelpfulActions: [] } as never };
+    const allowed = eligibleTips(candidates, { ...sharing as object, shareSymptoms: true, allowSymptomBasedTips: true } as never, selection);
+    const chosen = [21, 22, 23].map((day) => selectPartnerTip(allowed, 'p', `2026-09-${day}`, selection));
+    expect(chosen.filter((tip) => tip?.applicableSymptoms.includes('CRAMPS'))).toHaveLength(2);
+    const revoked = eligibleTips(candidates, sharing, selection);
+    expect(revoked.every((tip) => !tip.applicableSymptoms.length)).toBe(true);
+  });
+
   it('interleaves categories inside the general deck without duplicating or losing IDs', () => {
     const balanced = [TipCategory.COMFORT, TipCategory.SPACE, TipCategory.PRACTICAL_HELP].flatMap((category) =>
       Array.from({ length: 4 }, (_, i) => ({ ...candidates[0]!, id: `${category}-${i}`, category })),

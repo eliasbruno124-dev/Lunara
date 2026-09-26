@@ -4,7 +4,7 @@ import { EDITORIAL_COPY } from './tip-editorial.js';
 import { CARE_ACTION_IDS } from './tip-care-actions.js';
 
 // Regression tripwires, not a claim to measure empathy or clinical quality.
-// New copy still needs the situation/action/boundary editorial review.
+// New copy still needs the context/action/tone editorial review.
 const emptyAction = /^(frag(e)? (offen |ganz normal )?(nach|was)|ask (what|whether)|tu heute eine kleine|do one small kind|begegne der person|respond to the person|sei (einfach )?da|be there)\b/iu;
 const unsafeClaim = /(?:garantiert|guaranteed) (?:schmerzfrei|pain.?free)|(?:klinisch validiert|clinically validated)|(?:du bist|you are) (?:wegen|because of) (?:deiner phase|your phase)|(?:nimm|take) (?:ibuprofen|paracetamol)/iu;
 
@@ -83,9 +83,11 @@ describe('TIP_CATALOG', () => {
       expect(copy[1]).toMatch(/gewünscht/);
       expect(copy[2]).toMatch(/Tuch/);
       expect(copy[2]).toMatch(/selbst prüfen/);
-      expect(copy[4]).toMatch(/requested/);
+      expect(copy[4]).toMatch(/wanted/);
       expect(copy[5]).toMatch(/cloth/);
       expect(copy[5]).toMatch(/person check/);
+      expect(copy[2]).toMatch(/Wenn ja/);
+      expect(copy[5]).toMatch(/If yes/);
     }
   });
 
@@ -110,5 +112,22 @@ describe('TIP_CATALOG', () => {
       ids.forEach((id) => expect(EDITORIAL_COPY[id]).toBeDefined());
     }
     expect(CARE_ACTION_IDS.reminders).toEqual([]);
+  });
+
+  it('provides an actual educational anchor on each phase-sharing card, not just a disclaimer', () => {
+    const anchors: Record<number, [RegExp, RegExp]> = {
+      51: [/Eizelle/, /egg/], 52: [/Östrogen.*Gebärmutterschleimhaut/, /Oestrogen.*lining/],
+      53: [/Zyklen.*Monat/, /Cycle length.*month/], 54: [/Progesteron.*Gebärmutterschleimhaut/, /progesterone.*lining/],
+      55: [/zwischen Eisprung und nächster Periode/, /between ovulation and the next period/],
+      56: [/Blutung.*taggenau/, /period.*predicted to the day/], 57: [/Eizelle freigesetzt/, /release of an egg/],
+      58: [/Fruchtbare Tage.*Eisprung/, /Fertile days.*ovulation/], 59: [/Eisprung.*nicht in jedem Zyklus/, /Ovulation.*not.*every cycle/],
+      66: [/Blutungstag.*Zyklustag/, /bleeding.*cycle day one/], 67: [/Gebärmutterschleimhaut abgestoßen/, /lining is shed/],
+      68: [/Periode dauert.*mehrere Tage/, /period.*lasts several days/], 69: [/Prämenstruell heißt vor der Periode/, /Premenstrual means before a period/],
+      70: [/Schlaf beeinträchtigt/, /Sleep can be affected/], 71: [/Beschwerden.*nicht jeden Monat gleich/, /symptoms.*not identical every month/],
+    };
+    for (const [id, [german, english]] of Object.entries(anchors)) {
+      expect(EDITORIAL_COPY[Number(id)]![1]).toMatch(german);
+      expect(EDITORIAL_COPY[Number(id)]![4]).toMatch(english);
+    }
   });
 });

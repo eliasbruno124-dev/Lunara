@@ -1,4 +1,157 @@
-# Lunara 1.2.0 – das persönliche Zyklusjournal
+# Lunara 1.2.1 – Ausblick zuerst, neue Partner-Tipps
+
+Stand: 26. September 2026. API und Web-App produktiv aktualisiert und gesund.
+Die signierte Android-APK ist gebaut; sechs Release-Dateien sind im privaten
+GitHub-Paket hochgeladen und gegen lokale Größen und SHA-256 geprüft.
+Der Veröffentlichungsstatus steht am unten verlinkten Release. Frühere
+Berichte darunter beschreiben ausdrücklich ältere Versionen.
+
+## Umsetzung 1.2.1
+
+- Auf der Partner-Startseite steht die freigegebene Vorhersage jetzt vor dem
+  Tipp, in Android und PWA. Ohne Freigabe steht dort ein privater Platzhalter,
+  keine Ersatzprognose. Die Tracker-Reihenfolge bleibt unverändert.
+- Alle 71 festen Katalogtipps vollständig auf Deutsch und Englisch neu
+  formuliert: kürzere Einordnung, natürlichere Sprache und eine konkrete
+  Einladung statt wiederholter Belehrungen. Die Karten heißen „Eine Idee für
+  heute“. Persönliche Wünsche bleiben vorrangig und werden nicht umgeschrieben.
+- Wenn zulässiger Phasen-/Symptomkontext vorhanden ist, erhält dieser an zwei
+  von drei Tagen Vorrang vor allgemeinen Vorschlägen. Eine breite Vorliebe wie
+  Haushaltshilfe verdrängt ihn nicht mehr dauerhaft. Freigaben und Ausschlüsse
+  greifen weiterhin vor der Auswahl; kein Ableiten von Gefühlen aus Zyklustagen.
+- 23 feste Katalogkarten enthalten passende öffentliche Hintergrundquellen
+  von NHS beziehungsweise Office on Women's Health. Beide Clients akzeptieren
+  nur vier exakte HTTPS-URLs. Quellen werden erst auf Wunsch geöffnet; private
+  Texte erhalten keine automatische Quellenzuordnung.
+- Öffentliche Beschreibungen von Flo for Partners und Flo Stories dienten als
+  Format-Inspiration. Kein Zugriff auf kostenpflichtige Premium-Inhalte, keine
+  übernommenen Texte und keine behauptete klinische Validierung. Quellen,
+  Redaktion und Grenzen sind in `docs/TIP_QUALITY.md` dokumentiert.
+- Bestehende NestJS-/Prisma-/PostgreSQL-Architektur, verschlüsselte native
+  Compose-App und PWA bleiben erhalten. Keine Konto-, Datenbank- oder
+  Authentifizierungsmigration. Stabile Tipp-IDs erhalten Feedback/Ausblendungen.
+  Die Prognoseformel `lunara-robust-v2` bleibt unverändert.
+
+## Tatsächlich ausgeführte Prüfungen 1.2.1
+
+- API: 32 Suites / 287 Tests, ESLint, Nest-Build und Prisma-Validierung
+  bestanden. Separater Tipp-Prüflauf: sechs Suites / 53 Tests und exakte
+  Übereinstimmung des dokumentierten Katalogs mit allen 71 Laufzeiteinträgen.
+- Echte isolierte PostgreSQL-Testdatenbank: Migrationen und vollständige
+  Integrationssuite bestanden, einschließlich Rollen/Beziehungstrennung,
+  Freigabewiderruf, Refresh-Wiederholung und genau einmal sichtbarer Mutation.
+- PWA: 15 Testdateien / 62 Tests, TypeScript und Vite-Build bestanden.
+  Neun synthetische Browserfälle zwischen 320 und 1280 Pixeln, zwei Sprachen,
+  Hell/Dunkel und beide Rollen. DOM und tatsächliche Kartenpositionen belegen
+  Vorhersage vor Tipp; ein Privatfall zeigt weder Prognose noch erfundenen Tipp.
+- Android: beide Varianten jeweils 52 Suites / 255 JVM-Tests, keine Fehler
+  oder ausgelassenen Tests. Beide Lints ohne Fehler; 89 lokale beziehungsweise
+  88 Produktionswarnungen, unter anderem ungenutzte Ressourcen, Pluralkandidaten
+  und Versionshinweise. Kein behaupteter warnungsfreier Build.
+- Android-Geräteprüfung: alle 55 Tests auf Deutsch und zehn Gestaltungsfälle
+  auf Englisch bestanden. GitHub-Lauf `36270488508`, getesteter Android-Stand
+  `60f78aa747978b197f6b820f87792cb5b84a689f` unverändert im Release; API-36-
+  Emulator auf gehostetem Runner. 22 Design-Screenshots heruntergeladen,
+  Integrität geprüft und zentrale neue Ansichten einschließlich großer Schrift
+  und Privatansicht angesehen. Zwei neue echte Aufnahmen in `docs/DESIGN.md`.
+- Debug-APK, unsigned Release-APK/AAB und signierte Release-APK/AAB gebaut.
+  Paket `de.lunara.app`, versionCode 19, Version 1.2.1. `apksigner` bestätigt
+  dieselbe Signatur wie 1.2.0; alle fünf Binärdateien bestehen `sha256sum -c`.
+  Kein ausgeführter Upgrade auf euren physischen Telefonen behauptet.
+- Docker-Multistage-Image gebaut und isoliert gestartet: UID 10001,
+  schreibgeschütztes Root-Dateisystem, Health/Ready/PWA/Manifest/Icon HTTP 200,
+  Meta 1.2.1 und unangemeldeter direkter API-Zugriff HTTP 401.
+- `git diff --check`, gezielter und High-Entropy-Secret-Scan bestanden.
+  Bekannte öffentliche Referenz-URLs werden exakt aus der Entropieprüfung
+  ausgeklammert; synthetische positive/negative Kontrollen erkennen weiterhin
+  einen benachbarten Schlüssel. `gitleaks` ist lokal nicht installiert; kein
+  neuer vollständiger History-Scan behauptet.
+
+Docker-Image SHA-256:
+`54fb696b6b6278bf47e07b44f416761d3ee032fee8f4440557fea2ceb9a198ac`.
+
+Signierte Release-APK SHA-256:
+`c669c48a70f48a6de581b0175e070812ea626d1f784508d96526438b4b7e6862`.
+
+Ausgeführt: Prisma generate/validate/migrate deploy; API-Lint, Jest, Nest-Build,
+`npm run test:e2e`, Katalogvergleich; Web icons:generate/Lint/Vitest/Vite und
+Playwright-Browserprüfung. Android: `testLocalDebugUnitTest`,
+`testProductionDebugUnitTest`, `lintLocalDebug`, `lintProductionDebug`,
+`assembleProductionDebugAndroidTest`, `assembleProductionDebug`,
+`assembleProductionRelease`, `bundleProductionRelease`, anschließend derselbe
+Release-Build mit ausschließlich serverlokalem Signierschlüssel.
+Gehostete Instrumentierung über `scripts/android-ui-ci.sh`; danach
+`apksigner verify`, `aapt dump badging` und Prüfsummenvergleich.
+
+Ein anfänglicher Tipp-Lintfehler in einem untypisierten Test-Mock wurde behoben;
+erst die vollständigen erneuten Läufe zählen. Lokale schwere Prüfungen liefen
+serialisiert mit einer CPU, begrenztem RAM ohne Container-Swap und
+Speicherdruckprüfung. Kein lokaler Emulator wurde gestartet. Genau ein gezielter
+manueller GitHub-Gerätelauf; normale Push-Workflows per `[skip ci]` unterdrückt,
+keine PR-Kette angelegt. Persönliche GitHub-Benachrichtigungseinstellungen
+wurden nicht verändert.
+
+## Produktivwechsel und Datenerhalt
+
+Vor Änderungen: enges serverlokales Backup von PostgreSQL, Konfiguration,
+Quellen und vorheriger APK unter `/var/backups/lunara/`. Dump-Inhaltsverzeichnis
+geprüft; kein vollständiger Restore dieses Backups in diesem Durchlauf.
+Master-Key und Datenbankbackup müssen zusammen erhalten bleiben.
+
+Live-Dateien wurden vor dem Kopieren gegen den Ausgangsstand geprüft.
+Die echte Live-Compose-Konfiguration blieb erhalten; nur API-Image und
+APP_VERSION wurden auf 1.2.1 gesetzt. `scripts/compose.sh config --quiet` und
+`scripts/compose.sh up -d --no-deps api` erfolgreich ausgeführt. Der neue
+Katalog wurde über denselben kollisionsgeschützten Pfad wie beim ersten
+Tippabruf veröffentlicht; alle 71 öffentlichen Einträge stimmen mit dem
+gebauten Katalog überein. Persönliche Hinweise wurden nicht verändert.
+
+Intern Health/Ready/PWA/Meta HTTP 200; öffentlich Meta 1.2.1 und weiterhin
+Authentik-Redirect für unangemeldetes `/api/v1/me` (302). API gesund,
+UID/GID 10001, read-only Root. Alle 48 übrigen Produktionscontainer behalten
+ihre IDs, einschließlich PostgreSQL. Emby, Hauptstack, Traefik, Pangolin und
+Authentik wurden nicht verändert.
+
+Vor-/Nachher-Fingerabdrücke für Konten, Beziehungen, Gesundheitsdaten,
+Einstellungen, Feedback und persönliche Wünsche unverändert. Dauerhafte
+OIDC-Zuordnungen zusätzlich gegen das private Backup geprüft; das reine
+Nutzungsdatum darf sich durch normale Anmeldung ändern. Keine privaten
+Datensätze oder Zugangsdaten wurden in Berichte kopiert.
+
+## Verbleibende Grenzen und Installation
+
+Die Formulierungen sind eine redaktionelle Überarbeitung, kein Nachweis ihrer
+Wirksamkeit für eine bestimmte Person. Die PWA zeigt die Android-Ausklappkarte
+„Warum dieser Tipp?“ noch nicht; Quellenlinks und serverseitige Auswahlregeln
+gelten dennoch. Bei Android-Schriftfaktor 1,6 brechen lange deutsche
+Navigationsbeschriftungen teilweise mitten im Wort um; sie bleiben bedienbar.
+Längere Karten erfordern Scrollen. Kein vollständiger Barrierefreiheitsaudit,
+kein realer Authentik-Login auf euren Telefonen und keine neue medizinische
+Präzisionsprüfung. Fruchtbare Tage bleiben geschätzt, keine Verhütungsmethode.
+Die Ursache des früheren Hostabsturzes ist weiterhin nicht nachgewiesen.
+
+Projekt: `/root/Lunara-invitation-fix/`; signierte Update-Datei:
+`artifacts/lunara-release.apk`. Zusätzlich dort `lunara-debug.apk`,
+`lunara-release-unsigned.apk`, `lunara-release-unsigned.aab`,
+`lunara-play-upload.aab` und `SHA256SUMS`. Das signierte AAB ist nicht in der
+Google Play Console validiert; eine AAB-Datei ist keine direkt installierbare APK.
+
+Privater Download, GitHub-Anmeldung mit Repository-Zugriff erforderlich:
+
+https://github.com/eliasbruno124-dev/Lunara/releases/tag/v1.2.1
+
+https://github.com/eliasbruno124-dev/Lunara/releases/download/v1.2.1/lunara-release.apk
+
+Die signierte Release-APK über die vorhandene App installieren, nicht vorher
+deinstallieren oder App-Daten löschen. Es ist keine neue Partner-Einladung
+nötig. Eigene Neuinstallation: `DEPLOYMENT.md`, eigene Secrets und eigene
+HTTPS-Domain. Rückweg: vorheriges API-Image und gesicherte Konfiguration;
+kein blindes Datenbank-Restore über später neu erfasste Einträge und kein
+erzwungener Android-Downgrade durch Löschen lokaler Daten.
+
+---
+
+# Historischer Bericht: Lunara 1.2.0 – das persönliche Zyklusjournal
 
 Stand: 26. September 2026. API/Web produktiv aktualisiert; signiertes
 Android-Update gebaut und geprüft. Alle sechs Dateien sind im privaten

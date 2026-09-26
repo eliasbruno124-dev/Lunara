@@ -4,9 +4,9 @@
 
 - [x] Öffentliche Flo-for-Partners-Beschreibungen und medizinische Primärquellen geprüft; keine Einsicht in die Premium-Bezahlinhalte behauptet.
 - [x] Reihenfolge in Android und PWA auf Vorhersage vor Tipp umgestellt.
-- [ ] Natürlichere vollständige DE/EN-Redaktion, passende Auswahl und Freigaberegressionen.
-- [ ] Tests, Builds und tatsächliche mobile Ansichten geprüft.
-- [ ] Signierter privater Release und gesichertes API-only-Deployment verifiziert.
+- [x] Alle 71 DE/EN-Katalogtipps neu formuliert; persönliche Wünsche und Freigaben bleiben maßgeblich, geteilter Phasenkontext wird nicht mehr durch breite Vorlieben verdrängt.
+- [x] API-/Freigabe-/Sync-Regressionen einschließlich echter Testdatenbank sowie Android-/PWA-Tests und Builds bestanden; 55 DE + 10 EN Gerätetests, neun Browserfälle und tatsächliche Ansichten geprüft.
+- [x] Signierte APK mit unverändertem Zertifikat und sechs geprüfte Dateien im privaten GitHub-Releasepaket; Freigabestatus am Release ausgewiesen. Gesichertes API-only-Deployment gesund, Daten und 48 andere Container unverändert.
 
 
 ## 1.2.0 – Gestaltungs- und Tippüberarbeitung

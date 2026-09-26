@@ -17,14 +17,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein Angebot mit Uhrzeit",
-          "body": "Ihr kommt spät heim und das Essen ist noch offen? Biete nur an, was du heute wirklich erledigen kannst. Ein Nein braucht keinen Gegenvorschlag.",
-          "callToAction": "„Ich kann bis 19 Uhr kochen und danach aufräumen. Passt das? Sonst bleibe ich bei meinem Plan.“"
+          "title": "Heute geht das Essen auf mich",
+          "body": "Nach einem vollen Tag ist es schön, wenn das Abendessen schon einen Plan hat. Ein konkretes Angebot macht die Entscheidung leicht.",
+          "callToAction": "„Ich mache heute Pasta und kümmere mich danach um die Küche. Wäre 19 Uhr gut für dich?“"
         },
         "en": {
-          "title": "An offer with a time",
-          "body": "Getting home late with dinner still undecided? Offer only what you can actually do today. A no does not need a counter-offer.",
-          "callToAction": "“I can cook by 7 and clean up afterwards. Would that suit you? If not, I will stick to my own plan.”"
+          "title": "Dinner is on me tonight",
+          "body": "After a full day, it is nice when dinner already has a plan. A specific offer makes it easy to decide.",
+          "callToAction": "“I can make pasta and take care of the kitchen afterwards. Would 7 work for you?”"
         }
       }
     },
@@ -40,14 +40,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Erst zu Ende erzählen lassen",
-          "body": "Wenn dir von einem schwierigen Tag erzählt wird, lass deine eigene ähnliche Geschichte noch einen Moment warten.",
-          "callToAction": "Leg das Handy weg. Fasse danach einen Punkt zusammen: „Die kurzfristige Änderung war also das Problem?“ Warte auf die Antwort."
+          "title": "Die Geschichte zu Ende hören",
+          "body": "Manche Geschichten brauchen erst einmal ein Gegenüber, keine Lösung. Ein Detail aufzugreifen zeigt, dass du wirklich dabei bist.",
+          "callToAction": "Leg das Handy für das Gespräch zur Seite und knüpfe an: „Und wie ging es nach dem Termin weiter?“"
         },
         "en": {
-          "title": "Let the story finish",
-          "body": "When someone is telling you about a difficult day, save your own similar story for later.",
-          "callToAction": "Put your phone away. Then check one point: “So the last-minute change was the problem?” Wait for the answer."
+          "title": "Hear the whole story",
+          "body": "Sometimes a story needs an audience before it needs a solution. Following up on a detail shows you are really there.",
+          "callToAction": "Put your phone aside for the conversation and follow up: “And what happened after the meeting?”"
         }
       }
     },
@@ -63,14 +63,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Gesellschaft ohne Programm",
-          "body": "Wenn Gesellschaft gewünscht ist, musst du kein Gespräch organisieren. Zustimmung zu Gesellschaft ist nicht automatisch Zustimmung zu Berührung.",
-          "callToAction": "„Soll ich mich für eine Viertelstunde dazusetzen? Wir können auch beide unser eigenes Ding machen.“ Bei einem Nein lass den Platz frei."
+          "title": "Zusammen, jeder für sich",
+          "body": "Gemeinsame Zeit muss nicht immer ein Programm haben. Lesen, spielen oder Musik hören geht auch nebeneinander.",
+          "callToAction": "„Wollen wir es uns zusammen auf dem Sofa gemütlich machen? Du mit deinem Buch, ich mit meinem.“"
         },
         "en": {
-          "title": "Company without a programme",
-          "body": "If company is wanted, you do not need to organise a conversation. Wanting company does not automatically mean wanting touch.",
-          "callToAction": "“Would you like me to sit with you for fifteen minutes? We can each do our own thing.” If not, leave the space free."
+          "title": "Together, doing your own thing",
+          "body": "Time together does not always need a plan. Reading, playing a game or listening to music can happen side by side.",
+          "callToAction": "“Shall we settle on the sofa together? You with your book, me with mine.”"
         }
       }
     },
@@ -86,14 +86,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine unklare Zusage klären",
-          "body": "„Ich kümmere mich darum“ kann zwei verschiedene Dinge bedeuten. Kläre bei einer gemeinsamen Aufgabe den Umfang, nicht jedes kleine Detail.",
-          "callToAction": "„Mit Einkauf meine ich Liste prüfen, einkaufen und einräumen. Ich bin bis 18 Uhr fertig.“ Halte die Zusage selbst im Blick."
+          "title": "Eine Sache weniger im Kopf",
+          "body": "Bei gemeinsamen Aufgaben gehört das Drandenken oft genauso dazu wie das Erledigen. Eine ganze Sache abzugeben kann angenehm sein.",
+          "callToAction": "Übernimm einen offenen Einkauf von eurer gemeinsamen Liste: nachsehen, besorgen und einräumen."
         },
         "en": {
-          "title": "Make a vague promise specific",
-          "body": "“I will handle it” can mean different things. Clarify the scope of a shared task without asking someone to supervise every step.",
-          "callToAction": "“By shopping I mean checking the list, buying it and putting it away. I will be done by 6.” Track the promise yourself."
+          "title": "One less thing to keep track of",
+          "body": "Remembering a shared task is part of the work too. It can be a relief to hand over the whole thing.",
+          "callToAction": "Take on one pending shop from your shared list: check what is needed, buy it and put it away."
         }
       }
     },
@@ -109,14 +109,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nach einem Nein weitermachen",
-          "body": "Dein Hilfsangebot wurde abgelehnt? Ein zweites Angebot direkt hinterher macht aus der Antwort eine Verhandlung.",
-          "callToAction": "Antworte einmal „Okay“ und mach mit deinem Tag weiter. Frage nicht nach dem Grund und starte keine neue Angebotsrunde."
+          "title": "Eine Einladung für ein andermal",
+          "body": "Ein abgelehnter Vorschlag kann einfach gerade nicht passen. Eure nächste schöne gemeinsame Stunde muss nicht heute sein.",
+          "callToAction": "„Alles klar, dann ein andermal. Ich wünsche dir einen schönen Abend.“ Lass die Einladung damit offen, ohne nachzuhaken."
         },
         "en": {
-          "title": "Move on after a no",
-          "body": "Was your offer declined? Another offer straight afterwards can turn an answer into a negotiation.",
-          "callToAction": "Say “Okay” once and get on with your day. Do not ask for a reason or start another round of offers."
+          "title": "An invitation for another day",
+          "body": "A declined invitation may simply be badly timed. Your next good hour together does not have to happen today.",
+          "callToAction": "“No problem, another time. Have a lovely evening.” Leave the invitation there without following up."
         }
       }
     },
@@ -132,14 +132,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die Küche wirklich fertig machen",
-          "body": "Wenn die Küche zu deinen oder euren gemeinsamen Aufgaben gehört, braucht es dafür keinen neuen Arbeitsauftrag. Private Sachen bleiben liegen.",
-          "callToAction": "Räume die Spülmaschine aus, erledige das benutzte Geschirr und wische die Arbeitsfläche ab. Fertig heißt: Die Küche ist wieder nutzbar."
+          "title": "Ein guter Morgen beginnt in der Küche",
+          "body": "Eine freie Arbeitsfläche und saubere Tassen machen den nächsten Morgen ein Stück einfacher. Ein kleiner Abschluss für euren gemeinsamen Abend.",
+          "callToAction": "Mach heute eure Küche fertig: Geschirr erledigen, Spülmaschine ausräumen und die Arbeitsfläche abwischen."
         },
         "en": {
-          "title": "Finish the kitchen job",
-          "body": "If the kitchen is your job or a shared responsibility, you do not need a fresh assignment. Leave personal belongings alone.",
-          "callToAction": "Empty the dishwasher, deal with the used dishes and wipe the counter. Done means the kitchen is ready to use again."
+          "title": "A kitchen ready for the morning",
+          "body": "Clear counters and clean mugs make tomorrow morning a little easier. A small way to round off your shared evening.",
+          "callToAction": "Leave your shared kitchen ready tonight: do the dishes, empty the dishwasher and wipe the counter."
         }
       }
     },
@@ -155,14 +155,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Müll inklusive neuem Beutel",
-          "body": "Ein voller gemeinsamer Mülleimer ist eine Aufgabe mit einem klaren Ende. Übernimm sie, wenn das zu eurer Aufteilung passt.",
-          "callToAction": "Bring den Müll weg, lege einen neuen Beutel ein und wische verschüttete Reste auf. Lass den letzten Schritt nicht für später liegen."
+          "title": "Auf dem Weg nach draußen",
+          "body": "Manche Alltagssachen passen nebenbei in einen Weg, den du ohnehin machst. So bleibt später mehr Zeit für euch.",
+          "callToAction": "Nimm beim nächsten Rausgehen den gemeinsamen Müll mit und lege vorher einen frischen Beutel ein."
         },
         "en": {
-          "title": "Rubbish out, new liner in",
-          "body": "A full shared bin is a job with a clear endpoint. Take it on if it fits your division of chores.",
-          "callToAction": "Take the rubbish out, fit a new liner and wipe up any spills. Do not leave the final step for someone else."
+          "title": "On your way out",
+          "body": "Some everyday jobs fit into a trip you are already making. That leaves a little more time together later.",
+          "callToAction": "Take the shared rubbish out on your next trip and fit a fresh liner before you leave."
         }
       }
     },
@@ -178,14 +178,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einkaufen ohne neue Liste",
-          "body": "Du übernimmst den gemeinsamen Einkauf? Nutze die vorhandene Liste und prüfe bekannte Grundvorräte selbst. Neue Produkte oder größere Ausgaben erst absprechen.",
-          "callToAction": "Ergänze fehlende übliche Vorräte, kaufe ein und räume alles ein. Frage nur bei einer echten Unklarheit statt nach einer komplett neuen Liste."
+          "title": "Der Einkauf ist schon erledigt",
+          "body": "Ein vertrauter Wocheneinkauf braucht nicht jedes Mal eine neue Planung. Eure gemeinsame Liste ist ein guter Ausgangspunkt.",
+          "callToAction": "Nimm den nächsten Einkauf von eurer Liste mit, einschließlich Einräumen. Für etwas Neues oder Teures stimmt ihr euch kurz ab."
         },
         "en": {
-          "title": "Shop without assigning a new list",
-          "body": "Taking over the shared shop? Use the existing list and check familiar staples yourself. Agree on new products or larger expenses first.",
-          "callToAction": "Add missing usual staples, buy them and put everything away. Ask about a genuine uncertainty, not for a whole new list."
+          "title": "The shopping is already done",
+          "body": "A familiar weekly shop does not need a fresh plan every time. Your shared list is a good place to start.",
+          "callToAction": "Handle the next shop from your list, including putting it away. Check together about anything new or expensive."
         }
       }
     },
@@ -201,14 +201,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Saubere Wäsche bis zum Schrank",
-          "body": "Steht gemeinsame saubere Wäsche herum und gehört sie zu euren geteilten Aufgaben? Schließe den offenen Schritt ab, ohne persönliche Schubladen neu zu ordnen.",
-          "callToAction": "Falte die saubere Wäsche und räume sie an die bekannten Plätze. Lege unbekannte Stücke ordentlich in den Korb statt falsch einzusortieren."
+          "title": "Den Wäschekorb leer bekommen",
+          "body": "Saubere Wäsche wartet manchmal länger als geplant. Den letzten Schritt zu erledigen macht eine angefangene Aufgabe wirklich fertig.",
+          "callToAction": "Falte eure gemeinsame Wäsche und räume sie an die üblichen Plätze. Was du nicht zuordnen kannst, bleibt ordentlich im Korb."
         },
         "en": {
-          "title": "Clean laundry, put away",
-          "body": "Is clean shared laundry waiting, and is it one of your shared jobs? Finish the remaining step without reorganising personal drawers.",
-          "callToAction": "Fold the clean laundry and put it in its usual places. Leave unfamiliar items neatly in the basket instead of guessing where they belong."
+          "title": "An empty laundry basket",
+          "body": "Clean laundry sometimes waits longer than planned. Finishing the last step gets an ongoing job off the list.",
+          "callToAction": "Fold your shared laundry and put it in its usual places. Leave anything unfamiliar neatly in the basket."
         }
       }
     },
@@ -224,14 +224,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen Weg übernehmen",
-          "body": "Wenn eine Abholung ansteht, ist ein konkreter Weg leichter abzugeben als die ganze Tagesplanung. Greife nicht ungefragt auf Konten oder Abholcodes zu.",
-          "callToAction": "„Ich komme am Paketshop vorbei und könnte dein Paket bis 18 Uhr holen. Wenn du das möchtest, sag mir nur, was ich dafür brauche.“"
+          "title": "Ein Weg für zwei",
+          "body": "Wenn eure Wege sich überschneiden, lässt sich eine Besorgung oft gut mitnehmen. Besonders hilfreich ist ein Angebot mit Ort und Zeit.",
+          "callToAction": "„Ich komme nachher am Paketshop vorbei. Soll ich dein Paket bis 18 Uhr mitbringen?“"
         },
         "en": {
-          "title": "Take on one errand",
-          "body": "If something needs collecting, one errand is easier to hand over than a whole day of planning. Do not access accounts or collection codes uninvited.",
-          "callToAction": "“I am passing the parcel shop and could collect your parcel by 6. If you want that, just tell me what I need for the collection.”"
+          "title": "One trip for two",
+          "body": "When your routes overlap, an errand can fit neatly into the same trip. A place and a time make the offer useful.",
+          "callToAction": "“I will pass the parcel shop later. Shall I pick up your parcel by 6?”"
         }
       }
     },
@@ -247,14 +247,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Wärme nur auf Wunsch",
-          "body": "Wurde Wärme ausdrücklich gewünscht, kannst du die Vorbereitung übernehmen. Das ist ein Angebot für Wohlbefinden, kein Hinweis darauf, dass heute Schmerzen bestehen.",
-          "callToAction": "Bereite die Wärmflasche nach Herstellerangaben vor und wickle sie in ein Tuch. Lass die Person selbst prüfen, ob die Wärme angenehm ist; nicht direkt auf die Haut legen."
+          "title": "Etwas Wärme für den Abend",
+          "body": "Eine Wärmflasche kann ein gemütlicher Begleiter sein, wenn Wärme gerade gewünscht ist. Die passende Temperatur ist ganz persönlich.",
+          "callToAction": "„Magst du eine Wärmflasche?“ Wenn ja: nach Herstellerangaben füllen, in ein Tuch wickeln und die Temperatur selbst prüfen lassen."
         },
         "en": {
-          "title": "Warmth when requested",
-          "body": "If warmth has been requested, you can handle the preparation. This is an offer of comfort, not a claim that there is pain today.",
-          "callToAction": "Prepare the hot-water bottle according to its instructions and wrap it in a cloth. Let the person check whether it feels comfortable; do not place it directly on skin."
+          "title": "A little warmth this evening",
+          "body": "A hot-water bottle can be a cosy companion when warmth is wanted. A comfortable temperature is a personal choice.",
+          "callToAction": "“Shall I get your hot-water bottle ready?” If yes, follow its instructions, wrap it in a cloth and let the person check the temperature."
         }
       }
     },
@@ -270,14 +270,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die Decke bringen, nichts umbauen",
-          "body": "Wenn jemand schon bequem sitzt und eine Decke möchte, genügt genau das. Ein ungefragter Umbau des Platzes erzeugt neue Entscheidungen.",
-          "callToAction": "Bring die gewünschte Decke und lege sie in Reichweite. Verändere Kissen, Licht und Sitzplatz nicht gleich mit."
+          "title": "Die Decke liegt schon bereit",
+          "body": "Für einen gemütlichen Abend braucht es manchmal nicht viel. Eine vertraute Kleinigkeit ist oft schöner als ein großes Programm.",
+          "callToAction": "„Ich hole mir eine Decke. Soll ich deine auch mitbringen?“"
         },
         "en": {
-          "title": "Bring the blanket, leave the setup",
-          "body": "If someone is already settled and wants a blanket, that is enough. Rearranging the whole space uninvited creates more decisions.",
-          "callToAction": "Bring the requested blanket and place it within reach. Leave the cushions, lighting and seating as they are."
+          "title": "A blanket within reach",
+          "body": "A cosy evening does not always need much. Something familiar can be nicer than an elaborate plan.",
+          "callToAction": "“I am getting a blanket. Shall I bring yours too?”"
         }
       }
     },
@@ -293,14 +293,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen Plan kürzen können",
-          "body": "Stehen für euren freien Nachmittag drei Stationen auf dem Plan? Biete eine kürzere Variante an, ohne schon etwas abzusagen oder weniger Energie zu unterstellen.",
-          "callToAction": "„Wir könnten nur ins Café gehen und den Einkauf verschieben. Oder wir lassen den Plan so. Ich übernehme die Umbuchung, wenn wir ändern.“"
+          "title": "Ein Nachmittag mit Luft",
+          "body": "Wenn ein freier Nachmittag aus lauter Stationen besteht, fühlt er sich schnell wieder voll an. Eine kürzere Variante lässt euch mehr Spielraum.",
+          "callToAction": "„Wie wäre es heute nur mit dem Café? Den Rest könnten wir auf morgen schieben.“"
         },
         "en": {
-          "title": "Have a shorter plan ready",
-          "body": "Does your free afternoon involve three stops? Offer a shorter version without cancelling anything or assuming low energy.",
-          "callToAction": "“We could just go to the café and move the shopping, or keep the plan as it is. I can handle any rebooking if we change it.”"
+          "title": "Leave some room in the afternoon",
+          "body": "A free afternoon can start to feel busy when it has too many stops. A shorter version leaves you both some breathing room.",
+          "callToAction": "“How about just the café today? We could leave the rest until tomorrow.”"
         }
       }
     },
@@ -316,14 +316,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Deinen Lärm verlagern",
-          "body": "Du willst telefonieren oder Videos schauen, während im selben Raum Ruhe gewünscht ist? Ändere zuerst deine eigene Geräuschquelle.",
-          "callToAction": "Nimm Kopfhörer oder geh für dein Telefonat in einen anderen Raum. Lass Licht und Geräte der anderen Person unverändert."
+          "title": "Die Ruhe bleibt im Zimmer",
+          "body": "Wenn gerade Ruhe gewünscht ist, muss deshalb nicht der ganze Abend ausfallen. Ein anderer Platz für dein Telefonat kann schon reichen.",
+          "callToAction": "Verlege deinen nächsten Anruf in ein anderes Zimmer oder nutze Kopfhörer für deine Videos."
         },
         "en": {
-          "title": "Move your own noise",
-          "body": "Planning a call or videos while someone has asked for quiet in the same room? Start with the noise you control.",
-          "callToAction": "Use headphones or take your call in another room. Leave the other person’s lighting and devices unchanged."
+          "title": "Keep the room quiet",
+          "body": "When quiet is wanted, it does not have to change the whole evening. Taking your call elsewhere may be enough.",
+          "callToAction": "Take your next call in another room or use headphones for your videos."
         }
       }
     },
@@ -339,14 +339,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen bekannten Wunsch nutzen",
-          "body": "Ein ausdrücklich geteilter Wunsch ist konkreter als ein App-Vorschlag. Er gilt nur so lange, wie er noch gewünscht ist; private Notizen sind dafür keine Quelle.",
-          "callToAction": "Sieh zuerst unter „Was mir wirklich hilft“ nach. Setze einen aktuell passenden Wunsch um; bei unklarer Menge oder Uhrzeit kläre nur dieses Detail."
+          "title": "Euer ganz eigener guter Tipp",
+          "body": "Du musst nicht raten, wenn schon ein persönlicher Wunsch geteilt wurde. Kleine, vertraute Vorlieben machen Unterstützung persönlicher.",
+          "callToAction": "Greife einen Wunsch auf, den die andere Person mit dir geteilt hat, etwa den Lieblingstee für den Abend."
         },
         "en": {
-          "title": "Use a wish you already know",
-          "body": "An explicitly shared wish is more specific than an app suggestion. It applies only while still wanted; private notes are not a source for wishes.",
-          "callToAction": "Check “What really helps me” first. Follow one wish that fits now; if the amount or timing is unclear, clarify just that detail."
+          "title": "Your own best tip",
+          "body": "There is no need to guess when a personal wish has already been shared. Small, familiar preferences make support more personal.",
+          "callToAction": "Pick up a wish the other person has shared with you, such as their favourite tea for the evening."
         }
       }
     },
@@ -362,14 +362,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine halbe Stunde ohne Rückfragen",
-          "body": "Wenn eine Pause gewünscht ist, übernimm für einen überschaubaren Zeitraum die bereits vereinbarten Alltagsaufgaben. Nicht dringende Fragen können warten.",
-          "callToAction": "„Ich halte dir die nächsten 30 Minuten frei.“ Übernimm in dieser Zeit die gemeinsamen Unterbrechungen, für die du zuständig sein kannst."
+          "title": "Eine halbe Stunde für sich",
+          "body": "Eine gewünschte Pause wird leichter, wenn die gemeinsamen Kleinigkeiten währenddessen versorgt sind.",
+          "callToAction": "„Nimm dir ruhig die halbe Stunde. Ich kümmere mich in der Zeit um unsere Abendroutine.“"
         },
         "en": {
-          "title": "Half an hour without questions",
-          "body": "When a break is wanted, cover the everyday responsibilities you have already agreed on for a manageable time. Non-urgent questions can wait.",
-          "callToAction": "“I will keep the next 30 minutes clear for you.” Handle the shared interruptions that you are able and authorised to deal with."
+          "title": "Half an hour to yourself",
+          "body": "A wanted break is easier to enjoy when the shared everyday things are covered for a while.",
+          "callToAction": "“Take that half hour for yourself. I can cover our evening routine in the meantime.”"
         }
       }
     },
@@ -385,14 +385,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Erreichbar, ohne nachzusehen",
-          "body": "Ihr seid nicht am selben Ort und es wurde Ruhe gewünscht? Erreichbarkeit braucht keine laufenden Statusmeldungen oder Standortkontrolle.",
-          "callToAction": "Schick höchstens eine Nachricht: „Ich bin bis 20 Uhr erreichbar; du musst nicht antworten.“ Schicke danach keine Nachfrage hinterher."
+          "title": "Auch auf Abstand erreichbar",
+          "body": "Ihr seid heute nicht zusammen und etwas Zeit allein ist gewünscht? Eine kurze Nachricht kann Verbundenheit zeigen, ohne ein Gespräch zu starten.",
+          "callToAction": "„Ich bin heute Abend erreichbar, falls du mich brauchst. Du musst nicht antworten.“"
         },
         "en": {
-          "title": "Available without checking up",
-          "body": "Are you apart, and has quiet been requested? Being available does not require regular status updates or location checks.",
-          "callToAction": "Send at most one message: “I am available until 8; no reply needed.” Do not follow it with another check-in."
+          "title": "Available from a distance",
+          "body": "Apart today, with some time alone wanted? A short message can show connection without starting a conversation.",
+          "callToAction": "“I am around this evening if you need me. No need to reply.”"
         }
       }
     },
@@ -408,14 +408,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nicht nach dem Eintrag fragen",
-          "body": "Du hast die App geöffnet, aber im Gespräch wurde der Zyklus gar nicht erwähnt? Ein fehlender Eintrag ist kein Anlass für eine Nachfrage.",
-          "callToAction": "Leg die App weg und sprich über euer eigentliches Thema weiter. Bitte nicht um einen Eintrag, damit deine Anzeige vollständiger wird."
+          "title": "Ein Abend ohne Display",
+          "body": "Zwischen Nachrichten und Alltag bleibt gemeinsame Zeit leicht nebenbei. Eine kleine bildschirmfreie Insel kann einfach mit dem Abendessen beginnen.",
+          "callToAction": "„Wollen wir beim Essen die Handys weglegen und uns in Ruhe unterhalten?“"
         },
         "en": {
-          "title": "Do not chase an entry",
-          "body": "Did you open the app when the cycle has not come up in conversation? A missing entry is not a reason to ask for one.",
-          "callToAction": "Put the app away and return to your actual conversation. Do not request an entry just to complete your own view."
+          "title": "An evening off-screen",
+          "body": "Messages and everyday demands can leave time together in the background. A little screen-free time can start with dinner.",
+          "callToAction": "“Shall we put our phones away over dinner and have a proper catch-up?”"
         }
       }
     },
@@ -431,14 +431,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die vereinbarte Runde übernehmen",
-          "body": "Teilt ihr Betreuung für ein Kind oder Haustier und ist eine Pause gewünscht? Biete eine vertraute, begrenzte Aufgabe an, die du sicher beherrschst.",
-          "callToAction": "„Ich übernehme heute die übliche Abendrunde samt Vorbereitung.“ Lege benötigte Sachen selbst bereit und erledige auch das Aufräumen danach."
+          "title": "Die Abendrunde übernehme ich",
+          "body": "Wenn ihr Betreuung teilt, kann eine vertraute Routine eine gute Gelegenheit für eine gewünschte Pause sein.",
+          "callToAction": "„Ich übernehme heute unsere übliche Abendrunde samt Vorbereitung. Mach du es dir in der Zeit gemütlich.“"
         },
         "en": {
-          "title": "Cover the agreed routine",
-          "body": "If you share care for a child or pet and a break is wanted, offer one familiar, bounded task that you know how to handle safely.",
-          "callToAction": "“I can cover our usual evening routine, including getting everything ready.” Prepare what you need yourself and tidy up afterwards."
+          "title": "I have the evening routine",
+          "body": "If you share caring responsibilities, a familiar routine can be a good chance to make room for a wanted break.",
+          "callToAction": "“I can cover our usual evening routine, including getting everything ready. Take some time to yourself.”"
         }
       }
     },
@@ -454,14 +454,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein Pausenzeichen absprechen",
-          "body": "Wiederholt sich das Missverständnis, ob Gesellschaft erwünscht ist? Klärt ein Zeichen in einem ruhigen Moment, nicht mitten in der gewünschten Pause.",
-          "callToAction": "Schlag vor: „Kopfhörer auf heißt ungestört, außer wenn es dringend ist.“ Vereinbart gemeinsam, ob dieses Zeichen überhaupt zu euch passt."
+          "title": "Ruhe, ohne jedes Mal zu fragen",
+          "body": "Ein gemeinsames kleines Zeichen kann Missverständnisse vermeiden, wenn jemand ungestört sein möchte.",
+          "callToAction": "Besprecht in einem ruhigen Moment: „Sollen Kopfhörer bei uns heißen: gerade eine Pause, außer es ist dringend?“"
         },
         "en": {
-          "title": "Agree on a pause signal",
-          "body": "Do you keep misunderstanding whether company is wanted? Agree on a signal at a calm moment, not during the requested break.",
-          "callToAction": "Suggest: “Headphones on means no interruptions unless it is urgent.” Agree together whether that signal actually works for you."
+          "title": "Quiet without having to explain",
+          "body": "A small shared signal can prevent misunderstandings when one of you wants uninterrupted time.",
+          "callToAction": "At a relaxed moment, suggest: “Could headphones mean a break for now, unless something is urgent?”"
         }
       }
     },
@@ -477,14 +477,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Beim eigenen Getränk mitdenken",
-          "body": "Du gehst ohnehin in die Küche? Ein bekanntes Getränk anzubieten braucht keine Bestellliste. Beachte bekannte Vorlieben und lass ein Nein stehen.",
-          "callToAction": "„Ich hole Wasser. Soll ich dir auch ein Glas mitbringen?“ Bring es nach einem Ja mit und nimm leere gemeinsame Gläser gleich zurück."
+          "title": "Ein Glas für dich mit?",
+          "body": "Auf dem Weg in die Küche passt eine kleine Aufmerksamkeit oft ganz selbstverständlich dazu.",
+          "callToAction": "„Ich hole mir Wasser. Magst du auch ein Glas?“"
         },
         "en": {
-          "title": "Think of a drink on your way",
-          "body": "Heading to the kitchen anyway? Offering a familiar drink does not need a drinks menu. Respect known preferences and accept a no.",
-          "callToAction": "“I am getting water. Would you like a glass too?” After a yes, bring it over and take empty shared glasses back with you."
+          "title": "A glass for you too?",
+          "body": "A trip to the kitchen is an easy moment for a small thoughtful offer.",
+          "callToAction": "“I am getting some water. Would you like a glass too?”"
         }
       }
     },
@@ -500,14 +500,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Zwei Essen, die du machen kannst",
-          "body": "Wenn du das Essen übernimmst, prüfe erst Vorräte und bekannte Unverträglichkeiten. Die Wahl sollte nicht wieder Recherche und Einkauf auslösen.",
-          "callToAction": "Biete zwei machbare Gerichte an, etwa Pasta oder Ofengemüse. Übernimm nach der Wahl Kochen und Küche; auch „heute nichts“ ist möglich."
+          "title": "Zwei gute Ideen fürs Abendessen",
+          "body": "Die Frage nach dem Essen ist leichter, wenn schon zwei machbare Ideen da sind. Nimm Gerichte, die zu euren Vorlieben und Vorräten passen.",
+          "callToAction": "„Ich könnte Ofengemüse oder Pasta machen. Worauf hättest du eher Lust?“ Übernimm heute Kochen und Küche."
         },
         "en": {
-          "title": "Two meals you can actually make",
-          "body": "If you are taking care of food, check supplies and known dietary restrictions first. The choice should not create another research or shopping task.",
-          "callToAction": "Offer two meals you can actually make, such as pasta or roast vegetables. After the choice, handle cooking and cleanup; “nothing today” is also an option."
+          "title": "Two good dinner options",
+          "body": "Deciding on dinner is easier with two realistic ideas. Pick meals that fit your preferences and what you have in.",
+          "callToAction": "“I could make roast vegetables or pasta. Which sounds better?” Take care of cooking and cleanup today."
         }
       }
     },
@@ -523,14 +523,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Frühstück für einen frühen Start",
-          "body": "Wenn morgen ein früher Aufbruch ansteht und ein vorbereitetes Frühstück gewünscht ist, lässt sich eine bekannte Routine am Abend erledigen.",
-          "callToAction": "Stelle Geschirr und haltbare Zutaten für das übliche Frühstück bereit. Kühlpflichtiges bleibt im Kühlschrank; wecke niemanden extra fürs Angebot."
+          "title": "Frühstück vor dem frühen Start",
+          "body": "Morgen geht es früh los? Ein bisschen Vorbereitung am Abend kann eure vertraute Frühstücksroutine entspannter machen.",
+          "callToAction": "Wenn das zu eurer Routine passt, stelle schon Tassen, Teller und haltbare Zutaten bereit. Frisches bleibt im Kühlschrank."
         },
         "en": {
           "title": "Breakfast before an early start",
-          "body": "If tomorrow starts early and a prepared breakfast is wanted, you can set up a familiar routine the evening before.",
-          "callToAction": "Set out dishes and shelf-stable ingredients for the usual breakfast. Keep chilled food in the fridge; do not wake anyone just to make the offer."
+          "body": "An early start tomorrow? A little preparation tonight can make your familiar breakfast routine more relaxed.",
+          "callToAction": "If it fits your routine, set out mugs, plates and shelf-stable ingredients. Keep fresh food in the fridge."
         }
       }
     },
@@ -546,14 +546,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Portion für später",
-          "body": "Ihr esst heute zu unterschiedlichen Zeiten? Eine abgesprochene Extra-Portion erspart später einen zweiten Kochdurchgang, ohne die Essenszeit vorzugeben.",
-          "callToAction": "„Ich koche gerade. Soll ich eine Portion für dich zurückstellen?“ Verpacke sie nach einem Ja passend und sag kurz, was drin ist."
+          "title": "Für später ist noch etwas da",
+          "body": "Unterschiedliche Feierabendzeiten müssen nicht zwei Kochrunden bedeuten. Eine zurückgestellte Portion lässt die Essenszeit offen.",
+          "callToAction": "„Ich koche gerade. Soll ich dir eine Portion für später aufheben?“"
         },
         "en": {
-          "title": "A portion for later",
-          "body": "Eating at different times today? An agreed extra portion can save a second round of cooking without dictating when someone eats.",
-          "callToAction": "“I am cooking now. Shall I save you a portion?” After a yes, store it appropriately and say briefly what it contains."
+          "title": "Something saved for later",
+          "body": "Finishing work at different times does not have to mean cooking twice. A saved portion leaves dinner time flexible.",
+          "callToAction": "“I am cooking now. Shall I save you a portion for later?”"
         }
       }
     },
@@ -569,14 +569,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Bestellen ohne Suchauftrag",
-          "body": "Wenn ihr bestellen wollt und du die Organisation übernimmst, gehören Lieferzeit, bekannte Essenswünsche und euer Budget dazu.",
-          "callToAction": "Suche zwei passende Optionen mit Gesamtpreis heraus. Bestelle erst nach Zustimmung und kümmere dich dann selbst um Lieferung und Verpackungen."
+          "title": "Heute darf es einfach sein",
+          "body": "Manchmal passt bestelltes Essen besser in den Abend. Zwei passende Optionen sparen euch die lange Suche.",
+          "callToAction": "Such zwei Lieferoptionen aus, die zu eurem Budget und Geschmack passen: „Welche klingt heute gut?“"
         },
         "en": {
-          "title": "Order without assigning research",
-          "body": "If you are organising a takeaway, include delivery time, known food preferences and your shared budget in the job.",
-          "callToAction": "Find two suitable options with their total prices. Order only after agreement, then handle the delivery and packaging yourself."
+          "title": "An easy dinner tonight",
+          "body": "Sometimes a takeaway fits the evening better. Two suitable options save you both a long search.",
+          "callToAction": "Find two delivery options that fit your budget and tastes: “Which sounds good tonight?”"
         }
       }
     },
@@ -592,14 +592,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Zuhören ist eine konkrete Aufgabe",
-          "body": "Wenn jemand etwas Belastendes erzählt, kläre einmal, ob Rat überhaupt gewünscht ist. „Nur erzählen“ ist bereits eine klare Anleitung.",
-          "callToAction": "„Soll ich nur zuhören oder mit dir eine Lösung suchen?“ Bei „zuhören“ lass Tipps und eigene Vergleiche weg, bis danach gefragt wird."
+          "title": "Zuhören oder mitdenken?",
+          "body": "Bei einem schwierigen Thema kann beides helfen: Raum zum Erzählen oder gemeinsam nach einer Lösung suchen. Ihr müsst nicht erraten, was gemeint ist.",
+          "callToAction": "„Möchtest du es erst einmal loswerden, oder soll ich mit dir überlegen?“"
         },
         "en": {
-          "title": "Listening is a specific job",
-          "body": "When someone shares something difficult, check once whether advice is wanted at all. “Just talking” is already a clear answer.",
-          "callToAction": "“Would you like me to listen or help find a solution?” If it is listening, leave out advice and your own comparisons unless invited."
+          "title": "Listen or think it through?",
+          "body": "With a difficult topic, either space to talk or help thinking it through may be welcome. You do not have to guess which.",
+          "callToAction": "“Would you like to get it off your chest, or shall we think it through together?”"
         }
       }
     },
@@ -615,14 +615,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die App erklärt keinen Streit",
-          "body": "Wenn ein konkretes Problem angesprochen wird, etwa eine nicht eingehaltene Absprache, lenkt eine Erklärung über den Zyklus vom Problem ab.",
-          "callToAction": "Antworte auf den genannten Punkt: „Ich habe die Abholung vergessen. Ich kümmere mich jetzt darum.“ Lass die Phasenanzeige aus der Erklärung heraus."
+          "title": "Beim eigentlichen Thema bleiben",
+          "body": "Eine vergessene Absprache ist eine vergessene Absprache, unabhängig vom Zyklus. Den konkreten Punkt ernst zu nehmen bringt euch eher weiter.",
+          "callToAction": "„Du hast recht, ich habe die Abholung vergessen. Ich kümmere mich jetzt darum.“"
         },
         "en": {
-          "title": "The app does not explain a disagreement",
-          "body": "When a specific problem is raised, such as a broken agreement, explaining it through the cycle avoids the actual issue.",
-          "callToAction": "Respond to the point raised: “I forgot the collection. I will sort it out now.” Leave the phase display out of the explanation."
+          "title": "Stay with the real issue",
+          "body": "A forgotten agreement is a forgotten agreement, whatever the cycle says. Taking the actual issue seriously helps you move forward.",
+          "callToAction": "“You are right, I forgot the collection. I will sort it out now.”"
         }
       }
     },
@@ -638,14 +638,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "An die eigene Zusage erinnern",
-          "body": "Hast du für heute etwas zugesagt? Die andere Person sollte nicht zusätzlich verfolgen müssen, ob du daran denkst.",
-          "callToAction": "Setze dir selbst eine Erinnerung für die Zusage. Wenn du sie nicht schaffst, melde dich vor dem vereinbarten Zeitpunkt mit einer konkreten Alternative."
+          "title": "An die eigene Zusage denken",
+          "body": "Eine verlässliche Zusage ist eine kleine Form von Fürsorge. Eine Erinnerung für dich selbst hält sie auch an vollen Tagen präsent.",
+          "callToAction": "Trag deine nächste gemeinsame Besorgung mit Uhrzeit in deinen Kalender ein, damit du rechtzeitig daran denkst."
         },
         "en": {
           "title": "Remember your own promise",
-          "body": "Have you promised to do something today? The other person should not also have to track whether you remember.",
-          "callToAction": "Set your own reminder for the promise. If you cannot keep it, say so before the agreed time and offer a specific alternative."
+          "body": "Following through on a promise is a small form of care. A reminder for yourself keeps it in view on busy days.",
+          "callToAction": "Put your next shared errand in your calendar with a time so you remember it when it matters."
         }
       }
     },
@@ -661,14 +661,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "An das Gespräch anknüpfen",
-          "body": "Wurde dir von einem wichtigen Termin erzählt? Frage nach diesem Gesprächsinhalt, nicht nach einer vermuteten Stimmung oder einem privaten App-Eintrag.",
-          "callToAction": "„Wie lief der Termin, von dem du erzählt hast?“ Wenn gerade keine Gesprächslust da ist, wechsle das Thema statt Details einzufordern."
+          "title": "Und wie ging es weiter?",
+          "body": "An etwas Erzähltes anzuknüpfen zeigt Interesse über den Moment hinaus. Vielleicht gibt es Neuigkeiten zu einem Projekt, Treffen oder guten Vorhaben.",
+          "callToAction": "„Wie lief der Termin, von dem du mir erzählt hast?“ Nimm dir etwas Zeit für die Antwort."
         },
         "en": {
-          "title": "Follow up on the conversation",
-          "body": "Were you told about an important appointment? Ask about what was shared in conversation, not an assumed mood or a private app entry.",
-          "callToAction": "“How did the appointment you mentioned go?” If talking is not wanted now, change the subject instead of requesting details."
+          "title": "And what happened next?",
+          "body": "Following up on something shared shows interest beyond the moment. There may be news about a project, meeting or hopeful plan.",
+          "callToAction": "“How did that appointment you told me about go?” Make a little time for the answer."
         }
       }
     },
@@ -684,14 +684,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nach einer schlechten Nachricht",
-          "body": "Wenn gerade etwas Enttäuschendes passiert ist, muss daraus nicht sofort etwas Positives werden. Du kannst die nächste kleine Alltagsaufgabe abnehmen.",
-          "callToAction": "„Das klingt enttäuschend. Ich kann unseren geplanten Anruf verschieben, wenn du möchtest.“ Warte auf Zustimmung, bevor du jemand anderem schreibst."
+          "title": "Nach einer Enttäuschung",
+          "body": "Wenn etwas schiefgegangen ist, muss nicht sofort ein guter Grund darin stecken. Ein ruhiger gemeinsamer Moment darf erst einmal genug sein.",
+          "callToAction": "„Das klingt wirklich enttäuschend. Magst du mir erzählen, was passiert ist?“"
         },
         "en": {
-          "title": "After disappointing news",
-          "body": "When something disappointing has happened, you do not need to find a bright side immediately. You can offer one small practical step.",
-          "callToAction": "“That sounds disappointing. I can move our planned call if you want.” Wait for agreement before messaging anyone else."
+          "title": "After a disappointment",
+          "body": "When something has gone wrong, you do not have to find a silver lining straight away. A quiet moment together can be enough for now.",
+          "callToAction": "“That sounds really disappointing. Would you like to tell me what happened?”"
         }
       }
     },
@@ -709,14 +709,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die richtige Packung nachkaufen",
-          "body": "Falls Periodenprodukte nachgekauft werden sollen, sind Sorte und Größe keine austauschbaren Details. Eine geteilte Periode erlaubt keinen Blick in private Vorräte.",
-          "callToAction": "Nutze eine bereits vereinbarte Produktangabe. Fehlt sie, frage einmal nach der genauen Packung; kaufe keinen Ersatz ohne Rücksprache."
+          "title": "Die vertraute Packung",
+          "body": "Bei Periodenprodukten sind Vorlieben ganz konkret: Was vertraut ist, passt oft besser als ein gut gemeinter Ersatz.",
+          "callToAction": "„Ich gehe einkaufen. Soll ich deine übliche Packung mitbringen?“ Falls du die Sorte nicht kennst, lass dir die Packung nennen."
         },
         "en": {
-          "title": "Buy the right pack",
-          "body": "If period products need restocking, type and size are not interchangeable details. A shared period does not allow you to inspect private supplies.",
-          "callToAction": "Use product details already agreed on. If you do not have them, ask once for the exact pack; do not substitute without checking."
+          "title": "The familiar pack",
+          "body": "Preferences for period products are specific. Something familiar may be more useful than a well-meant substitute.",
+          "callToAction": "“I am going shopping. Shall I get your usual pack?” If you do not know the type, ask which pack to get."
         }
       }
     },
@@ -734,14 +734,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Das Abendessen bleibt deine Aufgabe",
-          "body": "Ist heute ohnehin dein Kochabend, erledige ihn wie vereinbart. Eine eingetragene Periode sagt nicht, ob Schmerzen bestehen oder andere Mahlzeiten gewünscht sind.",
-          "callToAction": "Koche das abgesprochene Essen und räume danach die Küche auf. Mache daraus keinen Sonderplan, der neue Entscheidungen von der anderen Person verlangt."
+          "title": "Ein vertrautes Essen für den Abend",
+          "body": "Ein vertrautes Gericht und ein übernommener Kochabend können Periodentage ein bisschen unkomplizierter machen.",
+          "callToAction": "„Wie wäre es heute mit unserem Ofengemüse? Ich besorge die Zutaten und koche.“"
         },
         "en": {
-          "title": "Dinner is still your responsibility",
-          "body": "If it is already your turn to cook, follow through as agreed. A recorded period does not tell you whether there is pain or a different meal is wanted.",
-          "callToAction": "Cook the agreed meal and clean the kitchen afterwards. Do not turn it into a special plan that needs more decisions from the other person."
+          "title": "A familiar meal this evening",
+          "body": "A familiar dish and someone taking care of dinner can make period days a little easier to organise.",
+          "callToAction": "“How about our roast vegetables tonight? I can get the ingredients and cook.”"
         }
       }
     },
@@ -759,14 +759,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Änderung selbst organisieren",
-          "body": "Möchte die andere Person euren gemeinsamen Plan ändern, braucht sie dafür keine Beschwerdebegründung. Sage nichts allein wegen der eingetragenen Periode ab.",
-          "callToAction": "Kläre die gewünschte Alternative einmal. Übernimm danach die Reservierungsänderung und bestätige kurz, dass sie erledigt ist."
+          "title": "Was hinter Krämpfen steckt",
+          "body": "Bei der Periode zieht sich die Gebärmutter zusammen; das kann schmerzen. Wie es sich heute anfühlt, lässt sich daraus nicht ablesen.",
+          "callToAction": "Falls Beschwerden angesprochen werden: „Sollen wir unseren Abend etwas kürzer halten? Ich kann den Tisch früher reservieren.“"
         },
         "en": {
-          "title": "Handle the change yourself",
-          "body": "If the other person wants to change a shared plan, they do not owe a description of symptoms. Do not cancel just because a period is recorded.",
-          "callToAction": "Agree on the alternative once. Then handle the reservation change and briefly confirm that it is done."
+          "title": "What is behind cramps?",
+          "body": "The uterus contracts during a period; that can hurt. It does not tell you how today feels.",
+          "callToAction": "If discomfort comes up: “Shall we make this a shorter evening? I can book the table earlier.”"
         }
       }
     },
@@ -784,14 +784,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Für unterwegs diskret packen",
-          "body": "Wenn du für einen gemeinsamen Ausflug packst, frage privat nach benötigten Produkten. Öffne dafür keine persönliche Tasche und erkläre Dritten nichts.",
-          "callToAction": "„Soll ich deine gewohnten Produkte mit einpacken?“ Nimm nach Zustimmung nur die genannten Sachen und lege sie an den vereinbarten Platz."
+          "title": "Ein Ausflug mit bequemen Pausen",
+          "body": "Bei einem längeren Ausflug während der Periode können erreichbare Toiletten praktisch sein. Das lässt sich schon bei der Route mitdenken.",
+          "callToAction": "Schlage für euren nächsten Ausflug eine Strecke mit einem Café als möglicher Pause vor."
         },
         "en": {
-          "title": "Pack discreetly for a day out",
-          "body": "If you are packing for a shared outing, ask privately about needed supplies. Do not open a personal bag or explain anything to other people.",
-          "callToAction": "“Would you like me to pack your usual products?” After agreement, take only the requested items and put them in the agreed place."
+          "title": "An outing with easy stops",
+          "body": "Accessible toilets can be useful on a longer outing during a period. You can keep them in mind when choosing a route.",
+          "callToAction": "Suggest a route for your next outing with a café as an optional stop."
         }
       }
     },
@@ -809,14 +809,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Bei einem Ausflug Wahl lassen",
-          "body": "Die eingetragene Periode ist kein Grund, einen Ausflug zu streichen. Wenn ihr eine flexible Rückfahrt möchtet, kannst du sie vorbereiten.",
-          "callToAction": "Prüfe vorab eine frühere Rückverbindung. Schlage sie als Möglichkeit vor, ohne festzulegen, wann die andere Person nach Hause soll."
+          "title": "Schmerzen ernst nehmen",
+          "body": "Periodenschmerzen, die den Alltag stark einschränken oder deutlich schlimmer werden, gehören ärztlich abgeklärt. Sie müssen nicht einfach ausgehalten werden.",
+          "callToAction": "„Wenn du das abklären lassen möchtest, begleite ich dich gern oder helfe bei der Terminorganisation.“"
         },
         "en": {
-          "title": "Keep the outing optional",
-          "body": "A recorded period is not a reason to cancel an outing. If you both want a flexible return, you can prepare it.",
-          "callToAction": "Check an earlier return connection beforehand. Offer it as an option without deciding when the other person should go home."
+          "title": "Take pain seriously",
+          "body": "Period pain that disrupts everyday activities or gets significantly worse needs medical attention. It is not something to simply endure.",
+          "callToAction": "“If you want to get this checked, I can come with you or help arrange the appointment.”"
         }
       }
     },
@@ -834,14 +834,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Vorräte ohne Countdown",
-          "body": "Der geschätzte Beginn ist kein fester Termin. Wenn das Nachkaufen vertrauter Produkte zu eurer Absprache gehört, reicht eine normale Einkaufsroutine.",
-          "callToAction": "Setze das vereinbarte Produkt auf deine nächste Einkaufsliste und kaufe es mit. Schicke keinen Countdown und frage nicht, ob die Periode schon begonnen hat."
+          "title": "Vor dem Einkauf kurz mitdenken",
+          "body": "Ein geschätzter Periodenbeginn ist ein Zeitfenster, kein fester Termin. Für bekannte Vorräte könnt ihr trotzdem entspannt vorsorgen.",
+          "callToAction": "„Ich bin morgen im Laden. Brauchst du noch etwas von deiner üblichen Packung?“"
         },
         "en": {
-          "title": "Supplies without a countdown",
-          "body": "The estimated start is not a fixed date. If restocking familiar products is part of your agreement, a normal shopping routine is enough.",
-          "callToAction": "Put the agreed product on your next shopping list and buy it. Do not send a countdown or ask whether the period has started yet."
+          "title": "Think ahead on the next shop",
+          "body": "An estimated period start is a window, not a fixed appointment. You can still plan ahead for familiar supplies.",
+          "callToAction": "“I will be at the shop tomorrow. Would you like another pack of your usual products?”"
         }
       }
     },
@@ -859,14 +859,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Vor dem Buchen Bedingungen prüfen",
-          "body": "Ihr plant etwas im geschätzten Zeitraum? Die Schätzung rechtfertigt keine Absage. Wenn euch Flexibilität wichtig ist, prüfe sie vor dem Bezahlen.",
-          "callToAction": "Suche eine Option mit klarer Storno- oder Umbuchungsfrist heraus. Nenne Preis und Frist und entscheide erst dann gemeinsam, ob ihr bucht."
+          "title": "Ein Plan mit kurzer Variante",
+          "body": "Beschwerden vor der Periode können monatlich wechseln. Ein Plan mit Spielraum passt dazu besser als feste Erwartungen.",
+          "callToAction": "„Wie wäre es mit einem Cafébesuch? Wenn wir danach noch Lust haben, hängen wir einen Spaziergang dran.“"
         },
         "en": {
-          "title": "Check flexibility before booking",
-          "body": "Planning something during the estimated window? The estimate is not a reason to cancel. If flexibility matters to you both, check it before paying.",
-          "callToAction": "Find an option with a clear cancellation or change deadline. Share the price and deadline, then decide together whether to book."
+          "title": "A plan with a shorter option",
+          "body": "Premenstrual symptoms can change from month to month. A flexible plan leaves more room than fixed expectations.",
+          "callToAction": "“How about a café? If we feel like it afterwards, we can add a walk.”"
         }
       }
     },
@@ -884,14 +884,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Den tatsächlichen Plan erfragen",
-          "body": "Eine Vorhersage sagt nicht, ob heute Gesellschaft oder ein voller Abend gewünscht ist. Wenn ihr ohnehin den Abend abstimmt, bleibe bei konkreten Möglichkeiten.",
-          "callToAction": "„Ich würde um 19 Uhr unsere Serie weitersehen. Möchtest du mitsehen oder den Abend anders verbringen?“ Plane nicht ungefragt einen Ruheabend."
+          "title": "PMS ist nicht nur Stimmung",
+          "body": "Zu PMS können auch Kopfschmerzen oder Brustspannen gehören. Der Begriff ist also mehr als ein Etikett für schlechte Laune.",
+          "callToAction": "Wenn Beschwerden zur Sprache kommen: „Was davon ist heute am lästigsten?“ Hör erst einmal zu."
         },
         "en": {
-          "title": "Ask about the actual plan",
-          "body": "A forecast cannot tell you whether company or a busy evening is wanted today. When arranging the evening, stick to specific possibilities.",
-          "callToAction": "“I would like to watch our series at 7. Would you like to join me or spend the evening differently?” Do not arrange a quiet evening uninvited."
+          "title": "PMS is not just mood",
+          "body": "PMS can include headaches or breast tenderness too. It is more than a label for a bad mood.",
+          "callToAction": "If symptoms come up: “Which part is bothering you most today?” Start by listening."
         }
       }
     },
@@ -909,14 +909,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Absage ohne private Erklärung",
-          "body": "Wenn ihr einen Termin gemeinsam absagt, ist die Prognose keine Erklärung für die Gastgeber. Gib nur weiter, was ausdrücklich abgesprochen ist.",
-          "callToAction": "Biete an, nach eurer Entscheidung zu schreiben: „Wir schaffen es diesmal nicht.“ Nenne keinen Zyklusgrund und schicke keinen App-Screenshot."
+          "title": "Wenn es mehr als lästig ist",
+          "body": "Prämenstruelle Beschwerden, die den Alltag belasten, sind ein Grund für ärztliche Unterstützung. Ein Kalender allein stellt keine Diagnose.",
+          "callToAction": "Wenn Hilfe bei der Abklärung gewünscht ist, biete an, den Weg zum Termin oder eine gemeinsame Alltagsaufgabe zu übernehmen."
         },
         "en": {
-          "title": "Cancel without a private explanation",
-          "body": "If you jointly cancel a plan, the forecast is not an explanation for the host. Share only what has explicitly been agreed.",
-          "callToAction": "Offer to send, after your joint decision: “We cannot make it this time.” Do not give a cycle-related reason or send an app screenshot."
+          "title": "When it is more than a nuisance",
+          "body": "Premenstrual symptoms affecting everyday life deserve medical support. A calendar alone cannot make a diagnosis.",
+          "callToAction": "If help getting care is wanted, offer a lift to the appointment or to cover a shared everyday task."
         }
       }
     },
@@ -934,14 +934,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Plan B mit Adresse und Zeit",
-          "body": "Eine Ausweichidee ist erst praktisch, wenn niemand sie im letzten Moment organisieren muss. Eine Schätzung bestimmt nicht, ob ihr sie braucht.",
-          "callToAction": "Suche für euren Ausflug eine nahe Alternative mit Öffnungszeiten heraus. Schlage sie vor; reserviere oder ändere nichts ohne gemeinsame Entscheidung."
+          "title": "Ein Abend ohne lange Vorbereitung",
+          "body": "Nicht jeder Abend braucht Reservierung, Fahrt und festen Ablauf. Ein unkompliziertes Date lässt sich leichter an eure tatsächliche Tagesform anpassen.",
+          "callToAction": "„Wollen wir heute eine Runde Karten spielen? Ich suche ein Spiel aus, das nicht den ganzen Abend dauert.“"
         },
         "en": {
-          "title": "A plan B with a place and time",
-          "body": "An alternative becomes useful when it does not need organising at the last minute. An estimate does not decide whether you need it.",
-          "callToAction": "Find a nearby alternative for your outing and check its opening times. Suggest it; do not book or change anything without a joint decision."
+          "title": "An evening without lots of planning",
+          "body": "Not every evening needs a booking, a journey and a schedule. An easy date can fit how you both actually feel on the day.",
+          "callToAction": "“Fancy a card game tonight? I can pick one that does not take the whole evening.”"
         }
       }
     },
@@ -957,14 +957,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Nachricht ohne Arbeitsauftrag",
-          "body": "Wenn ihr euch heute nicht seht, kann ein persönlicher Gruß reichen. Eine Antwort, ein Gesundheitsupdate oder eine neue Aufgabe muss daraus nicht entstehen.",
-          "callToAction": "Schick einen konkreten Gruß wie „Das Lied im Radio hat mich an unseren Ausflug erinnert“. Füge keine Bitte um einen Statusbericht an."
+          "title": "Ein kleiner neuer Ort",
+          "body": "Für Abwechslung braucht es nicht gleich ein Wochenende weg. Ein unbekanntes Café oder eine neue Ecke im Park kann schon reichen.",
+          "callToAction": "Schlage einen konkreten kleinen Ausflug vor: „Wollen wir Sonntag das Café an der Ecke ausprobieren?“"
         },
         "en": {
-          "title": "A message without an assignment",
-          "body": "If you will not see each other today, a personal hello can be enough. It need not create a reply, a health update or another task.",
-          "callToAction": "Send something specific such as “That song on the radio reminded me of our trip.” Do not add a request for a status report."
+          "title": "Somewhere a little different",
+          "body": "A change of scene does not need a weekend away. A new café or a different corner of the park may be enough.",
+          "callToAction": "Suggest a specific small outing: “Shall we try that café on the corner on Sunday?”"
         }
       }
     },
@@ -980,14 +980,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Zehn Minuten, die dir gehören",
-          "body": "Wenn ihr zusammen Zeit verbringen möchtet, schlage einen kleinen Zeitraum vor, den du wirklich freihalten kannst. Ein späteres Gespräch ist genauso möglich.",
-          "callToAction": "„Ich habe jetzt zehn Minuten ohne Handy. Möchtest du erzählen?“ Lege dein Gerät weg und bleibe für die zugesagte Zeit aufmerksam."
+          "title": "Eine gute Frage beim Essen",
+          "body": "Zwischen Organisation und Terminen bleiben die interessanten Kleinigkeiten manchmal liegen. Eine andere Frage bringt sie zurück ins Gespräch.",
+          "callToAction": "„Gab es heute etwas, das dich überrascht oder zum Lachen gebracht hat?“"
         },
         "en": {
-          "title": "Ten minutes you can give",
-          "body": "If you want time together, offer a small period that you can genuinely keep free. Talking later is also fine.",
-          "callToAction": "“I have ten minutes with my phone put away. Would you like to talk?” Put the device aside and give the attention you offered."
+          "title": "A good question over dinner",
+          "body": "Plans and appointments can crowd out the interesting little things. A different question brings them back into the conversation.",
+          "callToAction": "“Did anything surprise you or make you laugh today?”"
         }
       }
     },
@@ -1003,14 +1003,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen Wunsch statt einer Umfrage",
-          "body": "Passt ein App-Vorschlag öfter nicht? Besprecht bei Gelegenheit eine konkrete Alternative. Die Tracker-Person muss kein ganzes Hilfsprogramm entwerfen.",
-          "callToAction": "„Soll ich künftig den Einkauf am Mittwoch übernehmen?“ Wenn ihr das vereinbart, trage die Aufgabe in deinen Kalender ein; kein neuer App-Eintrag ist nötig."
+          "title": "Ein Picknick ohne großen Aufwand",
+          "body": "Gemeinsames Essen darf auch einmal woanders stattfinden. Mit Dingen, die ihr schon habt, bleibt ein kleines Picknick unkompliziert.",
+          "callToAction": "„Wollen wir unsere Brote mit in den Park nehmen?“ Wenn es passt, packe Decke, Essen und Getränke ein."
         },
         "en": {
-          "title": "One wish, not a survey",
-          "body": "Do app suggestions often miss the mark? At a suitable moment, discuss one specific alternative. The tracker does not need to design an entire support programme.",
-          "callToAction": "“Would you like me to take over the Wednesday shop?” If you agree, put it in your own calendar; no new app entry is needed."
+          "title": "A picnic without much fuss",
+          "body": "A meal together can happen somewhere different. Using what you already have keeps a small picnic easy.",
+          "callToAction": "“Shall we take our sandwiches to the park?” If that suits you both, pack the blanket, food and drinks."
         }
       }
     },
@@ -1026,14 +1026,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Vertrauliches aus dem Gruppenchat halten",
-          "body": "Du erzählst Freunden von eurem Alltag? Auch freiwillig mit dir geteilte Daten sind nicht automatisch für den Gruppenchat bestimmt.",
-          "callToAction": "Lass Zyklusdetails und App-Screenshots aus der Nachricht weg. Wenn jemand nachfragt, antworte nur: „Das ist privat.“"
+          "title": "Euer Soundtrack für zehn Minuten",
+          "body": "Ein Lied kann an einen gemeinsamen Moment erinnern, ohne dass ihr lange etwas planen müsst.",
+          "callToAction": "„Ich habe gerade an unser Lied gedacht. Wollen wir uns jeder einen Song zeigen, den wir gerade mögen?“"
         },
         "en": {
-          "title": "Keep private details out of the group chat",
-          "body": "Telling friends about your day? Data voluntarily shared with you is not automatically meant for a group chat.",
-          "callToAction": "Leave cycle details and app screenshots out of the message. If someone asks, simply say: “That is private.”"
+          "title": "Your ten-minute soundtrack",
+          "body": "A song can bring back a shared moment without much planning at all.",
+          "callToAction": "“I just thought of our song. Shall we each play something we have been enjoying lately?”"
         }
       }
     },
@@ -1049,14 +1049,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nur Zusagen, die du halten kannst",
-          "body": "Wenn dir selbst Zeit fehlt, ist eine kleine verlässliche Zusage hilfreicher als ein ganzer Abend, den du später zurückziehen musst.",
-          "callToAction": "„Heute kann ich den Einkauf bis 18 Uhr erledigen, aber nicht auch kochen.“ Sage die Grenze beim Angebot, nicht erst wenn die Aufgabe offen bleibt."
+          "title": "Etwas Gemeinsames fertig bekommen",
+          "body": "Eine kleine offene Sache kann im Kopf größer werden, als sie ist. Vielleicht passt heute der Abschluss eines längst besprochenen Vorhabens.",
+          "callToAction": "Erledige eine vereinbarte Kleinigkeit, etwa den lockeren Schrankgriff, und räume danach das Werkzeug wieder weg."
         },
         "en": {
-          "title": "Offer what you can follow through on",
-          "body": "If you are short on time yourself, one reliable promise is more useful than a whole evening you later have to withdraw.",
-          "callToAction": "“Today I can finish the shopping by 6, but I cannot also cook.” State the limit with the offer, not after the task is left undone."
+          "title": "Finish one shared loose end",
+          "body": "A small unfinished job can take up more headspace than expected. Today might be a good time to finish something already agreed.",
+          "callToAction": "Finish a small agreed job, such as the loose cupboard handle, and put the tools away afterwards."
         }
       }
     },
@@ -1072,14 +1072,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nur das geänderte Detail klären",
-          "body": "Ein früherer Wunsch kann noch passen, muss aber nicht. Wenn nur die Uhrzeit offen ist, braucht es keine neue Grundsatzfrage nach jeder Vorliebe.",
-          "callToAction": "„Den Einkauf übernehme ich wie abgesprochen. Passt heute 18 Uhr?“ Akzeptiere eine Änderung, ohne eine Begründung einzufordern."
+          "title": "Ein Angebot, das in deinen Tag passt",
+          "body": "Hilfreich ist, was du auch wirklich übernehmen kannst. Eine kleine verlässliche Zusage ist oft angenehmer als ein großes offenes Versprechen.",
+          "callToAction": "„Ich habe nachher eine halbe Stunde und kann den Einkauf erledigen. Passt dir das?“"
         },
         "en": {
-          "title": "Check just the changed detail",
-          "body": "An earlier wish may still fit, but it does not have to. If only timing is unclear, you do not need to reopen every preference.",
-          "callToAction": "“I will handle the shopping as agreed. Does 6 work today?” Accept a change without asking for a justification."
+          "title": "An offer that fits your day",
+          "body": "A useful offer is one you can follow through on. A small reliable promise can be nicer than a big open-ended one.",
+          "callToAction": "“I have half an hour later and can do the shopping. Would that help?”"
         }
       }
     },
@@ -1095,14 +1095,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Rücksendung bis zum Ende",
-          "body": "Wurde dir eine Rücksendung übertragen, gehören Verpackung, Abgabe und Beleg zusammen. Persönliche Konten und Zahlungsdaten bleiben bei der anderen Person.",
-          "callToAction": "Nutze das bereitgestellte Etikett, verpacke die Ware, gib sie ab und lege den Beleg an den vereinbarten Ort. Melde danach nur noch „erledigt“."
+          "title": "Die Buchung ist erledigt",
+          "body": "Wenn ihr euch auf einen gemeinsamen Plan geeinigt habt, fehlt oft nur noch ein kleiner Organisationsschritt.",
+          "callToAction": "Übernimm die besprochene Reservierung und schick kurz Ort und Uhrzeit. So ist der Plan für euch beide greifbar."
         },
         "en": {
-          "title": "Finish the whole return",
-          "body": "If you have agreed to handle a return, packing, drop-off and the receipt belong together. Personal accounts and payment details stay with their owner.",
-          "callToAction": "Use the label provided, pack the item, drop it off and put the receipt in the agreed place. Then give one brief “done” update."
+          "title": "The booking is sorted",
+          "body": "Once you have agreed on a plan together, it often needs just one last bit of organising.",
+          "callToAction": "Make the agreed reservation and share the place and time. Then the plan is ready for you both."
         }
       }
     },
@@ -1118,14 +1118,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Vor der Umarmung kurz fragen",
-          "body": "Auch eine bekannte Vorliebe für Nähe ist keine Zustimmung für diesen Moment. Zustimmung zu Gesellschaft ist nicht automatisch Zustimmung zu Berührung.",
-          "callToAction": "„Möchtest du eine Umarmung?“ Warte auf ein klares Ja, bevor du dich näherst. Bei einem Nein bleib freundlich und lass es dabei."
+          "title": "Eine Umarmung anbieten",
+          "body": "Nähe kann schön sein, wenn sie gerade für euch beide passt. Eine Einladung dazu darf ganz einfach klingen.",
+          "callToAction": "„Magst du eine Umarmung?“ Lass die Antwort bestimmen, ob daraus Nähe wird."
         },
         "en": {
-          "title": "Ask before the hug",
-          "body": "Even a known preference for closeness is not consent for this moment. Wanting company does not automatically mean wanting touch.",
-          "callToAction": "“Would you like a hug?” Wait for a clear yes before moving closer. If the answer is no, stay kind and leave it there."
+          "title": "An invitation to a hug",
+          "body": "Closeness can be lovely when it suits you both right now. The invitation can be simple.",
+          "callToAction": "“Would you like a hug?” Let the answer decide whether it happens."
         }
       }
     },
@@ -1141,14 +1141,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Pause braucht keinen Bericht",
-          "body": "Wenn um Zeit allein gebeten wurde, muss die Pause weder erklärt noch anschließend ausgewertet werden. Spätere gemeinsame Pläne gelten nur, wenn sie vereinbart sind.",
-          "callToAction": "Sag „Alles klar, ich bin nebenan“ und lass die Person ungestört. Frage danach nicht, ob die Pause „etwas gebracht“ hat."
+          "title": "Nach der Pause wieder zusammenfinden",
+          "body": "Zeit für sich und gemeinsame Zeit müssen kein Gegensatz sein. Ein lockerer Vorschlag für später lässt beidem Platz.",
+          "callToAction": "„Genieß deine Ruhe. Wenn du später Lust hast, bin ich für eine Folge unserer Serie dabei.“"
         },
         "en": {
-          "title": "A break does not need a report",
-          "body": "If time alone has been requested, the break does not need an explanation or an evaluation afterwards. Later plans only stand if they were agreed.",
-          "callToAction": "Say “All right, I will be next door” and leave the person undisturbed. Afterwards, do not ask whether the break “worked”."
+          "title": "Reconnect after a break",
+          "body": "Time alone and time together do not have to compete. A loose invitation for later leaves room for both.",
+          "callToAction": "“Enjoy your quiet time. If you feel like it later, I am up for an episode of our series.”"
         }
       }
     },
@@ -1164,14 +1164,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Den bekannten Snack mitnehmen",
-          "body": "Wenn ein bestimmter Snack ausdrücklich gewünscht ist und du ohnehin einkaufst, nutze die bekannte Sorte. Menge oder Essverhalten brauchen keinen Kommentar.",
-          "callToAction": "Kaufe den vereinbarten Snack im üblichen Budget mit. Ist er ausverkauft, frage nach einem Ersatz statt ungefragt eine große Auswahl zu kaufen."
+          "title": "Die kleine Lieblingssache",
+          "body": "Ein vertrauter Snack ist eine persönliche Aufmerksamkeit, keine Antwort auf eine vermutete Stimmung oder einen Zyklustag.",
+          "callToAction": "„Ich komme an deinem Lieblingssnack vorbei. Soll ich dir etwas mitbringen?“"
         },
         "en": {
-          "title": "Pick up the familiar snack",
-          "body": "If a particular snack has been requested and you are shopping anyway, use the known choice. There is no need to comment on quantity or eating habits.",
-          "callToAction": "Pick up the agreed snack within the usual budget. If it is unavailable, check about a replacement instead of buying a large unrequested selection."
+          "title": "A little favourite",
+          "body": "A familiar snack is a personal gesture, not a response to an assumed mood or cycle day.",
+          "callToAction": "“I will pass the shop with your favourite snack. Would you like me to bring some?”"
         }
       }
     },
@@ -1189,14 +1189,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine kleine Runde konkret anbieten",
-          "body": "Die geschätzte frühe Phase sagt nichts über Lust auf Bewegung. Wenn ihr gemeinsame Zeit sucht, schlage einen kurzen Weg vor, ohne ein Fitnessziel daraus zu machen.",
-          "callToAction": "„Ich gehe zehn Minuten um den Block. Möchtest du mitkommen?“ Geh bei einem Nein allein; überrede nicht mit der Phasenanzeige."
+          "title": "Was vor dem Eisprung passiert",
+          "body": "Vor dem Eisprung reift eine Eizelle heran. Eine kleine gemeinsame Runde draußen ist eine Idee für diese Tage, wenn ihr beide Lust darauf habt.",
+          "callToAction": "„Ich würde nachher zehn Minuten rausgehen. Kommst du mit?“"
         },
         "en": {
-          "title": "Offer a specific short walk",
-          "body": "The estimated early phase says nothing about wanting exercise. If you are looking for time together, suggest a short route without turning it into a fitness goal.",
-          "callToAction": "“I am going around the block for ten minutes. Would you like to join me?” If not, go on your own; do not use the phase display to persuade."
+          "title": "What happens before ovulation",
+          "body": "An egg develops before ovulation. A short walk together is one idea for these days, if you both feel like it.",
+          "callToAction": "“I am thinking of going out for ten minutes later. Would you like to join me?”"
         }
       }
     },
@@ -1214,14 +1214,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Kleinreparatur abschließen",
-          "body": "Eine Phasenschätzung sagt nichts über Arbeitskraft. Wenn eine kleine gemeinsame Reparatur vereinbart ist und du sie sicher beherrschst, übernimm sie vollständig.",
-          "callToAction": "Erledige die vereinbarte Kleinigkeit, etwa eine lose Schrankgriffschraube. Räume Werkzeug und Verpackungen danach weg; keine Elektroarbeiten auf Verdacht."
+          "title": "Ein neuer Aufbau im Zyklus",
+          "body": "Östrogen unterstützt den Aufbau der Gebärmutterschleimhaut. Für eure gemeinsame Zeit könnte ein kleines Picknick schön sein: ein vertrautes Essen an einem anderen Ort.",
+          "callToAction": "„Sollen wir am Wochenende ein kleines Picknick machen? Ich kann die Sachen packen.“"
         },
         "en": {
-          "title": "Finish an agreed small repair",
-          "body": "A phase estimate says nothing about someone’s capacity. If a small shared repair is agreed and you know how to do it safely, handle the whole job.",
-          "callToAction": "Finish the agreed small repair, such as tightening a loose cupboard handle. Put tools and packaging away afterwards; do not improvise electrical work."
+          "title": "Building up during the cycle",
+          "body": "Oestrogen helps the uterine lining grow. A small picnic could be a nice way to spend time together: familiar food somewhere different.",
+          "callToAction": "“Shall we have a small picnic this weekend? I can pack what we need.”"
         }
       }
     },
@@ -1239,14 +1239,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Einladung, keine Phasenaufgabe",
-          "body": "Ihr möchtet etwas fürs Wochenende planen? Die geschätzte Phase ist kein Grund, mehr Unternehmungslust zu erwarten.",
-          "callToAction": "Schlage einen konkreten Ort und eine Zeit vor: „Samstag um 15 Uhr ins Café?“ Lass Absagen und einen anderen Vorschlag gleichberechtigt zu."
+          "title": "Der Kalender lässt Spielraum",
+          "body": "Zyklen können von Monat zu Monat unterschiedlich lang sein. Die frühe Phase ist deshalb geschätzt. Für euer Wochenende könnte eine Ausstellung mit Kaffeepause passen.",
+          "callToAction": "„Hättest du Samstag Lust auf die kleine Ausstellung? Wir könnten uns danach einen Kaffee holen.“"
         },
         "en": {
-          "title": "An invitation, not a phase assignment",
-          "body": "Want to plan something for the weekend? The estimated phase is not a reason to expect more enthusiasm for activities.",
-          "callToAction": "Suggest a specific place and time: “Café on Saturday at 3?” Leave equal room for declining or suggesting something else."
+          "title": "Leave room around the calendar",
+          "body": "Cycle length can vary from month to month, so this early-phase label is an estimate. An exhibition with a coffee stop could make a nice weekend plan.",
+          "callToAction": "“Would you fancy that small exhibition on Saturday? We could get a coffee afterwards.”"
         }
       }
     },
@@ -1264,14 +1264,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Den Alltag nicht neu bewerten",
-          "body": "Eine geschätzte spätere Phase macht aus einem normalen Abend keinen Betreuungsfall. Halte dich zuerst an eure bestehenden Absprachen.",
-          "callToAction": "Erledige deine heute vereinbarte Aufgabe, etwa die Küche, ohne sie als besondere Hilfe wegen der Phase anzukündigen."
+          "title": "Die Zeit nach dem Eisprung",
+          "body": "Nach dem Eisprung unterstützt Progesteron die Gebärmutterschleimhaut. Dieser Abschnitt heißt Lutealphase und reicht bis zur nächsten Periode.",
+          "callToAction": "„Lust auf einen Filmabend? Ich suche zwei Filme aus, die wir beide noch sehen wollten.“"
         },
         "en": {
-          "title": "Do not reinterpret an ordinary day",
-          "body": "An estimated later phase does not turn an ordinary evening into a care situation. Start with the agreements you already have.",
-          "callToAction": "Do your agreed job for today, such as cleaning the kitchen, without announcing it as special help because of the phase."
+          "title": "The time after ovulation",
+          "body": "After ovulation, progesterone supports the uterine lining. This stage is called the luteal phase and lasts until the next period.",
+          "callToAction": "“Fancy a film night? I can pick two films we both wanted to see.”"
         }
       }
     },
@@ -1289,14 +1289,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Entscheidung nicht umdeuten",
-          "body": "Hat die andere Person einen Plan abgelehnt? Die spätere Phasenschätzung ist keine Erklärung dafür und kein Grund, die Antwort weniger ernst zu nehmen.",
-          "callToAction": "Bestätige die konkrete Entscheidung: „Okay, dann buche ich nicht.“ Suche keine Erklärung in der Phasenanzeige."
+          "title": "Nicht jeder Zyklus läuft gleich",
+          "body": "Auch die Zeit zwischen Eisprung und nächster Periode ist unterschiedlich lang. Der Abschnitt dient zur Orientierung; euren Abend könnt ihr nach euren Wünschen gestalten.",
+          "callToAction": "„Möchtest du heute lieber ins Café oder zu Hause eine Runde spielen?“"
         },
         "en": {
-          "title": "Do not reinterpret a decision",
-          "body": "Has the other person declined a plan? The later-phase estimate is not an explanation or a reason to take the answer less seriously.",
-          "callToAction": "Confirm the actual decision: “Okay, then I will not book it.” Do not look for an explanation in the phase display."
+          "title": "Cycles do not all run alike",
+          "body": "The time between ovulation and the next period varies too. The stage offers context; you can plan your evening around what you both want.",
+          "callToAction": "“Would you rather go to the café or play something at home today?”"
         }
       }
     },
@@ -1314,14 +1314,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Frist selbst im Blick behalten",
-          "body": "Wenn ihr einen Plan vorerst offenlasst, sollte nicht eine Person allein an die Stornofrist denken müssen. Die Phase legt eure Entscheidung nicht fest.",
-          "callToAction": "Übernimm nach Absprache die eine Buchungsfrist und setze dir eine Erinnerung. Melde dich rechtzeitig mit den Optionen, nicht erst nach Ablauf."
+          "title": "Pläne mit etwas Spielraum",
+          "body": "Die nächste Blutung lässt sich nicht immer taggenau vorhersagen. Flexible Buchungen sind deshalb praktisch, wenn ihr beim Planen Spielraum möchtet.",
+          "callToAction": "Übernimm für euren nächsten gemeinsamen Ausflug die Suche nach einer Option, die ihr noch unkompliziert ändern könnt."
         },
         "en": {
-          "title": "Keep track of one deadline",
-          "body": "If you are leaving a plan open, one person should not have to remember the cancellation deadline alone. The phase does not decide for you.",
-          "callToAction": "Agree to track that booking deadline and set your own reminder. Bring the options back in time, not after the deadline has passed."
+          "title": "Plans with a little flexibility",
+          "body": "The next period cannot always be predicted to the day. Flexible bookings are useful when you both want room to adjust.",
+          "callToAction": "For your next outing together, find an option that is easy to change if you need to."
         }
       }
     },
@@ -1339,14 +1339,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Nähe nicht in den Kalender eintragen",
-          "body": "Das geschätzte fruchtbare Fenster bestätigt keinen Eisprung und sagt nichts über Lust auf Nähe. Es ist kein Terminauftrag.",
-          "callToAction": "Schlage eine gemeinsame Aktivität ohne sexuelle Erwartung vor, etwa eine Folge eurer Serie. Verknüpfe die Einladung nicht mit dem angezeigten Fenster."
+          "title": "Ein Fenster ist kein Nachweis",
+          "body": "Beim Eisprung wird eine Eizelle freigesetzt. Lunaras geschätztes Fenster bestätigt keinen Eisprung und sagt nichts über Lust auf Nähe.",
+          "callToAction": "„Wollen wir heute zusammen unsere Serie weiterschauen?“ Eine Einladung für Zeit zu zweit, ohne weitere Erwartung."
         },
         "en": {
-          "title": "Do not schedule closeness from a forecast",
-          "body": "The estimated fertile window does not confirm ovulation or say anything about wanting intimacy. It is not an appointment instruction.",
-          "callToAction": "Suggest time together without a sexual expectation, such as an episode of your series. Do not tie the invitation to the displayed window."
+          "title": "A window is not confirmation",
+          "body": "Ovulation is the release of an egg. Lunara’s estimated window does not confirm ovulation or say anything about wanting intimacy.",
+          "callToAction": "“Shall we watch more of our series tonight?” An invitation to time together, with no further expectation."
         }
       }
     },
@@ -1364,14 +1364,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein Planungsgespräch braucht Zustimmung",
-          "body": "Wenn Familienplanung bereits euer Thema ist, legt die App weder Gesprächszeit noch Entscheidung fest. Lunara ist keine Verhütungsmethode.",
-          "callToAction": "„Möchtest du am Wochenende über unsere offenen Fragen sprechen?“ Notiere bei Zustimmung zunächst deine eigenen Fragen; fordere keine weiteren Zyklusdaten an."
+          "title": "Fragen zur Familienplanung teilen",
+          "body": "Fruchtbare Tage liegen rund um den Eisprung, dessen Zeitpunkt variieren kann. Lunara ist keine Verhütungsmethode; das Fenster ist kein sicherer Plan.",
+          "callToAction": "Wenn Familienplanung euer gemeinsames Thema ist: „Wollen wir am Wochenende unsere offenen Fragen sammeln?“"
         },
         "en": {
-          "title": "Agree on a planning conversation",
-          "body": "If family planning is already a topic for you both, the app does not decide when to talk or what to decide. Lunara is not a contraceptive method.",
-          "callToAction": "“Would you like to discuss our open questions this weekend?” If agreed, start by writing your own questions; do not request more cycle data."
+          "title": "Share your family-planning questions",
+          "body": "Fertile days are around ovulation, whose timing can vary. Lunara is not a contraceptive method; the window is not a reliable plan.",
+          "callToAction": "If family planning is already a shared topic: “Shall we collect our open questions this weekend?”"
         }
       }
     },
@@ -1389,14 +1389,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Druck im Gespräch unterbrechen",
-          "body": "Wenn andere nach Nachwuchs fragen, darfst du keine Wünsche aus einem geteilten Schätzfenster ableiten. Die private Anzeige gehört nicht in die Antwort.",
-          "callToAction": "Wenn ihr diese Grenze vereinbart habt, antworte: „Das besprechen wir nicht in der Runde.“ Wechsle das Thema, statt die andere Person für euch antworten zu lassen."
+          "title": "Euer Date, nicht der Zyklusplan",
+          "body": "Ein Eisprung findet nicht in jedem Zyklus statt. Unabhängig vom geschätzten Fenster darf ein Date einfach Zeit zu zweit sein.",
+          "callToAction": "„Wie wäre es mit unserem Lieblingsrestaurant am Freitag?“ Plane mit dem, worauf ihr beide Lust habt."
         },
         "en": {
-          "title": "Interrupt pressure in a conversation",
-          "body": "If other people ask about children, do not infer wishes from a shared estimated window. The private display is not part of the answer.",
-          "callToAction": "If you have agreed on this boundary, say: “We are not discussing that here.” Change the subject instead of leaving the other person to answer for you both."
+          "title": "Your date, not a cycle schedule",
+          "body": "Ovulation does not happen in every cycle. Whatever the estimated window says, a date can simply be time together.",
+          "callToAction": "“How about our favourite restaurant on Friday?” Plan around what you both actually want."
         }
       }
     },
@@ -1418,14 +1418,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Bei Krämpfen die Vorbereitung übernehmen",
-          "body": "Krämpfe wurden geteilt; Stärke und gewünschte Hilfe kennst du dadurch nicht. Wenn Wärme gewünscht wird, kannst du sie vorbereiten, ohne eine Wirkung zu versprechen.",
-          "callToAction": "Biete einmal eine Wärmflasche an. Nach einem Ja: Herstellerangaben beachten, in ein Tuch wickeln und die Temperatur selbst prüfen lassen. Ein Nein beendet das Angebot."
+          "title": "Bei Krämpfen etwas Wärme?",
+          "body": "Wärme kann Periodenkrämpfe lindern. Wenn sie gerade gewünscht ist, kannst du die Vorbereitung übernehmen.",
+          "callToAction": "„Magst du eine Wärmflasche?“ Wenn ja: Herstellerangaben beachten, in ein Tuch wickeln und die Temperatur selbst prüfen lassen."
         },
         "en": {
-          "title": "Handle the setup when cramps are shared",
-          "body": "Cramps were shared; that does not tell you their severity or what help is wanted. If warmth is requested, handle the preparation without promising relief.",
-          "callToAction": "Offer a hot-water bottle once. After a yes, follow its instructions, wrap it in a cloth and let the person check the temperature. A no ends the offer."
+          "title": "Some warmth for cramps?",
+          "body": "Warmth may ease period cramps. If it is wanted, you can take care of getting it ready.",
+          "callToAction": "“Would you like a hot-water bottle?” If yes, follow its instructions, wrap it in a cloth and let the person check the temperature."
         }
       }
     },
@@ -1447,14 +1447,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Das Telefonat aus dem Zimmer nehmen",
-          "body": "Kopfschmerzen wurden geteilt. Daraus folgt weder eine Ursache noch der Wunsch nach Dunkelheit. Deine eigene Geräuschquelle kannst du leicht verlagern.",
-          "callToAction": "Wenn Ruhe gewünscht ist, führe dein nächstes Telefonat außerhalb des Zimmers. Frage vor Änderungen an Licht oder Fenstern, statt den Raum ungefragt abzudunkeln."
+          "title": "Weniger Geräusche im Hintergrund",
+          "body": "Wenn der Kopf weh tut, ist ein voller gemeinsamer Raum vielleicht gerade nicht angenehm. Eine ruhigere Umgebung lässt sich auch ohne großen Umbau anbieten.",
+          "callToAction": "„Ich kann mein Telefonat ins andere Zimmer verlegen, wenn dir etwas Ruhe guttun würde.“"
         },
         "en": {
-          "title": "Take your call out of the room",
-          "body": "A headache was shared. Do not infer a cause or a wish for darkness. Moving your own source of noise is a small practical option.",
-          "callToAction": "If quiet is wanted, take your next call outside the room. Ask before changing lights or windows instead of darkening the room uninvited."
+          "title": "Less background noise",
+          "body": "With a headache, a busy shared room may not feel pleasant. You can offer a quieter setting without rearranging everything.",
+          "callToAction": "“I can take my call in the other room if some quiet would be welcome.”"
         }
       }
     },
@@ -1476,14 +1476,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Bei Müdigkeit einen Schritt fertig machen",
-          "body": "Müdigkeit wurde geteilt. Das ist kein Urteil über Leistungsfähigkeit. Biete eine bereits gemeinsame Aufgabe an, statt eine neue Aufgabenliste anzufordern.",
-          "callToAction": "„Ich kann heute den Abwasch inklusive Aufräumen übernehmen.“ Nach Zustimmung erledige ihn vollständig; frage nicht zwischendurch, was als Nächstes zu tun ist."
+          "title": "Wenn der Tag schon lang genug war",
+          "body": "Bei Müdigkeit ist ein überschaubares Angebot oft hilfreicher als eine lange Liste von Ideen. Eine gemeinsame Aufgabe für heute zu übernehmen ist ein guter Anfang.",
+          "callToAction": "„Ich übernehme heute den Abwasch und räume die Küche auf. Dann ist das schon erledigt.“"
         },
         "en": {
-          "title": "Finish one job when tiredness is shared",
-          "body": "Tiredness was shared. It is not a judgement of ability. Offer to cover an existing shared job instead of requesting a new task list.",
-          "callToAction": "“I can do the dishes and put everything away today.” After agreement, finish the job without asking what to do next at each step."
+          "title": "When the day has been long enough",
+          "body": "With tiredness, a manageable offer may be more welcome than a long list of ideas. Covering one shared job today is a good place to start.",
+          "callToAction": "“I can do the dishes and tidy the kitchen tonight. Then that is taken care of.”"
         }
       }
     },
@@ -1505,14 +1505,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Bei Übelkeit keine Essenspflicht",
-          "body": "Übelkeit wurde geteilt. Daraus folgt keine bestimmte passende Mahlzeit. Stelle nicht ungefragt Essen hin und verlange keine Erklärung für fehlenden Appetit.",
-          "callToAction": "Biete einmal Wasser oder das ausdrücklich gewünschte Getränk an. Bei „gerade nichts“ räume dein eigenes Essen weg, falls dessen Nähe stört, und frage nicht weiter."
+          "title": "Ein kleines Angebot bei Übelkeit",
+          "body": "Bei Übelkeit braucht es kein Gespräch über das richtige Essen. Ein schlichtes Angebot lässt Platz dafür, was gerade angenehm ist.",
+          "callToAction": "„Magst du ein Glas Wasser, oder lieber gerade nichts?“"
         },
         "en": {
-          "title": "No pressure to eat with nausea",
-          "body": "Nausea was shared. It does not identify a suitable meal. Do not put food down uninvited or request an explanation for not wanting to eat.",
-          "callToAction": "Offer water or an explicitly requested drink once. If the answer is “nothing now”, move your own food away if its presence bothers them, and stop asking."
+          "title": "A small offer with nausea",
+          "body": "Nausea does not need a discussion about the right meal. A simple offer leaves room for what feels comfortable now.",
+          "callToAction": "“Would you like a glass of water, or nothing just now?”"
         }
       }
     },
@@ -1533,14 +1533,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine Rückmeldung vom Tisch nehmen",
-          "body": "Stress wurde geteilt. Wenn eine gemeinsame organisatorische Antwort offen ist, kannst du genau diese übernehmen; das ersetzt kein Gespräch, falls eines gewünscht ist.",
-          "callToAction": "„Ich kann unserer Verabredung die schon besprochene Uhrzeit bestätigen.“ Schicke nach Zustimmung nur diese Antwort, ohne private Gründe zu nennen."
+          "title": "Eine Nachricht weniger auf der Liste",
+          "body": "Wenn gerade viel zusammenkommt, kann eine offene gemeinsame Absprache zusätzlich im Kopf bleiben. Du könntest diesen kleinen Teil übernehmen.",
+          "callToAction": "„Ich kann unseren Freunden die besprochene Uhrzeit bestätigen. Soll ich das übernehmen?“"
         },
         "en": {
-          "title": "Take care of one pending reply",
-          "body": "Stress was shared. If a shared arrangement needs a reply, offer to handle just that; it does not replace a conversation if one is wanted.",
-          "callToAction": "“I can confirm the time we already agreed with our friends.” After agreement, send just that reply without sharing private reasons."
+          "title": "One less message on the list",
+          "body": "When things feel busy, an unfinished shared arrangement can be one more thing to keep track of. You could cover that small part.",
+          "callToAction": "“I can confirm the time we agreed with our friends. Shall I handle that?”"
         }
       }
     },
@@ -1562,14 +1562,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Einen zusätzlichen Weg ersparen",
-          "body": "Rückenschmerzen wurden geteilt. Biete einen Gegenstand in Reichweite an, keine Behandlung, Übung oder ungefragte Berührung.",
-          "callToAction": "„Ich gehe gerade ins andere Zimmer. Soll ich dein Ladegerät mitbringen?“ Lege es nach einem Ja am gewünschten Platz ab, ohne den Sitzplatz umzubauen."
+          "title": "Das Nötige in Reichweite",
+          "body": "Bei Rückenschmerzen kann ein zusätzlicher Weg lästig sein. Etwas mitzubringen ist eine einfache Unterstützung, ohne eine Behandlung vorzuschlagen.",
+          "callToAction": "„Ich gehe gerade ins andere Zimmer. Soll ich dein Ladegerät mitbringen?“"
         },
         "en": {
-          "title": "Save one extra trip",
-          "body": "Back pain was shared. Offer to bring an item within reach, not a treatment, exercise or uninvited touch.",
-          "callToAction": "“I am going to the other room. Shall I bring your charger?” After a yes, leave it in the requested place without rearranging the seating."
+          "title": "What you need, within reach",
+          "body": "With back pain, an extra trip can be unwelcome. Bringing something over is a simple offer, not a treatment suggestion.",
+          "callToAction": "“I am going into the other room. Shall I bring your charger?”"
         }
       }
     },
@@ -1587,14 +1587,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Den vereinbarten Vorrat auffüllen",
-          "body": "Eine geteilte Menstruationsphase verrät keine Beschwerden. Falls du vereinbarungsgemäß gemeinsame Badvorräte prüfst, bleib bei dieser Aufgabe.",
-          "callToAction": "Fülle Toilettenpapier und die abgesprochenen Vorräte auf. Öffne keine privaten Fächer und frage nicht nach Blutungsstärke oder verbrauchten Produkten."
+          "title": "Tag eins heißt: neuer Zyklus",
+          "body": "Der erste Blutungstag zählt als erster Zyklustag. Der Kalender beginnt neu; eure vertrauten kleinen Routinen können ganz normal weitergehen.",
+          "callToAction": "Nimm beim nächsten Einkauf die bereits besprochenen Periodenprodukte mit. Dann ist dieser Vorrat wieder aufgefüllt."
         },
         "en": {
-          "title": "Refill the agreed supplies",
-          "body": "A shared menstrual phase does not reveal symptoms. If checking shared bathroom supplies is your agreed job, stick to that task.",
-          "callToAction": "Refill toilet paper and the supplies you have agreed on. Do not open private drawers or ask about flow or product use."
+          "title": "Day one starts a new cycle",
+          "body": "The first day of bleeding counts as cycle day one. The calendar starts again; your familiar small routines can carry on as usual.",
+          "callToAction": "Pick up the period products you have already agreed on during your next shop. Then that supply is topped up."
         }
       }
     },
@@ -1612,14 +1612,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Ein Gespräch ohne Zyklusvorspann",
-          "body": "Die geteilte Menstruationsphase verlangt keinen täglichen Gesundheitsbericht. Wenn ihr sowieso sprecht, knüpfe an etwas an, das freiwillig erzählt wurde.",
-          "callToAction": "„Wie ging die Geschichte mit deinem Projekt weiter?“ Wenn keine Zeit zum Reden ist, lass das Gespräch offen, ohne nach Befinden oder Einträgen nachzuhaken."
+          "title": "Was bei der Periode passiert",
+          "body": "Bei der Periode wird Gebärmutterschleimhaut abgestoßen. Im Gespräch ist daneben Platz für alles andere, was den Tag ausmacht: Arbeit, schöne Momente oder eure nächsten Pläne.",
+          "callToAction": "„Was war heute bei dir los?“ Lass im Gespräch Platz für das, was tatsächlich erzählt werden möchte."
         },
         "en": {
-          "title": "A conversation without a cycle preface",
-          "body": "A shared menstrual phase does not call for a daily health report. If you are talking anyway, follow up on something voluntarily mentioned.",
-          "callToAction": "“What happened next with your project?” If there is no time to talk, leave it there without following up about symptoms or entries."
+          "title": "What happens during a period",
+          "body": "During a period, the uterine lining is shed. There is room in your conversation for everything else in the day too: work, good moments or your next plans.",
+          "callToAction": "“What has your day been like?” Leave space for whatever they actually want to share."
         }
       }
     },
@@ -1637,14 +1637,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Essen mitsamt Einkauf übernehmen",
-          "body": "Wenn du heute das Kochen anbietest, gehört die Vorbereitung dazu. Die geteilte Phase gibt weder ein Menü vor noch sagt sie etwas über Appetit.",
-          "callToAction": "Schlage ein bekanntes Gericht innerhalb eures Budgets vor. Nach Zustimmung besorge die Zutaten, koche und räume auf; fordere keine Einkaufsliste an."
+          "title": "Einmal kochen, zweimal genießen",
+          "body": "Eine Periode dauert meist mehrere Tage. Eine Extra-Portion eures Lieblingsgerichts macht gleich zwei gemeinsame Abende etwas einfacher.",
+          "callToAction": "„Ich koche heute unser übliches Curry und mache genug für morgen mit. Klingt das gut?“"
         },
         "en": {
-          "title": "Take care of dinner and its shopping",
-          "body": "If you offer to cook today, preparation belongs to the job. The shared phase does not prescribe a menu or tell you about appetite.",
-          "callToAction": "Suggest a familiar meal within your budget. After agreement, buy the ingredients, cook and clean up; do not ask for a shopping list."
+          "title": "Cook once, enjoy it twice",
+          "body": "A period usually lasts several days. An extra portion of a favourite meal can make two shared evenings a little easier.",
+          "callToAction": "“I can make our usual curry tonight, with enough for tomorrow too. Does that sound good?”"
         }
       }
     },
@@ -1662,14 +1662,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Eine offene Besorgung erledigen",
-          "body": "Die prämenstruelle Schätzung ist kein sicherer Beginn. Wenn eine Besorgung ohnehin vereinbart ist, kannst du sie erledigen, ohne nach neuen Daten zu fragen.",
-          "callToAction": "Nimm die bereits vereinbarten Periodenprodukte beim Einkauf mit. Kaufe die bekannte Sorte und bestätige nur die Erledigung, nicht den erwarteten Zyklustag."
+          "title": "Was prämenstruell bedeutet",
+          "body": "Prämenstruell heißt vor der Periode. Beschwerden sind individuell. Eine vertraute kleine Besorgung lässt sich in dieser Zeit gut mit dem nächsten Einkauf verbinden.",
+          "callToAction": "„Ich gehe morgen einkaufen. Soll ich etwas von deinen üblichen Vorräten mitnehmen?“"
         },
         "en": {
-          "title": "Finish an agreed errand",
-          "body": "The premenstrual estimate is not a confirmed start. If an errand is already agreed, you can finish it without asking for more data.",
-          "callToAction": "Pick up the period products already agreed on while shopping. Buy the familiar type and confirm only that the errand is done, not the expected cycle day."
+          "title": "What premenstrual means",
+          "body": "Premenstrual means before a period. Symptoms differ between people. A familiar small errand can fit into your next shopping trip.",
+          "callToAction": "“I am shopping tomorrow. Would you like me to pick up any of your usual supplies?”"
         }
       }
     },
@@ -1687,14 +1687,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Beim konkreten Ärger bleiben",
-          "body": "Wenn eine Absprache nicht funktioniert hat, ist die geschätzte Phase keine Antwort darauf. Klärt die tatsächliche Aufgabe, ohne ein Stimmungsetikett zu vergeben.",
-          "callToAction": "„Wir hatten 18 Uhr vereinbart und ich war zu spät. Nächstes Mal melde ich mich vorher.“ Versprich nur die Änderung, die du auch umsetzen kannst."
+          "title": "Körperliche Beschwerden mitdenken",
+          "body": "Vor der Periode kann auch der Schlaf beeinträchtigt sein. Das ist eine Möglichkeit, keine Erklärung für eine Reaktion oder einen Streit.",
+          "callToAction": "Wenn von schlechtem Schlaf erzählt wird: „Magst du kurz erzählen, was dich heute beschäftigt?“"
         },
         "en": {
-          "title": "Stay with the actual disagreement",
-          "body": "If an agreement did not work, the estimated phase is not an answer. Address the actual task without assigning a mood label.",
-          "callToAction": "“We agreed on 6 and I was late. Next time I will let you know beforehand.” Promise only a change you can follow through on."
+          "title": "Remember the physical side",
+          "body": "Sleep can be affected before a period too. That is a possibility, not an explanation for a reaction or a disagreement.",
+          "callToAction": "If poor sleep is mentioned: “Would you like to tell me what is on your mind today?”"
         }
       }
     },
@@ -1712,14 +1712,14 @@
       "enabled": true,
       "translations": {
         "de": {
-          "title": "Die Umbuchung nicht zurückgeben",
-          "body": "Habt ihr entschieden, einen Plan zu ändern? Die geschätzte Phase muss weder Grund noch Erklärung sein. Übernimm die vereinbarte organisatorische Hälfte.",
-          "callToAction": "Ändere nach Absprache die Reservierung und bestätige die neue Zeit. Lass keine offene Rückfrage beim Anbieter liegen, die die andere Person später klären muss."
+          "title": "Diesen Monat kann es anders sein",
+          "body": "Prämenstruelle Beschwerden sind nicht jeden Monat gleich. Ein früher hilfreicher Plan muss deshalb heute nicht wieder passen.",
+          "callToAction": "Falls ihr euren Abend ändern möchtet, übernimm die Umbuchung und bestätige die neue Zeit. So bleibt die Organisation nicht offen."
         },
         "en": {
-          "title": "Do not hand the rebooking back",
-          "body": "Have you decided to change a plan? The estimated phase need not be the reason or explanation. Handle the part of organising you agreed to take on.",
-          "callToAction": "Change the reservation as agreed and confirm the new time. Do not leave an unanswered question with the venue for the other person to sort out later."
+          "title": "This month may be different",
+          "body": "Premenstrual symptoms are not identical every month. A plan that worked before may not fit today.",
+          "callToAction": "If you decide to change your evening plans, handle the rebooking and confirm the new time. Then the organising is settled."
         }
       }
     }

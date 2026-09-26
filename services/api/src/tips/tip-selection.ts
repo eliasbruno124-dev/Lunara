@@ -17,13 +17,17 @@ export function selectPartnerTip(
     return key(a).localeCompare(key(b)) || a.id.localeCompare(b.id);
   });
   const personal = ordered.filter((tip) => tip.category === TipCategory.USER_DEFINED);
-  const matches = (tip: SelectableTip) => Boolean(
-    tip.applicablePhase || tip.applicableSymptoms.length ||
-    carePreferenceScore(tip, context.carePreferences) > 0 ||
-    tip.category === TipCategory.USER_DEFINED || tip.feedback.some((f) => f.helpful === true),
-  );
-  const relevant = spreadCategories(ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && matches(tip)));
-  const general = spreadCategories(ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED && !matches(tip)));
+  const contextual = (tip: SelectableTip) => Boolean(tip.applicablePhase || tip.applicableSymptoms.length);
+  const preferred = (tip: SelectableTip) => carePreferenceScore(tip, context.carePreferences) > 0 || tip.feedback.some((f) => f.helpful === true);
+  const builtIns = ordered.filter((tip) => tip.category !== TipCategory.USER_DEFINED);
+  const shared = spreadCategories(builtIns.filter(contextual));
+  const preferences = spreadCategories(builtIns.filter((tip) => !contextual(tip) && preferred(tip)));
+  const general = spreadCategories(builtIns.filter((tip) => !contextual(tip) && !preferred(tip)));
+  // A broad preference such as household help must not crowd a currently
+  // shared cycle/symptom context out of its two daily slots. Preferences still
+  // rank first when there is no shared context, and remain in the variant deck.
+  const relevant = shared.length ? shared : preferences;
+  const rest = shared.length ? preferences : [];
   const rotate = (pool: SelectableTip[], offset: number) => {
     if (!pool.length) return pool;
     const index = ((offset % pool.length) + pool.length) % pool.length;
@@ -37,7 +41,7 @@ export function selectPartnerTip(
   const index = relevant.length && general.length
     ? Math.floor(day / 3) * (primary === relevant ? 2 : 1) + (primary === relevant ? Math.min(slot, 1) : 0)
     : day;
-  const deck = [...rotate(personal, day), ...rotate(primary, index), ...rotate(secondary, day)];
+  const deck = [...rotate(personal, day), ...rotate(primary, index), ...rotate(rest, day), ...rotate(secondary, day)];
   return deck[variant % deck.length];
 }
 

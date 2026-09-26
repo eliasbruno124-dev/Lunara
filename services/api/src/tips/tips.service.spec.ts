@@ -191,6 +191,21 @@ describe('TipsService privacy-aware context', () => {
     const service = new TipsService(prismaFor([tip], {}) as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
     expect((await service.today({ ...partner, preferredLanguage: PreferredLanguage.EN })).tip).toMatchObject({ title: 'Own wish', body: 'Please use my words.', callToAction: 'Please bring my usual tea.', selectionReason: 'PERSONAL_REQUEST', source: null });
   });
+
+  it('returns the factual phase source only after sharing allows the card, including with a liked action', async () => {
+    const tip = selectableTip({ ...TIP_CATALOG[65]! });
+    const prisma = prismaFor([tip], { sharePhase: true });
+    prisma.periodEvent.findFirst.mockResolvedValue({ startDate: new Date('2026-09-13T00:00:00Z'), endDate: new Date('2026-09-17T00:00:00Z') });
+    prisma.carePreferences.findUnique.mockResolvedValue({ likesHouseholdHelp: true, customHelpfulActions: [] } as never);
+    const service = new TipsService(prisma as never, { calculateForUser: jest.fn().mockResolvedValue(prediction) } as never);
+    expect((await service.today(partner)).tip).toMatchObject({
+      id: tip.id, selectionReason: 'SHARED_CONTEXT',
+      source: { title: 'NHS: Menstrual cycle', url: 'https://www.nhs.uk/conditions/periods/fertility-in-the-menstrual-cycle/' },
+    });
+    const shared = await prisma.sharingSettings.findUnique() as SharingSettings;
+    prisma.sharingSettings.findUnique.mockResolvedValue({ ...shared, sharePhase: false });
+    expect((await service.today(partner)).tip).toBeNull();
+  });
 });
 
 function prismaFor(

@@ -1,98 +1,99 @@
-# Qualität der Unterstützungstipps
+# Qualität der Partnertipps
 
-## Vorrang für die Person
+## Kurz verstehen, etwas Passendes anbieten
 
-Unter **Einstellungen → Was mir wirklich hilft** kann die Tracker-Person
-eigene konkrete Wünsche ausdrücklich für ihr Partnerkonto freigeben und
-wieder deaktivieren. Diese Texte werden unverändert angezeigt, ohne
-automatische Übersetzung oder Umschreibung. Sie haben bei der Auswahl Vorrang.
-Keine vorhandenen privaten Notizen werden dafür verwendet oder freigegeben.
+Alle 71 deutschen und englischen Karten wurden für 1.2.1 überarbeitet.
+Der Maßstab ist kurzer verständlicher Kontext plus eine brauchbare Idee:
+ein konkretes Angebot, eine kleine Alltagserleichterung oder gemeinsame Zeit.
+Die Texte sollen nach Partnerschaft klingen, nicht nach einer Belehrung.
+Hinweise zu Grenzen stehen dort, wo sie nötig sind, statt auf jeder Karte
+dieselben Verbote zu wiederholen.
 
-Die Quelle der Auswahl ist sichtbar: persönlicher Wunsch, hinterlegte
-Vorliebe, ausdrücklich geteiltes Symptom, freigegebener Zykluskontext oder
-allgemeine Idee. Die letzte Kategorie behauptet keinen aktuellen Bedarf.
-Eine geschätzte Zyklusphase belegt weder Schmerz noch Stimmung oder Energie.
+Die über `sharePhase` oder `shareFertileWindow` erreichbaren Phasenkarten
+51–59 und 66–71 enthalten jeweils einen kurzen erklärenden Zyklusfakt.
+Karten mit konkretem Symptomkontext reagieren nur auf ausdrücklich freigegebene Symptome.
+Allgemeine Karten brauchen keine Gesundheitsdaten. Ein Picknick oder Filmabend
+ist eine eigene Date-Idee, keine aus Hormonen abgeleitete Empfehlung.
+Keine Phase belegt Stimmung, Leistungsfähigkeit oder sexuelle Wünsche.
 
-## Redaktioneller Maßstab: Situation, Aufgabe, Grenze
+Als Anregung für das Format dienten nur die öffentlichen Beschreibungen von
+[Flo for Partners](https://flo.health/product-tour/flo-for-partners) und
+[Flo stories](https://help.flo.health/hc/en-us/articles/360061400591-What-are-Flo-stories):
+kurze Wissensstücke neben praktischen Ideen. Bezahlte Premium-Inhalte wurden
+nicht eingesehen oder übernommen. Die Lunara-Texte sind eigenständig; eine
+Gleichwertigkeit mit Flo Premium wird nicht behauptet.
 
-Alle 71 deutschen und englischen Einträge wurden für 1.2.0 neu bearbeitet.
-Jeder Eintrag benennt eine erkennbare Situation, einen begrenzten nächsten
-Schritt und eine relevante Grenze. Die Handlungsanweisung muss auch ohne
-versteckte Gesundheitsdaten verständlich bleiben. Beispiele:
+## Die Person bleibt wichtiger als der Katalog
 
-- Küche: Geschirr erledigen, Arbeitsfläche abwischen, nutzbaren Zustand herstellen.
-- Einkauf: vorhandene Liste und bekannte Vorräte prüfen, einkaufen, einräumen;
-  die Planungsarbeit nicht mit „Schreib mir eine Liste“ zurückgeben.
-- Ruhe: das eigene Telefonat verlagern, nicht ungefragt fremde Geräte ändern.
-- Gespräch: ausreden lassen und einen konkreten Punkt zurückspiegeln, statt
-  sofort eigene Geschichten, Erklärungen oder Ratschläge anzuschließen.
-- Planänderung: nach einer gemeinsamen Entscheidung die Umbuchung selbst
-  abschließen, ohne privaten Zyklusgrund an Dritte weiterzugeben.
+Die Tracker-Person kann unter **Einstellungen → Was mir wirklich hilft**
+eigene Wünsche ausdrücklich für ihr Partnerkonto teilen und wieder deaktivieren.
+Sie haben bei der Auswahl Vorrang und werden wortgetreu angezeigt, ohne
+automatische Übersetzung. Private Notizen werden dafür nicht verwendet.
+Die Partner-Karten verweisen nicht auf diese nur im Tracker-Konto vorhandene
+Bearbeitungsansicht.
 
-Die Karten sind Angebote, keine tägliche To-do-Liste. Wenn die Situation nicht
-passt, darf die Partnerperson weiterblättern, ohne die Tracker-Person mit einer
-neuen Bedarfsabfrage zu beschäftigen. Bereits vereinbarte eigene oder gemeinsame
-Aufgaben brauchen keinen neuen Arbeitsauftrag. Berührung, Ausgaben, persönliche
-Sachen, Nachrichten an Dritte und Planänderungen brauchen die passende Absprache.
-Ein Nein beendet das Angebot. Es gibt keine Pflicht, Hilfe zu begründen oder
-deren Wirkung später zu bewerten.
+Angebote dürfen abgelehnt oder überblättert werden. Bereits vereinbarte eigene
+oder gemeinsame Aufgaben brauchen keinen neuen Arbeitsauftrag.
+Berührung, persönliche Sachen, Ausgaben und Änderungen gemeinsamer Pläne
+richten sich nach euren Absprachen. Ein gefallender Vorschlag oder eine
+gespeicherte Vorliebe ist keine aktuelle Zustimmung.
 
-## Fester Katalog und nachvollziehbare Auswahl
+## Auswahl und überprüfbare Grenzen
 
-71 zweisprachige Einträge mit stabilen IDs. Überarbeitungen bewahren
-Ausblendungen und Feedback. „Anderer Vorschlag“ blättert nur; es setzt kein
-negatives Feedback. Ohne Kontext rotiert ein personengebundener fester
-Katalog täglich, ohne Wiederholung bis zum Ende des verfügbaren Pools.
-Die Kategorien werden innerhalb des jeweiligen Pools gemischt, damit nicht
-unnötig mehrere gleichartige Vorschläge folgen. Bei einseitigen verbleibenden
-Pools sind gleiche Kategorien unvermeidbar. Veränderte Freigaben, Wünsche oder
-Symptome können die Auswahl ändern.
+Die 71 stabilen IDs bleiben erhalten, ebenso Feedback und Ausblendungen.
+„Anderer Vorschlag“ blättert nur; es setzt kein negatives Feedback.
+Ohne Kontext rotiert der personengebundene Katalog täglich ohne Wiederholung
+bis zum Ende des verfügbaren Pools. Innerhalb der Pools werden Kategorien
+gemischt. Bei einseitiger Auswahl können gleiche Kategorien aufeinanderfolgen.
 
-Für eingebaute Vorschläge werden Vorlieben über explizite interne
-Handlungszuordnungen ausgewertet, nicht bloß über die Kategorie oder ein Wort
-in einer Warnung. Wärme bedeutet beispielsweise keine Zustimmung zu Berührung;
-eine Erinnerung an die eigene Zusage ist keine Erinnerung an die Tracker-Person.
-Ein nicht aktivierter „Mag ich“-Schalter bedeutet unbekannt, nicht automatisch
-eine Abneigung. Ein ausdrücklich ungewünschter Textbegriff wird in den
-Handlungsanweisungen und bekannten Handlungsbezeichnungen gesucht. Das ist
-keine vollständige Erkennung von Synonymen, Negationen oder Absichten.
-Benutzerdefinierte Wünsche werden nicht umgeschrieben; ihre freien Texte müssen
-die Beteiligten selbst prüfen. Eine Vorliebe ist keine aktuelle Zustimmung.
+Nach persönlichen Wünschen kommt freigegebener Phase-/Symptomkontext an
+zwei von drei Tagen zum Zug, sofern zusätzlich allgemeine Ideen verfügbar
+sind. Breite Vorlieben wie Haushaltshilfe verdrängen diesen Kontext nicht.
+Ohne solchen Kontext erhalten ausdrücklich passende Vorlieben oder hilfreiches
+Feedback diese beiden Plätze. Der dritte Tag bleibt einer allgemeinen Idee
+vorbehalten. Die übrigen zugelassenen Vorschläge bleiben beim Weiterblättern
+erreichbar. Ist nur ein Pool verfügbar, wird daraus gewählt.
+Geänderte Freigaben oder Wünsche können die Reihenfolge ändern.
 
-## Gesundheitsbezogene Aussagen
+Eingebaute Karten haben explizite interne Handlungszuordnungen. Wärme ist
+keine Berührung; eine eigene Kalendererinnerung ist keine Erinnerung an die
+Tracker-Person. Ein ausgeschalteter „Mag ich“-Schalter bedeutet weiterhin
+unbekannt, nicht abgelehnt. Ausdrücklich ungewünschte Begriffe werden in der
+Handlungsanweisung und den zugeordneten Handlungsbezeichnungen gesucht.
+Diese normalisierte Textsuche versteht keine beliebigen Synonyme oder
+Negationen. Bei einer Textänderung muss daher auch die Zuordnung geprüft werden.
 
-Quellenprüfung: 26. September 2026. Die folgenden Primärquellen dienen als
-begrenzte redaktionelle Leitplanken, nicht als Wirksamkeitsnachweis des Katalogs:
+## Quellen für die kurzen Fakten
 
-- [NHS – Period pain](https://www.nhs.uk/symptoms/period-pain/): nennt Wärme
-  mit einer in ein Tuch gewickelten Wärmflasche als mögliche Selbsthilfe.
-  Die beiden Wärmekarten verlangen Wunsch/Zustimmung, Herstellerangaben,
-  Tuch und eine persönliche Prüfung der angenehmen Temperatur. Sie versprechen
-  keine Wirkung. Der bestehende Quellenlink ist bei diesen beiden Karten
-  sichtbar und öffnet erst nach Antippen den Browser.
-- [NHS – Helping others](https://www.nhs.uk/every-mind-matters/supporting-others/helping-others/):
-  nennt Zuhören, praktische Unterstützung und nicht erzwungene Gespräche.
-  Das stützt diese allgemeinen Prinzipien, nicht eine Diagnose oder die
-  Übertragung psychischer Beschwerden auf Menstruation.
-- [NHS – Natural family planning](https://www.nhs.uk/contraception/methods-of-contraception/natural-family-planning/):
-  beschreibt erlernte Fertilitätsbeobachtung; die dortige Information ist keine
-  Freigabe von Lunara zur Verhütung. Lunara misst keinen Eisprung. Karten zum
-  geschätzten Fenster erzeugen weder Termine für Intimität noch Aussagen zu
-  Kinderwunsch oder bestätigter Fruchtbarkeit.
+Geprüft am 26. September 2026. Die Quellen belegen nur die jeweils
+gesundheitsbezogenen Aussagen, nicht die Date-Ideen oder die Wirksamkeit des
+Katalogs. 23 Karten tragen einen festen Quellenlink:
 
-Alltagshilfen wie Einkauf, Essen oder Zuhören sind praktische Vorschläge,
-keine klinisch validierten Interventionen. Der Katalog wurde nicht von einem
-medizinischen Fachgremium geprüft. Lunara verspricht keine individuelle
-Wirksamkeit, empfiehlt keine Medikamente und ersetzt keine medizinische
-Abklärung. Starkes oder ungewöhnliches Befinden ist kein Fall für einen
-automatischen Partnerschaftstipp.
+| Quelle | Karten |
+|---|---|
+| [NHS – Period pain](https://www.nhs.uk/symptoms/period-pain/) | 11, 33, 35, 60 |
+| [NHS – Menstrual cycle](https://www.nhs.uk/conditions/periods/fertility-in-the-menstrual-cycle/) | 51, 52, 54, 57, 58, 66, 68 |
+| [NHS – PMS](https://www.nhs.uk/conditions/pre-menstrual-syndrome/) | 37, 38, 39, 69, 70, 71 |
+| [Office on Women’s Health – Your menstrual cycle](https://womenshealth.gov/menstrual-cycle/your-menstrual-cycle) | 36, 53, 55, 56, 59, 67 |
 
-Die automatischen Tests prüfen Vollständigkeit beider Sprachen, stabile IDs,
-Längengrenzen, konkrete bekannte Rückfälle in Leerformeln, Einwilligungs- und
-Freigaberegeln sowie Auswahl-Gegenbeispiele. Sie messen weder Empathie noch
-medizinische Qualität. Auch die redaktionelle Durchsicht ist keine klinische
-oder unabhängige menschliche Validierung.
+Die Formulierungen sind kurze Paraphrasen, keine übernommenen Fachtexte.
+Links gehören ausschließlich zu den zugeordneten globalen Karten, niemals
+zu persönlichen Wünschen oder privaten Eingaben. Der Browser öffnet erst
+nach Antippen. Ein Quellenlink bedeutet weder individuelle Beratung noch
+medizinische Prüfung des Produkts.
 
-Es gibt keine generative Laufzeitfunktion, keinen KI-Dienst und keinen Versand
-von Gesundheitsdaten an einen solchen Dienst. Texte und Auswahl liegen auf
-dem eigenen Server.
+Bei den beiden Wärmeangeboten bleiben Wunsch, Herstellerangaben, Tuch und
+persönliche Temperaturprüfung erhalten. Hinweise zur Abklärung sind
+allgemeine Informationen, keine Behauptung über aktuell ungeteilte Beschwerden.
+Lunara bestätigt keinen Eisprung und ist keine Verhütungsmethode.
+
+Der Katalog empfiehlt keine Medikamente und ersetzt keine medizinische
+Abklärung. Er wurde nicht von einem medizinischen Fachgremium geprüft und
+verspricht keine individuelle Wirkung. Die automatischen Tests prüfen
+Vollständigkeit, Länge, bekannte problematische Formulierungen, Quellenzuordnung,
+Freigaben, Auswahl und konkrete Gegenbeispiele. Sie messen weder Empathie
+noch medizinische Qualität.
+
+Es gibt keine generative Laufzeitfunktion und keinen Versand von
+Gesundheitsdaten an einen solchen Dienst. Texte und Auswahl liegen auf dem
+eigenen Server.

@@ -2,6 +2,7 @@ import { CyclePhase, TipCategory } from '@prisma/client';
 import { carePreferenceScore, eligibleTips } from './tip-filter.js';
 import { TIP_CATALOG } from './tip-catalog.js';
 import { SelectableTip } from './tip-filter.js';
+import { CARE_ACTION_IDS, CareAction } from './tip-care-actions.js';
 
 describe('eligibleTips', () => {
   it('a warmth preference does not boost an unrelated cuddle or general comfort suggestion', () => {
@@ -150,6 +151,27 @@ describe('eligibleTips', () => {
     expect(allowed).not.toContain(builtIns[10]);
     expect(allowed).not.toContain(builtIns[47]);
     expect(allowed).toContain(builtIns[5]);
+  });
+
+  it('keeps an unset likes switch neutral rather than treating default false as a dislike', () => {
+    const care = { likesWarmth: false, likesCuddling: false, likesSpace: false, likesSnacks: false, likesConversation: false, likesHouseholdHelp: false, likesReminders: false, customHelpfulActions: [], customUnhelpfulActions: [] } as never;
+    expect(eligibleTips(builtIns, settings, { applicablePhases: [], sharedSymptoms: [], carePreferences: care }))
+      .toEqual(eligibleTips(builtIns, settings));
+  });
+
+  it('excludes every explicitly mapped action after an unhelpful-action rule, including rewritten cards', () => {
+    const allSharing = { ...settings as object, sharePeriodDates: true, sharePhase: true, shareFertileWindow: true, shareSymptoms: true, allowSymptomBasedTips: true } as never;
+    const context = { applicablePhases: Object.values(CyclePhase), sharedSymptoms: ['CRAMPS', 'HEADACHE', 'FATIGUE', 'NAUSEA', 'STRESS', 'BACK_PAIN'], carePreferences: null };
+    expect(eligibleTips(builtIns, allSharing, context)).toHaveLength(71);
+    const aliases: Record<CareAction, string> = { warmth: 'warmth', cuddling: 'cuddle', space: 'space', snacks: 'Snack', conversation: 'conversation', household: 'household help', reminders: 'reminder' };
+    for (const action of Object.keys(CARE_ACTION_IDS) as CareAction[]) {
+      const allowed = eligibleTips(builtIns, allSharing, { ...context, carePreferences: { customUnhelpfulActions: [aliases[action]], customHelpfulActions: [] } as never });
+      CARE_ACTION_IDS[action].forEach((id) => expect(allowed).not.toContain(builtIns[id - 1]));
+    }
+    expect(CARE_ACTION_IDS.conversation).toEqual(expect.arrayContaining([18, 30, 38, 70]));
+    expect(CARE_ACTION_IDS.space).not.toContain(18);
+    for (const id of [34, 47, 54]) expect(CARE_ACTION_IDS.household).not.toContain(id);
+    expect(CARE_ACTION_IDS.household).toEqual(expect.arrayContaining([27, 39, 52]));
   });
 
   it('does not attach global care tags to a user-authored colliding ID', () => {
