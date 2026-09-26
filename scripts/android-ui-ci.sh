@@ -20,5 +20,14 @@ if (( result == 0 )); then
   adb shell am instrument -w -r -e class de.lunara.app.ui.RedesignComposeTest de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation-en.log 2>&1
   node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation-en.log || result=$?
 fi
-adb pull /sdcard/Android/data/de.lunara.app.debug/files artifacts/device-validation/screenshots || true
+adb pull /sdcard/Android/data/de.lunara.app.debug/files artifacts/device-validation/screenshots || result=1
+if (( result == 0 )); then
+  for language in de en; do
+    screenshot_count=$(find artifacts/device-validation/screenshots -type f -name "redesign120-*-${language}.png" | wc -l)
+    if (( screenshot_count < 9 )); then
+      echo "Missing visual evidence for ${language}." >&2
+      result=1
+    fi
+  done
+fi
 exit "$result"
