@@ -196,7 +196,7 @@
     <string name="calendar_actual_marker">P = recorded period day</string>
     <string name="calendar_prediction_marker">~ = estimated range</string>
     <string name="calendar_prediction_start_marker">≈ dashed = possible period start, estimated</string>
-    <string name="calendar_prediction_duration_marker">≈ lightly shaded = possible period day, estimated</string>
+    <string name="calendar_prediction_duration_marker">≈ solid outline = possible period day, estimated</string>
     <string name="calendar_fertility_marker">F? = fertility roughly estimated</string>
     <string name="calendar_day_period">%1$d, recorded period day</string>
     <string name="calendar_day_prediction">%1$d, estimated range</string>

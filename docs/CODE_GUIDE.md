@@ -12,6 +12,8 @@ Start with [CODE_MAP.md](CODE_MAP.md). It contains every non-ignored repository 
 | Home screen and settings | `MainShell.kt`, `JournalComponents.kt`, `LunaraComponents.kt` | Both roles, light/dark, narrow display, large text, offline/empty/loading states |
 | Branding | `BrandTokens.kt`, `LunaraTheme.kt`, Android resources | Contrast and touch targets; no remote assets required |
 | Calendar and local edits | `PeriodRepository`, `LunaraDao`, `MainViewModel` | Preserve queued edits, date validation and account ownership |
+| Calendar appearance | Android `CalendarColors`, `CalendarDayKind`, `CalendarLegend`; web `calendar-presentation.ts`, `calendar.ts`, `styles.css` | Same rose/amber/teal colors and four legend entries; actual entries win overlaps; complete prediction boundaries, narrow screens and large text |
+| Shared app design | Android `LunaraTheme` and `JournalComponents`; web `styles.css`, `ui-icons.ts`, `main.ts` | Android is the visual reference; keep responsive desktop, all seven calendar columns and unbroken navigation labels |
 | Period import/export | `PeriodExportFormat`, `PeriodExportRepository`, web `period-transfer.ts`, API `data-management/` | CSV/JSON roundtrip, preview, duplicates, overlaps, atomic writes and account changes during file selection |
 | Partner calendar visibility | `CalendarStatusPolicy`, web `partner-calendar.ts`, API `partner-projection.ts` | Separate consent, loading, empty data and unavailable estimates; never infer or override sharing |
 | APK download in web settings | web `apk-download.ts`, API `web-app.ts`, `infra/docker/api.Dockerfile` | Real file response, compatible signing key, authenticated download, HTTP Range and no APK host mount |

@@ -1,7 +1,7 @@
 # Lunara
 
 Private Zyklus- und Periodenbegleitung für Android und den Browser.
-Lunara 1.3.1 funktioniert allein auf dem Gerät oder auf einem eigenen Server
+Lunara 1.3.2 funktioniert allein auf dem Gerät oder auf einem eigenen Server
 mit getrennten Konten für die trackende Person und ihren Partner.
 
 Keine Werbung, Telemetrie oder Pflicht zu Google Play Services.
@@ -45,7 +45,7 @@ Authentik ist optional und kein Bestandteil des Lunara-Compose-Stacks.
   Bestätigung in Android und Web; keine garantierte Kompatibilität mit
   beliebigen Drittanbieterformaten.
 
-Neu in 1.3.1: Der Partnerkalender unterscheidet fehlende Freigaben von nicht
+Neu in 1.3.2: Der Partnerkalender unterscheidet fehlende Freigaben von nicht
 verfügbaren Daten. Die Partner-Einstellungen zeigen den zuletzt bekannten
 Freigabestatus für Periodendaten und das fruchtbare Zeitfenster.
 Unter **Web-Einstellungen → App & Verbindung** bleibt ein nativer
@@ -85,7 +85,7 @@ Voraussetzungen: Linux mit Docker Engine und Compose Plugin, eine eigene
 HTTPS-Domain, ein vorhandener Reverse Proxy und sein externes Docker-Netz.
 Die dokumentierte Referenz verwendet Debian 12 und Traefik 3.
 
-Der Quellcode baut das Image lokal als `lunara-api:1.3.1`.
+Der Quellcode baut das Image lokal als `lunara-api:1.3.2`.
 Ein öffentlich bereitgestelltes GHCR-Image wird hier nicht vorausgesetzt.
 Die API liefert die Web-App und die gebündelte APK aus; PostgreSQL bleibt im
 internen Docker-Netz. Es wird kein separater APK-Bind-Mount benötigt.

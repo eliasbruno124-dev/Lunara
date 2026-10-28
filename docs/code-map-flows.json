@@ -46,6 +46,18 @@
     ]
   },
   {
+    "title": "Shared calendar appearance",
+    "description": "Android supplies the visual reference. Both clients use rose for recorded days, amber for predicted start/duration and teal for estimated fertility, with matching symbols and legends. Recorded entries take precedence. The browser displays only complete, valid prediction boundaries using the same projection as Android; this does not calculate new predictions or grant access to private data.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/theme/CalendarColors.kt", "symbol": "CalendarColors", "purpose": "Explicit light/dark semantic colors independent of decorative branding" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/CalendarDayKind.kt", "symbol": "CalendarDayKind", "purpose": "Recorded, forecast and fertility presentation priority" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/MainShell.kt", "symbol": "CalendarLegend", "purpose": "Native legend with solid and dashed category borders" },
+      { "path": "apps/web/src/calendar-presentation.ts", "symbol": "calendarPredictionBand", "purpose": "Native-equivalent validation of existing prediction boundaries" },
+      { "path": "apps/web/src/calendar.ts", "symbol": "SwipeCalendar", "purpose": "Browser calendar controls, category styling and accessible statuses" },
+      { "path": "apps/web/src/calendar.ts", "symbol": "createCalendarLegend", "purpose": "Matching browser legend and meaningful non-color labels" }
+    ]
+  },
+  {
     "title": "Partner calendar consent and availability",
     "description": "The server reports effective sharing permissions without disclosing whether private health records exist. Clients distinguish denied or unknown access, unavailable estimates and empty results. Forecasts remain estimates, not a contraception or ovulation confirmation.",
     "anchors": [

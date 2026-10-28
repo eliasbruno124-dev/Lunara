@@ -196,7 +196,7 @@
     <string name="calendar_actual_marker">P = erfasster Periodentag</string>
     <string name="calendar_prediction_marker">~ = geschätzter Zeitraum</string>
     <string name="calendar_prediction_start_marker">≈ gestrichelt = möglicher Periodenbeginn, geschätzt</string>
-    <string name="calendar_prediction_duration_marker">≈ leicht hinterlegt = möglicher Periodentag, geschätzt</string>
+    <string name="calendar_prediction_duration_marker">≈ durchgezogen = möglicher Periodentag, geschätzt</string>
     <string name="calendar_fertility_marker">F? = Fruchtbarkeit grob geschätzt</string>
     <string name="calendar_day_period">%1$d, erfasster Periodentag</string>
     <string name="calendar_day_prediction">%1$d, geschätzter Zeitraum</string>

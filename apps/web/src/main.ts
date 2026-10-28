@@ -11,7 +11,8 @@ import {
   mergePeriods,
   type PortableBackupExtras,
 } from './backup';
-import { SwipeCalendar } from './calendar';
+import { createCalendarLegend, SwipeCalendar } from './calendar';
+import { createBrandMark, createIcon, type IconName } from './ui-icons';
 import { createApkDownloadCard } from './apk-download';
 import { hasFertileEstimate } from './fertility-presentation';
 import { parsePeriodFile, periodImportPlan, serializePeriods, PeriodTransferError, PERIOD_FILE_LIMIT, type PeriodRange, type PeriodTransferFormat } from './period-transfer';
@@ -519,9 +520,7 @@ class LunaraWebApp {
     main.id = 'main-content';
     const card = element('section', 'login-card');
     const brand = element('div', 'brand-lockup');
-    const logo = element('img') as HTMLImageElement;
-    logo.src = '/icons/lunara.svg';
-    logo.alt = '';
+    const logo = createBrandMark();
     brand.append(logo, element('div'));
     brand.lastElementChild?.append(
       element('h1', '', this.meta?.name ?? 'Lunara'),
@@ -696,7 +695,7 @@ class LunaraWebApp {
   }
 
   private modeChoiceView(): HTMLElement {
-    const main = element('main', 'login-page');
+    const main = element('main', 'login-page mode-choice-page');
     main.id = 'main-content';
     const card = element('section', 'login-card mode-choice');
     card.append(
@@ -713,13 +712,13 @@ class LunaraWebApp {
       this.render();
     });
     server.append(element('span', '', this.t('ownServerDescription')));
-    const local = button('mode-button', this.t('localOnly'), async () => {
+    const local = button('mode-button mode-button-local', this.t('localOnly'), async () => {
       this.loginChoice = 'local';
       this.localVaultAvailable = Boolean(await getLocalVaultEnvelope<LocalVaultEnvelope>());
       this.render();
     });
     local.append(element('span', '', this.t('localOnlyDescription')));
-    choices.append(server, local);
+    choices.append(local, server);
     card.append(
       choices,
       element('p', 'medical-footnote', this.t('medicalNotice')),
@@ -736,15 +735,11 @@ class LunaraWebApp {
   private loginIntroduction(): HTMLElement {
     const introduction = element('section', 'login-introduction');
     const brand = element('div', 'compact-brand');
-    const logo = element('img');
-    logo.src = '/icons/lunara.svg';
-    logo.alt = '';
+    const logo = createBrandMark();
     brand.append(logo, element('strong', '', 'Lunara'));
-    const ornament = element('div', 'orbit-mark');
-    ornament.setAttribute('aria-hidden', 'true');
     introduction.append(
       brand,
-      ornament,
+      element('p', 'eyebrow', this.t('welcomeEyebrow')),
       element('p', 'editorial-title', this.t('welcomeHeadline')),
       element('p', 'introduction-copy', this.t('welcomeDescription')),
       element('p', 'eyebrow introduction-note', this.t('welcomeNote')),
@@ -969,9 +964,7 @@ class LunaraWebApp {
   private appHeader(): HTMLElement {
     const header = element('header', 'top-bar');
     const brand = element('div', 'compact-brand');
-    const icon = element('img') as HTMLImageElement;
-    icon.src = '/icons/lunara.svg';
-    icon.alt = '';
+    const icon = createBrandMark();
     brand.append(icon, element('strong', '', this.meta?.name ?? 'Lunara'));
     const status = button('sync-pill', this.syncLabel(), () => this.performSync(true));
     if (!navigator.onLine && !this.localMode) status.classList.add('offline');
@@ -998,20 +991,16 @@ class LunaraWebApp {
     rail.setAttribute('aria-label', this.t('overview'));
     const greeting = element('section', 'hero-card');
     const date = new Intl.DateTimeFormat(this.language === 'de' ? 'de-DE' : 'en-GB', {
-      weekday: 'long', day: 'numeric', month: 'long',
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
     }).format(new Date());
     greeting.append(
-      element('p', 'eyebrow', `${this.t('today')} · ${date}`),
+      element('p', 'eyebrow', date),
       element('h1', '', this.t('hello', { name: this.user?.displayName ?? '' })),
     );
+    lead.append(greeting, this.predictionCard());
     if (isTracker) {
       const active = this.activePeriod();
-      greeting.append(
-        element('p', 'hero-description', this.t('todayTrackerHint')),
-        element('p', `period-state${active ? ' is-active' : ''}`, active
-          ? this.t('periodActiveSince', { date: formatDate(active.startDate, this.language) })
-          : this.t('noActivePeriod')),
-      );
+      const controls = element('section', 'period-controls');
       const action = button('period-action', active ? this.t('endPeriod') : this.t('startPeriod'), async () => {
         if (active) await this.endPeriod(active, todayIso());
         else await this.startPeriod(todayIso());
@@ -1019,21 +1008,23 @@ class LunaraWebApp {
       action.disabled = this.syncing || this.localVaultCoordinator.busy;
       const icon = element('span', 'action-icon', active ? '✓' : '+');
       icon.setAttribute('aria-hidden', 'true');
-      action.append(icon);
-      greeting.append(action);
-      const calendarAction = button('text-button calendar-shortcut', this.t('recordAnotherDate'), () => {
+      action.prepend(icon);
+      controls.append(action, element('p', `period-state${active ? ' is-active' : ''}`, active
+        ? this.t('periodActiveSince', { date: formatDate(active.startDate, this.language) })
+        : this.t('noActivePeriod')));
+      const calendarAction = button('secondary-button calendar-shortcut', this.t('recordAnotherDate'), () => {
         this.screen = 'calendar';
         this.render();
       });
-      greeting.append(calendarAction);
+      lead.append(controls);
+      controls.append(calendarAction);
     } else {
       greeting.append(element('p', 'hero-description', this.t('todayPartnerHint')));
     }
-    lead.append(greeting);
     if (isTracker) {
-      rail.append(this.predictionCard(), this.recentPeriodsCard());
+      rail.append(this.recentPeriodsCard());
     } else {
-      lead.append(this.predictionCard(), this.tipCard());
+      lead.append(this.tipCard());
       const relationship = element('section', 'relationship-note');
       relationship.append(
         element('p', 'eyebrow', this.t('rolePartner')),
@@ -1049,10 +1040,7 @@ class LunaraWebApp {
 
   private predictionCard(): HTMLElement {
     const card = element('section', 'prediction-summary');
-    const title = element('div', 'card-heading');
-    title.append(element('h2', '', this.t('nextPeriod')));
-    card.append(element('p', 'eyebrow', this.t('estimated')));
-    card.append(title);
+    card.append(element('h2', 'prediction-label', this.t('nextPeriod')));
     if (
       this.prediction?.available &&
       this.prediction.predictedStartFrom &&
@@ -1063,8 +1051,8 @@ class LunaraWebApp {
           'p',
           'prediction-range',
           this.t('predictedRange', {
-            from: formatDate(this.prediction.predictedStartFrom, this.language),
-            to: formatDate(this.prediction.predictedStartTo, this.language),
+            from: formatDate(this.prediction.predictedStartFrom, this.language, { day: 'numeric', year: undefined }),
+            to: formatDate(this.prediction.predictedStartTo, this.language, { day: 'numeric', year: undefined }),
           }),
         ),
       );
@@ -1073,8 +1061,15 @@ class LunaraWebApp {
         : this.prediction.confidence === 'MEDIUM'
           ? 'confidenceMedium'
           : 'confidenceLow';
-      card.append(element('p', 'subtle', this.t('confidence', { value: this.t(confidenceKey) })));
+      card.append(element('p', 'prediction-explanation', this.t('estimatedStart')));
+      const basis = element('div', 'prediction-basis');
+      if (this.prediction.basedOnCycleCount !== undefined) {
+        basis.append(element('strong', '', this.t('cyclesBasis', { count: this.prediction.basedOnCycleCount })));
+      }
+      basis.append(element('p', 'subtle', this.t('confidence', { value: this.t(confidenceKey) })));
+      card.append(basis);
     } else {
+      card.append(element('p', 'prediction-range', this.t(this.user?.role === 'PARTNER' ? 'predictionUnavailable' : 'predictionEmpty')));
       card.append(element('p', 'subtle', this.t(this.user?.role === 'PARTNER' ? 'noPartnerPrediction' : 'noPrediction')));
     }
     return card;
@@ -1189,18 +1184,7 @@ class LunaraWebApp {
   }
 
   private calendarLegend(): HTMLElement {
-    const legend = element('div', 'calendar-legend');
-    const entries: Array<[string, string]> = [
-      ['actual-key', this.t('actualPeriod')],
-      ['predicted-key', this.t('predictedPeriod')],
-    ];
-    if (hasFertileEstimate(this.prediction)) entries.push(['fertile-key', this.t('fertileEstimate')]);
-    for (const [className, label] of entries) {
-      const item = element('span');
-      item.append(element('i', className), document.createTextNode(label));
-      legend.append(item);
-    }
-    return legend;
+    return createCalendarLegend(this.language, hasFertileEstimate(this.prediction));
   }
 
   private settingsView(): HTMLElement {
@@ -1289,7 +1273,8 @@ class LunaraWebApp {
     const summary = element('summary');
     const labels = element('span', 'settings-group-label');
     labels.append(element('strong', '', this.t(title)), element('span', 'subtle', this.t(description)));
-    summary.append(labels);
+    const icon: IconName = id === 'preferences' || id === 'sharing' || id === 'data' ? id : 'app';
+    summary.append(createIcon(icon, 'settings-icon'), labels);
     const content = element('div', 'settings-group-content');
     content.append(...children);
     group.append(summary, content);
@@ -1691,19 +1676,18 @@ class LunaraWebApp {
   private bottomNavigation(): HTMLElement {
     const navigation = element('nav', 'bottom-nav');
     navigation.setAttribute('aria-label', this.t('mainNavigation'));
-    const items: Array<[Screen, string, string]> = [
-      ['today', '⌂', this.t('today')],
-      ['calendar', '▦', this.t('calendar')],
-      ['settings', '⚙', this.t('settings')],
+    const items: Array<[Screen, string]> = [
+      ['today', this.t('today')],
+      ['calendar', this.t('calendar')],
+      ['settings', this.t('settings')],
     ];
-    for (const [screen, icon, label] of items) {
+    for (const [screen, label] of items) {
       const item = button(screen === this.screen ? 'active' : '', label, () => {
         this.screen = screen;
         this.selectedDate = null;
         this.render();
       });
-      const symbol = element('span', 'nav-icon', icon);
-      symbol.setAttribute('aria-hidden', 'true');
+      const symbol = createIcon(screen, 'nav-icon');
       item.prepend(symbol);
       item.setAttribute('aria-current', screen === this.screen ? 'page' : 'false');
       navigation.append(item);

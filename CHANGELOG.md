@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+- Weboberfläche an die Android-App angeglichen: Farben, Karten, Navigation und Einstellungen.
+- Klar getrennte Kalenderfarben für erfasste Perioden, Prognosen und das geschätzte fruchtbare Fenster.
+- Gleiche Kalenderlegende in App und Web, mit Symbolen und gut lesbarem Hell-/Dunkelmodus.
+
 ## 1.3.1
 
 - Klarer Kalenderstatus und sichtbare Freigaben in der Partneransicht von App und Web.

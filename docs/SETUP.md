@@ -1,6 +1,6 @@
 # Lunara einrichten
 
-Diese Anleitung beschreibt Lunara 1.3.1. Die Bilder zeigen die tatsächliche
+Diese Anleitung beschreibt Lunara 1.3.2. Die Bilder zeigen die tatsächliche
 Oberfläche mit synthetischen Testkonten und Beispieldaten; keine privaten
 Konten, Passwörter oder Gesundheitsdaten.
 
@@ -153,6 +153,19 @@ und bietet keine Möglichkeit, diese Schutzmechanismen zu umgehen.
 
 Lunara bestätigt keinen Eisprung. Das fruchtbare Fenster ist eine unsichere
 Kalenderschätzung und darf **nicht zur Verhütung** verwendet werden.
+
+### Kalenderfarben in App und Web
+
+- **Rosé, P:** tatsächlich erfasster Periodentag.
+- **Amber, ≈, gestrichelt:** möglicher Periodenbeginn.
+- **Amber, ≈, durchgezogen:** weiterer möglicher Periodentag.
+- **Türkis, F?:** grob geschätztes fruchtbares Fenster.
+
+Erfasste Tage haben Vorrang vor Schätzungen. Der heutige Tag ist unterstrichen;
+eine Auswahl überschreibt seine Kategorie nicht. Die Legende erklärt die
+Symbole auch ohne Farberkennung. Alle Prognosen bleiben Schätzungen.
+
+<img src="screenshots/setup/08-calendar-colors.png" width="330" alt="Mobiler Webkalender mit Rosé für erfasste Tage, Amber für Prognosen und Türkis für geschätzte Fruchtbarkeit sowie vier erklärenden Legendenchips">
 
 ## 5. Sichern und das Gerät wechseln
 

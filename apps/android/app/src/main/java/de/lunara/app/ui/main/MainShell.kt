@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -89,6 +91,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -105,6 +108,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -157,6 +161,8 @@ import de.lunara.app.ui.onboarding.canonicalInvitationLink
 import de.lunara.app.ui.onboarding.parseInvitationQrPayload
 import de.lunara.app.ui.scanner.lunaraQrScanOptions
 import de.lunara.app.ui.theme.LunaraTheme
+import de.lunara.app.ui.theme.CalendarCategoryColors
+import de.lunara.app.ui.theme.LocalCalendarColors
 import com.google.zxing.client.android.Intents
 import com.journeyapps.barcodescanner.ScanContract
 import kotlinx.coroutines.flow.collectLatest
@@ -1330,14 +1336,7 @@ internal fun CalendarScreen(
             }
         }
         item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(R.string.calendar_actual_marker), style = MaterialTheme.typography.bodyMedium)
-                Text(stringResource(R.string.calendar_prediction_start_marker), style = MaterialTheme.typography.bodyMedium)
-                Text(stringResource(R.string.calendar_prediction_duration_marker), style = MaterialTheme.typography.bodyMedium)
-                if (fertilityRange != null) {
-                    Text(stringResource(R.string.calendar_fertility_marker), style = MaterialTheme.typography.bodyMedium)
-                }
-            }
+            CalendarLegend(showFertility = fertilityRange != null)
         }
         if (fertilityRange != null) {
             item { Column(Modifier.testTag("calendar-fertility-safety")) { FertilitySafetyNotice() } }
@@ -1421,8 +1420,56 @@ internal fun CalendarScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DayCell(
+internal fun CalendarLegend(showFertility: Boolean) {
+    val colors = LocalCalendarColors.current
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().testTag("calendar-legend"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CalendarLegendItem(R.string.calendar_actual_marker, colors.recorded, "recorded")
+        CalendarLegendItem(R.string.calendar_prediction_start_marker, colors.predicted, "predicted-start", dashed = true)
+        CalendarLegendItem(R.string.calendar_prediction_duration_marker, colors.predicted, "predicted-duration")
+        if (showFertility) {
+            CalendarLegendItem(R.string.calendar_fertility_marker, colors.fertile, "fertile")
+        }
+    }
+}
+
+@Composable
+private fun CalendarLegendItem(label: Int, colors: CalendarCategoryColors, tag: String, dashed: Boolean = false) {
+    Surface(
+        modifier = Modifier.testTag("calendar-legend-$tag").then(
+            if (dashed) Modifier.calendarDashedOutline(colors.content) else Modifier,
+        ),
+        shape = RoundedCornerShape(10.dp),
+        color = colors.container,
+        contentColor = colors.content,
+        border = if (dashed) null else BorderStroke(1.dp, colors.content),
+    ) {
+        Text(stringResource(label), Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+private fun Modifier.calendarDashedOutline(color: Color): Modifier = drawWithContent {
+    drawContent()
+    val strokeWidth = 1.5.dp.toPx()
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+        cornerRadius = CornerRadius(10.dp.toPx()),
+        style = Stroke(
+            width = strokeWidth,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())),
+        ),
+    )
+}
+
+@Composable
+internal fun DayCell(
     date: LocalDate,
     isToday: Boolean,
     actual: Boolean,
@@ -1453,10 +1500,15 @@ private fun DayCell(
         fertilityStatus.takeIf { fertileEstimate },
     )
     val description = (listOf(formattedDate) + statusDescriptions).joinToString(". ")
-    val visiblePredictionRole = predictionRole.takeUnless { actual }
-        ?: CalendarPredictionDayRole.NONE
-    val dashedPrediction = visiblePredictionRole == CalendarPredictionDayRole.START_UNCERTAINTY
-    val predictionOutline = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.82f)
+    val kind = CalendarDayKind.resolve(actual, predictionRole, fertileEstimate)
+    val calendarColors = LocalCalendarColors.current
+    val colors = when (kind) {
+        CalendarDayKind.RECORDED -> calendarColors.recorded
+        CalendarDayKind.PREDICTED_START, CalendarDayKind.PREDICTED_DURATION -> calendarColors.predicted
+        CalendarDayKind.FERTILE -> calendarColors.fertile
+        CalendarDayKind.NONE -> CalendarCategoryColors(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface)
+    }
+    val dashedPrediction = kind == CalendarDayKind.PREDICTED_START
     val cardModifier = modifier
         .padding(2.dp)
         .height((52 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp)
@@ -1470,51 +1522,42 @@ private fun DayCell(
         )
         .then(
             if (dashedPrediction) {
-                Modifier.drawWithContent {
-                    drawContent()
-                    val strokeWidth = 1.5.dp.toPx()
-                    drawRoundRect(
-                        color = predictionOutline,
-                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
-                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
-                        cornerRadius = CornerRadius(10.dp.toPx()),
-                        style = Stroke(
-                            width = strokeWidth,
-                            pathEffect = PathEffect.dashPathEffect(
-                                floatArrayOf(5.dp.toPx(), 3.dp.toPx()),
-                            ),
-                        ),
-                    )
-                }
+                Modifier.calendarDashedOutline(colors.content)
             } else {
                 Modifier
             },
         )
     Card(
         cardModifier,
+        shape = RoundedCornerShape(10.dp),
+        border = if (kind != CalendarDayKind.NONE && !dashedPrediction) BorderStroke(1.dp, colors.content) else null,
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                actual -> MaterialTheme.colorScheme.secondaryContainer
-                visiblePredictionRole == CalendarPredictionDayRole.START_UNCERTAINTY ->
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f)
-                visiblePredictionRole == CalendarPredictionDayRole.POSSIBLE_DURATION ->
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.24f)
-                fertileEstimate -> MaterialTheme.colorScheme.primaryContainer
-                else -> MaterialTheme.colorScheme.surface
-            },
+            containerColor = colors.container,
+            contentColor = colors.content,
         ),
     ) {
-        Column(Modifier.fillMaxSize().padding(5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 2.dp, vertical = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 date.dayOfMonth.toString(),
+                modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                textDecoration = if (isToday) TextDecoration.Underline else TextDecoration.None,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
             )
-            if (actual) Text("P", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            else if (visiblePredictionRole != CalendarPredictionDayRole.NONE) {
-                Text("≈", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            kind.marker?.let { marker ->
+                Text(
+                    marker,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                )
             }
-            else if (fertileEstimate) Text("F?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
         }
     }
 }

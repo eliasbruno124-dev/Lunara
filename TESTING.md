@@ -1,9 +1,24 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Der verifizierte 1.3.1-Prüfstand wird in `FINAL_REPORT.md`
+Testquellen. Der verifizierte aktuelle Prüfstand wird in `FINAL_REPORT.md`
 ausgewiesen; laufende oder noch nicht ausgewertete Prüfungen zählen nicht als
 bestanden. Die Matrix unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.3.2
+
+`CalendarColorsTest` und `CalendarDayKindTest` prüfen die semantischen Farben,
+Textkontraste und Kategoriepriorität. `CalendarColorsComposeTest` rendert beide
+Themes mit normaler und großer Schrift und kontrolliert Textlayout, echte
+Füllfarben sowie die Legende. Alle Fixtures verwenden synthetische Daten.
+
+Im Web prüfen `calendar-presentation.test.ts` und `presentation.test.ts` dieselben
+Prognosegrenzen, Legendentexte, Kategorieprioritäten und Theme-Farben.
+Bei einer visuellen Prüfung müssen **alle sieben Spalten innerhalb ihrer
+eigenen Rasterplätze** liegen: Eine scrollbare Kalenderkarte kann abgeschnittene
+Zellen verbergen, obwohl die Webseite selbst keinen horizontalen Überlauf hat.
+Zusätzlich Start, Kalender und Einstellungen bei 320px, Handy- und Desktopbreite
+in beiden Themes prüfen; Navigationsbeschriftungen nicht mitten im Wort trennen.
 
 ## Zusätzliche Prüfungen für 1.3.1
 
