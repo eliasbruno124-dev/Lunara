@@ -30,10 +30,12 @@ export class ApiError extends Error {
   }
 }
 
+type RefreshResult = { refreshed: boolean; signedOutGeneration?: number };
+
 export class LunaraApi {
   private accessToken: string | null = null;
   private oidcAccessToken: string | null = null;
-  private refreshInFlight: { generation: number; promise: Promise<boolean> } | null = null;
+  private refreshInFlight: { generation: number; promise: Promise<RefreshResult> } | null = null;
   private sessionGeneration = 0;
   private tokenCommitTail: Promise<void> = Promise.resolve();
 
@@ -115,7 +117,7 @@ export class LunaraApi {
     this.accessToken = persisted?.accessToken ?? null;
     this.oidcAccessToken = persisted?.oidc?.accessToken ?? null;
     if (!navigator.onLine) return this.accessToken !== null;
-    return this.refresh();
+    return (await this.refresh()).refreshed;
   }
 
   async me(): Promise<AuthResponse['user']> {
@@ -142,6 +144,12 @@ export class LunaraApi {
 
   async periods(): Promise<PeriodEvent[]> {
     return this.request<PeriodEvent[]>('/api/v1/periods');
+  }
+
+  async importPeriods(periods: Array<{ startDate: string; endDate: string | null }>, preview: boolean): Promise<{ periods: { create: number; duplicates: number; conflicts: number } }> {
+    return this.request('/api/v1/import', {
+      method: 'POST', body: { data: { periods }, preview },
+    });
   }
 
   async prediction(): Promise<Prediction> {
@@ -182,6 +190,9 @@ export class LunaraApi {
     try {
       await this.request<void>('/api/v1/auth/logout', {
         method: 'POST',
+        // Revoke only the captured session, even if a newer login starts while tokens load.
+        sessionBound: false,
+        retry: false,
         body: tokens ? { refreshToken: tokens.refreshToken } : {},
         accessTokenOverride: accessToken,
         oidcAccessTokenOverride: oidcAccessToken,
@@ -210,17 +221,17 @@ export class LunaraApi {
     });
   }
 
-  private async refresh(): Promise<boolean> {
+  private async refresh(): Promise<RefreshResult> {
     const generation = this.sessionGeneration;
     if (this.refreshInFlight?.generation === generation) return this.refreshInFlight.promise;
-    const promise = (async () => {
+    const promise = (async (): Promise<RefreshResult> => {
       try {
         const tokens = await this.loadTokensSerialized();
-        if (!tokens || generation !== this.sessionGeneration) return false;
+        if (!tokens || generation !== this.sessionGeneration) return { refreshed: false };
         const refreshedOidc = tokens.oidc
           ? await this.refreshExternalOidc(tokens.oidc)
           : null;
-        if (generation !== this.sessionGeneration) return false;
+        if (generation !== this.sessionGeneration) return { refreshed: false };
         const response = await this.request<AuthResponse>('/api/v1/auth/refresh', {
           method: 'POST',
           auth: false,
@@ -231,17 +242,20 @@ export class LunaraApi {
             ...(refreshedOidc ? { oidcAccessToken: refreshedOidc.accessToken } : {}),
           },
         });
-        if (generation !== this.sessionGeneration) return false;
-        return this.acceptSession(
+        if (generation !== this.sessionGeneration) return { refreshed: false };
+        const refreshed = await this.acceptSession(
           response,
           refreshedOidc?.session ?? tokens.oidc,
           generation,
         );
+        return { refreshed };
       } catch (error) {
-        if (generation !== this.sessionGeneration) return false;
-        if (error instanceof ApiError && error.status === 0 && this.accessToken) return true;
-        await this.beginSessionBoundary().cleared;
-        return false;
+        if (generation !== this.sessionGeneration) return { refreshed: false };
+        if (error instanceof ApiError && error.status === 0 && this.accessToken) return { refreshed: true };
+        const boundary = this.beginSessionBoundary();
+        await boundary.cleared;
+        // Distinguish this refresh's own sign-out from an unrelated newer account boundary.
+        return { refreshed: false, signedOutGeneration: boundary.generation };
       }
     })();
     const entry = { generation, promise };
@@ -341,10 +355,18 @@ export class LunaraApi {
       body?: unknown;
       auth?: boolean;
       retry?: boolean;
+      sessionBound?: boolean;
       accessTokenOverride?: string | null;
       oidcAccessTokenOverride?: string | null;
     } = {},
+    generation = this.sessionGeneration,
   ): Promise<T> {
+    const assertCurrentSession = () => {
+      if (options.auth !== false && options.sessionBound !== false && generation !== this.sessionGeneration) {
+        throw new ApiError(409, 'Request was superseded by another session change');
+      }
+    };
+    assertCurrentSession();
     const url = new URL(path, this.origin);
     if (url.origin !== this.origin) throw new Error('Cross-origin API request refused');
     const headers = new Headers({ Accept: 'application/json' });
@@ -379,16 +401,31 @@ export class LunaraApi {
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       });
     } catch (error) {
+      assertCurrentSession();
       throw new ApiError(0, error instanceof Error ? error.message : 'Network request failed');
     }
+    assertCurrentSession();
     if (response.status === 401 && options.auth !== false && options.retry !== false) {
-      if (await this.refresh()) return this.request<T>(path, { ...options, retry: false });
+      const refreshed = await this.refresh();
+      if (refreshed.signedOutGeneration === this.sessionGeneration) {
+        throw new ApiError(401, 'Session expired');
+      }
+      assertCurrentSession();
+      if (refreshed.refreshed) return this.request<T>(path, { ...options, retry: false }, generation);
     }
     if (!response.ok) {
       const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      assertCurrentSession();
       throw new ApiError(response.status, body?.message ?? `HTTP ${response.status}`);
     }
     if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
+    try {
+      const body = await response.json() as T;
+      assertCurrentSession();
+      return body;
+    } catch (error) {
+      assertCurrentSession();
+      throw error;
+    }
   }
 }

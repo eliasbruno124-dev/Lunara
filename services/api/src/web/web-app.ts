@@ -41,6 +41,23 @@ export function installWebApp(server: Express, configuredDirectory?: string): bo
     return false;
   }
 
+  // Keep APK downloads outside the PWA navigation scope, including older
+  // installed service workers that do not yet exclude /downloads.
+  server.get('/api/v1/downloads/:filename', (request, response, next) => {
+    const filename = request.params.filename;
+    if (filename !== 'lunara.apk' && !/^lunara-\d+\.\d+\.\d+\.apk$/u.test(filename)) {
+      response.sendStatus(404);
+      return;
+    }
+    response.download(filename, filename, {
+      root: resolve(directory, 'downloads'),
+      dotfiles: 'deny',
+      headers: { 'Cache-Control': 'private, no-cache' },
+    }, (error) => {
+      if (error && !response.headersSent) next(error);
+    });
+  });
+
   const staticFiles = express.static(directory, {
     dotfiles: 'deny',
     etag: true,
@@ -48,6 +65,9 @@ export function installWebApp(server: Express, configuredDirectory?: string): bo
     index: false,
     redirect: false,
     setHeaders(response, filePath) {
+      if (filePath.endsWith('.apk')) {
+        response.setHeader('Content-Disposition', 'attachment');
+      }
       if (filePath.includes('/assets/')) {
         response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (

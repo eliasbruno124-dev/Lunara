@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -51,6 +52,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -66,6 +68,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -81,6 +84,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -138,11 +142,15 @@ import de.lunara.app.data.remote.dto.UpdateCarePreferencesRequest
 import de.lunara.app.data.remote.dto.UpdateSharingRequest
 import de.lunara.app.data.repository.ApiPayloadPolicy
 import de.lunara.app.data.repository.SyncEditPolicy
+import de.lunara.app.data.repository.PeriodFileFormat
+import de.lunara.app.data.repository.PeriodFileProblem
+import de.lunara.app.data.repository.PeriodTransferIdentity
 import de.lunara.app.security.limitAccountPasswordInput
 import de.lunara.app.notifications.NotificationPreferences
 import de.lunara.app.ui.components.InsightCard
 import de.lunara.app.ui.components.LunaraHeader
 import de.lunara.app.ui.components.LunaraWordmark
+import de.lunara.app.ui.components.LunaraStatusNotice
 import de.lunara.app.ui.components.StatusPill
 import de.lunara.app.ui.components.QrCode
 import de.lunara.app.ui.onboarding.canonicalInvitationLink
@@ -253,17 +261,7 @@ fun MainShell(
     ) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
             if (SessionRecoveryUiPolicy.showBanner(preferences.appMode, session.userId, preferences.reauthenticationRequired)) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
-                        .semantics { liveRegion = LiveRegionMode.Polite },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                ) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.session_recovery_required), style = MaterialTheme.typography.titleSmall)
-                        Text(stringResource(R.string.session_recovery_preserves_data), style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = openSessionRecovery) { Text(stringResource(R.string.renew_login)) }
-                    }
-                }
+                SessionRecoveryNotice(openSessionRecovery, Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
             }
         NavHost(
             navController = navController,
@@ -331,6 +329,12 @@ fun MainShell(
                         state.partnerDashboard?.prediction
                     },
                     sharedPeriodDates = state.partnerDashboard?.periodDates.orEmpty(),
+                    partnerStatus = CalendarStatusPolicy.partner(
+                        state.partnerDashboard,
+                        state.partnerDashboardUnavailable,
+                        state.partnerDashboardRefreshing,
+                    ),
+                    onPartnerRefresh = viewModel::refreshPartnerDashboard,
                     onPeriodAdded = { start, end ->
                         viewModel.createPeriod(session.userId, start, end)
                     },
@@ -402,6 +406,18 @@ fun MainShell(
                     onImportLocalBackup = viewModel::importLocalBackup,
                     onClearLocalBackupStatus = viewModel::clearLocalBackupStatus,
                     onLogout = onLogout,
+                    partnerCalendarStatus = CalendarStatusPolicy.partner(
+                        state.partnerDashboard,
+                        state.partnerDashboardUnavailable,
+                        state.partnerDashboardRefreshing,
+                    ),
+                    onPartnerRefresh = viewModel::refreshPartnerDashboard,
+                    periodTransfer = state.periodTransfer,
+                    onBeginPeriodTransfer = viewModel::beginPeriodTransfer,
+                    onExportPeriods = viewModel::exportPeriods,
+                    onPreviewPeriodImport = viewModel::previewPeriodImport,
+                    onConfirmPeriodImport = viewModel::confirmPeriodImport,
+                    onClearPeriodTransfer = viewModel::clearPeriodTransfer,
                 )
             }
         }
@@ -424,7 +440,7 @@ fun MainShell(
 }
 
 @Composable
-private fun SessionRecoveryDialog(
+internal fun SessionRecoveryDialog(
     displayName: String,
     status: SessionRecoveryStatus,
     showAuthentik: Boolean,
@@ -487,13 +503,16 @@ private fun SessionRecoveryDialog(
                     else -> null
                 }
                 if (message != null) {
-                    Text(
-                        stringResource(message),
-                        color = if (status == SessionRecoveryStatus.WRONG_ACCOUNT || status == SessionRecoveryStatus.FAILED) {
-                            MaterialTheme.colorScheme.error
-                        } else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (status.busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text(
+                            stringResource(message),
+                            color = if (status == SessionRecoveryStatus.WRONG_ACCOUNT || status == SessionRecoveryStatus.FAILED) {
+                                MaterialTheme.colorScheme.error
+                            } else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
                 }
             }
         },
@@ -548,89 +567,85 @@ fun TrackerDashboard(
     val dailyLogResolving = dailyLogs.any { it.localDate == today && it.syncState == "RESOLVING" }
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = 20.dp).testTag("tracker-dashboard"),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             LunaraHeader(
                 eyebrow = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(LocalLocale.current.platformLocale)),
                 title = stringResource(R.string.tracker_greeting, displayName),
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
         item { PredictionHero(prediction) }
         item {
-            Button(
-                onClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                    when (periodAction.type) {
-                        PeriodPrimaryActionType.START -> onPeriodStarted()
-                        PeriodPrimaryActionType.END -> {
-                            val periodId = periodAction.periodId ?: return@Button
-                            onPeriodEnded(periodId)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                        when (periodAction.type) {
+                            PeriodPrimaryActionType.START -> onPeriodStarted()
+                            PeriodPrimaryActionType.END -> {
+                                val periodId = periodAction.periodId ?: return@Button
+                                onPeriodEnded(periodId)
+                            }
+                            PeriodPrimaryActionType.DONE -> Unit
                         }
-                        PeriodPrimaryActionType.DONE -> Unit
-                    }
-                },
-                enabled = periodAction.enabled && periodAction.type != PeriodPrimaryActionType.DONE,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 60.dp)
-                    .semantics { role = Role.Button }
-                    .testTag(
-                        when (periodAction.type) {
-                            PeriodPrimaryActionType.START -> "period-start"
-                            PeriodPrimaryActionType.END -> "period-end"
-                            PeriodPrimaryActionType.DONE -> "period-done"
-                        },
-                    ),
-            ) {
-                Icon(
-                    if (periodAction.type == PeriodPrimaryActionType.START) {
-                        Icons.Rounded.AddCircle
-                    } else {
-                        Icons.Rounded.DateRange
                     },
-                    contentDescription = null,
-                )
-                Text(
-                    stringResource(
-                        when (periodAction.type) {
-                            PeriodPrimaryActionType.START -> R.string.period_start_action
-                            PeriodPrimaryActionType.END -> R.string.period_end_action
-                            PeriodPrimaryActionType.DONE -> R.string.period_ended_today
+                    enabled = periodAction.enabled && periodAction.type != PeriodPrimaryActionType.DONE,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .semantics { role = Role.Button }
+                        .testTag(
+                            when (periodAction.type) {
+                                PeriodPrimaryActionType.START -> "period-start"
+                                PeriodPrimaryActionType.END -> "period-end"
+                                PeriodPrimaryActionType.DONE -> "period-done"
+                            },
+                        ),
+                ) {
+                    Icon(
+                        if (periodAction.type == PeriodPrimaryActionType.START) {
+                            Icons.Rounded.AddCircle
+                        } else {
+                            Icons.Rounded.DateRange
                         },
-                    ),
-                    Modifier.padding(start = 10.dp),
-                )
-            }
-        }
-        when (periodAction.type) {
-            PeriodPrimaryActionType.END -> periodAction.startDate?.let { startDate ->
-                item {
+                        contentDescription = null,
+                    )
                     Text(
-                        stringResource(R.string.period_active_since, formatDate(startDate.toString())),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
+                        stringResource(
+                            when (periodAction.type) {
+                                PeriodPrimaryActionType.START -> R.string.period_start_action
+                                PeriodPrimaryActionType.END -> R.string.period_end_action
+                                PeriodPrimaryActionType.DONE -> R.string.period_ended_today
+                            },
+                        ),
+                        Modifier.padding(start = 10.dp),
                     )
                 }
-            }
-            PeriodPrimaryActionType.DONE -> item {
-                Text(
-                    stringResource(R.string.period_ended_today_confirmation),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            PeriodPrimaryActionType.START -> Unit
-        }
-        item {
-            OutlinedButton(
-                onClick = { showTodayLog = true },
-                enabled = !dailyLogResolving,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("today-log"),
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
-                Text(stringResource(R.string.today_log), Modifier.padding(start = 10.dp))
+                when (periodAction.type) {
+                    PeriodPrimaryActionType.END -> periodAction.startDate?.let { startDate ->
+                        Text(
+                            stringResource(R.string.period_active_since, formatDate(startDate.toString())),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    PeriodPrimaryActionType.DONE -> Text(
+                        stringResource(R.string.period_ended_today_confirmation),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    PeriodPrimaryActionType.START -> Unit
+                }
+                OutlinedButton(
+                    onClick = { showTodayLog = true },
+                    enabled = !dailyLogResolving,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("today-log"),
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null)
+                    Text(stringResource(R.string.today_log), Modifier.padding(start = 10.dp))
+                }
             }
         }
         dailyLogs.firstOrNull()?.let { latest ->
@@ -642,12 +657,7 @@ fun TrackerDashboard(
         if (showSync) {
             item {
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(syncDescription(pendingMutations, conflictMutations, lastSyncAt), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = onSync) {
-                            Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.sync_now))
-                        }
-                    }
+                    JournalSyncRow(syncDescription(pendingMutations, conflictMutations, lastSyncAt), onSync = onSync)
                     if (conflictMutations > 0) {
                         TextButton(onClick = { showDiscardConflicts = true }) {
                             Text(stringResource(R.string.resolve_sync_conflicts))
@@ -805,6 +815,7 @@ private fun OptionalMetricSlider(
             Text(
                 value?.let { stringResource(R.string.metric_value, label, it.toInt()) } ?: label,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
             )
             TextButton(onClick = { onValueChange(if (value == null) suggestedValue else null) }) {
                 Text(stringResource(if (value == null) R.string.add_metric else R.string.remove_metric))
@@ -846,22 +857,21 @@ private fun DailyLogRow(log: DailyLogEntity) {
         log.painLevel?.let { add(stringResource(R.string.pain_value, it)) }
         log.mood?.takeIf(String::isNotBlank)?.let(::add)
     }.joinToString(" · ").ifBlank { stringResource(R.string.daily_log_recorded) }
-    InsightCard(
-        Icons.AutoMirrored.Rounded.List,
-        stringResource(R.string.daily_log_date, formatDate(log.localDate)),
-        details,
-        action = {
-            StatusPill(
-                when (log.syncState) {
-                    "SYNCED" -> stringResource(R.string.synced)
-                    "LOCAL" -> stringResource(R.string.stored_on_device)
-                    "CONFLICT" -> stringResource(R.string.sync_conflict)
-                    "RESOLVING" -> stringResource(R.string.sync_resolving)
-                    else -> stringResource(R.string.pending)
-                },
-            )
-        },
-    )
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(stringResource(R.string.daily_log_date, formatDate(log.localDate)), style = MaterialTheme.typography.titleSmall)
+        Text(details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            stringResource(when (log.syncState) {
+                "SYNCED" -> R.string.synced
+                "LOCAL" -> R.string.stored_on_device
+                "CONFLICT" -> R.string.sync_conflict
+                "RESOLVING" -> R.string.sync_resolving
+                else -> R.string.pending
+            }),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (log.syncState == "CONFLICT") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+        )
+    }
 }
 
 @Composable
@@ -891,6 +901,8 @@ fun PartnerDashboard(
     onNextTip: () -> Unit = {},
 ) {
     val checkInPrompt = stringResource(R.string.check_in)
+    val initialLoading = dashboard == null && refreshing
+    val awaitingDashboard = dashboard == null && (initialLoading || unavailable)
     val locale = LocalLocale.current.platformLocale
     val lastSyncLabel = remember(lastSyncAt, locale) {
         lastSyncAt?.let {
@@ -908,21 +920,33 @@ fun PartnerDashboard(
             LunaraHeader(
                 eyebrow = stringResource(R.string.today),
                 title = stringResource(R.string.partner_greeting, displayName),
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier.padding(top = 12.dp),
             )
         }
         item { RelationshipCard(relationship, onRelationshipRefresh, compact = true) }
-        if (unavailable) {
+        if (unavailable && !initialLoading) {
             item {
-                Text(
-                    stringResource(if (dashboard == null) R.string.partner_dashboard_unavailable else R.string.partner_dashboard_cached),
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                LunaraStatusNotice(
+                    icon = Icons.Rounded.Info,
+                    title = stringResource(if (dashboard == null) R.string.journal_connection_unavailable else R.string.journal_saved_overview),
+                    body = stringResource(if (dashboard == null) R.string.partner_dashboard_unavailable else R.string.partner_dashboard_cached),
+                    modifier = Modifier.testTag("partner-offline-notice"),
+                    loading = refreshing,
+                    action = { TextButton(onClick = onRefresh, enabled = !refreshing, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.journal_retry)) } },
                 )
             }
         }
         item { JournalSection(stringResource(R.string.journal_shared_overview), subtitle = stringResource(R.string.privacy_guard)) }
-        item {
+        if (initialLoading) item {
+            LunaraStatusNotice(
+                icon = Icons.Rounded.Refresh,
+                title = stringResource(R.string.partner_dashboard_refreshing),
+                body = stringResource(R.string.journal_loading_shared),
+                loading = true,
+                modifier = Modifier.testTag("partner-loading-notice"),
+            )
+        }
+        if (!awaitingDashboard) item {
             if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction)) PredictionHero(dashboard?.prediction)
             else InsightCard(Icons.Rounded.DateRange, stringResource(R.string.journal_partner_prediction_empty), stringResource(R.string.journal_partner_prediction_empty_body))
         }
@@ -934,7 +958,7 @@ fun PartnerDashboard(
         PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
             item { FertilityEstimateCard(fertileWindow) }
         }
-        item {
+        if (!awaitingDashboard) item {
             val tip = dashboard?.tip
             if (tip == null) {
                 InsightCard(
@@ -954,16 +978,13 @@ fun PartnerDashboard(
         }
         if (checkInSent) item { Text(stringResource(R.string.check_in_sent), color = MaterialTheme.colorScheme.tertiary) }
         if (checkInError) item { Text(stringResource(R.string.check_in_error), color = MaterialTheme.colorScheme.error) }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    lastSyncLabel?.let { stringResource(R.string.last_sync_value, it) } ?: stringResource(R.string.last_sync_never),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = onRefresh, enabled = !refreshing) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = stringResource(if (refreshing) R.string.partner_dashboard_refreshing else R.string.sync_now))
-                }
-            }
+        if (!initialLoading) item {
+            JournalSyncRow(
+                label = if (refreshing) stringResource(R.string.partner_dashboard_refreshing)
+                    else lastSyncLabel?.let { stringResource(R.string.last_sync_value, it) } ?: stringResource(R.string.last_sync_never),
+                refreshing = refreshing,
+                onSync = onRefresh,
+            )
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
@@ -994,6 +1015,102 @@ private fun FertilitySafetyNotice() {
 }
 
 @Composable
+private fun PartnerCalendarConnectionNotice(status: PartnerCalendarStatus, onRefresh: () -> Unit) {
+    if (status.load == CalendarLoadStatus.READY) return
+    val loading = status.load == CalendarLoadStatus.LOADING
+    LunaraStatusNotice(
+        icon = Icons.Rounded.Info,
+        title = stringResource(when (status.load) {
+            CalendarLoadStatus.LOADING -> R.string.partner_dashboard_refreshing
+            CalendarLoadStatus.CACHED -> R.string.journal_saved_overview
+            else -> R.string.journal_connection_unavailable
+        }),
+        body = stringResource(when (status.load) {
+            CalendarLoadStatus.LOADING -> R.string.calendar_shared_loading
+            CalendarLoadStatus.CACHED -> R.string.calendar_shared_cached
+            else -> R.string.calendar_shared_unavailable
+        }),
+        loading = status.refreshing,
+        modifier = Modifier.testTag("calendar-${status.load.name.lowercase(Locale.ROOT)}-notice"),
+        action = if (loading) null else {
+            {
+                TextButton(
+                    onClick = onRefresh,
+                    enabled = !status.refreshing,
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("calendar-retry"),
+                ) { Text(stringResource(R.string.journal_retry)) }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PartnerCalendarNotices(status: PartnerCalendarStatus, onRefresh: () -> Unit) {
+    val messages = listOfNotNull(
+        when (status.periodNotice) {
+            CalendarPeriodNotice.NOT_SHARED -> stringResource(R.string.calendar_periods_not_shared)
+            CalendarPeriodNotice.EMPTY -> stringResource(R.string.calendar_periods_empty)
+            CalendarPeriodNotice.UNKNOWN -> stringResource(R.string.calendar_periods_unknown)
+            null -> null
+        },
+        when (status.fertilityNotice) {
+            CalendarFertilityNotice.NOT_SHARED -> stringResource(R.string.calendar_fertility_not_shared)
+            CalendarFertilityNotice.DISABLED -> stringResource(R.string.calendar_fertility_disabled)
+            CalendarFertilityNotice.INSUFFICIENT_DATA -> stringResource(R.string.calendar_fertility_insufficient)
+            CalendarFertilityNotice.UNRELIABLE_DATA -> stringResource(R.string.calendar_fertility_unreliable)
+            CalendarFertilityNotice.UNAVAILABLE -> stringResource(R.string.calendar_fertility_unavailable)
+            null -> null
+        },
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        PartnerCalendarConnectionNotice(status, onRefresh)
+        if (status.sharingPaused || messages.isNotEmpty()) {
+            LunaraStatusNotice(
+                icon = Icons.Rounded.Lock,
+                title = stringResource(R.string.calendar_visibility),
+                body = if (status.sharingPaused) stringResource(R.string.calendar_sharing_paused)
+                    else messages.joinToString("\n"),
+                modifier = Modifier.testTag("calendar-sharing-notice"),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun PartnerCalendarAccessSettings(status: PartnerCalendarStatus, onRefresh: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SettingHeader(stringResource(R.string.calendar_visibility))
+        Text(stringResource(R.string.partner_calendar_access_summary), style = MaterialTheme.typography.bodySmall)
+        PartnerCalendarConnectionNotice(status, onRefresh)
+        if (status.sharingPaused) Text(stringResource(R.string.calendar_sharing_paused))
+        PartnerCalendarAccessRow(R.string.partner_calendar_periods, status.periodAccess, "partner-period-access")
+        PartnerCalendarAccessRow(R.string.estimated_fertile_window, status.fertilityAccess, "partner-fertility-access")
+        if (status.load == CalendarLoadStatus.READY) {
+            TextButton(onClick = onRefresh, enabled = !status.refreshing, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(if (status.refreshing) R.string.partner_dashboard_refreshing else R.string.journal_refresh))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PartnerCalendarAccessRow(title: Int, access: CalendarAccessStatus, tag: String) {
+    Column(Modifier.testTag(tag).semantics(mergeDescendants = true) {}) {
+        SettingText(
+            Icons.Rounded.Lock,
+            stringResource(title),
+            stringResource(when (access) {
+                CalendarAccessStatus.SHARED -> R.string.partner_calendar_access_shared
+                CalendarAccessStatus.NOT_SHARED -> R.string.partner_calendar_access_denied
+                CalendarAccessStatus.LOADING -> R.string.partner_calendar_access_loading
+                CalendarAccessStatus.PAUSED -> R.string.partner_calendar_access_paused
+                CalendarAccessStatus.UNKNOWN -> R.string.partner_calendar_access_unknown
+            }),
+        )
+    }
+}
+
+@Composable
 internal fun CalendarScreen(
     periods: List<PeriodEntity>,
     role: UserRole,
@@ -1003,6 +1120,8 @@ internal fun CalendarScreen(
     onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
     periodFailureRevision: Long = 0L,
+    partnerStatus: PartnerCalendarStatus? = null,
+    onPartnerRefresh: () -> Unit = {},
 ) {
     val today = LocalDate.now()
     val currentMonth = YearMonth.from(today)
@@ -1031,8 +1150,15 @@ internal fun CalendarScreen(
     val createSubmitting = pendingNewStartDate != null
     val editorSubmitting = pendingUpdatedStartDate != null || pendingDeletePeriodId != null
     val locale = LocalLocale.current.platformLocale
-    val predictionBand = remember(prediction) { CalendarPredictionBand.from(prediction) }
-    val fertilityRange = remember(prediction) { PredictionPresentationPolicy.fertileWindow(prediction) }
+    val visiblePrediction = prediction.takeUnless { role == UserRole.PARTNER && partnerStatus?.showPrediction == false }
+    val predictionBand = remember(visiblePrediction) { CalendarPredictionBand.from(visiblePrediction) }
+    val fertilityRange = remember(visiblePrediction, role, partnerStatus?.showFertility) {
+        PredictionPresentationPolicy.fertileWindow(visiblePrediction)
+            .takeUnless { role == UserRole.PARTNER && partnerStatus?.showFertility == false }
+    }
+    val visibleSharedDates = sharedPeriodDates.takeUnless {
+        role == UserRole.PARTNER && partnerStatus?.showPeriodDates == false
+    }.orEmpty()
     var showCalendarHelp by remember { mutableStateOf(false) }
     val calendarFontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     LaunchedEffect(periods, pendingNewStartDate, pendingNewEndDate) {
@@ -1088,7 +1214,7 @@ internal fun CalendarScreen(
             pendingEditorFailureRevision = null
         }
     }
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp).testTag("calendar-screen"), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item {
             LunaraHeader(
                 eyebrow = stringResource(R.string.journal_calendar_eyebrow),
@@ -1096,6 +1222,9 @@ internal fun CalendarScreen(
                 body = stringResource(if (role == UserRole.TRACKER) R.string.journal_calendar_hint else R.string.privacy_guard),
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
             )
+        }
+        if (role == UserRole.PARTNER && partnerStatus != null) {
+            item { PartnerCalendarNotices(partnerStatus, onPartnerRefresh) }
         }
         item {
             HorizontalPager(
@@ -1146,11 +1275,11 @@ internal fun CalendarScreen(
                                     Spacer(Modifier.weight(1f).height((52 * calendarFontScale).dp))
                                 } else {
                                     val selectable = role == UserRole.TRACKER && !date.isAfter(today)
-                                    val ownPeriod = periodForDate(periods, date, today)
+                                    val ownPeriod = if (role == UserRole.TRACKER) periodForDate(periods, date, today) else null
                                     val existing = if (selectable) ownPeriod else null
                                     val editable = selectable &&
                                         (existing == null || !SyncEditPolicy.isBlocked(existing.syncState))
-                                    val actual = ownPeriod != null || sharedPeriodDates.any {
+                                    val actual = ownPeriod != null || visibleSharedDates.any {
                                         calendarRangeContains(
                                             date = date,
                                             startDate = it["startDate"] as? String,
@@ -1211,7 +1340,7 @@ internal fun CalendarScreen(
             }
         }
         if (fertilityRange != null) {
-            item { FertilitySafetyNotice() }
+            item { Column(Modifier.testTag("calendar-fertility-safety")) { FertilitySafetyNotice() } }
         }
         if (role == UserRole.TRACKER) {
             item {
@@ -2070,6 +2199,141 @@ private fun PeriodRangeSummary(
 }
 
 @Composable
+private fun PeriodTransferSettings(
+    role: UserRole,
+    state: PeriodTransferUiState,
+    onBegin: () -> PeriodTransferIdentity?,
+    onExport: (Uri, PeriodFileFormat, PeriodTransferIdentity) -> Unit,
+    onPreviewImport: (Uri, PeriodTransferIdentity) -> Unit,
+    onConfirmImport: () -> Unit,
+    onClear: () -> Unit,
+) {
+    // Not saveable: after process death a picker result must be discarded, never rebound.
+    var pendingExport by remember { mutableStateOf<Pair<PeriodTransferIdentity, PeriodFileFormat>?>(null) }
+    var pendingImport by remember { mutableStateOf<PeriodTransferIdentity?>(null) }
+    val csvPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        val pending = pendingExport
+        pendingExport = null
+        if (uri != null && pending?.second == PeriodFileFormat.CSV) onExport(uri, pending.second, pending.first)
+    }
+    val jsonPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val pending = pendingExport
+        pendingExport = null
+        if (uri != null && pending?.second == PeriodFileFormat.JSON) onExport(uri, pending.second, pending.first)
+    }
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val identity = pendingImport
+        pendingImport = null
+        if (uri != null && identity != null) onPreviewImport(uri, identity)
+    }
+    PeriodTransferControls(
+        role = role, state = state,
+        onExport = { format ->
+            onBegin()?.let { identity ->
+                pendingExport = identity to format
+                val name = "lunara-periods-${LocalDate.now()}.${format.extension}"
+                if (format == PeriodFileFormat.CSV) csvPicker.launch(name) else jsonPicker.launch(name)
+            }
+        },
+        onImport = {
+            onBegin()?.let { identity ->
+                pendingImport = identity
+                // Providers often label CSV/JSON as plain text or octet-stream. Validate content.
+                importPicker.launch(arrayOf("*/*"))
+            }
+        },
+        onConfirmImport = onConfirmImport, onClear = onClear,
+    )
+}
+
+@Composable
+internal fun PeriodTransferControls(
+    role: UserRole,
+    state: PeriodTransferUiState,
+    onExport: (PeriodFileFormat) -> Unit,
+    onImport: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onClear: () -> Unit,
+) {
+    if (role != UserRole.TRACKER) return
+    var requestedExport by remember { mutableStateOf<PeriodFileFormat?>(null) }
+    var showImportInfo by remember { mutableStateOf(false) }
+    val busy = state.status == PeriodTransferStatus.BUSY
+    InsightCard(
+        Icons.Rounded.DateRange,
+        stringResource(R.string.period_transfer_title),
+        stringResource(R.string.period_transfer_summary),
+        action = {
+            Column(Modifier.testTag("period-transfer-controls"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(onClick = { requestedExport = PeriodFileFormat.CSV }, enabled = !busy, modifier = Modifier.testTag("period-export-csv").heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.period_export_csv))
+                }
+                TextButton(onClick = { requestedExport = PeriodFileFormat.JSON }, enabled = !busy, modifier = Modifier.testTag("period-export-json").heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.period_export_json))
+                }
+                TextButton(onClick = { showImportInfo = true }, enabled = !busy, modifier = Modifier.testTag("period-import-file").heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.period_import_file))
+                }
+                if (busy) CircularProgressIndicator(Modifier.size(24.dp))
+                if (state.status !in setOf(PeriodTransferStatus.IDLE, PeriodTransferStatus.PREVIEW)) {
+                    val message = when (state.status) {
+                        PeriodTransferStatus.EXPORTED -> stringResource(R.string.period_export_success, state.completedCount)
+                        PeriodTransferStatus.IMPORTED -> stringResource(R.string.period_import_success, state.completedCount)
+                        PeriodTransferStatus.BUSY -> stringResource(R.string.period_transfer_busy)
+                        else -> stringResource(when (state.problem) {
+                            PeriodFileProblem.INVALID_FORMAT -> R.string.period_import_invalid_format
+                            PeriodFileProblem.INVALID_DATE -> R.string.period_import_invalid_date
+                            PeriodFileProblem.AMBIGUOUS_DATE -> R.string.period_import_ambiguous_date
+                            PeriodFileProblem.TOO_LARGE -> R.string.period_import_too_large
+                            PeriodFileProblem.TOO_MANY -> R.string.period_import_too_many
+                            PeriodFileProblem.CHANGED -> R.string.period_import_changed
+                            PeriodFileProblem.ACCOUNT_CHANGED -> R.string.period_transfer_account_changed
+                            null -> R.string.period_transfer_failed
+                        })
+                    }
+                    Text(message, modifier = Modifier.testTag("period-transfer-status").semantics { liveRegion = LiveRegionMode.Polite },
+                        color = if (state.status == PeriodTransferStatus.FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        },
+    )
+    requestedExport?.let { format ->
+        AlertDialog(
+            onDismissRequest = { requestedExport = null },
+            title = { Text(stringResource(R.string.period_export_warning_title)) },
+            text = { Text(stringResource(R.string.period_export_warning), Modifier.testTag("period-export-warning")) },
+            confirmButton = { TextButton(onClick = { requestedExport = null; onExport(format) }, modifier = Modifier.testTag("period-export-confirm")) { Text(stringResource(R.string.period_export_choose_destination)) } },
+            dismissButton = { TextButton(onClick = { requestedExport = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    if (showImportInfo) AlertDialog(
+        onDismissRequest = { showImportInfo = false },
+        title = { Text(stringResource(R.string.period_import_file)) },
+        text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.period_import_explanation))
+            Text(stringResource(R.string.period_import_format_guide))
+        } },
+        confirmButton = { TextButton(onClick = { showImportInfo = false; onImport() }, modifier = Modifier.testTag("period-import-choose")) { Text(stringResource(R.string.period_import_choose)) } },
+        dismissButton = { TextButton(onClick = { showImportInfo = false }) { Text(stringResource(R.string.cancel)) } },
+    )
+    state.summary?.takeIf { state.status == PeriodTransferStatus.PREVIEW || busy }?.let { summary ->
+        AlertDialog(
+            onDismissRequest = { if (!busy) onClear() },
+            title = { Text(stringResource(R.string.period_import_preview_title)) },
+            text = { Column(Modifier.verticalScroll(rememberScrollState()).testTag("period-import-preview"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.period_import_preview_counts, summary.newCount, summary.duplicateCount, summary.conflictCount))
+                Text(stringResource(R.string.period_import_explanation))
+                if (summary.conflictCount > 0) Text(stringResource(R.string.period_import_conflicts), color = MaterialTheme.colorScheme.error)
+                else if (summary.newCount == 0) Text(stringResource(R.string.period_import_nothing_new))
+                if (busy) CircularProgressIndicator(Modifier.size(24.dp))
+            } },
+            confirmButton = { TextButton(onClick = onConfirmImport, enabled = !busy && summary.canImport, modifier = Modifier.testTag("period-import-confirm")) { Text(stringResource(R.string.period_import_confirm)) } },
+            dismissButton = { TextButton(onClick = onClear, enabled = !busy) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+}
+
+@Composable
 internal fun SettingsScreen(
     session: AppSession,
     preferences: AppPreferencesState,
@@ -2105,6 +2369,14 @@ internal fun SettingsScreen(
     onImportLocalBackup: (Uri, CharArray) -> Unit,
     onClearLocalBackupStatus: () -> Unit,
     onLogout: () -> Unit,
+    partnerCalendarStatus: PartnerCalendarStatus? = null,
+    onPartnerRefresh: () -> Unit = {},
+    periodTransfer: PeriodTransferUiState = PeriodTransferUiState(),
+    onBeginPeriodTransfer: () -> PeriodTransferIdentity? = { null },
+    onExportPeriods: (Uri, PeriodFileFormat, PeriodTransferIdentity) -> Unit = { _, _, _ -> },
+    onPreviewPeriodImport: (Uri, PeriodTransferIdentity) -> Unit = { _, _ -> },
+    onConfirmPeriodImport: () -> Unit = {},
+    onClearPeriodTransfer: () -> Unit = {},
 ) {
     val isLocalMode = preferences.appMode == AppMode.LOCAL
     var settingsSection by rememberSaveable { mutableStateOf<SettingsSection?>(null) }
@@ -2212,6 +2484,12 @@ internal fun SettingsScreen(
             }
         }
         if (settingsSection == SettingsSection.ACCOUNT) {
+        if (session.role == UserRole.TRACKER) item {
+            PeriodTransferSettings(
+                session.role, periodTransfer, onBeginPeriodTransfer, onExportPeriods,
+                onPreviewPeriodImport, onConfirmPeriodImport, onClearPeriodTransfer,
+            )
+        }
         if (isLocalMode) {
             item { SettingHeader(stringResource(R.string.local_storage_title)) }
             item {
@@ -2412,6 +2690,12 @@ internal fun SettingsScreen(
         }
         if (!isLocalMode && settingsSection == SettingsSection.PARTNER) {
             item { RelationshipCard(relationship, onRefreshInvitation) }
+            if (session.role == UserRole.PARTNER) item {
+                PartnerCalendarAccessSettings(
+                    partnerCalendarStatus ?: CalendarStatusPolicy.partner(null, unavailable = true, refreshing = false),
+                    onPartnerRefresh,
+                )
+            }
         }
         if (session.role == UserRole.TRACKER && !isLocalMode && settingsSection == SettingsSection.PARTNER) {
             item { SettingHeader(stringResource(R.string.partner_connect)) }
@@ -3212,17 +3496,19 @@ private fun SettingHeader(text: String) = Text(
 
 @Composable
 private fun SettingText(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String?, onClick: (() -> Unit)? = null) {
-    Card(
-        onClick = onClick ?: {},
-        enabled = onClick != null,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null)
-            Column(Modifier.padding(start = 14.dp)) {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                subtitle?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
+            if (onClick != null) Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -3257,7 +3543,14 @@ private fun syncDescription(pending: Int, conflicts: Int, lastSync: String?): St
     conflicts > 0 -> stringResource(R.string.sync_conflicts, conflicts)
     pending > 0 -> stringResource(R.string.sync_pending, pending)
     lastSync == null -> stringResource(R.string.last_sync_never)
-    else -> stringResource(R.string.last_sync_value, lastSync.take(16).replace('T', ' '))
+    else -> {
+        val locale = LocalLocale.current.platformLocale
+        val timestamp = runCatching {
+            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withLocale(locale)
+                .withZone(ZoneId.systemDefault()).format(Instant.parse(lastSync))
+        }.getOrDefault("—")
+        stringResource(R.string.last_sync_value, timestamp)
+    }
 }
 
 @Composable

@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 README.md
 build.gradle
 gradle/wrapper/gradle-wrapper.jar
@@ -64,6 +65,7 @@ src/main/kotlin/de/lunara/api/models/OidcLinkDto.kt
 src/main/kotlin/de/lunara/api/models/OidcLoginDto.kt
 src/main/kotlin/de/lunara/api/models/OidcMetaResponse.kt
 src/main/kotlin/de/lunara/api/models/PartnerDashboardResponse.kt
+src/main/kotlin/de/lunara/api/models/PartnerDashboardResponseCalendarAccess.kt
 src/main/kotlin/de/lunara/api/models/PartnerPredictionResponse.kt
 src/main/kotlin/de/lunara/api/models/PeriodResponse.kt
 src/main/kotlin/de/lunara/api/models/PredefinedSymptomResponseDto.kt

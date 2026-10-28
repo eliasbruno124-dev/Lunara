@@ -30,18 +30,28 @@ import com.squareup.moshi.JsonClass
 /**
  *
  *
- * @param password
+ * @param confirm Required for OIDC deletion: DELETE:<immutable Lunara user UUID>
  * @param deleteHousehold
+ * @param oidcAccessToken OIDC-only accounts: exact linked subject, signed auth_time within five minutes; obtain with prompt=login and max_age=0. A refreshed token is insufficient.
+ * @param password
  */
 
 
 data class DeleteAccountDto (
 
-    @Json(name = "password")
-    val password: kotlin.String,
+    /* Required for OIDC deletion: DELETE:<immutable Lunara user UUID> */
+    @Json(name = "confirm")
+    val confirm: kotlin.String? = null,
 
     @Json(name = "deleteHousehold")
-    val deleteHousehold: kotlin.Boolean? = false
+    val deleteHousehold: kotlin.Boolean? = false,
+
+    /* OIDC-only accounts: exact linked subject, signed auth_time within five minutes; obtain with prompt=login and max_age=0. A refreshed token is insufficient. */
+    @Json(name = "oidcAccessToken")
+    val oidcAccessToken: kotlin.String? = null,
+
+    @Json(name = "password")
+    val password: kotlin.String? = null
 
 ) {
 

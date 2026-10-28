@@ -279,7 +279,7 @@ describe('DataManagementService period import safety', () => {
 });
 
 describe('DataManagementService relationship deletion', () => {
-  it('takes the relationship advisory lock before re-reading every member id', async () => {
+  it('locks membership and relationship before deleting an exclusive household', async () => {
     const password = 'A secure deletion password 2026!';
     const passwordHash = await argon2.hash(password);
     const tx = {
@@ -287,12 +287,16 @@ describe('DataManagementService relationship deletion', () => {
         { pg_advisory_xact_lock: null },
       ]),
       membership: {
+        findUnique: jest.fn().mockResolvedValue({ userId: tracker.userId, householdId: tracker.householdId, role: tracker.role }),
         findMany: jest.fn().mockResolvedValue([
           { userId: tracker.userId },
-          { userId: 'partner-id' },
         ]),
       },
-      user: { deleteMany: jest.fn().mockResolvedValue({ count: 2 }) },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({ passwordHash, disabledAt: null }),
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      deviceSession: { findUnique: jest.fn().mockResolvedValue({ userId: tracker.userId, revokedAt: null, expiresAt: new Date(Date.now() + 60_000) }) },
       household: { delete: jest.fn().mockResolvedValue({}) },
       auditEvent: { create: jest.fn().mockResolvedValue({}) },
     };
@@ -316,7 +320,7 @@ describe('DataManagementService relationship deletion', () => {
       deleteHousehold: true,
     });
 
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
     expect(tx.$queryRaw).toHaveBeenCalledWith(
       expect.anything(),
       `lunara:relationship:${tracker.householdId}`,
@@ -329,7 +333,7 @@ describe('DataManagementService relationship deletion', () => {
       select: { userId: true },
     });
     expect(tx.user.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: [tracker.userId, 'partner-id'] } },
+      where: { id: { in: [tracker.userId] } },
     });
   });
 });

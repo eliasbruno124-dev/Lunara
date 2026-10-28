@@ -3,42 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SwipeCalendar } from '../calendar';
 import { addMonths, monthKey } from '../date';
 import { translate, type MessageKey } from '../i18n';
-
-// A deliberately small DOM adapter for calendar behavior, not a layout/browser
-// simulation. Real responsive sizing and screenshots are checked in the browser.
-class CalendarElement {
-  className = '';
-  textContent = '';
-  disabled = false;
-  offsetWidth = 500;
-  dataset: Record<string, string> = {};
-  attributes = new Map<string, string>();
-  children: CalendarElement[] = [];
-  events = new Map<string, (event: Record<string, unknown>) => void>();
-  focused = false;
-
-  constructor(readonly tagName: string) {}
-
-  get classList() {
-    return {
-      add: (...classes: string[]) => { this.className = [...new Set([...this.className.split(' '), ...classes])].join(' '); },
-      remove: (...classes: string[]) => { this.className = this.className.split(' ').filter((value) => !classes.includes(value)).join(' '); },
-    };
-  }
-
-  append(...children: CalendarElement[]) { this.children.push(...children); }
-  replaceChildren() { this.children = []; }
-  setAttribute(name: string, value: string) { this.attributes.set(name, value); }
-  addEventListener(name: string, listener: (event: Record<string, unknown>) => void) { this.events.set(name, listener); }
-  focus() { this.focused = true; }
-  emit(name: string, event: Record<string, unknown> = {}) { this.events.get(name)?.(event); }
-  querySelectorAll(selector: string): CalendarElement[] {
-    return this.children.flatMap((child) => [
-      ...(child.className.split(' ').includes(selector.slice(1)) ? [child] : []),
-      ...child.querySelectorAll(selector),
-    ]);
-  }
-}
+import { MinimalElement as CalendarElement } from './minimal-dom';
 
 function fixture(options: Partial<ConstructorParameters<typeof SwipeCalendar>[0]> = {}) {
   const calendar = new SwipeCalendar({

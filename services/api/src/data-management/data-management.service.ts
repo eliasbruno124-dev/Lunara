@@ -11,6 +11,8 @@ import * as argon2 from 'argon2';
 import {
   assertCurrentTrackerMembership,
   lockRelationship,
+  lockMembership,
+  lockUserAuthentication,
   lockUserPeriods,
 } from '../common/database/database-coordination.js';
 import { AuthenticatedUser } from '../common/types/authenticated-user.js';
@@ -23,6 +25,7 @@ import {
 import { PredictionService } from '../prediction/prediction.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeleteAccountDto, ExportDto, ExportFormatDto, ImportDto } from './data-management.dto.js';
+import { OidcTokenVerifier } from '../auth/oidc-token-verifier.js';
 
 interface ImportPeriod {
   id?: string;
@@ -68,6 +71,7 @@ export class DataManagementService {
     private readonly logs: DailyLogsService,
     private readonly encryption: EncryptionService,
     private readonly predictions: PredictionService,
+    private readonly oidcVerifier?: OidcTokenVerifier,
   ) {}
 
   async export(user: AuthenticatedUser, dto: ExportDto) {
@@ -251,28 +255,59 @@ export class DataManagementService {
   }
 
   async deleteAccount(user: AuthenticatedUser, dto: DeleteAccountDto): Promise<void> {
-    const account = await this.prisma.user.findUniqueOrThrow({ where: { id: user.userId } });
-    const valid = account.passwordHash
-      ? await argon2.verify(account.passwordHash, dto.password).catch(() => false)
-      : false;
-    if (!valid) throw new UnauthorizedException('Password is incorrect');
-    if (user.role === UserRole.TRACKER && !dto.deleteHousehold) {
-      throw new ConflictException('The tracker must delete the relationship or transfer the role first');
-    }
-    if (dto.deleteHousehold && user.role !== UserRole.TRACKER) {
-      throw new ForbiddenException('Only the tracker can delete the relationship');
-    }
+    const externalProof = dto.oidcAccessToken && this.oidcVerifier
+      ? await this.oidcVerifier.verifyFreshAuthentication(dto.oidcAccessToken)
+      : undefined;
     await this.prisma.$transaction(async (tx) => {
+      await lockMembership(tx, user.membershipId, user.userId);
+      const membership = await tx.membership.findUnique({ where: { id: user.membershipId } });
+      if (!membership || membership.userId !== user.userId ||
+          membership.householdId !== user.householdId || membership.role !== user.role) {
+        throw new ForbiddenException('Account membership changed; sign in again');
+      }
+      await lockRelationship(tx, user.householdId);
+      await lockUserAuthentication(tx, user.userId);
+      const account = await tx.user.findUniqueOrThrow({ where: { id: user.userId } });
+      if (account.disabledAt) throw new UnauthorizedException('Account is disabled');
+      if (account.passwordHash) {
+        // A linked OIDC identity never bypasses a configured local password.
+        const valid = typeof dto.password === 'string' &&
+          await argon2.verify(account.passwordHash, dto.password).catch(() => false);
+        if (!valid) throw new UnauthorizedException('Password is incorrect');
+      } else {
+        if (!externalProof || dto.confirm !== `DELETE:${user.userId}`) {
+          throw new UnauthorizedException('A fresh external sign-in and account confirmation are required');
+        }
+        const linked = await tx.externalIdentity.findUnique({
+          where: { issuer_subject: { issuer: externalProof.issuer, subject: externalProof.subject } },
+          select: { userId: true },
+        });
+        if (!linked || linked.userId !== user.userId) {
+          throw new UnauthorizedException('External identity does not match this account');
+        }
+      }
+      const session = await tx.deviceSession.findUnique({ where: { id: user.sessionId } });
+      if (!session || session.userId !== user.userId || session.revokedAt || session.expiresAt <= new Date()) {
+        throw new UnauthorizedException('Session is no longer active');
+      }
+      if (membership.role === UserRole.TRACKER && !dto.deleteHousehold) {
+        throw new ConflictException('The tracker must delete the relationship or transfer the role first');
+      }
+      if (dto.deleteHousehold && membership.role !== UserRole.TRACKER) {
+        throw new ForbiddenException('Only the tracker can delete the relationship');
+      }
       if (dto.deleteHousehold) {
         // Invitation claims and relationship deletion share this lock. Member
         // IDs are re-read only after it, so a join that won the race is also
         // deleted and a waiting join observes the removed invitation.
-        await lockRelationship(tx, user.householdId);
         const members = await tx.membership.findMany({
           where: { householdId: user.householdId },
           select: { userId: true },
         });
         const memberUserIds = members.map((member) => member.userId);
+        if (memberUserIds.length !== 1 || memberUserIds[0] !== user.userId) {
+          throw new ConflictException('Shared relationships must be separated or the tracker role transferred before account deletion');
+        }
         await tx.user.deleteMany({ where: { id: { in: memberUserIds } } });
         await tx.household.delete({ where: { id: user.householdId } });
         // The deleted household and users can no longer be referenced safely.

@@ -8,6 +8,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,12 +43,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.lunara.app.R
@@ -58,6 +63,7 @@ import java.time.format.FormatStyle
 import androidx.compose.ui.platform.LocalLocale
 
 /** Decorative arcs express the brand, never a measured cycle or fertility score. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PredictionHero(prediction: PredictionDto?, modifier: Modifier = Modifier) {
     val ink = Color(0xFF173E43)
@@ -72,22 +78,23 @@ internal fun PredictionHero(prediction: PredictionDto?, modifier: Modifier = Mod
         else -> R.string.journal_prediction_empty_body
     }
     fun date(raw: String?): String = runCatching {
-        LocalDate.parse(raw).format(DateTimeFormatter.ofPattern("d. MMM", locale))
+        LocalDate.parse(raw).format(DateTimeFormatter.ofPattern("d.\u00A0MMM", locale))
     }.getOrDefault("—")
     Surface(modifier.fillMaxWidth().testTag("prediction-hero"), shape = RoundedCornerShape(28.dp), color = ink, contentColor = paper) {
-        Box {
+        BoxWithConstraints {
+            val compact = maxWidth < 360.dp || LocalDensity.current.fontScale > 1.2f
             Canvas(Modifier.align(Alignment.TopEnd).size(156.dp)) {
                 val origin = Offset(size.width + 16.dp.toPx(), 4.dp.toPx())
                 listOf(58f, 94f, 130f).forEach { radius ->
                     drawCircle(paper.copy(alpha = .12f), radius.dp.toPx(), origin, style = Stroke(1.dp.toPx()))
                 }
             }
-            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(if (compact) 20.dp else 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.estimated_period), style = MaterialTheme.typography.labelLarge)
                 Text(
                     if (available) "${date(prediction?.predictedStartFrom)} – ${date(prediction?.predictedStartTo)}"
                     else stringResource(if (unavailableReason == R.string.journal_prediction_empty_body) R.string.journal_prediction_empty else R.string.journal_prediction_unavailable),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
@@ -97,17 +104,21 @@ internal fun PredictionHero(prediction: PredictionDto?, modifier: Modifier = Mod
                 )
                 if (available) {
                     HorizontalDivider(color = paper.copy(alpha = .18f))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         val confidence = stringResource(when (prediction?.confidence?.uppercase()) {
                             "HIGH" -> R.string.confidence_high
                             "MEDIUM" -> R.string.confidence_medium
                             else -> R.string.confidence_low
                         })
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.padding(end = 12.dp).align(Alignment.CenterVertically)) {
                             Text(stringResource(R.string.journal_cycles_basis, prediction?.basedOnCycleCount ?: 0), style = MaterialTheme.typography.labelLarge)
                             Text(stringResource(R.string.journal_confidence, confidence), style = MaterialTheme.typography.bodySmall, color = paper.copy(alpha = .8f))
                         }
-                        TextButton(onClick = { details = true }) {
+                        TextButton(onClick = { details = true }, modifier = Modifier.heightIn(min = 48.dp).testTag("prediction-details")) {
                             Text(stringResource(R.string.journal_details), color = paper)
                         }
                     }
@@ -134,12 +145,13 @@ internal fun JournalSection(title: String, modifier: Modifier = Modifier, subtit
 @Composable
 internal fun PartnerActionCard(tip: PartnerTipDto, onNext: () -> Unit, refreshing: Boolean, phaseBased: Boolean = false) {
     var details by remember(tip.id) { mutableStateOf(false) }
+    val detailsState = stringResource(if (details) R.string.journal_details_expanded else R.string.journal_details_collapsed)
     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().testTag("partner-action-card")) {
-        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.journal_support_today), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.tertiary)
             Text(tip.title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             Text(tip.body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(stringResource(R.string.journal_one_action), style = MaterialTheme.typography.labelLarge)
                     Text(tip.callToAction, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
@@ -149,7 +161,7 @@ internal fun PartnerActionCard(tip: PartnerTipDto, onNext: () -> Unit, refreshin
                 TextButton(onClick = onNext, enabled = !refreshing, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.tip_next))
                 }
-                TextButton(onClick = { details = !details }, modifier = Modifier.fillMaxWidth()) {
+                TextButton(onClick = { details = !details }, modifier = Modifier.fillMaxWidth().semantics { stateDescription = detailsState }) {
                     Text(stringResource(R.string.journal_why_this_tip))
                     Text(if (details) " −" else " +")
                 }
@@ -199,7 +211,7 @@ internal fun SettingsCategoryRow(section: SettingsSection, icon: ImageVector, on
             .heightIn(min = 84.dp).padding(vertical = 16.dp).testTag("settings-section-${section.name.lowercase()}"),
         horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp)) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, contentColor = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(14.dp)) {
             Icon(icon, contentDescription = null, modifier = Modifier.padding(12.dp).size(24.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

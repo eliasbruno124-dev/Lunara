@@ -35,6 +35,7 @@ export default defineConfig({
           /^\/ready(?:\/|$)/,
           /^\/api-docs/u,
           /^\/invite(?:\/|$)/u,
+          /^\/downloads(?:\/|$)/u,
           /^\/outpost\.goauthentik\.io(?:\/|$)/u,
           /^\/\.well-known(?:\/|$)/u,
         ],
@@ -44,7 +45,7 @@ export default defineConfig({
             urlPattern: ({ request, url }) =>
               request.method === 'GET' &&
               url.origin === self.location.origin &&
-              !/^\/(?:api(?:\/|$)|health(?:\/|$)|ready(?:\/|$)|api-docs|invite(?:\/|$)|outpost\.goauthentik\.io(?:\/|$)|\.well-known(?:\/|$))/u.test(url.pathname),
+              !/^\/(?:api(?:\/|$)|health(?:\/|$)|ready(?:\/|$)|api-docs|invite(?:\/|$)|downloads(?:\/|$)|outpost\.goauthentik\.io(?:\/|$)|\.well-known(?:\/|$))/u.test(url.pathname),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'lunara-app-shell',

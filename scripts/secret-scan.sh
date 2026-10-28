@@ -42,10 +42,18 @@ fi
 unset pattern_report
 
 # High-entropy candidates are counted without echoing their values.
+# Generated maps contain source identifiers, paths and checksums, not source
+# string values. Their inputs are scanned normally; targeted key patterns above
+# still apply to the generated files. CI separately checks map freshness.
 entropy_report="$(git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
+  | sed '/^docs\/code-map-flows\.json:/ s@"path": "apps/android/app/src/main/java/de/lunara/app/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
+  | sed '/^docs\/code-map-flows\.json:/ s@"path": "services/api/src/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
+  | sed 's@docs/screenshots/setup/[[:alnum:]-]*\.png@SCREENSHOT-ASSET@g' \
   | sed 's@https://www\.nhs\.uk/conditions/periods/fertility-in-the-menstrual-cycle/@PUBLIC-MEDICAL-REFERENCE@g; s@https://help\.flo\.health/hc/en-us/articles/360061400591-What-are-Flo-stories@PUBLIC-PRODUCT-REFERENCE@g' \
   | grep -E '^[^:]+:[0-9]+:.*[A-Za-z0-9+/=_-]{48,}' \
+  | grep -Ev '^docs/(CODE_MAP\.md|code-map\.json):' \
+  | grep -Ev '^infra/docker/api\.Dockerfile:[0-9]+:[[:space:]]*org\.opencontainers\.image\.revision="[a-f0-9]{40}\+account-lifecycle\+session-persistence"$' \
   | grep -Ev '(package-lock\.json|gradle-wrapper\.properties|sha256|integrity|distributionUrl|docs/partner-tips\.seed\.json|@sha256:|^[^:]*Dockerfile:[0-9]+:[a-f0-9]{64}$|^docker-compose\.yml:[0-9]+:[a-f0-9]{64}$)' \
   | grep -Ev '(^\.env\.example:|^infra/docker/docker-compose\.test\.yml:|^scripts/(build-android|secret-scan|e2e)\.sh:|^packages/openapi-client/scripts/(export-openapi\.mjs|generate-kotlin\.sh):)' \
   | grep -Ev '(^DEPLOYMENT\.md:[0-9]+:.*(/var/backups/lunara/lunara-YYYYMMDDTHHMMSSZ-XXXXXXXX\.tar\.gz|LUNARA_UPLOAD_KEYSTORE=/sicherer/pfad/lunara-upload\.p12).*$|^docs/GOOGLE_PLAY_RELEASE\.md:[0-9]+:.*https://support\.google\.com/googleplay/android-developer/answer/[0-9]+.*$)' \
@@ -62,6 +70,7 @@ entropy_report="$(git ls-files -co --exclude-standard -z \
   | grep -Ev '(^packages/openapi-client/openapi/lunara-v1\.openapi\.json:[0-9]+:.*?/components/schemas/(PredefinedSymptomResponseDto|InvitationAcceptanceResponse).*$|^scripts/configure-pangolin\.sh:[0-9]+:expected_(resources|targets|domains|sites|roles|role_resources)_schema="[a-f0-9]{64}"$)' \
   | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*fun [A-Za-z][A-Za-z0-9]*\(' \
   | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*@Test fun [A-Za-z][A-Za-z0-9]*\(\) \{[[:space:]]*$' \
+  | grep -Ev '^apps/android/app/src/(androidTest|test)/.*\.kt:[0-9]+:[[:space:]]*@Test fun [A-Za-z][A-Za-z0-9]*\(\) = runBlocking \{[[:space:]]*$' \
   | grep -Ev '(^\.github/workflows/|^apps/android/gradlew:|^artifacts/SHA256SUMS:|^services/api/prisma/migrations/[^/]+/migration\.sql:|^packages/openapi-client/generated/kotlin/(gradlew|\.lunara-generation\.json|\.openapi-generator/FILES):)' \
   || true)"
 

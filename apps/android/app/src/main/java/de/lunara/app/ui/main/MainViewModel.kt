@@ -22,6 +22,16 @@ import de.lunara.app.data.repository.DashboardRepository
 import de.lunara.app.data.repository.PartnerRefreshPolicy
 import de.lunara.app.data.repository.PartnerRefreshState
 import de.lunara.app.data.repository.PeriodRepository
+import de.lunara.app.data.repository.PeriodExportRepository
+import de.lunara.app.data.repository.PeriodFileFormat
+import de.lunara.app.data.repository.PeriodFileException
+import de.lunara.app.data.repository.PeriodFileProblem
+import de.lunara.app.data.repository.PeriodImportDraft
+import de.lunara.app.data.repository.PeriodImportSummary
+import de.lunara.app.data.repository.PeriodTransferIdentity
+import de.lunara.app.data.repository.PeriodTransferCompletion
+import de.lunara.app.data.repository.PeriodTransferCompletionPolicy
+import de.lunara.app.data.repository.SessionCredentialGate
 import de.lunara.app.data.repository.HouseholdRepository
 import de.lunara.app.data.repository.RelationshipState
 import de.lunara.app.data.repository.RelationshipPolicy
@@ -87,6 +97,7 @@ data class MainUiState(
     val passwordChangeStatus: PasswordChangeStatus = PasswordChangeStatus.IDLE,
     val oidc: OidcLinkUiState = OidcLinkUiState(),
     val backupStatus: LocalBackupStatus = LocalBackupStatus.IDLE,
+    val periodTransfer: PeriodTransferUiState = PeriodTransferUiState(),
     val isLocalMode: Boolean = false,
     /** Advances after a period mutation fails so an open editor can safely unlock. */
     val periodFailureRevision: Long = 0L,
@@ -114,6 +125,14 @@ data class OidcLinkUiState(
 
 enum class LocalBackupStatus { IDLE, BUSY, EXPORTED, IMPORTED, BAD_PASSPHRASE, INVALID_BACKUP, FAILED }
 
+enum class PeriodTransferStatus { IDLE, BUSY, PREVIEW, EXPORTED, IMPORTED, FAILED }
+data class PeriodTransferUiState(
+    val status: PeriodTransferStatus = PeriodTransferStatus.IDLE,
+    val summary: PeriodImportSummary? = null,
+    val completedCount: Int = 0,
+    val problem: PeriodFileProblem? = null,
+)
+
 private data class SessionUiExtras(
     val checkInSent: Boolean,
     val checkInError: Boolean,
@@ -130,6 +149,7 @@ private data class SessionUiExtras(
     val backupStatus: LocalBackupStatus,
     val periodFailureRevision: Long,
     val recoveryStatus: SessionRecoveryStatus,
+    val periodTransfer: PeriodTransferUiState,
 )
 
 private data class SessionBinding(
@@ -151,6 +171,8 @@ class MainViewModel @Inject constructor(
     private val passwordRepository: PasswordRepository,
     private val connectionRepository: ConnectionRepository,
     private val portableBackupRepository: PortableLocalBackupRepository,
+    private val periodExportRepository: PeriodExportRepository,
+    private val credentialGate: SessionCredentialGate,
 ) : ViewModel() {
     private val partnerRefresh = MutableStateFlow(PartnerRefreshState())
     private val recoveryStatus = MutableStateFlow(SessionRecoveryStatus.IDLE)
@@ -168,6 +190,10 @@ class MainViewModel @Inject constructor(
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
     private val oidc = MutableStateFlow(OidcLinkUiState())
     private val backupStatus = MutableStateFlow(LocalBackupStatus.IDLE)
+    private val periodTransfer = MutableStateFlow(PeriodTransferUiState())
+    private var pendingPeriodImport: PeriodImportDraft? = null
+    private var activePeriodTransfer: PeriodTransferIdentity? = null
+    private var currentSessionBinding: SessionBinding? = null
     private val periodFailureRevision = MutableStateFlow(0L)
     private val sessionOwnerId = MutableStateFlow<String?>(null)
     private var sessionOperations: CoroutineScope? = null
@@ -199,7 +225,7 @@ class MainViewModel @Inject constructor(
     private val sessionExtras = combine(
         checkInSent, checkInError, invitation, relationship, sharing, settingsBusy, settingsError,
         trackerPrediction, cycleProfile, carePreferences, passwordChangeStatus, oidc, backupStatus,
-        periodFailureRevision, recoveryStatus,
+        periodFailureRevision, recoveryStatus, periodTransfer,
     ) { values ->
         SessionUiExtras(
             checkInSent = values[0] as Boolean,
@@ -217,6 +243,7 @@ class MainViewModel @Inject constructor(
             backupStatus = values[12] as LocalBackupStatus,
             periodFailureRevision = values[13] as Long,
             recoveryStatus = values[14] as SessionRecoveryStatus,
+            periodTransfer = values[15] as PeriodTransferUiState,
         )
     }
     val state: StateFlow<MainUiState> = combine(
@@ -249,6 +276,7 @@ class MainViewModel @Inject constructor(
                 passwordChangeStatus = extra.passwordChangeStatus,
                 oidc = extra.oidc,
                 backupStatus = extra.backupStatus,
+                periodTransfer = extra.periodTransfer,
                 periodFailureRevision = extra.periodFailureRevision,
             )
         }
@@ -270,6 +298,7 @@ class MainViewModel @Inject constructor(
                     sessionOwnerId.value = session.userId
                     preferencesStateRole = session.role
                     preferencesStateMode = appMode
+                    currentSessionBinding = binding
                     sessionOperations = CoroutineScope(
                         viewModelScope.coroutineContext +
                             SupervisorJob(viewModelScope.coroutineContext[Job]),
@@ -356,6 +385,10 @@ class MainViewModel @Inject constructor(
         passwordChangeStatus.value = PasswordChangeStatus.IDLE
         oidc.value = OidcLinkUiState()
         backupStatus.value = LocalBackupStatus.IDLE
+        periodTransfer.value = PeriodTransferUiState()
+        pendingPeriodImport = null
+        activePeriodTransfer = null
+        currentSessionBinding = null
         periodFailureRevision.value = 0L
     }
 
@@ -917,6 +950,105 @@ class MainViewModel @Inject constructor(
     fun clearLocalBackupStatus() {
         if (backupStatus.value != LocalBackupStatus.BUSY) backupStatus.value = LocalBackupStatus.IDLE
     }
+
+    /** Called before launching a SAF picker; a stale callback can never select the new account. */
+    fun beginPeriodTransfer(): PeriodTransferIdentity? {
+        val identity = currentPeriodTransferIdentity() ?: return null
+        if (periodTransfer.value.status == PeriodTransferStatus.BUSY) return null
+        clearPeriodTransfer()
+        return identity
+    }
+
+    fun exportPeriods(uri: Uri, format: PeriodFileFormat, identity: PeriodTransferIdentity) {
+        if (!isPeriodTransferCurrent(identity) || periodTransfer.value.status == PeriodTransferStatus.BUSY) return
+        activePeriodTransfer = identity
+        periodTransfer.value = PeriodTransferUiState(status = PeriodTransferStatus.BUSY)
+        launchForSession(identity.userId) {
+            val result = runSessionOperation { periodExportRepository.exportTo(uri, format, identity) }
+            finishPeriodTransfer(identity) {
+                periodTransfer.value = result.fold(
+                    onSuccess = { PeriodTransferUiState(PeriodTransferStatus.EXPORTED, completedCount = it) },
+                    onFailure = ::periodTransferFailure,
+                )
+            }
+        }
+    }
+
+    fun previewPeriodImport(uri: Uri, identity: PeriodTransferIdentity) {
+        if (!isPeriodTransferCurrent(identity) || periodTransfer.value.status == PeriodTransferStatus.BUSY) return
+        pendingPeriodImport = null
+        activePeriodTransfer = identity
+        periodTransfer.value = PeriodTransferUiState(status = PeriodTransferStatus.BUSY)
+        launchForSession(identity.userId) {
+            val result = runSessionOperation { periodExportRepository.preview(uri, identity) }
+            finishPeriodTransfer(identity) {
+                pendingPeriodImport = result.getOrNull()
+                periodTransfer.value = result.fold(
+                    onSuccess = { PeriodTransferUiState(PeriodTransferStatus.PREVIEW, summary = it.plan.summary) },
+                    onFailure = ::periodTransferFailure,
+                )
+            }
+        }
+    }
+
+    fun confirmPeriodImport() {
+        val draft = pendingPeriodImport ?: return
+        if (!isPeriodTransferCurrent(draft.identity)) {
+            if (PeriodTransferCompletionPolicy.evaluate(draft.identity, draft.identity, currentPeriodTransferIdentity()) == PeriodTransferCompletion.ACCOUNT_CHANGED) {
+                pendingPeriodImport = null
+                periodTransfer.value = periodTransferFailure(PeriodFileException(PeriodFileProblem.ACCOUNT_CHANGED))
+            }
+            return
+        }
+        if (periodTransfer.value.status != PeriodTransferStatus.PREVIEW || !draft.plan.summary.canImport) return
+        activePeriodTransfer = draft.identity
+        periodTransfer.value = periodTransfer.value.copy(status = PeriodTransferStatus.BUSY)
+        launchForSession(draft.identity.userId) {
+            val result = runSessionOperation { periodRepository.importPeriodRanges(draft) }
+            finishPeriodTransfer(draft.identity) {
+                pendingPeriodImport = null
+                periodTransfer.value = result.fold(
+                    onSuccess = { PeriodTransferUiState(PeriodTransferStatus.IMPORTED, completedCount = it) },
+                    onFailure = ::periodTransferFailure,
+                )
+            }
+            if (result.isSuccess && isPeriodTransferCurrent(draft.identity)) refreshPredictionAfterLocalPeriodChange(draft.identity.userId)
+        }
+    }
+
+    fun clearPeriodTransfer() {
+        if (periodTransfer.value.status != PeriodTransferStatus.BUSY) {
+            periodTransfer.value = PeriodTransferUiState()
+            pendingPeriodImport = null
+            activePeriodTransfer = null
+        }
+    }
+
+    private fun currentPeriodTransferIdentity(): PeriodTransferIdentity? {
+        val binding = currentSessionBinding ?: return null
+        val owner = binding.userId ?: return null
+        if (!canManagePeriod(owner)) return null
+        return PeriodTransferIdentity(owner, binding.appMode, binding.baseUrl, credentialGate.snapshot())
+    }
+
+    private fun isPeriodTransferCurrent(identity: PeriodTransferIdentity): Boolean = currentPeriodTransferIdentity() == identity
+
+    private fun finishPeriodTransfer(identity: PeriodTransferIdentity, apply: () -> Unit) {
+        when (PeriodTransferCompletionPolicy.evaluate(identity, activePeriodTransfer, currentPeriodTransferIdentity())) {
+            PeriodTransferCompletion.IGNORE -> return
+            PeriodTransferCompletion.ACCOUNT_CHANGED -> {
+                pendingPeriodImport = null
+                periodTransfer.value = periodTransferFailure(PeriodFileException(PeriodFileProblem.ACCOUNT_CHANGED))
+            }
+            PeriodTransferCompletion.APPLY -> apply()
+        }
+        activePeriodTransfer = null
+    }
+
+    private fun periodTransferFailure(error: Throwable) = PeriodTransferUiState(
+        status = PeriodTransferStatus.FAILED,
+        problem = (error as? PeriodFileException)?.problem,
+    )
 
     private suspend fun loadOidcStatusNow(ownerId: String) {
         val result = runSessionOperation { connectionRepository.oidcStatus() }

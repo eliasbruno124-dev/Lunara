@@ -29,6 +29,7 @@ import de.lunara.app.data.sync.SessionRecoverySyncPolicy
 import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.security.AuthentikAuthManager
 import de.lunara.app.security.PendingAuthentikSession
+import de.lunara.app.security.DurableSessionRenewal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -72,6 +73,7 @@ class ConnectionRepository @Inject constructor(
     private val database: LunaraDatabase,
 ) {
     private val refreshMutex = Mutex()
+    private val sessionRenewal = DurableSessionRenewal(refreshMutex)
     private val metadataMutex = Mutex()
     private val metadata = mutableMapOf<String, MetaDto>()
     private data class RecoveryAttempt(val identity: RecoveryIdentity, val generation: Long)
@@ -348,8 +350,7 @@ class ConnectionRepository @Inject constructor(
 
     suspend fun hasAuthentikGatewaySession(): Boolean {
         val base = preferences.state.first().baseUrl ?: return false
-        if (!authentik.isConfiguredFor(base) || !authentik.refreshFor(base)) return false
-        val accessToken = authentik.currentAccessTokenFor(base) ?: return false
+        val accessToken = authentik.freshAccessTokenFor(base) ?: return false
         return gatewayBearerAccepted(base, accessToken)
     }
 
@@ -587,23 +588,23 @@ class ConnectionRepository @Inject constructor(
             .requireBody()
     }
 
-    suspend fun refresh(): Boolean = refreshMutex.withLock {
+    suspend fun refresh(): Boolean = sessionRenewal.run {
         val generation = credentialGate.snapshot()
         val state = preferences.state.first()
-        if (state.reauthenticationRequired) return@withLock false
-        val base = state.baseUrl ?: return@withLock false
-        val session = state.session ?: return@withLock false
+        if (state.reauthenticationRequired) return@run false
+        val base = state.baseUrl ?: return@run false
+        val session = state.session ?: return@run false
         val originalAccess = secrets.accessToken
         val refresh = secrets.refreshToken
         if (refresh.isNullOrBlank()) {
             recordAuthenticationFailure(ApiException(401), base, session.userId, originalAccess, generation)
-            return@withLock false
+            return@run false
         }
         val auth = try {
             val supportsReplay = publicMetadata(base).refreshIdempotencySupported
             val hasAuthentikSession = authentik.isConfiguredFor(base)
-            if (hasAuthentikSession && !authentik.refreshFor(base)) return@withLock false
-            val oidcAccessToken = if (hasAuthentikSession) authentik.currentAccessTokenFor(base) else null
+            val oidcAccessToken = if (hasAuthentikSession) authentik.freshAccessTokenFor(base) else null
+            if (hasAuthentikSession && oidcAccessToken == null) return@run false
             var requestId: String? = null
             val requestStillCurrent = credentialGate.commitIfCurrent(generation) {
                 if (SessionRecoveryPolicy.identity(preferences.state.first()) != SessionRecoveryPolicy.identity(state) ||
@@ -611,7 +612,7 @@ class ConnectionRepository @Inject constructor(
                 if (supportsReplay) requestId = secrets.refreshRequestIdFor(refresh)
                 true
             }
-            if (!requestStillCurrent) return@withLock false
+            if (!requestStillCurrent) return@run false
             apiFactory.create(base, secrets.gatewayCredentials, null).refresh(
                 endpoint(base, "api/v1/auth/refresh"),
                 RefreshRequest(refresh, oidcAccessToken, requestId),
@@ -619,7 +620,7 @@ class ConnectionRepository @Inject constructor(
         } catch (failure: Throwable) {
             if (SessionRecoverySyncPolicy.requiresReauthentication(failure)) {
                 recordAuthenticationFailure(failure, base, session.userId, originalAccess, generation)
-                return@withLock false
+                return@run false
             }
             // Transport uncertainty must keep the same persisted request UUID for replay.
             throw failure
@@ -627,7 +628,7 @@ class ConnectionRepository @Inject constructor(
         if (auth.user.id != session.userId || auth.user.role != session.role.name ||
             auth.accessToken.isBlank() || auth.refreshToken.isBlank()) {
             recordAuthenticationFailure(ApiException(401), base, session.userId, originalAccess, generation)
-            return@withLock false
+            return@run false
         }
         // Refresh rotation is committed as one serialized operation. Other repositories cannot
         // race the same refresh token and accidentally overwrite the newer rotated credential.

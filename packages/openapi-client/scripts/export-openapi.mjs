@@ -289,6 +289,7 @@ function addResponseContracts(document) {
       required: ['sharingPaused'],
       properties: {
         sharingPaused: booleanSchema(),
+        calendarAccess: objectSchema({ periodDates: booleanSchema(), fertileWindow: booleanSchema() }),
         prediction: nullable(ref('PartnerPredictionResponse')),
         phase: nullable(stringSchema()),
         periodDates: { type: 'array', items: ref('PeriodResponse') },

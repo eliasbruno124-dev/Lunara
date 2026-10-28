@@ -24,6 +24,7 @@
 package de.lunara.api.models
 
 import de.lunara.api.models.DailyLogResponse
+import de.lunara.api.models.PartnerDashboardResponseCalendarAccess
 import de.lunara.api.models.PartnerPredictionResponse
 import de.lunara.api.models.PeriodResponse
 
@@ -34,6 +35,7 @@ import com.squareup.moshi.JsonClass
  *
  *
  * @param sharingPaused
+ * @param calendarAccess
  * @param periodDates
  * @param phase
  * @param prediction
@@ -45,6 +47,9 @@ data class PartnerDashboardResponse (
 
     @Json(name = "sharingPaused")
     val sharingPaused: kotlin.Boolean,
+
+    @Json(name = "calendarAccess")
+    val calendarAccess: PartnerDashboardResponseCalendarAccess? = null,
 
     @Json(name = "periodDates")
     val periodDates: kotlin.collections.List<PeriodResponse>? = null,

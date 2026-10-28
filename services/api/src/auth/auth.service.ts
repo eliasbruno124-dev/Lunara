@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -417,7 +418,9 @@ export class AuthService {
         userId: true,
         authMethod: true,
         externalIdentityId: true,
-        externalIdentity: { select: { issuer: true, subject: true } },
+        externalIdentity: {
+          select: { userId: true, issuer: true, subject: true },
+        },
       },
     });
     if (!initialTokenRecord) {
@@ -429,13 +432,15 @@ export class AuthService {
       if (
         !oidcAccessToken ||
         !initialTokenRecord.externalIdentityId ||
-        !initialTokenRecord.externalIdentity
+        !initialTokenRecord.externalIdentity ||
+        initialTokenRecord.externalIdentity.userId !== initialTokenRecord.userId
       ) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
       try {
         oidcProof = await this.oidcVerifier.verify(oidcAccessToken);
-      } catch {
+      } catch (error) {
+        if (error instanceof ServiceUnavailableException) throw error;
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
       if (
@@ -458,7 +463,9 @@ export class AuthService {
           revokedAt: true,
           authMethod: true,
           externalIdentityId: true,
-          externalIdentity: { select: { issuer: true, subject: true } },
+          externalIdentity: {
+            select: { userId: true, issuer: true, subject: true },
+          },
         },
       });
       if (!tokenRecord)
@@ -470,6 +477,7 @@ export class AuthService {
         (tokenRecord.authMethod === SessionAuthMethod.OIDC &&
           (!oidcProof ||
             !tokenRecord.externalIdentity ||
+            tokenRecord.externalIdentity.userId !== initialTokenRecord.userId ||
             oidcProof.issuer !== tokenRecord.externalIdentity.issuer ||
             oidcProof.subject !== tokenRecord.externalIdentity.subject))
       ) {
@@ -500,7 +508,9 @@ export class AuthService {
                   memberships: { take: 1, orderBy: { createdAt: 'asc' } },
                 },
               },
-              externalIdentity: { select: { issuer: true, subject: true } },
+              externalIdentity: {
+                select: { userId: true, issuer: true, subject: true },
+              },
             },
           });
           const membership = replacement?.user.memberships[0];
@@ -522,6 +532,7 @@ export class AuthService {
             (replacement.authMethod === SessionAuthMethod.OIDC &&
               (!oidcProof ||
                 !replacement.externalIdentity ||
+                replacement.externalIdentity.userId !== replacement.userId ||
                 oidcProof.issuer !== replacement.externalIdentity.issuer ||
                 oidcProof.subject !== replacement.externalIdentity.subject))
           ) {
@@ -561,10 +572,16 @@ export class AuthService {
         },
       });
       const membership = old?.user.memberships[0];
+      // An OIDC refresh credential binds the retained device family, and the
+      // freshly verified provider token above is mandatory on every renewal.
+      // Keep that binding across inactivity instead of silently creating a new
+      // login family. Revocation, account deletion and unlinking stay terminal;
+      // password-only sessions retain their finite idle TTL.
       if (
         !old ||
         !membership ||
-        old.expiresAt <= new Date() ||
+        (old.expiresAt <= new Date() &&
+          old.authMethod !== SessionAuthMethod.OIDC) ||
         old.user.disabledAt
       ) {
         throw new UnauthorizedException('Invalid or expired refresh token');

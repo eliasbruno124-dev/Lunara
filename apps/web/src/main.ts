@@ -12,6 +12,15 @@ import {
   type PortableBackupExtras,
 } from './backup';
 import { SwipeCalendar } from './calendar';
+import { createApkDownloadCard } from './apk-download';
+import { hasFertileEstimate } from './fertility-presentation';
+import { parsePeriodFile, periodImportPlan, serializePeriods, PeriodTransferError, PERIOD_FILE_LIMIT, type PeriodRange, type PeriodTransferFormat } from './period-transfer';
+import {
+  createPartnerCalendarAccessCard,
+  createPartnerCalendarNotice,
+  PartnerCalendarSnapshot,
+  visiblePartnerCalendar,
+} from './partner-calendar';
 import { tipSourcePublisher } from './tip-source';
 import { formatDate, monthKey, todayIso } from './date';
 import {
@@ -96,6 +105,7 @@ class LunaraWebApp {
   private periods: PeriodEvent[] = [];
   private prediction: Prediction | null = null;
   private partnerTip: PartnerTip | null = null;
+  private readonly partnerCalendar = new PartnerCalendarSnapshot();
   private screen: Screen = 'today';
   private selectedDate: string | null = null;
   private calendarMonth = monthKey();
@@ -237,6 +247,7 @@ class LunaraWebApp {
       this.periods = [];
       this.prediction = null;
       this.partnerTip = null;
+      this.partnerCalendar.selectIdentity(identityKey);
       this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
       this.partnerConnected = null;
       this.invitationOverviewFailed = false;
@@ -253,6 +264,7 @@ class LunaraWebApp {
       if (!this.localVault.unlocked) return;
       this.prediction = calculateLocalPrediction(this.periods, todayIso(), this.localExtras.profile);
       this.partnerTip = null;
+      this.partnerCalendar.selectIdentity(null);
       this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
       return;
     }
@@ -266,8 +278,9 @@ class LunaraWebApp {
         const cachedPartnerDashboard =
           (await settingsStore.get<PartnerDashboard>('partner-dashboard')) ?? null;
         if (user.role === 'PARTNER' && cachedPartnerDashboard) {
-          prediction = cachedPartnerDashboard.prediction ?? null;
-          periods = (cachedPartnerDashboard.periodDates ?? []).map((period, index) => ({
+          const visible = visiblePartnerCalendar(cachedPartnerDashboard);
+          prediction = visible.prediction;
+          periods = visible.periodDates.map((period, index) => ({
             id: `shared-${index}-${period.startDate}`,
             startDate: period.startDate,
             endDate: period.endDate,
@@ -280,6 +293,7 @@ class LunaraWebApp {
         this.periods = periods;
         this.prediction = prediction;
         this.partnerTip = partnerTip;
+        this.partnerCalendar.update(identityKey, user.role === 'PARTNER' ? cachedPartnerDashboard : null);
         this.syncState = {
           pending: mutations.filter((item) => item.state === 'PENDING').length,
           failed: mutations.filter((item) => item.state === 'FAILED').length,
@@ -316,8 +330,9 @@ class LunaraWebApp {
             this.api.todayTip().catch(() => null),
           ]);
           assertCurrent();
-          const prediction = dashboard.prediction ?? null;
-          const periods = (dashboard.periodDates ?? []).map((period, index) => ({
+          const visible = visiblePartnerCalendar(dashboard);
+          const prediction = visible.prediction;
+          const periods = visible.periodDates.map((period, index) => ({
             id: `shared-${index}-${period.startDate}`,
             startDate: period.startDate,
             endDate: period.endDate,
@@ -329,6 +344,7 @@ class LunaraWebApp {
           ]);
           assertCurrent();
           this.partnerTip = tip;
+          this.partnerCalendar.update(identityKey, dashboard);
           this.prediction = prediction;
           this.periods = periods;
         }
@@ -383,6 +399,7 @@ class LunaraWebApp {
         this.periods = [];
         this.prediction = null;
         this.partnerTip = null;
+        this.partnerCalendar.selectIdentity(null);
         this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
         this.screen = 'today';
         this.loginChoice = null;
@@ -891,6 +908,7 @@ class LunaraWebApp {
     this.user = this.localIdentity(state.extras.settings.displayName);
     this.prediction = calculateLocalPrediction(this.periods, todayIso(), state.extras.profile);
     this.partnerTip = null;
+    this.partnerCalendar.selectIdentity(null);
     this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
     this.applyImportedTheme(state.extras.settings);
   }
@@ -945,6 +963,7 @@ class LunaraWebApp {
     this.localExtras = defaultPortableExtras();
     this.prediction = null;
     this.importReport = null;
+    this.partnerCalendar.selectIdentity(null);
   }
 
   private appHeader(): HTMLElement {
@@ -1112,6 +1131,10 @@ class LunaraWebApp {
       element('p', 'subtle', this.t(this.user?.role === 'TRACKER' ? 'calendarTrackerHint' : 'calendarPartnerHint')),
     );
     view.append(heading);
+    if (this.user?.role === 'PARTNER') {
+      const notice = createPartnerCalendarNotice(this.partnerCalendar.current, this.language);
+      if (notice) view.append(notice);
+    }
     const calendarPeriods = this.periods.map((period) => ({
       ...period,
       endDate: period.endDate ?? (period.startDate <= todayIso() ? todayIso() : period.startDate),
@@ -1171,7 +1194,7 @@ class LunaraWebApp {
       ['actual-key', this.t('actualPeriod')],
       ['predicted-key', this.t('predictedPeriod')],
     ];
-    if (this.prediction?.fertileWindowFrom) entries.push(['fertile-key', this.t('fertileEstimate')]);
+    if (hasFertileEstimate(this.prediction)) entries.push(['fertile-key', this.t('fertileEstimate')]);
     for (const [className, label] of entries) {
       const item = element('span');
       item.append(element('i', className), document.createTextNode(label));
@@ -1239,14 +1262,19 @@ class LunaraWebApp {
     view.append(account, this.settingsGroup('preferences', 'preferencesGroup', 'preferencesHint', language, appearance));
     if (!this.localMode && this.user?.role === 'TRACKER') {
       view.append(this.settingsGroup('sharing', 'sharingGroup', 'sharingHint', this.partnerInvitationCard(), this.manualInvitationAcceptanceCard()));
+    } else if (!this.localMode && this.user?.role === 'PARTNER') {
+      view.append(this.settingsGroup('sharing', 'sharingGroup', 'calendarAccessTitle',
+        createPartnerCalendarAccessCard(this.partnerCalendar.current, this.language)));
     }
     if (this.localMode) {
       view.append(
-        this.settingsGroup('data', 'dataGroup', 'dataHint', this.backupCard(),
+        this.settingsGroup('data', 'dataGroup', 'dataHint', this.periodTransferCard(), this.backupCard(),
           button('secondary-button', this.t('lockVault'), () => this.lockLocalVault())),
       );
+    } else if (this.user?.role === 'TRACKER') {
+      view.append(this.settingsGroup('data', 'dataGroup', 'dataHint', this.periodTransferCard()));
     }
-    const appItems = install ? [server, install] : [server];
+    const appItems = [server, createApkDownloadCard(this.language), ...(install ? [install] : [])];
     view.append(this.settingsGroup('app', 'appGroup', 'appHint', ...appItems));
     const accountActions = element('div', 'account-actions');
     accountActions.append(logout);
@@ -1454,6 +1482,110 @@ class LunaraWebApp {
       this.render();
     });
     card.append(form);
+    return card;
+  }
+
+  private periodTransferCard(): HTMLElement {
+    const card = element('section', 'info-card setting-card period-transfer');
+    const owner = this.user;
+    const local = this.localMode;
+    const vaultGeneration = this.localVaultCoordinator.capture();
+    const assertOwner = () => {
+      if (!owner || owner.role !== 'TRACKER' || this.user !== owner || this.localMode !== local ||
+          (local && (!this.localVault.unlocked || !this.localVaultCoordinator.isCurrent(vaultGeneration)))) throw new StaleIdentityError();
+    };
+    card.append(element('h2', '', this.t('periodTransfer')), element('p', 'subtle', this.t('periodTransferHint')),
+      element('p', 'warning-card', this.t('periodPlaintextWarning')));
+    const acknowledgment = element('label', 'backup-label');
+    const consent = element('input'); consent.type = 'checkbox';
+    acknowledgment.append(consent, document.createTextNode(this.t('periodPlaintextConfirm')));
+    const status = element('p', 'subtle'); status.setAttribute('role', 'status');
+    const actions = element('div', 'backup-actions');
+    const exportButtons = (['csv', 'json'] as const).map((format: PeriodTransferFormat) => {
+      const control = button('secondary-button', this.t(format === 'csv' ? 'periodCsvExport' : 'periodJsonExport'), () => {
+        try {
+          assertOwner(); if (!consent.checked) return;
+          const body = serializePeriods(this.periods, format);
+          const blob = new Blob([body], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = element('a'); link.href = url; link.download = `lunara-periods-${todayIso()}.${format}`;
+          card.append(link); link.click(); link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        } catch { status.textContent = this.t('periodTransferFailed'); }
+      });
+      control.disabled = true; return control;
+    });
+    consent.addEventListener('change', () => exportButtons.forEach((control) => { control.disabled = !consent.checked; }));
+    actions.append(...exportButtons);
+    const file = element('input'); file.type = 'file'; file.accept = '.csv,.tsv,.json,text/csv,text/tab-separated-values,application/json'; file.hidden = true;
+    let pending: PeriodRange[] | null = null;
+    let busy = false;
+    const assertServerReady = () => {
+      if (!local && (!navigator.onLine || this.syncing || this.syncState.pending || this.syncState.failed)) throw new Error('sync');
+    };
+    const showError = (error: unknown) => {
+      const keys: Record<string, MessageKey> = { format: 'periodTransferFormat', date: 'periodTransferDate', ambiguous: 'periodTransferAmbiguous', size: 'periodTransferSize', empty: 'periodTransferEmpty' };
+      status.textContent = this.t(error instanceof PeriodTransferError ? keys[error.code]! : error instanceof Error && error.message === 'sync' ? 'periodTransferSync' : 'periodTransferFailed');
+    };
+    const confirm = button('primary-button', this.t('periodImportConfirm'), async () => {
+      if (!pending || busy) return;
+      busy = true; confirm.disabled = true;
+      try {
+        assertOwner(); assertServerReady();
+        const records = pending;
+        if (local) {
+          const plan = periodImportPlan(this.periods.filter((period) => !period.deletedAt), records);
+          if (plan.conflicts) { status.textContent = this.t('periodTransferConflict'); return; }
+          const additions = plan.added.map((period) => ({ ...period, id: crypto.randomUUID(), source: 'IMPORT' }));
+          await this.persistLocalState([...this.periods, ...additions]);
+        } else {
+          await this.serverIdentities.run(serverIdentityKey(window.location.origin, owner!), async (assertCurrent) => {
+            assertCurrent(); assertOwner();
+            const queue = await queueStorage.getMutations();
+            assertCurrent(); assertOwner();
+            if (queue.length) throw new Error('sync');
+            await this.api.importPeriods(records, false);
+            assertCurrent();
+          });
+          await this.refreshData();
+        }
+        pending = null;
+        if (this.localMode === local && this.user?.id === owner?.id) {
+          this.render(); this.toast(this.t('periodImportComplete'));
+        }
+      } catch (error) { showError(error); }
+      finally { busy = false; }
+    });
+    confirm.hidden = true; confirm.disabled = true;
+    file.addEventListener('change', async () => {
+      if (busy) return;
+      const selected = file.files?.[0]; if (!selected) return;
+      busy = true; pending = null; confirm.hidden = true; confirm.disabled = true;
+      status.textContent = this.t('periodTransferBusy');
+      try {
+        assertOwner(); assertServerReady();
+        if (selected.size > PERIOD_FILE_LIMIT) throw new PeriodTransferError('size');
+        const bytes = new Uint8Array(await selected.arrayBuffer());
+        assertOwner();
+        const encoding = bytes[0] === 255 && bytes[1] === 254 ? 'utf-16le' : bytes[0] === 254 && bytes[1] === 255 ? 'utf-16be' : 'utf-8';
+        const records = parsePeriodFile(new TextDecoder(encoding, { fatal: true }).decode(bytes));
+        const plan = periodImportPlan(this.periods.filter((period) => !period.deletedAt), records);
+        let counts = { create: plan.added.length, duplicates: plan.duplicates, conflicts: plan.conflicts };
+        if (!local) {
+          counts = (await this.serverIdentities.run(serverIdentityKey(window.location.origin, owner!), async (assertCurrent) => {
+            assertCurrent(); assertOwner(); return this.api.importPeriods(records, true);
+          })).periods;
+        }
+        assertOwner();
+        pending = records;
+        status.textContent = this.t('periodImportPreview', { new: counts.create, duplicates: counts.duplicates, conflicts: counts.conflicts });
+        if (counts.conflicts) status.textContent += ` · ${this.t('periodTransferConflict')}`;
+        confirm.hidden = false; confirm.disabled = counts.conflicts > 0 || counts.create === 0;
+      } catch (error) { showError(error); }
+      finally { busy = false; file.value = ''; }
+    });
+    card.append(acknowledgment, actions, element('p', 'subtle', this.t('periodFormatHint')),
+      button('secondary-button', this.t('periodImport'), () => { if (!busy) file.click(); }), file, status, confirm);
     return card;
   }
 
@@ -1762,6 +1894,7 @@ class LunaraWebApp {
         this.periods = [];
         this.prediction = null;
         this.partnerTip = null;
+        this.partnerCalendar.selectIdentity(null);
         this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
         this.screen = 'today';
         this.loginChoice = null;

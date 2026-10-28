@@ -93,15 +93,15 @@ export interface PeriodEvent {
 }
 
 export interface Prediction {
-  available: boolean;
+  available?: boolean;
   predictedStartFrom?: string;
   predictedStartTo?: string;
   predictedEndFrom?: string;
   predictedEndTo?: string;
   fertileWindowFrom?: string | null;
   fertileWindowTo?: string | null;
-  fertilityEstimate?: boolean;
-  confidence: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE';
+  fertilityEstimate?: boolean | { enabled: boolean; available: boolean; estimated: boolean; notContraception: boolean; doesNotConfirmOvulation: boolean; reason: string };
+  confidence?: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE';
   basedOnCycleCount?: number;
   variationDays?: number;
   explanation?: string;
@@ -109,6 +109,8 @@ export interface Prediction {
 }
 
 export interface PartnerDashboard {
+  /** Effective server permissions, not evidence that health records exist. */
+  calendarAccess?: { periodDates: boolean; fertileWindow: boolean };
   prediction?: Prediction | null;
   phase?: string | null;
   periodDates?: Array<{ startDate: string; endDate: string | null }>;

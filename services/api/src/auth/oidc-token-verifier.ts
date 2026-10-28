@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   createRemoteJWKSet,
+  errors,
   jwtVerify,
   type JWTVerifyGetKey,
   type JWTVerifyOptions,
@@ -28,6 +29,8 @@ export interface VerifiedOidcIdentity {
   subject: string;
   issuedAt: number;
   expiresAt: number;
+  /** Signed provider authentication time, never inferred from token issue time. */
+  authenticatedAt?: number;
   displayName?: string;
   preferredUsername?: string;
 }
@@ -145,6 +148,9 @@ export async function verifyOidcAccessToken(
     subject,
     issuedAt,
     expiresAt,
+    ...(Number.isSafeInteger(payload.auth_time)
+      ? { authenticatedAt: payload.auth_time as number }
+      : {}),
     ...(displayName ? { displayName } : {}),
     ...(preferredUsername ? { preferredUsername } : {}),
   };
@@ -179,7 +185,7 @@ export class OidcTokenVerifier {
       ),
     };
     if (this.configuration.enabled) {
-      this.remoteKeySet = createRemoteJWKSet(
+      const remoteKeySet = createRemoteJWKSet(
         new URL(this.configuration.jwksUrl),
         {
           timeoutDuration: 5_000,
@@ -187,6 +193,25 @@ export class OidcTokenVerifier {
           cacheMaxAge: 600_000,
         },
       );
+      this.remoteKeySet = async (header, token) => {
+        try {
+          return await remoteKeySet(header, token);
+        } catch (error) {
+          // A successfully fetched key set that does not recognize this token
+          // is an authentication failure. Transport, HTTP and malformed JWKS
+          // failures instead mean that the provider cannot currently verify
+          // anyone: fail closed without instructing clients to erase a session.
+          if (
+            error instanceof errors.JWKSNoMatchingKey ||
+            error instanceof errors.JOSENotSupported
+          ) {
+            throw error;
+          }
+          throw new ServiceUnavailableException(
+            'External sign-in is temporarily unavailable',
+          );
+        }
+      };
     }
   }
 
@@ -222,5 +247,21 @@ export class OidcTokenVerifier {
       if (error instanceof ServiceUnavailableException) throw error;
       throw new UnauthorizedException('External sign-in could not be verified');
     }
+  }
+
+  async verifyFreshAuthentication(token: string): Promise<VerifiedOidcIdentity> {
+    const identity = await this.verify(token);
+    const now = Math.floor(Date.now() / 1_000);
+    // A freshly refreshed token is not a fresh login. Requiring auth_time
+    // makes prompt=login/max_age=0 meaningful even if a client is malicious.
+    if (
+      !Number.isSafeInteger(identity.authenticatedAt) ||
+      identity.authenticatedAt! > now + 30 ||
+      now - identity.authenticatedAt! > 300 ||
+      identity.issuedAt + 30 < identity.authenticatedAt!
+    ) {
+      throw new UnauthorizedException('A fresh external sign-in is required');
+    }
+    return identity;
   }
 }

@@ -43,9 +43,6 @@ captures/
 *.zip
 artifacts/*
 !artifacts/.gitkeep
-!artifacts/lunara-debug.apk
-!artifacts/lunara-release-unsigned.apk
-!artifacts/lunara-release-unsigned.aab
 !artifacts/lunara-release.apk
 !artifacts/lunara-play-upload.aab
 !artifacts/SHA256SUMS
@@ -57,6 +54,8 @@ authentik-lunara-config.log
 
 # Editor / OS
 .unlazy/
+/PROGRESS.md
+/IMPLEMENTATION_PLAN.md
 .DS_Store
 Thumbs.db
 *.swp

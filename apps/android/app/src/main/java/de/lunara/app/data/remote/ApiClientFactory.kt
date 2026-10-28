@@ -158,14 +158,17 @@ class ApiClientFactory @Inject constructor(
     ): LunaraApi {
         val gatewayOrigin = GatewayOrigin.fromBaseUrl(baseUrl)
         val pendingBearer = outerBearerOverride?.takeIf(String::isNotBlank)
+        // Pin the provider account at client creation. A queued request from A must never
+        // silently pick up B's Authentik bearer after logout/sign-in on the same server.
+        val authentikGeneration = if (useStoredAuthentik) authentik.configuredGenerationFor(baseUrl) else null
         val gatewayEnabled = gateway != null || pendingBearer != null ||
-            (useStoredAuthentik && authentik.isConfiguredFor(baseUrl))
+            authentikGeneration != null
         val bearerProvider = {
-            pendingBearer ?: if (!useStoredAuthentik) null else run {
+            pendingBearer ?: if (authentikGeneration == null) null else run {
                 BlockingTokenBridgePolicy.requireBackgroundThread(
                     Looper.myLooper() == Looper.getMainLooper(),
                 )
-                runBlocking { authentik.freshAccessTokenFor(baseUrl) }
+                runBlocking { authentik.freshAccessTokenFor(baseUrl, authentikGeneration) }
             }
         }
         val client = OkHttpClient.Builder()

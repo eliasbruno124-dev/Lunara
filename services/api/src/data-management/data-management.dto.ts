@@ -42,14 +42,30 @@ export class ImportDto {
 }
 
 export class DeleteAccountDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     minLength: EXISTING_PASSWORD_MIN_LENGTH,
     maxLength: ACCOUNT_PASSWORD_MAX_LENGTH,
     writeOnly: true,
   })
+  @IsOptional()
   @IsString()
   @IsPasswordCodePointLength(EXISTING_PASSWORD_MIN_LENGTH, ACCOUNT_PASSWORD_MAX_LENGTH)
-  password!: string;
+  password?: string;
+
+  @ApiPropertyOptional({
+    writeOnly: true,
+    description: 'OIDC-only accounts: exact linked subject, signed auth_time within five minutes; obtain with prompt=login and max_age=0. A refreshed token is insufficient.',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(64, 16_384)
+  oidcAccessToken?: string;
+
+  @ApiPropertyOptional({ description: 'Required for OIDC deletion: DELETE:<immutable Lunara user UUID>' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 80)
+  confirm?: string;
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()

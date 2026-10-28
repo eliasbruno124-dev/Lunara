@@ -945,6 +945,28 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         expect(body.dailyLogs.duplicates).toBe(1);
       });
 
+    // Portable period import: ownership, dry-run, atomic overlap rejection and idempotence.
+    await request(app.getHttpServer()).post('/api/v1/export')
+      .set('Authorization', `Bearer ${partnerAccess}`).send({ format: 'PERIODS_CSV' }).expect(403);
+    await request(app.getHttpServer()).post('/api/v1/import')
+      .set('Authorization', `Bearer ${partnerAccess}`).send({ data: { periods: [] }, preview: true }).expect(403);
+    const oldCount = await prisma.periodEvent.count({ where: { userId: trackerUserId } });
+    const importRanges = [{ startDate: '2010-01-01', endDate: '2010-01-05' }, { startDate: '2010-02-01', endDate: '2010-02-05' }];
+    const importedRequest = (periods: unknown[], preview: boolean) => request(app.getHttpServer()).post('/api/v1/import')
+      .set('Authorization', `Bearer ${trackerAccess}`).send({ data: { periods }, preview });
+    await importedRequest(importRanges, true).expect(201).expect(({ body }) => {
+      expect(body.periods).toMatchObject({ create: 2, duplicates: 0, conflicts: 0 });
+    });
+    expect(await prisma.periodEvent.count({ where: { userId: trackerUserId } })).toBe(oldCount);
+    await importedRequest([importRanges[0], { startDate: '2010-01-03', endDate: '2010-01-06' }], false).expect(409);
+    expect(await prisma.periodEvent.count({ where: { userId: trackerUserId } })).toBe(oldCount);
+    await importedRequest(importRanges, false).expect(201);
+    await importedRequest(importRanges, false).expect(201).expect(({ body }) => {
+      expect(body.periods.duplicates).toBe(2);
+    });
+    expect(await prisma.periodEvent.count({ where: { userId: trackerUserId } })).toBe(oldCount + 2);
+    await prisma.periodEvent.deleteMany({ where: { userId: trackerUserId, startDate: { in: importRanges.map(item => new Date(`${item.startDate}T00:00:00.000Z`)) } } });
+
     const mutationId = randomUUID();
     const offlineId = randomUUID();
     const syncBody = {
@@ -1579,6 +1601,27 @@ describe('Lunara core flow (real PostgreSQL)', () => {
         },
       }),
     ).toBe(2);
+    await request(app.getHttpServer())
+      .delete('/api/v1/account')
+      .set('Authorization', `Bearer ${finalPasswordLogin.accessToken}`)
+      .send({
+        password: 'A final secure tracker password 2026!',
+        deleteHousehold: true,
+      })
+      .expect(409);
+    expect(await prisma.user.count({ where: { id: { in: [trackerUserId, partnerUserId] } } })).toBe(2);
+    // Shared accounts cannot be removed by the other member. Each member must
+    // leave explicitly before the last tracker can delete the relationship.
+    await request(app.getHttpServer())
+      .delete('/api/v1/account')
+      .set('Authorization', `Bearer ${partnerAccess}`)
+      .send({
+        password: partnerJoin.body.user.username === 'partner-e2e-a'
+          ? 'A secure partner password 2026!'
+          : 'Another secure partner password 2026!',
+        deleteHousehold: false,
+      })
+      .expect(204);
     await request(app.getHttpServer())
       .delete('/api/v1/account')
       .set('Authorization', `Bearer ${finalPasswordLogin.accessToken}`)

@@ -1,5 +1,10 @@
-import { ServiceUnavailableException } from '@nestjs/common';
-import { generateKeyPair, SignJWT, type KeyLike } from 'jose';
+import {
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { exportJWK, generateKeyPair, SignJWT, type KeyLike } from 'jose';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import {
   OidcTokenVerifier,
   OidcVerifierConfiguration,
@@ -184,5 +189,179 @@ describe('OidcTokenVerifier disabled mode', () => {
     await expect(verifier.verify('not-a-token')).rejects.toBeInstanceOf(
       ServiceUnavailableException,
     );
+  });
+});
+
+describe('OidcTokenVerifier remote key availability', () => {
+  let server: Server;
+  let jwksUrl: string;
+  let privateKey: KeyLike;
+  let jwks: string;
+  let mode: string;
+
+  beforeAll(async () => {
+    const keyPair = await generateKeyPair('RS256');
+    privateKey = keyPair.privateKey;
+    jwks = JSON.stringify({
+      keys: [{ ...(await exportJWK(keyPair.publicKey)), kid: 'trusted-key' }],
+    });
+    server = createServer((request, response) => {
+      if (mode === 'connection-reset') {
+        request.socket.destroy();
+        return;
+      }
+      if (mode === 'timeout') return;
+      response.setHeader('Content-Type', 'application/json');
+      if (mode === 'http-error') {
+        response.writeHead(503).end('{}');
+      } else if (mode === 'invalid-json') {
+        response.end('not json');
+      } else if (mode === 'invalid-jwks') {
+        response.end('{"keys":null}');
+      } else {
+        response.end(jwks);
+      }
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    jwksUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/jwks`;
+  });
+
+  beforeEach(() => {
+    mode = 'healthy';
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+      server.closeAllConnections();
+    });
+  });
+
+  function verifier() {
+    const values: Record<string, unknown> = {
+      'lunara.oidc.enabled': true,
+      'lunara.oidc.issuer': configuration.issuer,
+      'lunara.oidc.audience': configuration.audience,
+      'lunara.oidc.jwksUrl': jwksUrl,
+    };
+    return new OidcTokenVerifier({
+      get: (key: string, fallback: unknown) => values[key] ?? fallback,
+    } as never);
+  }
+
+  function signedToken(kid = 'trusted-key', key = privateKey) {
+    return new SignJWT({ sub: 'test-subject' })
+      .setProtectedHeader({ alg: 'RS256', kid })
+      .setIssuer(configuration.issuer)
+      .setAudience(configuration.audience)
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(key);
+  }
+
+  it.each([
+    'http-error',
+    'invalid-json',
+    'invalid-jwks',
+    'connection-reset',
+    'timeout',
+  ])(
+    'reports %s as unavailable and verifies the same credential after recovery',
+    async (failure) => {
+      const instance = verifier();
+      const rawToken = await signedToken();
+      mode = failure;
+      await expect(instance.verify(rawToken)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      mode = 'healthy';
+      await expect(instance.verify(rawToken)).resolves.toMatchObject({
+        issuer: configuration.issuer,
+        subject: 'test-subject',
+      });
+    },
+    10_000,
+  );
+
+  it('still rejects an unknown signing key when the provider key set is available', async () => {
+    await expect(
+      verifier().verify(await signedToken('unknown-key')),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('still rejects a bad signature made with an untrusted key', async () => {
+    const attacker = await generateKeyPair('RS256');
+    await expect(
+      verifier().verify(await signedToken('trusted-key', attacker.privateKey)),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('still rejects an expired token after resolving a healthy signing key', async () => {
+    const rawToken = await new SignJWT({ sub: 'test-subject' })
+      .setProtectedHeader({ alg: 'RS256', kid: 'trusted-key' })
+      .setIssuer(configuration.issuer)
+      .setAudience(configuration.audience)
+      .setIssuedAt(Math.floor(Date.now() / 1_000) - 300)
+      .setExpirationTime(Math.floor(Date.now() / 1_000) - 60)
+      .sign(privateKey);
+    await expect(verifier().verify(rawToken)).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+});
+
+describe('OidcTokenVerifier fresh authentication', () => {
+  it.each([
+    'missing-auth-time',
+    'old-auth-time',
+    'future-auth-time',
+    'before-auth-time',
+  ])(
+    'does not mistake a refreshed access token for a fresh login: %s',
+    async (state) => {
+      const instance = new OidcTokenVerifier({
+        get: (_key: string, fallback: unknown) => fallback,
+      } as never);
+      const seconds = Math.floor(Date.now() / 1_000);
+      jest.spyOn(instance, 'verify').mockResolvedValue({
+        issuer: configuration.issuer,
+        subject: 'test-subject',
+        issuedAt: state === 'before-auth-time' ? seconds - 60 : seconds,
+        expiresAt: seconds + 300,
+        ...(state === 'missing-auth-time'
+          ? {}
+          : {
+              authenticatedAt:
+                state === 'old-auth-time'
+                  ? seconds - 301
+                  : state === 'future-auth-time'
+                    ? seconds + 31
+                    : seconds,
+            }),
+      });
+      await expect(
+        instance.verifyFreshAuthentication('test-token'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    },
+  );
+
+  it('preserves the production fresh-authentication check for a recent signed auth_time', async () => {
+    const instance = new OidcTokenVerifier({
+      get: (_key: string, fallback: unknown) => fallback,
+    } as never);
+    const seconds = Math.floor(Date.now() / 1_000);
+    const identity = {
+      issuer: configuration.issuer,
+      subject: 'test-subject',
+      issuedAt: seconds,
+      expiresAt: seconds + 300,
+      authenticatedAt: seconds - 60,
+    };
+    jest.spyOn(instance, 'verify').mockResolvedValue(identity);
+    await expect(
+      instance.verifyFreshAuthentication('test-token'),
+    ).resolves.toEqual(identity);
   });
 });

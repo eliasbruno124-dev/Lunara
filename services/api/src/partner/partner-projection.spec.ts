@@ -52,6 +52,7 @@ describe('projectPartnerDashboard', () => {
     });
     expect(result.phase).toBeNull();
     expect(result.periodDates).toEqual([]);
+    expect(result.calendarAccess).toEqual({ periodDates: false, fertileWindow: false });
     expect(result.todayLog).toBeNull();
     expect(JSON.stringify(result)).not.toContain('private words');
     expect(JSON.stringify(result)).not.toContain('cramps');
@@ -97,6 +98,7 @@ describe('projectPartnerDashboard', () => {
     });
     expect(JSON.stringify(result.prediction)).not.toContain('predictedStartFrom');
     expect(result.phase).toBeNull();
+    expect(result.calendarAccess).toEqual({ periodDates: false, fertileWindow: true });
   });
 
   it('stops all projections while sharing is paused', () => {
@@ -113,6 +115,7 @@ describe('projectPartnerDashboard', () => {
     });
     expect(result).toEqual({
       sharingPaused: true,
+      calendarAccess: { periodDates: false, fertileWindow: false },
       prediction: null,
       phase: null,
       periodDates: [],
@@ -152,13 +155,14 @@ describe('projectPartnerDashboard', () => {
       today: '2026-08-12',
     });
     expect(result.todayLog).toBeNull();
+    expect(result.calendarAccess).toEqual({ periodDates: false, fertileWindow: false });
     expect(result.phase).toBeNull();
     expect(result.periodDates).toEqual([]);
     expect(result.prediction).toEqual({
       available: true,
       predictedStartFrom: '2026-09-18',
     });
-    expect(JSON.stringify(result)).not.toContain('fertileWindow');
+    expect(JSON.stringify(result.prediction)).not.toContain('fertileWindow');
     expect(JSON.stringify(result)).not.toContain('fertilityEstimate');
   });
 });

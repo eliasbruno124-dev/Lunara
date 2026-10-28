@@ -1,9 +1,41 @@
 # Tests
 
 Diese Datei trennt tatsächlich ausgeführte Prüfungen von nur vorhandenen
-Testquellen. Der verifizierte 1.2.1-Prüfstand wird in `FINAL_REPORT.md`
+Testquellen. Der verifizierte 1.3.1-Prüfstand wird in `FINAL_REPORT.md`
 ausgewiesen; laufende oder noch nicht ausgewertete Prüfungen zählen nicht als
 bestanden. Die Matrix unten ist als historische 1.1.0-Prüfung erhalten.
+
+## Zusätzliche Prüfungen für 1.3.1
+
+`CalendarStatusPolicyTest` und `CalendarSharingComposeTest` prüfen tatsächliche
+Perioden, getrennte Freigaben, Schätzungsstatus, Ladefehler und Widerruf.
+`PeriodExportFormatTest` prüft CSV/JSON, Unicode, offene Enddaten, Grenzen,
+Mehrdeutigkeiten, Dubletten und Überschneidungen. Die Geräteklassen
+`PeriodExportComposeTest` und `PeriodImportAtomicDeviceTest` prüfen die
+Bestätigung und atomare Room-Transaktionen einschließlich Rücknahme bei
+Kontowechsel oder fehlgeschlagener Queue-Erstellung.
+
+Web-Regressionsfälle liegen in `period-transfer.test.ts`,
+`session-boundary.test.ts`, `partner-calendar.test.ts` und
+`fertility-presentation.test.ts`. Der reale PostgreSQL-Kernablauf prüft
+Vorschau ohne Schreibzugriff, atomare Konfliktablehnung, wiederholten Import
+ohne Duplikate und abgewiesenen Partnerzugriff. `SetupScreenshotsTest`
+erzeugt ausschließlich synthetische Einrichtungsbilder.
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run openapi:check
+cd apps/android
+./gradlew testLocalDebugUnitTest lintProductionRelease
+./gradlew assembleProductionDebug assembleProductionDebugAndroidTest
+```
+
+Gerätetests benötigen einen isolierten Emulator; niemals echte Gesundheitsdaten
+in Testfixtures oder Screenshots übernehmen. Die Backend-Integration benötigt
+eine ausschließlich für Tests eingerichtete PostgreSQL-Datenbank. Der
+Sitzungspersistenztest verweigert absichtlich andere Datenbankziele.
 
 ## Zusätzliche Prüfungen für 1.2.1
 
@@ -324,9 +356,8 @@ Konfiguration verwendet werden.
 ```bash
 cd artifacts
 sha256sum -c SHA256SUMS
-unzip -t lunara-debug.apk
 unzip -t lunara-release.apk
-unzip -t lunara-release-unsigned.apk
+unzip -t lunara-play-upload.aab
 ```
 
 Zusätzlich APKs mit `apksigner verify --verbose --print-certs` und AABs mit

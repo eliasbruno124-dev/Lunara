@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d AS base
+FROM node:24.21.0-bookworm-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS base
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends openssl ca-certificates
 
@@ -12,6 +12,8 @@ COPY packages/openapi-client/package.json packages/openapi-client/package.json
 RUN npm ci --ignore-scripts
 
 FROM dependencies AS build
+ENV NODE_OPTIONS=--max-old-space-size=768 \
+    npm_config_jobs=2
 COPY tsconfig*.json ./
 COPY eslint.config.mjs ./
 COPY apps/web ./apps/web
@@ -25,7 +27,9 @@ COPY services/api/prisma ./services/api/prisma
 RUN npm ci --omit=dev \
     && npm run prisma:generate --workspace=@lunara/api
 
-FROM debian:bookworm-slim@sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639d36e7456b0b229241 AS runtime
+FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587 AS runtime
+LABEL org.opencontainers.image.version="1.3.1-node-24.21.0" \
+      org.opencontainers.image.revision="95053458123ffa59906051d32adb8e26db530118+account-lifecycle+session-persistence"
 ENV NODE_ENV=production \
     PORT=3000
 RUN apt-get update \
@@ -42,6 +46,7 @@ COPY --from=build --chown=lunara:lunara /workspace/services/api/dist ./services/
 COPY --from=build --chown=lunara:lunara /workspace/services/api/package.json ./services/api/package.json
 COPY --from=build --chown=lunara:lunara /workspace/services/api/prisma ./services/api/prisma
 COPY --from=build --chown=lunara:lunara /workspace/apps/web/dist ./apps/web/dist
+COPY --chown=lunara:lunara artifacts/lunara-release.apk ./apps/web/dist/downloads/lunara.apk
 USER 10001:10001
 EXPOSE 3000
 CMD ["node", "services/api/dist/main.js"]

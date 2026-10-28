@@ -1,2 +1,5 @@
 e60800c1278053d136336dc9579785f4b817e432:FINAL_REPORT.md:generic-api-key:160
 cf59f9801c1ca022c65ce72a66fb414448c236d2:.env.example:generic-api-key:7
+# Historical image tag and public OpenAPI SHA-256, individually reviewed.
+a7d591b7ba2da5ab0797366354f1121f722f32ec:FINAL_REPORT.md:generic-api-key:101
+e365c6070dd26bf7fcb9247acf03ff429435d7e8:FINAL_REPORT.md:generic-api-key:160

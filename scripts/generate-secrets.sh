@@ -26,8 +26,6 @@ refresh_pepper="$(openssl rand -base64 48 | tr -d '\n')"
 bootstrap_token="$(openssl rand -base64 32 | tr -d '\n')"
 
 sed \
-  -e "s|^PUBLIC_BASE_URL=.*|PUBLIC_BASE_URL=https://lunara.3li361.de|" \
-  -e "s|^PUBLIC_HOST=.*|PUBLIC_HOST=lunara.3li361.de|" \
   -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${postgres_password}|" \
   -e "s|^APP_MASTER_KEY=.*|APP_MASTER_KEY=${master_key}|" \
   -e "s|^AUTH_SIGNING_KEY=.*|AUTH_SIGNING_KEY=${signing_key}|" \

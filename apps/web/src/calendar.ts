@@ -9,6 +9,7 @@ import {
   todayIso,
 } from './date';
 import { translate } from './i18n';
+import { hasFertileEstimate } from './fertility-presentation';
 import type { Language, PeriodEvent, Prediction, Role } from './types';
 
 export interface SwipePoint {
@@ -167,7 +168,7 @@ export class SwipeCalendar {
         ),
     );
     const fertile = Boolean(
-      this.options.prediction?.available &&
+      hasFertileEstimate(this.options.prediction) && this.options.prediction &&
         isWithin(
           date,
           this.options.prediction.fertileWindowFrom,

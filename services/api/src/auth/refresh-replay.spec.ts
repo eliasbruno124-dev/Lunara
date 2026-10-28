@@ -1,4 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import {
   DeviceSession,
   IdempotencyKey,
@@ -60,6 +63,7 @@ function createHarness(
   };
   const sessions = new Map<string, DeviceSession>();
   const records = new Map<string, IdempotencyKey>();
+  const externalIdentity = { userId: user.id, issuer, subject };
   const deviceSession = {
     findUnique: jest.fn(
       ({ where }: { where: { id?: string; refreshTokenHash?: string } }) => {
@@ -74,7 +78,7 @@ function createHarness(
                 ...session,
                 user,
                 externalIdentity: session.externalIdentityId
-                  ? { issuer, subject }
+                  ? { ...externalIdentity }
                   : null,
               }
             : null,
@@ -213,6 +217,7 @@ function createHarness(
     config,
     encryption,
     oidcVerifier,
+    externalIdentity,
   };
 }
 
@@ -540,6 +545,156 @@ describe('replay-safe refresh', () => {
       'token family revoked',
     );
     expect(h.session(first.sessionId).revokedAt).not.toBeNull();
+  });
+});
+
+describe('provider-bound persistent sessions', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('renews an expired unrevoked OIDC device without replacing its account or family', async () => {
+    const h = createHarness(SessionAuthMethod.OIDC);
+    h.original.expiresAt = new Date(0);
+    const next = await h.replay();
+    const renewed = h.session(next.sessionId);
+
+    expect(next.user.id).toBe(h.user.id);
+    expect(renewed).toMatchObject({
+      userId: h.original.userId,
+      tokenFamilyId: h.original.tokenFamilyId,
+      externalIdentityId: h.original.externalIdentityId,
+      authMethod: SessionAuthMethod.OIDC,
+      rotatedFromId: h.original.id,
+      revokedAt: null,
+      expiresAt: new Date(Date.now() + 30 * 86_400_000),
+    });
+    expect(h.session(h.original.id).revokedAt).not.toBeNull();
+    expect(h.oidcVerifier.verify).toHaveBeenCalledWith('fresh-oidc-proof');
+    // A lost renewal response remains recoverable through the same request ID.
+    expect((await h.replay()).refreshToken).toBe(next.refreshToken);
+    expect(h.tx.deviceSession.create).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([SessionAuthMethod.PASSWORD, SessionAuthMethod.OIDC])(
+    'slides the finite local lifetime on each successful %s rotation',
+    async (method) => {
+      const h = createHarness(method);
+      jest.setSystemTime(new Date(Date.now() + 29 * 86_400_000));
+      const first = await h.replay();
+      expect(h.session(first.sessionId).expiresAt).toEqual(
+        new Date(Date.now() + 30 * 86_400_000),
+      );
+      jest.setSystemTime(new Date(Date.now() + 29 * 86_400_000));
+      const second = await h.service.refresh(
+        first.refreshToken,
+        'fresh-oidc-proof',
+        randomUUID(),
+      );
+      expect(h.session(second.sessionId).expiresAt).toEqual(
+        new Date(Date.now() + 30 * 86_400_000),
+      );
+      expect(h.session(second.sessionId).tokenFamilyId).toBe(
+        h.original.tokenFamilyId,
+      );
+    },
+  );
+
+  it('does not renew an expired password session even when an OIDC proof is supplied', async () => {
+    const h = createHarness(SessionAuthMethod.PASSWORD);
+    h.original.expiresAt = new Date(Date.now());
+    await expect(h.replay()).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(h.tx.deviceSession.create).not.toHaveBeenCalled();
+    expect(h.oidcVerifier.verify).not.toHaveBeenCalled();
+    expect(h.jwt.signAsync).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'revoked',
+    'deleted-session',
+    'unlinked',
+    'wrong-owner',
+    'disabled-user',
+    'missing-membership',
+    'wrong-issuer',
+    'wrong-subject',
+  ])('does not restore an expired OIDC session when %s', async (state) => {
+    const h = createHarness(SessionAuthMethod.OIDC);
+    h.original.expiresAt = new Date(0);
+    if (state === 'revoked') h.original.revokedAt = new Date();
+    if (state === 'deleted-session') h.sessions.delete(h.original.id);
+    if (state === 'unlinked') h.original.externalIdentityId = null;
+    if (state === 'wrong-owner') h.externalIdentity.userId = randomUUID();
+    if (state === 'disabled-user') h.user.disabledAt = new Date();
+    if (state === 'missing-membership') h.user.memberships = [];
+    if (state === 'wrong-issuer')
+      h.externalIdentity.issuer = 'https://other.test/';
+    if (state === 'wrong-subject') h.externalIdentity.subject = 'other-subject';
+
+    await expect(h.replay()).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(h.tx.deviceSession.create).not.toHaveBeenCalled();
+    expect(h.jwt.signAsync).not.toHaveBeenCalled();
+  });
+
+  it.each(['relinked', 'changed-owner', 'unlinked'])(
+    'rechecks the exact retained identity after acquiring the lock: %s',
+    async (state) => {
+      const h = createHarness(SessionAuthMethod.OIDC);
+      h.original.expiresAt = new Date(0);
+      h.oidcVerifier.verify.mockImplementationOnce(() => {
+        if (state === 'relinked') h.original.externalIdentityId = randomUUID();
+        if (state === 'changed-owner') h.externalIdentity.userId = randomUUID();
+        if (state === 'unlinked') h.original.externalIdentityId = null;
+        return Promise.resolve({
+          issuer,
+          subject,
+          issuedAt: Math.floor(Date.now() / 1_000),
+          expiresAt: Math.floor(Date.now() / 1_000) + 300,
+        });
+      });
+
+      await expect(h.replay()).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(h.tx.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(h.tx.deviceSession.create).not.toHaveBeenCalled();
+      expect(h.jwt.signAsync).not.toHaveBeenCalled();
+    },
+  );
+
+  it('leaves the credential and retry ID reusable after a temporary provider outage', async () => {
+    const h = createHarness(SessionAuthMethod.OIDC);
+    h.original.expiresAt = new Date(0);
+    h.oidcVerifier.verify.mockRejectedValueOnce(
+      new ServiceUnavailableException(
+        'External sign-in is temporarily unavailable',
+      ),
+    );
+    await expect(h.replay()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(h.prisma.$transaction).not.toHaveBeenCalled();
+    expect(h.tx.deviceSession.create).not.toHaveBeenCalled();
+    expect(h.session(h.original.id).revokedAt).toBeNull();
+
+    await expect(h.replay()).resolves.toHaveProperty('refreshToken');
+    expect(h.tx.deviceSession.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains the bounded lost-response replay window even with a valid provider proof', async () => {
+    const h = createHarness(SessionAuthMethod.OIDC);
+    const first = await h.replay();
+    jest.setSystemTime(new Date(Date.now() + 31 * 86_400_000));
+    await expect(h.replay()).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(h.session(first.sessionId).revokedAt).toBeNull();
+    expect(h.tx.deviceSession.create).toHaveBeenCalledTimes(1);
+    // The latest saved credential can still renew; the consumed ancestor cannot.
+    await expect(
+      h.service.refresh(first.refreshToken, 'fresh-oidc-proof', randomUUID()),
+    ).resolves.toHaveProperty('refreshToken');
   });
 });
 

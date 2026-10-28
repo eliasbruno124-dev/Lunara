@@ -1,0 +1,59 @@
+[
+  {
+    "title": "App entry and presentation",
+    "description": "The activity hosts Compose; root state selects onboarding or the authenticated shell. Screen state and user actions are coordinated by the main view model.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/MainActivity.kt", "symbol": "MainActivity", "purpose": "Android entry point and app lifecycle" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/LunaraApp.kt", "symbol": "LunaraApp", "purpose": "Root UI and account navigation" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/MainShell.kt", "symbol": "MainShell", "purpose": "Today, calendar, history/support and settings" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/MainViewModel.kt", "symbol": "MainViewModel", "purpose": "Screen state, scoped refreshes and user actions" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/theme/LunaraTheme.kt", "symbol": "LunaraTheme", "purpose": "Color roles, typography and component shape system" }
+    ]
+  },
+  {
+    "title": "Login and persistent renewal",
+    "description": "Authentik's browser flow uses PKCE. Its gateway token and Lunara's own app session are separate credentials; both must renew without confusing temporary network faults with revoked access.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/security/AuthentikAuthManager.kt", "symbol": "AuthentikAuthManager", "purpose": "PKCE browser login, provider token refresh and scoped persistence" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/security/DurableSessionRenewal.kt", "symbol": "DurableSessionRenewal", "purpose": "Serialized, cancellation-safe renewal through durable commit" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/SessionSecrets.kt", "symbol": "SessionSecrets", "purpose": "Encrypted credentials, atomic provider state and account generation checks" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/ConnectionRepository.kt", "symbol": "refresh", "owner": "ConnectionRepository", "purpose": "Inner Lunara session rotation and failure classification" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/remote/ApiClientFactory.kt", "symbol": "ApiClientFactory", "purpose": "Origin-bound gateway and app authorization headers" },
+      { "path": "services/api/src/auth/auth.service.ts", "symbol": "refresh", "owner": "AuthService", "purpose": "Server rotation, same-family proof, expiry, replay recovery and revocation" },
+      { "path": "services/api/src/auth/oidc-token-verifier.ts", "symbol": "OidcTokenVerifier", "purpose": "Signed external identity verification and provider outage classification" }
+    ]
+  },
+  {
+    "title": "Offline data, synchronization and logout",
+    "description": "Room/SQLCipher retains scoped local data and queued edits. WorkManager coordinates retries; server changes and logout must not allow old requests to restore another session.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/local/LunaraDatabase.kt", "symbol": "LunaraDatabase", "purpose": "Encrypted local schema and migrations" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/PeriodRepository.kt", "symbol": "PeriodRepository", "purpose": "Local journal writes and queued mutations" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/sync/SyncWorker.kt", "symbol": "SyncWorker", "purpose": "Bounded upload/download batches and retry policy" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/sync/SyncScheduler.kt", "symbol": "SyncScheduler", "purpose": "Immediate, manual and periodic background work" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/AccountRepository.kt", "symbol": "eraseLocalAccount", "owner": "AccountRepository", "purpose": "Explicit logout and local-account cleanup coordination" }
+    ]
+  },
+  {
+    "title": "Recorded-period transfer",
+    "description": "Date-only CSV and JSON transfer is tracker-owned. File parsing precedes an explicit preview and confirmation; duplicate records are skipped, conflicting ranges reject the batch, and an account change invalidates pending file operations. Android persists the import atomically with its sync queue; the web uses its encrypted local vault or the authenticated server import.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/PeriodExportFormat.kt", "symbol": "PeriodExportFormat", "purpose": "Bounded date-only formats, validation and import planning" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/PeriodExportRepository.kt", "symbol": "PeriodExportRepository", "purpose": "SAF input/output and owner-bound snapshots" },
+      { "path": "apps/web/src/period-transfer.ts", "symbol": "parsePeriodFile", "purpose": "Browser CSV/JSON compatibility and validation" },
+      { "path": "apps/web/src/api.ts", "symbol": "LunaraApi", "purpose": "Authenticated server import and generation-bound retries" },
+      { "path": "services/api/src/data-management/data-management.service.ts", "symbol": "DataManagementService", "purpose": "Server export and atomic previewed import" }
+    ]
+  },
+  {
+    "title": "Partner calendar consent and availability",
+    "description": "The server reports effective sharing permissions without disclosing whether private health records exist. Clients distinguish denied or unknown access, unavailable estimates and empty results. Forecasts remain estimates, not a contraception or ovulation confirmation.",
+    "anchors": [
+      { "path": "services/api/src/partner/partner-projection.ts", "symbol": "projectPartnerDashboard", "purpose": "Privacy-filtered response and effective calendar access flags" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/CalendarStatusPolicy.kt", "symbol": "CalendarStatusPolicy", "purpose": "Native calendar notices and read-only sharing status" },
+      { "path": "apps/web/src/partner-calendar.ts", "symbol": "visiblePartnerCalendar", "purpose": "Consent-aware browser calendar projection" },
+      { "path": "apps/web/src/fertility-presentation.ts", "symbol": "hasFertileEstimate", "purpose": "Validate estimate availability independently of other prediction permissions" },
+      { "path": "apps/web/src/apk-download.ts", "symbol": "createApkDownloadCard", "purpose": "Same-origin stable APK download in settings" }
+    ]
+  }
+]

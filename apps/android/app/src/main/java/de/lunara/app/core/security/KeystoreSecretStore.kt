@@ -14,6 +14,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 interface SecretStore {
+    /** True when stored material exists, even if it cannot be decrypted or decoded. */
+    fun contains(key: String): Boolean
     fun putString(key: String, value: String?)
     fun getString(key: String): String?
     fun putBytes(key: String, value: ByteArray?)
@@ -27,6 +29,9 @@ class KeystoreSecretStore @Inject constructor(
 ) : SecretStore {
     private val prefs = context.getSharedPreferences("lunara_encrypted_secrets", Context.MODE_PRIVATE)
     private val alias = "lunara.local-secrets.v1"
+
+    @Synchronized
+    override fun contains(key: String): Boolean = prefs.contains(key)
 
     override fun putString(key: String, value: String?) = putBytes(key, value?.encodeToByteArray())
 

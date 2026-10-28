@@ -48,3 +48,9 @@ infra/**
 !infra/docker
 infra/docker/**
 !infra/docker/api.Dockerfile
+
+# Only the signed installable APK belongs in the runtime image; never signing
+# material, deployment credentials or the rest of the artifact directory.
+!artifacts
+artifacts/**
+!artifacts/lunara-release.apk

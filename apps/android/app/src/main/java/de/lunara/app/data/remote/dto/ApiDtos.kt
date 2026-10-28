@@ -325,6 +325,13 @@ data class PartnerDashboardDto(
     val periodDates: List<Map<String, Any?>> = emptyList(),
     val todayLog: Map<String, Any?>? = null,
     val tip: PartnerTipDto? = null,
+    /** Effective permissions, not record availability. Absent on older servers. */
+    val calendarAccess: PartnerCalendarAccessDto? = null,
+)
+
+data class PartnerCalendarAccessDto(
+    val periodDates: Boolean? = null,
+    val fertileWindow: Boolean? = null,
 )
 
 data class TodayTipDto(val tip: PartnerTipDto? = null, val date: String? = null)

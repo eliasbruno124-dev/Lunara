@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.3.1
+
+- Klarer Kalenderstatus und sichtbare Freigaben in der Partneransicht von App und Web.
+- Fruchtbares Zeitfenster unabhängig von der allgemeinen Periodenprognose anzeigen.
+- Perioden als CSV/JSON exportieren und nach Vorschau importieren; Duplikate und Überschneidungen sicher behandeln.
+- APK-Download in den Web-Einstellungen, direkt im Server-Image enthalten.
+- Einrichtungsanleitung mit Bildern für Solo-Modus und eigenen Server.
+
+## 1.3.0
+
+- Stabilere Authentik-Anmeldung: sichere Erneuerung auch bei Bildschirmwechsel,
+  vorübergehenden Verbindungsfehlern und längerer Nichtbenutzung.
+- Verschlüsselte Sitzungen werden zusammenhängend gespeichert; fehlgeschlagene
+  Schreibvorgänge und verspätete Antworten wechseln kein Konto.
+- Ruhigere Startseite, klarere Lade- und Offlinezustände sowie bessere
+  Bedienbarkeit auf kleinen Displays und mit großer Schrift.
+- Automatisch erzeugte Code-Karte mit geprüften Einstiegspunkten und
+  Aktualitätsprüfung für künftige Änderungen.
+- Sicherheitsupdates für die HTTP-, Upload- und YAML-Abhängigkeiten des Servers.
+
 ## 1.2.1
 
 - Partner-Startseite: freigegebene Vorhersage vor dem Tipp, auf Android und Web.
@@ -434,4 +454,4 @@
   Pangolin-Konfiguration angelegt.
 - HTTPS-only Production-Debug-APK und versionierte OpenAPI-Artefakte gebaut.
 - Noch offene Komfort-/Zusatzfunktionen und reale Gerätetests in
-  `FINAL_REPORT.md` und `PROGRESS.md` transparent dokumentiert.
+  den damaligen Prüfberichten dokumentiert; die früheren Stände bleiben in der Git-Historie erhalten.

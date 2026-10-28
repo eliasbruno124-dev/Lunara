@@ -10,8 +10,6 @@ import de.lunara.app.data.repository.SessionSecrets
 import de.lunara.app.data.repository.SessionRecoveryPolicy
 import java.io.IOException
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import net.openid.appauth.AuthState
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationRequest
@@ -34,6 +32,9 @@ class AuthentikAuthorizationException(message: String, cause: Throwable? = null)
 class AuthentikSessionExpiredException(cause: Throwable? = null) :
     IOException("Authentik session requires authentication", cause)
 
+/** A queued request must not borrow a replacement account's provider credentials. */
+internal class StaleAuthentikSessionException : IOException("Authentik session changed before request completed")
+
 class PendingAuthentikSession internal constructor(
     internal val authState: AuthState,
     val accessToken: String,
@@ -53,7 +54,7 @@ class AuthentikAuthManager @Inject constructor(
     private val secrets: SessionSecrets,
 ) {
     private val authorizationService by lazy { AuthorizationService(context) }
-    private val refreshMutex = Mutex()
+    private val renewal = DurableSessionRenewal()
     private val pendingRequest = AtomicReference<String?>(null)
 
     suspend fun authorizationIntent(meta: OidcMetaDto): Intent {
@@ -168,19 +169,16 @@ class AuthentikAuthManager @Inject constructor(
         )
     }
 
-    fun currentAccessTokenFor(baseUrl: String): String? {
+    fun configuredGenerationFor(baseUrl: String): Long? {
         val snapshot = secrets.authentikSnapshot()
         val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return null
-        if (SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) != expectedBase) return null
-        return readState(snapshot.stateJson)?.accessToken?.takeIf(String::isNotBlank)
+        return snapshot.generation.takeIf {
+            SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) == expectedBase &&
+                readState(snapshot.stateJson) != null
+        }
     }
 
-    fun isConfiguredFor(baseUrl: String): Boolean {
-        val snapshot = secrets.authentikSnapshot()
-        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return false
-        return SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) == expectedBase &&
-            readState(snapshot.stateJson) != null
-    }
+    fun isConfiguredFor(baseUrl: String): Boolean = configuredGenerationFor(baseUrl) != null
 
     /**
      * Returns an access token that AppAuth has checked for expiry first. This is
@@ -188,19 +186,19 @@ class AuthentikAuthManager @Inject constructor(
      * an expired outer token is answered with a browser redirect, so waiting
      * for an inner Lunara 401 would be too late.
      */
-    suspend fun freshAccessTokenFor(baseUrl: String): String? {
-        if (!isConfiguredFor(baseUrl) || !refreshFor(baseUrl)) return null
-        return currentAccessTokenFor(baseUrl)
-    }
-
-    suspend fun refreshFor(baseUrl: String): Boolean = refreshMutex.withLock {
+    suspend fun freshAccessTokenFor(
+        baseUrl: String,
+        expectedGeneration: Long? = configuredGenerationFor(baseUrl),
+    ): String? = renewal.run {
         val snapshot = secrets.authentikSnapshot()
-        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return@withLock false
+        val expectedBase = runCatching { canonicalBaseUrl(baseUrl) }.getOrNull() ?: return@run null
+        if (expectedGeneration == null) return@run null
+        if (snapshot.generation != expectedGeneration) throw StaleAuthentikSessionException()
         if (SessionRecoveryPolicy.normalizedBaseUrl(snapshot.baseUrl) != expectedBase) {
-            return@withLock false
+            throw StaleAuthentikSessionException()
         }
-        val state = readState(snapshot.stateJson) ?: return@withLock false
-        suspendCancellableCoroutine<String> { continuation ->
+        val state = readState(snapshot.stateJson) ?: throw IOException("Stored OIDC session is unreadable")
+        val accessToken = suspendCancellableCoroutine<String> { continuation ->
             state.performActionWithFreshTokens(
                 authorizationService,
                 NoClientAuthentication.INSTANCE,
@@ -219,10 +217,12 @@ class AuthentikAuthManager @Inject constructor(
                 }
             }
         }
-        secrets.replaceAuthentikStateIfCurrent(
+        if (!secrets.replaceAuthentikStateIfCurrent(
             snapshot.generation,
             state.jsonSerializeString(),
-        )
+        )) throw StaleAuthentikSessionException()
+        // Return this renewal's token, never a new account's token read after releasing the lock.
+        accessToken
     }
 
     fun clear() = secrets.clearAuthentik()

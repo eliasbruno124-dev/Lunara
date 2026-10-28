@@ -53,6 +53,7 @@ class NotificationDataCacheTest {
 
     private class InMemorySecretStore : SecretStore {
         private val values = mutableMapOf<String, ByteArray>()
+        override fun contains(key: String): Boolean = values.containsKey(key)
 
         override fun putString(key: String, value: String?) = putBytes(key, value?.encodeToByteArray())
         override fun getString(key: String): String? = getBytes(key)?.decodeToString()

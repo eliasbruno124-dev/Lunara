@@ -12,6 +12,7 @@ import de.lunara.app.data.sync.ProcessSyncGate
 import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.preferences.AppMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import java.time.Clock
@@ -28,6 +29,7 @@ class PeriodRepository @Inject constructor(
     private val syncScheduler: SyncScheduler,
     private val gson: Gson,
     private val preferences: AppPreferences,
+    private val credentialGate: SessionCredentialGate,
 ) {
     fun observePeriods(): Flow<List<PeriodEntity>> = database.periodDao().observeActive()
     fun observePendingCount(): Flow<Int> = combine(
@@ -160,6 +162,22 @@ class PeriodRepository @Inject constructor(
         endDate: LocalDate?,
     ): String = ProcessSyncGate.serialized {
         updatePeriodDatesLocked(userId, periodId, startDate, endDate)
+    }
+
+    /** Revalidates the confirmed preview and atomically adds dates; never replaces existing rows. */
+    suspend fun importPeriodRanges(draft: PeriodImportDraft): Int = ProcessSyncGate.serialized {
+        val identity = draft.identity
+        var inserted = 0
+        val committed = credentialGate.commitIfCurrent(identity.generation) {
+            val localMode = identity.mode == AppMode.LOCAL
+            inserted = commitPeriodImport(database, gson, draft, now = ::nextMutationTime) {
+                if (!identity.matches(preferences.state.first(), credentialGate.snapshot())) throw PeriodFileException(PeriodFileProblem.ACCOUNT_CHANGED)
+            }
+            if (inserted > 0 && !localMode) scheduleCommittedPeriodImport(syncScheduler::requestAfterMutation)
+            true
+        }
+        if (!committed) throw PeriodFileException(PeriodFileProblem.ACCOUNT_CHANGED)
+        inserted
     }
 
     /** Reads the current start under the same process gate and only changes the end date. */
@@ -533,6 +551,51 @@ class PeriodRepository @Inject constructor(
             return lastMutationInstant
         }
     }
+}
+
+/** Scheduling follows a durable commit, so a transient scheduler failure is not an import failure. */
+internal fun scheduleCommittedPeriodImport(schedule: () -> Unit) {
+    try { schedule() }
+    catch (cancelled: CancellationException) { throw cancelled }
+    catch (_: Exception) {
+        // Rows and queue are already durable. Periodic/manual sync can drain the queue later;
+        // a scheduler failure must not falsely report that the completed import failed.
+    }
+}
+
+/** Transaction core shared by the guarded repository and synthetic Room regression tests. */
+internal suspend fun commitPeriodImport(
+    database: LunaraDatabase,
+    gson: Gson,
+    draft: PeriodImportDraft,
+    now: () -> Instant = Instant::now,
+    newId: () -> String = { UUID.randomUUID().toString() },
+    ensureIdentity: suspend () -> Unit,
+): Int = database.withTransaction {
+    ensureIdentity()
+    val identity = draft.identity
+    val current = PeriodExportFormat.ownedRanges(database.periodDao().activeForUser(identity.userId), identity)
+    val plan = PeriodExportFormat.plan(draft.ranges, current)
+    if (plan != draft.plan || plan.summary.conflictCount > 0) throw PeriodFileException(PeriodFileProblem.CHANGED)
+    for (range in plan.additions) {
+        ensureIdentity()
+        val instant = now()
+        val timestamp = MutationTimestampPolicy.format(instant)
+        val period = PeriodEntity(
+            id = newId(), userId = identity.userId, startDate = range.startDate, endDate = range.endDate,
+            source = "IMPORT", createdAt = instant.toString(), updatedAt = instant.toString(),
+            syncState = if (identity.mode == AppMode.LOCAL) "LOCAL" else "PENDING",
+        )
+        database.periodDao().insert(period)
+        if (identity.mode == AppMode.SERVER) check(database.mutationDao().enqueue(MutationEntity(
+            id = newId(), clientMutationId = newId(), entityType = "PERIOD", entityId = period.id,
+            operation = "UPSERT", baseVersion = 0,
+            payloadJson = PeriodPayloadPolicy.create(gson, period.id, LocalDate.parse(range.startDate), range.endDate?.let(LocalDate::parse), "IMPORT"),
+            createdAt = timestamp, nextAttemptAt = timestamp,
+        )) != -1L) { "Mutation ID collision" }
+    }
+    ensureIdentity()
+    plan.additions.size
 }
 
 internal class SessionChangedException : IllegalStateException("Session changed while saving local data")

@@ -3,14 +3,22 @@ package de.lunara.app.ui.main
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -28,6 +36,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.lunara.app.R
@@ -37,6 +47,7 @@ import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.repository.RelationshipState
 import de.lunara.app.ui.components.InsightCard
+import de.lunara.app.ui.components.LunaraStatusNotice
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -54,12 +65,23 @@ internal fun SyncStatusAction(preferences: AppPreferencesState, state: MainUiSta
         SyncBadge.PENDING -> stringResource(R.string.status_pending, state.pendingMutations)
         SyncBadge.SERVER -> stringResource(R.string.status_server_sync)
     }
-    TextButton(onClick = { details = true }, modifier = Modifier.padding(end = 8.dp)) { Text(label) }
+    TextButton(onClick = { details = true }, modifier = Modifier.padding(end = 8.dp).widthIn(max = 156.dp).testTag("sync-status")) {
+        Icon(
+            when (badge) {
+                SyncBadge.LOCAL, SyncBadge.AUTHENTICATION -> Icons.Rounded.Lock
+                SyncBadge.CONFLICT -> Icons.Rounded.Info
+                else -> Icons.Rounded.Refresh
+            },
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
+    }
     if (details) AlertDialog(
         onDismissRequest = { details = false },
         title = { Text(stringResource(R.string.synchronization)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(if (badge == SyncBadge.LOCAL) R.string.status_local_detail else R.string.status_server_detail))
                 if (badge != SyncBadge.LOCAL) {
                     val last = state.partnerDashboardLastSyncAt ?: state.lastSyncAt
@@ -80,6 +102,41 @@ internal fun SyncStatusAction(preferences: AppPreferencesState, state: MainUiSta
 }
 
 @Composable
+internal fun SessionRecoveryNotice(onLogin: () -> Unit, modifier: Modifier = Modifier) {
+    LunaraStatusNotice(
+        icon = Icons.Rounded.Lock,
+        title = stringResource(R.string.renew_login),
+        body = stringResource(R.string.session_recovery_short),
+        modifier = modifier.testTag("session-recovery-notice"),
+        action = { TextButton(onClick = onLogin, modifier = Modifier.heightIn(min = 48.dp).testTag("session-recovery-action")) { Text(stringResource(R.string.renew_login)) } },
+    )
+}
+
+@Composable
+internal fun JournalSyncRow(label: String, refreshing: Boolean = false, onSync: () -> Unit) {
+    val refreshAction: @Composable () -> Unit = {
+        TextButton(onClick = onSync, enabled = !refreshing, modifier = Modifier.heightIn(min = 48.dp)) {
+            if (refreshing) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            else Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.journal_refresh), Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium)
+        }
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth < 320.dp || LocalDensity.current.fontScale > 1.2f) {
+            Column {
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                refreshAction()
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                refreshAction()
+            }
+        }
+    }
+}
+
+@Composable
 internal fun RelationshipCard(state: RelationshipState, onRefresh: () -> Unit, compact: Boolean = false) {
     var details by remember { mutableStateOf(false) }
     val summary = when {
@@ -88,13 +145,14 @@ internal fun RelationshipCard(state: RelationshipState, onRefresh: () -> Unit, c
         else -> stringResource(R.string.relationship_none)
     }
     if (compact) {
-        Surface(onClick = { details = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+        Surface(onClick = { details = true }, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.testTag("relationship-summary")) {
             Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Column(Modifier.weight(1f)) {
                     Text(summary, style = MaterialTheme.typography.labelLarge)
                     if (state.known && state.unavailable) Text(stringResource(R.string.journal_relationship_last_confirmed), style = MaterialTheme.typography.bodySmall)
                 }
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (details) AlertDialog(

@@ -323,7 +323,7 @@ describe('AuthService.refresh OIDC revalidation', () => {
   ) {
     const relation =
       authMethod === SessionAuthMethod.OIDC
-        ? { issuer, subject }
+        ? { userId: refreshUserId, issuer, subject }
         : null;
     const linkedIdentityId =
       authMethod === SessionAuthMethod.OIDC ? externalIdentityId : null;

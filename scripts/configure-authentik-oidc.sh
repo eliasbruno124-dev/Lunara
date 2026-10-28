@@ -325,7 +325,7 @@ def verify_target(
         "sub_mode": "hashed_user_id",
         "access_code_validity": "minutes=1",
         "access_token_validity": "minutes=15",
-        "refresh_token_validity": "days=30",
+        "refresh_token_validity": "days=365",
         "refresh_token_threshold": "seconds=0",
         "include_claims_in_id_token": True,
     }
@@ -488,7 +488,7 @@ def create_target(proxy, proxy_app, gateway_group, flows, signing_key, scope_ids
         sub_mode="hashed_user_id",
         access_code_validity="minutes=1",
         access_token_validity="minutes=15",
-        refresh_token_validity="days=30",
+        refresh_token_validity="days=365",
         refresh_token_threshold="seconds=0",
         include_claims_in_id_token=True,
     )

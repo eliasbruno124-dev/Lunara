@@ -38,6 +38,7 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
   if (settings.sharingPaused) {
     return {
       sharingPaused: true,
+      calendarAccess: { periodDates: false, fertileWindow: false },
       prediction: null,
       phase: null,
       periodDates: [],
@@ -96,6 +97,12 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
 
   return {
     sharingPaused: false,
+    // Disclose only effective access, not the underlying private-day choice or
+    // whether any health record exists. Older clients can ignore this metadata.
+    calendarAccess: {
+      periodDates: settings.sharePeriodDates && !privateToday,
+      fertileWindow: settings.shareFertileWindow && !privateToday,
+    },
     prediction,
     // A private day is an explicit same-day revocation. Remove every field that could reveal
     // whether a period or estimated fertile/phase state applies today. Historical knowledge on
