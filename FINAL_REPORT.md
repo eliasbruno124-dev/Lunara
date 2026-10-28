@@ -49,23 +49,34 @@ Die zuvor im selben unveröffentlichten Update ergänzten Funktionen bleiben ent
 | Browser | 165 Assertions mit synthetischen Daten; Import, Export, lokaler Tresor, Partnerkalender, Freigabewiderruf und 18 Ansichten in Hell/Dunkel |
 | Kalenderbreite | 48 Chromium-Layouts mit zwei Sprachen, Breiten von 280 bis 700 px und drei Schriftgrößen; zusätzlich Forced Colors und negative Darstellungskontrolle |
 | Schätzungsvergleich | 72 synthetische API/Web-Vergleichsfälle sowie unabhängige Grenzwert- und Phasenprüfungen bestanden |
-| Android Release | Signierte APK und AAB gebaut; Lint: 0 Fehler, 95 Warnungen |
+| Android Release | Signierte APK und AAB gebaut; Android-Debug-Lint: 0 Fehler, 95 Warnungen |
 | Update-Kompatibilität | Paket de.lunara.app, Version 1.3.3, versionCode 23, unverändertes Signierzertifikat |
-| Produktion | Auslieferung und Datenvergleich von 1.3.3 noch ausstehend |
+| Paketierung | Docker-Image enthält exakt die geprüften Web-Assets und die signierte APK |
+| Produktion | API-only-Update; Health/Readiness, authentifizierter HTTPS-Download, Prüfsumme und HTTP Range geprüft |
+| Datenbestand | Prüfsummen für Perioden, Freigaben und Benutzer unverändert; Datenbankcontainer nicht neu erstellt |
 
 Die Geräteprüfung lief auf einem isolierten Android-Emulator, nicht auf den
 physischen Geräten der Nutzer. Browser- und Gerätetests verwenden ausschließlich
 synthetische Daten. Der Live-Download wurde zusätzlich über HTTPS geprüft.
 Die früheren Korrekturen für schmale Kalender und große Schrift bleiben erhalten.
-Vier fest deutsch formulierte Erwartungen im erweiterten englischen Kalenderlauf
-wurden durch lokalisierte Ressourcen ersetzt; anschließend wurden beide Sprachen
+Vier Tests im erweiterten englischen Kalenderlauf verwendeten noch deutsche
+Texte. Sie nutzen nun lokalisierte Ressourcen; anschließend wurden beide Sprachen
 vollständig erneut erfolgreich geprüft. Die fachlichen Assertions blieben erhalten.
 
-Der Auslieferungsstatus wird erst nach dem geprüften API-only-Update ergänzt.
+Der Live-Container `local/lunara-api:1.3.3-prediction-20261028` wurde aus
+Quellrevision `eb710fb` gebaut. API und Web sind gesund. Ausgelieferte Web-Assets
+und APK stimmen bytegenau mit den geprüften Artefakten überein. Der HTTPS-Download
+bleibt durch die vorhandene Authentifizierung geschützt; Gateway-Zugang allein
+gewährt keinen Zugriff auf Gesundheitsdaten. Die Datenbank wurde nicht neu erstellt.
+Das Container-Image enthält die APK, ohne zusätzlichen APK-Bind-Mount.
+
+Nur der Lunara-API-Container wurde neu erstellt; andere Dienste blieben unverändert.
+Ein eng begrenztes, serverlokales Backup liegt vor. Der Testemulator wurde nach
+den bestandenen Läufen beendet; es wurden keine zusätzlichen Testcontainer erstellt.
 
 Die zusätzlichen PostgreSQL-Integrationstests und der damalige Abhängigkeits-Audit
 gehören zum vorangegangenen 1.3.1-Prüflauf, nicht zu einer erneuten vollständigen
-Datenbank- oder Sicherheitsprüfung dieser Änderung. Es werden keine
+Datenbank- oder Sicherheitsprüfung dieser Änderung. Es wurden keine
 Server-Datenmodelle oder gespeicherten Partnerfreigaben geändert.
 
 ## Aussagekraft der Schätzungen
