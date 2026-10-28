@@ -33,7 +33,7 @@ class CalendarPresentationPolicyTest {
     }
 
     @Test
-    fun `prediction separates possible start from remaining possible duration`() {
+    fun `prediction includes both start and duration in one complete possible band`() {
         val band = CalendarPredictionBand.from(
             prediction(
                 startFrom = "2026-09-18",
@@ -46,29 +46,46 @@ class CalendarPresentationPolicyTest {
         assertNotNull(band)
         requireNotNull(band)
         assertEquals(
-            CalendarPredictionDayRole.NONE,
-            band.roleFor(LocalDate.parse("2026-09-17")),
+            false,
+            band.contains(LocalDate.parse("2026-09-17")),
         )
         assertEquals(
-            CalendarPredictionDayRole.START_UNCERTAINTY,
-            band.roleFor(LocalDate.parse("2026-09-18")),
+            true,
+            band.contains(LocalDate.parse("2026-09-18")),
         )
         assertEquals(
-            CalendarPredictionDayRole.START_UNCERTAINTY,
-            band.roleFor(LocalDate.parse("2026-09-21")),
+            true,
+            band.contains(LocalDate.parse("2026-09-21")),
         )
         assertEquals(
-            CalendarPredictionDayRole.POSSIBLE_DURATION,
-            band.roleFor(LocalDate.parse("2026-09-22")),
+            true,
+            band.contains(LocalDate.parse("2026-09-22")),
         )
         assertEquals(
-            CalendarPredictionDayRole.POSSIBLE_DURATION,
-            band.roleFor(LocalDate.parse("2026-09-25")),
+            true,
+            band.contains(LocalDate.parse("2026-09-25")),
         )
         assertEquals(
-            CalendarPredictionDayRole.NONE,
-            band.roleFor(LocalDate.parse("2026-09-26")),
+            false,
+            band.contains(LocalDate.parse("2026-09-26")),
         )
+    }
+
+    @Test
+    fun `unified band crosses a year boundary and retains all original boundaries`() {
+        val input = prediction(startFrom = "2026-12-29", startTo = "2027-01-02", endFrom = "2027-01-01", endTo = "2027-01-06")
+        val band = requireNotNull(CalendarPredictionBand.from(input))
+        assertEquals(LocalDate.parse(input.predictedStartFrom), band.startFrom)
+        assertEquals(LocalDate.parse(input.predictedStartTo), band.startTo)
+        assertEquals(LocalDate.parse(input.predictedEndFrom), band.endFrom)
+        assertEquals(LocalDate.parse(input.predictedEndTo), band.endTo)
+        assertEquals(false, band.contains(LocalDate.parse("2026-12-28")))
+        for (offset in 0L..8L) {
+            val date = band.startFrom.plusDays(offset)
+            assertEquals(true, band.contains(date))
+            assertEquals(CalendarDayKind.PREDICTED, CalendarDayKind.resolve(false, date in band, false))
+        }
+        assertEquals(false, band.contains(LocalDate.parse("2027-01-07")))
     }
 
     @Test

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateLocalPrediction } from '../local-prediction';
+import { defaultPortableExtras } from '../backup';
+import { addDays, daysBetween } from '../date';
 import type { PeriodEvent } from '../types';
 
 function period(id: number, startDate: string, endDate: string): PeriodEvent {
@@ -11,6 +13,103 @@ function period(id: number, startDate: string, endDate: string): PeriodEvent {
 }
 
 describe('local solo prediction', () => {
+  const profile = { ...defaultPortableExtras().profile, fertilityPredictionEnabled: true };
+  const history = (intervals: number[], durations: number[] = []) => {
+    let start = '2026-01-01';
+    return [0, ...intervals].map((interval, index) => {
+      start = addDays(start, interval);
+      return { id: `synthetic-${index}`, startDate: start, endDate: durations[index] ? addDays(start, durations[index]! - 1) : null };
+    });
+  };
+  const duration = (prediction: ReturnType<typeof calculateLocalPrediction>) => daysBetween(prediction.predictedStartFrom!, prediction.predictedEndFrom!) + 1;
+
+  it('matches the canonical medium-confidence vector and half-width metadata', () => {
+    const prediction = calculateLocalPrediction(history([28, 28, 28]), '2026-03-26', profile);
+    expect(prediction).toMatchObject({
+      available: true, predictedStartFrom: '2026-04-20', predictedStartTo: '2026-04-26',
+      predictedEndFrom: '2026-04-24', predictedEndTo: '2026-04-30',
+      fertileWindowFrom: '2026-04-01', fertileWindowTo: '2026-04-13',
+      confidence: 'MEDIUM', basedOnCycleCount: 3, variationDays: 3, fertilityEstimate: true,
+    });
+    expect(prediction.variationDays).toBe(daysBetween(prediction.predictedStartFrom!, prediction.predictedStartTo!) / 2);
+  });
+
+  it('keeps a valid observed 16-day period rather than applying the profile-only limit', () => {
+    const prediction = calculateLocalPrediction(history([28, 28, 28], [16, 16, 16, 16]), '2026-04-10', { ...profile, typicalPeriodLength: 7 });
+    expect(duration(prediction)).toBe(16);
+    expect(prediction.predictedEndTo).toBe('2026-05-11');
+  });
+
+  it('uses the most recent 12 completed observations regardless of input order', () => {
+    const periods = history(Array(24).fill(28), [...Array(13).fill(2), ...Array(12).fill(8)]);
+    const today = periods.at(-1)!.startDate;
+    const expected = calculateLocalPrediction(periods, today, profile);
+    expect(duration(expected)).toBe(8);
+    expect(calculateLocalPrediction([...periods].reverse(), today, profile)).toEqual(expected);
+    const shuffled = [...periods.filter((_, index) => index % 2 === 0), ...periods.filter((_, index) => index % 2 === 1).reverse()];
+    expect(calculateLocalPrediction(shuffled, today, profile)).toEqual(expected);
+    expect(periods[0]!.startDate).toBe('2026-01-01');
+  });
+
+  it('excludes oversized durations after selecting the most recent 12 completed observations', () => {
+    const periods = history(Array(13).fill(60), [2, 2, ...Array(12).fill(40)]);
+    expect(duration(calculateLocalPrediction(periods, periods.at(-1)!.startDate, profile))).toBe(5);
+    expect(duration(calculateLocalPrediction(periods, periods.at(-1)!.startDate, { ...profile, typicalPeriodLength: 9 }))).toBe(9);
+  });
+
+  it('ignores deleted periods for both starts and durations without mutating the source', () => {
+    const active = history([28, 28, 28], [2, 2, 2, 2]);
+    const deleted = history([28, 28, 28], [14, 14, 14, 14]).map(item => ({ ...item, id: `deleted-${item.id}`, deletedAt: '2026-04-01T00:00:00Z' }));
+    const frozen = Object.freeze([...active, ...deleted, { id: 'deleted-future', startDate: '2030-01-01', endDate: null, deletedAt: '2026-04-01T00:00:00Z' }]);
+    expect(calculateLocalPrediction([...frozen], '2026-03-26', profile)).toEqual(calculateLocalPrediction(active, '2026-03-26', profile));
+    expect(duration(calculateLocalPrediction([...frozen], '2026-03-26', profile))).toBe(2);
+  });
+
+  it.each([0, 14, 91, 28.5, NaN, Infinity])('rejects unsupported cycle fallback %s', typicalCycleLength => {
+    expect(calculateLocalPrediction(history([]), '2026-01-02', { ...profile, typicalCycleLength })).toMatchObject({ available: false, reason: 'INSUFFICIENT_DATA' });
+  });
+  it.each([15, 90])('accepts supported cycle fallback boundary %s', typicalCycleLength => {
+    const prediction = calculateLocalPrediction(history([]), '2026-01-02', { ...profile, typicalCycleLength });
+    expect(prediction).toMatchObject({ available: true, confidence: 'LOW', variationDays: 4, fertilityEstimate: false });
+    expect(prediction.predictedStartFrom).toBe(addDays('2026-01-01', typicalCycleLength - 4));
+  });
+  it.each([0, 15, 5.5, NaN, Infinity])('ignores unsupported period fallback %s', typicalPeriodLength => {
+    expect(duration(calculateLocalPrediction(history([28]), '2026-01-29', { ...profile, typicalPeriodLength }))).toBe(5);
+  });
+  it.each([1, 14])('accepts supported period fallback boundary %s', typicalPeriodLength => {
+    expect(duration(calculateLocalPrediction(history([28]), '2026-01-29', { ...profile, typicalPeriodLength }))).toBe(typicalPeriodLength);
+  });
+  it.each([7, 21, 14.5, NaN, Infinity])('ignores unsupported luteal fallback %s', lutealLength => {
+    const records = history([28, 28, 28]);
+    expect(calculateLocalPrediction(records, '2026-03-26', { ...profile, lutealLength })).toEqual(calculateLocalPrediction(records, '2026-03-26', { ...profile, lutealLength: 14 }));
+  });
+  it.each([8, 20])('accepts supported luteal boundary %s', lutealLength => {
+    const prediction = calculateLocalPrediction(history([28, 28, 28]), '2026-03-26', { ...profile, lutealLength });
+    expect(prediction.fertileWindowFrom).toBe(addDays('2026-04-23', -lutealLength - 8));
+    expect(prediction.fertileWindowTo).toBe(addDays('2026-04-23', -lutealLength + 4));
+  });
+
+  it.each([
+    { intervals: [28], confidence: 'LOW', halfWidth: 4, fertile: false },
+    { intervals: [28, 28, 28], confidence: 'MEDIUM', halfWidth: 3, fertile: true },
+    { intervals: [28, 28, 28, 28, 28, 28], confidence: 'HIGH', halfWidth: 2, fertile: true },
+    { intervals: [28, 28, 28, 28, 28, 28, 365], confidence: 'HIGH', halfWidth: 2, fertile: false },
+  ])('preserves confidence and fertility safety for $intervals', ({ intervals, confidence, halfWidth, fertile }) => {
+    const periods = history(intervals);
+    const result = calculateLocalPrediction(periods, periods.at(-1)!.startDate, profile);
+    expect(result).toMatchObject({ available: true, confidence, variationDays: halfWidth, fertilityEstimate: fertile });
+    const disabled = calculateLocalPrediction(periods, periods.at(-1)!.startDate, { ...profile, fertilityPredictionEnabled: false });
+    expect(disabled.fertilityEstimate).toBe(false);
+    expect(disabled.fertileWindowFrom).toBeNull();
+    expect(disabled.predictedStartFrom).toBe(result.predictedStartFrom);
+  });
+
+  it('expires strictly after the latest predicted start, including across DST dates', () => {
+    const periods = history([28, 28, 28]);
+    expect(calculateLocalPrediction(periods, '2026-04-26', profile).available).toBe(true);
+    expect(calculateLocalPrediction(periods, '2026-04-27', profile)).toMatchObject({ available: false, reason: 'STALE_HISTORY' });
+    expect(calculateLocalPrediction(periods, '2026-03-29', { ...profile, predictionPaused: true })).toMatchObject({ available: false, reason: 'PREDICTION_PAUSED' });
+  });
   it('uses recorded cycle intervals instead of assuming 28 days', () => {
     const prediction = calculateLocalPrediction([
       period(1, '2026-04-01', '2026-04-05'),

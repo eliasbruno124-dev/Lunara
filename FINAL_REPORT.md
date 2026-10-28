@@ -1,19 +1,27 @@
-# Lunara 1.3.2 – Prüfstand
+# Lunara 1.3.3 – Prüfstand
 
 Stand: 28. Oktober 2026. Dieser Bericht beschreibt ausgeführte Prüfungen;
 ältere Berichte und Artefakte bleiben in der Git-Historie erhalten.
 
 ## Änderungen
 
-- Die Weboberfläche folgt dem Design der Android-App: gemeinsame Farbwelt,
-  Karten, Typografie-Hierarchie, Navigation und Einstellungsbereiche. Große
-  Bildschirme behalten ein angepasstes Desktop-Layout.
-- Erfasste Perioden sind rosé, Prognosen amber und das geschätzte fruchtbare
-  Fenster türkis. Beide Oberflächen verwenden dieselbe Legende und zusätzliche
-  Kennzeichen. Auswahl und heutiger Tag überschreiben diese Farben nicht.
-- Schmale Kalender, große Schrift und Hell-/Dunkelmodus wurden nachgeprüft.
-  Die Webansicht zeigt das gültige Prognoseintervall wie die Android-App;
-  die Berechnung selbst bleibt unverändert.
+- Beginn und weitere Tage der geschätzten Periode verwenden eine gemeinsame
+  amberfarbene, gestrichelte Kategorie. Erfasste Tage bleiben rosé und das
+  geschätzte fruchtbare Fenster türkis. Kalenderdaten werden nicht zusammengelegt.
+- Die Web-Offlineschätzung verwendet dieselbe Auswahl der letzten zwölf
+  abgeschlossenen positiven Periodendauern wie API und Android. Zulässige
+  Beobachtungsdauer und Profil-Fallback werden nicht mehr verwechselt.
+  Gelöschte Einträge werden ausgeschlossen, `variationDays` bezeichnet überall
+  die halbe Unsicherheitsbreite statt im Web die doppelte Breite.
+- Phasenverbraucher verwenden denselben Mittelpunkt und dieselbe eingestellte
+  Lutealphasenlänge wie die bestehende Prognose. Eine freigegebene tatsächliche
+  Menstruation wird nicht mehr allein wegen fehlender Prognose unterdrückt.
+- Überholte oder durch wartende Serveränderungen ungültige Zusammenfassungen
+  erscheinen nicht als nächste Periode. Mitternacht und Rückkehr in die App
+  aktualisieren die Einordnung; historische Kalenderbereiche bleiben erhalten.
+- Die Partnerphase heißt ehrlich „Zuletzt geteilte Zyklusphase“. Verspätete
+  Web-Antworten überschreiben weder neuere Freigabeänderungen noch deren Cache.
+  Kontoprüfung und Reihenfolge der Cache-Schreibvorgänge bleiben getrennt abgesichert.
 
 Die zuvor im selben unveröffentlichten Update ergänzten Funktionen bleiben enthalten:
 
@@ -34,38 +42,60 @@ Die zuvor im selben unveröffentlichten Update ergänzten Funktionen bleiben ent
 
 | Bereich | Ergebnis |
 | --- | --- |
-| API | 326 Tests in 32 Suites; Lint und Build bestanden |
-| Web | 185 Tests in 21 Dateien; TypeScript und Produktionsbuild bestanden |
-| Android JVM | 32 gezielte Regressionstests bestanden; vollständige 309er-Suite zuvor für 1.3.1 geprüft |
-| Android Gerät | Je 45 Oberflächentests auf Deutsch und Englisch bestanden, einschließlich Kalenderfarben, Überlauf und Partnerfreigaben |
+| API | 340 Tests in 32 Suites; Lint und Build bestanden |
+| Web | 232 Tests in 23 Dateien; TypeScript und Produktionsbuild bestanden |
+| Android JVM | 327 Tests in 58 Suites; keine Fehler, keine übersprungenen Tests |
+| Android Gerät | Je 56 Oberflächentests auf Deutsch und Englisch bestanden; Kalender, Freigaben, Datenübertragung, Aktualität und große Schrift |
 | Browser | 165 Assertions mit synthetischen Daten; Import, Export, lokaler Tresor, Partnerkalender, Freigabewiderruf und 18 Ansichten in Hell/Dunkel |
-| Kalenderbreite | 18 zusätzliche Chromium-Layouts mit Breiten von 280 bis 700 px und drei Schriftgrößen; Gegenprobe erkennt den ursprünglichen Überlauf |
-| Android Release | Signierte APK und AAB gebaut; Lint ohne Fehler, 96 Warnungen |
-| Update-Kompatibilität | Paket de.lunara.app, Version 1.3.2, versionCode 22, gleiches Signierzertifikat |
-| Paketierung | Docker-Image enthält exakt die geprüften Web-Assets und die signierte APK |
-| Produktion | API-only-Update; Health/Readiness, Download-Hash, HTTP Range und Authentifizierungsgrenzen geprüft |
-| Datenbestand | Prüfsummen für Perioden, Freigaben und Benutzer vor/nach Update identisch; Datenbankcontainer unverändert |
-| Dashy | Gemeinsame Lunara-Kachel mit vorhandenem Logo; Sichtbarkeit und Zugangsrichtlinien für alle sechs normalen Benutzer geprüft |
+| Kalenderbreite | 48 Chromium-Layouts mit zwei Sprachen, Breiten von 280 bis 700 px und drei Schriftgrößen; zusätzlich Forced Colors und negative Darstellungskontrolle |
+| Schätzungsvergleich | 72 synthetische API/Web-Vergleichsfälle sowie unabhängige Grenzwert- und Phasenprüfungen bestanden |
+| Android Release | Signierte APK und AAB gebaut; Lint: 0 Fehler, 95 Warnungen |
+| Update-Kompatibilität | Paket de.lunara.app, Version 1.3.3, versionCode 23, unverändertes Signierzertifikat |
+| Produktion | Auslieferung und Datenvergleich von 1.3.3 noch ausstehend |
 
 Die Geräteprüfung lief auf einem isolierten Android-Emulator, nicht auf den
 physischen Geräten der Nutzer. Browser- und Gerätetests verwenden ausschließlich
 synthetische Daten. Der Live-Download wurde zusätzlich über HTTPS geprüft.
-Die kleinen Weblayouts deckten einen Überlauf durch das Zusammenspiel von
-Seitenverhältnis und Mindesthöhe auf; die Tagesfelder passen jetzt in ihre
-jeweilige Spalte. In Android wurde die Textbreite der Tageskennzeichen mit
-der Zellbreite abgeglichen, ohne die strengen Überlaufprüfungen abzuschwächen.
+Die früheren Korrekturen für schmale Kalender und große Schrift bleiben erhalten.
+Vier fest deutsch formulierte Erwartungen im erweiterten englischen Kalenderlauf
+wurden durch lokalisierte Ressourcen ersetzt; anschließend wurden beide Sprachen
+vollständig erneut erfolgreich geprüft. Die fachlichen Assertions blieben erhalten.
 
-Der Live-Container `local/lunara-api:1.3.2-calendar-20261028` wurde aus der
-Quellrevision `9853dd3` gebaut. Der Datenbankcontainer wurde nicht neu erstellt.
-API und Web sind gesund; ausgelieferte Web-Assets und APK stimmen bytegenau
-mit den geprüften Artefakten überein. Der HTML-Abruf berücksichtigt wie ein
-Browser den `Accept: text/html`-Header; ohne ihn liefert die Wurzelroute die
-API-Auskunft statt der Weboberfläche.
+Der Auslieferungsstatus wird erst nach dem geprüften API-only-Update ergänzt.
 
 Die zusätzlichen PostgreSQL-Integrationstests und der damalige Abhängigkeits-Audit
 gehören zum vorangegangenen 1.3.1-Prüflauf, nicht zu einer erneuten vollständigen
-Datenbank- oder Sicherheitsprüfung dieser Designänderung. Es wurden keine
-Server-Datenmodelle oder Partnerfreigaben geändert.
+Datenbank- oder Sicherheitsprüfung dieser Änderung. Es werden keine
+Server-Datenmodelle oder gespeicherten Partnerfreigaben geändert.
+
+## Aussagekraft der Schätzungen
+
+Geprüft wurden API, Android offline und Web offline: Eingabefilter,
+Zyklus-/Periodendauer, Start-/Endbereiche, Unsicherheit, Fruchtbarkeitsfreigabe,
+Phasen, Tipps, Cache, Tagesgrenzen, Erinnerungsverbraucher und erfasster Verlauf.
+Die Prüfungen zeigen Rechen- und Integrationskonsistenz, keine medizinische
+Trefferquote. Es gibt keine prospektive klinische Validierung dieser App.
+
+- „Hohe Sicherheit“ ist eine Modellheuristik, kein kalibriertes Prozentmaß.
+  Ausgeschlossene lange Abstände senken sie nicht automatisch; das fruchtbare
+  Fenster wird bei solchen Daten dagegen unterdrückt.
+- Der Endbereich verschiebt den Startbereich um die typische Periodendauer;
+  eine eigene Streuung der Blutungsdauer wird nicht modelliert.
+- Das fruchtbare Fenster nutzt Kalenderdaten und eine eingestellte bzw.
+  standardmäßige Lutealphasenlänge. Temperatur, LH-Tests und Symptome werden
+  nicht zur Bestätigung des Eisprungs verrechnet.
+- Android nutzt im Servermodus die bekannte Profilzeitzone der trackenden
+  Person. Web und Partneransicht kennen sie nicht und verwenden Gerätezeit
+  für die aktuelle Zusammenfassung. Rund um Mitternacht kann diese Einordnung
+  daher vom Server abweichen; gespeicherte Periodendaten bleiben unverändert.
+
+Die bestehenden medizinischen Annahmen wurden nicht durch unvalidierte neue
+Formeln ersetzt. Ein nächster sinnvoller Entwicklungsschritt wäre ein ausdrücklich
+datenschutzgerecht geplanter Vergleich früherer Vorhersagen mit später tatsächlich
+erfassten Anfängen, einschließlich Fehlermaßen und Intervallabdeckung. Er wurde
+nicht als neue Datenerhebung aktiviert. Die Einordnung wurde mit den öffentlichen
+Fachinformationen von NHS (Natural family planning) und ASRM (Optimizing natural
+fertility, Committee Opinion) abgeglichen.
 
 ## Datenübertragung und Grenzen
 

@@ -25,21 +25,13 @@ internal object CalendarMonthPagingPolicy {
     }
 }
 
-internal enum class CalendarPredictionDayRole {
-    NONE,
-    /** The period may begin on this day. */
-    START_UNCERTAINTY,
-    /** This day is within the remaining possible predicted period duration. */
-    POSSIBLE_DURATION,
-}
-
 /**
  * A fail-closed calendar projection of the server prediction.
  *
- * The start interval is kept separate from the remaining possible duration so the calendar does
- * not present an uncertain start as an observed period. The complete possible band ends at the
- * latest predicted end. No partner data is inferred locally; callers pass only the server-projected
- * prediction that the current role is allowed to see.
+ * The complete possible band, from the earliest start through the latest end, has one estimated
+ * presentation. The original boundaries remain intact and never become observed period data.
+ * No partner data is inferred locally; callers pass only the server-projected prediction that
+ * the current role is allowed to see.
  */
 internal data class CalendarPredictionBand(
     val startFrom: LocalDate,
@@ -47,11 +39,7 @@ internal data class CalendarPredictionBand(
     val endFrom: LocalDate,
     val endTo: LocalDate,
 ) {
-    fun roleFor(date: LocalDate): CalendarPredictionDayRole = when {
-        date.isBefore(startFrom) || date.isAfter(endTo) -> CalendarPredictionDayRole.NONE
-        !date.isAfter(startTo) -> CalendarPredictionDayRole.START_UNCERTAINTY
-        else -> CalendarPredictionDayRole.POSSIBLE_DURATION
-    }
+    operator fun contains(date: LocalDate): Boolean = !date.isBefore(startFrom) && !date.isAfter(endTo)
 
     companion object {
         fun from(prediction: PredictionDto?): CalendarPredictionBand? {

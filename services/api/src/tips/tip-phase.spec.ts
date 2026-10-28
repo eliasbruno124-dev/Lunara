@@ -1,5 +1,5 @@
 import { CyclePhase } from '@prisma/client';
-import { PredictionResult } from '../prediction/prediction.algorithm.js';
+import { calculatePrediction, PredictionResult } from '../prediction/prediction.algorithm.js';
 import { applicableTipPhases, TipPhaseSharing } from './tip-phase.js';
 
 const prediction: PredictionResult = {
@@ -55,6 +55,23 @@ const sharing: TipPhaseSharing = {
 };
 
 describe('applicableTipPhases', () => {
+  it.each([
+    [undefined, '2026-04-07', CyclePhase.FOLLICULAR_ESTIMATE],
+    [undefined, '2026-04-09', CyclePhase.LUTEAL_ESTIMATE],
+    [8, '2026-04-10', CyclePhase.FOLLICULAR_ESTIMATE],
+    [20, '2026-04-04', CyclePhase.LUTEAL_ESTIMATE],
+  ])('uses the calendar model center and configured luteal assumption (%s)', (lutealLength, today, expected) => {
+    const result = calculatePrediction({
+      periods: ['2026-01-01', '2026-01-29', '2026-02-26', '2026-03-26'].map(startDate => ({ startDate })),
+      referenceDate: '2026-03-26', lutealLength, fertilityPredictionEnabled: false,
+    });
+    expect(result.available).toBe(true);
+    if (!result.available) throw new Error('Expected synthetic prediction');
+    const period = { startDate: '2026-03-26', endDate: '2026-03-30' };
+    expect(applicableTipPhases(today, period, result, sharing)).toEqual([expected]);
+    expect(applicableTipPhases(today, period, result, { ...sharing, sharePhase: false })).toEqual([]);
+  });
+
   it('supports actual menstruation and the non-fertility estimated phases', () => {
     const period = { startDate: '2026-09-01', endDate: '2026-09-05' };
     expect(applicableTipPhases('2026-09-03', period, prediction, sharing)).toEqual([

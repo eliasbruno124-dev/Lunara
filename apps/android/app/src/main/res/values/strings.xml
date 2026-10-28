@@ -180,7 +180,7 @@
     <string name="partner_tip_title">Heutiger Vorschlag</string>
     <string name="no_partner_tip_available">Heute ist kein Tipp freigegeben oder verfügbar.</string>
     <string name="tip_uses_shared_phase">Berücksichtigt eine freigegebene Phase</string>
-    <string name="current_estimated_phase">Mögliche aktuelle Zyklusphase</string>
+    <string name="current_estimated_phase">Zuletzt geteilte Zyklusphase</string>
     <string name="phase_menstruation">Menstruation</string>
     <string name="phase_follicular_estimate">Follikelphase, geschätzt</string>
     <string name="phase_ovulation_estimate">Zeit um den möglichen Eisprung, geschätzt</string>
@@ -194,17 +194,14 @@
     <string name="check_in_error">Der Check-in konnte nicht gesendet werden. Vielleicht sind Check-ins deaktiviert oder bereits einer offen.</string>
     <string name="privacy_guard">Es werden ausschließlich freigegebene Informationen angezeigt.</string>
     <string name="calendar_actual_marker">P = erfasster Periodentag</string>
-    <string name="calendar_prediction_marker">~ = geschätzter Zeitraum</string>
-    <string name="calendar_prediction_start_marker">≈ gestrichelt = möglicher Periodenbeginn, geschätzt</string>
-    <string name="calendar_prediction_duration_marker">≈ durchgezogen = möglicher Periodentag, geschätzt</string>
+    <string name="calendar_prediction_marker">≈ gestrichelt = geschätzte Periode</string>
     <string name="calendar_fertility_marker">F? = Fruchtbarkeit grob geschätzt</string>
     <string name="calendar_day_period">%1$d, erfasster Periodentag</string>
     <string name="calendar_day_prediction">%1$d, geschätzter Zeitraum</string>
     <string name="calendar_day_fertility">%1$d, grob geschätztes fruchtbares Fenster</string>
     <string name="calendar_day_today_status">Heute</string>
     <string name="calendar_day_recorded_status">Erfasster Periodentag</string>
-    <string name="calendar_day_prediction_start_status">Möglicher Periodenbeginn, geschätzt</string>
-    <string name="calendar_day_prediction_duration_status">Möglicher Periodentag, geschätzt</string>
+    <string name="calendar_day_prediction_status">Geschätzte Periode</string>
     <string name="calendar_day_fertility_status">Grob geschätztes fruchtbares Fenster</string>
     <string name="calendar_tracker_hint">Wische seitlich zwischen Monaten. Tippe auf den ersten Periodentag und wähle danach den letzten Tag aus. Vorhandene Zeiträume lassen sich antippen und ändern.</string>
     <string name="calendar_add_day">Periode an diesem Tag eintragen</string>
@@ -511,6 +508,7 @@
     <string name="journal_prediction_paused">Die Vorhersage ist pausiert.</string>
     <string name="journal_prediction_special">Für den gewählten Sondermodus wird keine Standardprognose angezeigt.</string>
     <string name="journal_prediction_stale">Die letzten Daten liegen zu weit zurück. Prüfe deine Einträge im Kalender.</string>
+    <string name="journal_prediction_pending">Deine Änderungen sind noch nicht synchronisiert. Die Schätzung wird danach aktualisiert.</string>
     <string name="session_recovery_short">Deine Einträge bleiben lokal erhalten. Melde dich mit demselben Konto an.</string>
     <string name="journal_refresh">Aktualisieren</string>
     <string name="journal_retry">Erneut versuchen</string>

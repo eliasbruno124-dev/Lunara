@@ -118,6 +118,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -167,6 +170,8 @@ import com.google.zxing.client.android.Intents
 import com.journeyapps.barcodescanner.ScanContract
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.time.LocalDate
 import java.time.Instant
 import java.time.YearMonth
@@ -185,6 +190,17 @@ fun MainShell(
 ) {
     val isLocalMode = preferences.appMode == AppMode.LOCAL
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val predictionTimeZone = state.cycleProfile?.timezone.takeUnless { isLocalMode }
+    LaunchedEffect(session.userId, lifecycleOwner, predictionTimeZone) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refreshPredictionDate()
+            while (isActive) {
+                delay(PredictionFreshnessPolicy.millisecondsUntilNextDay(Instant.now(), predictionTimeZone))
+                viewModel.refreshPredictionDate()
+            }
+        }
+    }
     val navController = rememberNavController()
     val destinations = remember(session.role) { RoleNavigation.destinations(session.role) }
     val backStack by navController.currentBackStackEntryAsState()
@@ -307,6 +323,7 @@ fun MainShell(
                         onDiscardConflicts = viewModel::discardConflictsAndReload,
                         periodFailureRevision = state.periodFailureRevision,
                         showSync = !isLocalMode,
+                        predictionReferenceDate = state.predictionReferenceDate,
                     )
                 } else {
                     PartnerDashboard(
@@ -322,6 +339,7 @@ fun MainShell(
                         relationship = state.relationship,
                         onRelationshipRefresh = viewModel::refreshInvitation,
                         onNextTip = viewModel::nextPartnerTip,
+                        predictionReferenceDate = state.predictionReferenceDate,
                     )
                 }
             }
@@ -561,6 +579,7 @@ fun TrackerDashboard(
     onDiscardConflicts: () -> Unit,
     periodFailureRevision: Long = 0L,
     showSync: Boolean = true,
+    predictionReferenceDate: LocalDate = LocalDate.now(),
 ) {
     val haptics = LocalHapticFeedback.current
     var showTodayLog by remember { mutableStateOf(false) }
@@ -582,7 +601,7 @@ fun TrackerDashboard(
                 modifier = Modifier.padding(top = 12.dp),
             )
         }
-        item { PredictionHero(prediction) }
+        item { PredictionHero(prediction, referenceDate = predictionReferenceDate, pendingChanges = showSync && pendingMutations + conflictMutations > 0) }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
@@ -905,6 +924,7 @@ fun PartnerDashboard(
     relationship: de.lunara.app.data.repository.RelationshipState = de.lunara.app.data.repository.RelationshipState(),
     onRelationshipRefresh: () -> Unit = {},
     onNextTip: () -> Unit = {},
+    predictionReferenceDate: LocalDate = LocalDate.now(),
 ) {
     val checkInPrompt = stringResource(R.string.check_in)
     val initialLoading = dashboard == null && refreshing
@@ -953,7 +973,9 @@ fun PartnerDashboard(
             )
         }
         if (!awaitingDashboard) item {
-            if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction)) PredictionHero(dashboard?.prediction)
+            if (JournalPredictionPolicy.hasStartWindow(dashboard?.prediction, predictionReferenceDate) ||
+                PredictionFreshnessPolicy.unavailableReason(dashboard?.prediction, predictionReferenceDate) == "STALE_HISTORY"
+            ) PredictionHero(dashboard?.prediction, referenceDate = predictionReferenceDate)
             else InsightCard(Icons.Rounded.DateRange, stringResource(R.string.journal_partner_prediction_empty), stringResource(R.string.journal_partner_prediction_empty_body))
         }
         PredictionPresentationPolicy.disclosedPartnerPhase(dashboard)?.let { phase ->
@@ -1297,8 +1319,7 @@ internal fun CalendarScreen(
                                         date = date,
                                         isToday = date == today,
                                         actual = actual,
-                                        predictionRole = predictionBand?.roleFor(date)
-                                            ?: CalendarPredictionDayRole.NONE,
+                                        predicted = predictionBand?.contains(date) == true,
                                         fertileEstimate = fertilityRange?.let {
                                             calendarRangeContains(
                                                 date = date,
@@ -1430,8 +1451,7 @@ internal fun CalendarLegend(showFertility: Boolean) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         CalendarLegendItem(R.string.calendar_actual_marker, colors.recorded, "recorded")
-        CalendarLegendItem(R.string.calendar_prediction_start_marker, colors.predicted, "predicted-start", dashed = true)
-        CalendarLegendItem(R.string.calendar_prediction_duration_marker, colors.predicted, "predicted-duration")
+        CalendarLegendItem(R.string.calendar_prediction_marker, colors.predicted, "predicted", dashed = true)
         if (showFertility) {
             CalendarLegendItem(R.string.calendar_fertility_marker, colors.fertile, "fertile")
         }
@@ -1473,7 +1493,7 @@ internal fun DayCell(
     date: LocalDate,
     isToday: Boolean,
     actual: Boolean,
-    predictionRole: CalendarPredictionDayRole,
+    predicted: Boolean,
     fertileEstimate: Boolean,
     modifier: Modifier = Modifier,
     actionDescription: String? = null,
@@ -1485,30 +1505,24 @@ internal fun DayCell(
     }
     val todayStatus = stringResource(R.string.calendar_day_today_status)
     val recordedStatus = stringResource(R.string.calendar_day_recorded_status)
-    val predictedStartStatus = stringResource(R.string.calendar_day_prediction_start_status)
-    val predictedDurationStatus = stringResource(R.string.calendar_day_prediction_duration_status)
+    val predictedStatus = stringResource(R.string.calendar_day_prediction_status)
     val fertilityStatus = stringResource(R.string.calendar_day_fertility_status)
     val statusDescriptions = listOfNotNull(
         todayStatus.takeIf { isToday },
         recordedStatus.takeIf { actual },
-        predictedStartStatus.takeIf {
-            predictionRole == CalendarPredictionDayRole.START_UNCERTAINTY
-        },
-        predictedDurationStatus.takeIf {
-            predictionRole == CalendarPredictionDayRole.POSSIBLE_DURATION
-        },
+        predictedStatus.takeIf { predicted },
         fertilityStatus.takeIf { fertileEstimate },
     )
     val description = (listOf(formattedDate) + statusDescriptions).joinToString(". ")
-    val kind = CalendarDayKind.resolve(actual, predictionRole, fertileEstimate)
+    val kind = CalendarDayKind.resolve(actual, predicted, fertileEstimate)
     val calendarColors = LocalCalendarColors.current
     val colors = when (kind) {
         CalendarDayKind.RECORDED -> calendarColors.recorded
-        CalendarDayKind.PREDICTED_START, CalendarDayKind.PREDICTED_DURATION -> calendarColors.predicted
+        CalendarDayKind.PREDICTED -> calendarColors.predicted
         CalendarDayKind.FERTILE -> calendarColors.fertile
         CalendarDayKind.NONE -> CalendarCategoryColors(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.onSurface)
     }
-    val dashedPrediction = kind == CalendarDayKind.PREDICTED_START
+    val dashedPrediction = kind == CalendarDayKind.PREDICTED
     val cardModifier = modifier
         .padding(2.dp)
         .height((52 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp)

@@ -65,16 +65,23 @@ import androidx.compose.ui.platform.LocalLocale
 /** Decorative arcs express the brand, never a measured cycle or fertility score. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PredictionHero(prediction: PredictionDto?, modifier: Modifier = Modifier) {
+internal fun PredictionHero(
+    prediction: PredictionDto?,
+    modifier: Modifier = Modifier,
+    referenceDate: LocalDate = LocalDate.now(),
+    pendingChanges: Boolean = false,
+) {
     val ink = Color(0xFF173E43)
     val paper = Color(0xFFFFF8EC)
     val locale = LocalLocale.current.platformLocale
-    var details by remember { mutableStateOf(false) }
-    val available = JournalPredictionPolicy.hasStartWindow(prediction)
-    val unavailableReason = when (prediction?.reason) {
+    var details by remember(prediction, referenceDate, pendingChanges) { mutableStateOf(false) }
+    val reason = PredictionFreshnessPolicy.unavailableReason(prediction, referenceDate, pendingChanges)
+    val available = reason == null
+    val unavailableReason = when (reason) {
         "PREDICTION_PAUSED" -> R.string.journal_prediction_paused
         "SPECIAL_MODE" -> R.string.journal_prediction_special
         "STALE_HISTORY" -> R.string.journal_prediction_stale
+        "PENDING_CHANGES" -> R.string.journal_prediction_pending
         else -> R.string.journal_prediction_empty_body
     }
     fun date(raw: String?): String = runCatching {
@@ -126,7 +133,7 @@ internal fun PredictionHero(prediction: PredictionDto?, modifier: Modifier = Mod
             }
         }
     }
-    if (details && prediction != null) AlertDialog(
+    if (details && available && prediction != null) AlertDialog(
         onDismissRequest = { details = false },
         title = { Text(stringResource(R.string.estimated_period)) },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) { PredictionExplanation(prediction) } },
@@ -186,12 +193,8 @@ internal enum class SettingsSection(@StringRes val title: Int, @StringRes val su
 }
 
 internal object JournalPredictionPolicy {
-    fun hasStartWindow(prediction: PredictionDto?): Boolean {
-        if (prediction?.available != true) return false
-        val from = runCatching { LocalDate.parse(prediction.predictedStartFrom) }.getOrNull() ?: return false
-        val to = runCatching { LocalDate.parse(prediction.predictedStartTo) }.getOrNull() ?: return false
-        return !to.isBefore(from)
-    }
+    fun hasStartWindow(prediction: PredictionDto?, referenceDate: LocalDate = LocalDate.now()): Boolean =
+        PredictionFreshnessPolicy.unavailableReason(prediction, referenceDate) == null
 }
 
 internal fun availableSettingsSections(role: UserRole, local: Boolean): List<SettingsSection> =

@@ -150,6 +150,7 @@ class SessionPolishComposeTest {
                 PartnerDashboard(
                     "Sam", PartnerDashboardDto(prediction = prediction), true, { retries++ },
                     relationship = RelationshipState(known = true, connected = true, peerName = "Alex", unavailable = true),
+                    predictionReferenceDate = LocalDate.of(2026, 10, 28),
                 )
             }
         }
@@ -188,9 +189,10 @@ class SessionPolishComposeTest {
 
     @Composable private fun Tracker(onStart: () -> Unit) = TrackerDashboard(
         displayName = "Alex", periods = emptyList(), dailyLogs = emptyList(), prediction = prediction,
-        pendingMutations = 2, conflictMutations = 0, lastSyncAt = "2026-10-28T08:00:00Z",
+        pendingMutations = 0, conflictMutations = 0, lastSyncAt = "2026-10-28T08:00:00Z",
         onPeriodStarted = onStart, onPeriodEnded = {}, onPeriodUpdated = { _, _, _ -> },
         onPeriodDeleted = {}, onDailyLog = {}, onSync = {}, onDiscardConflicts = {},
+        predictionReferenceDate = LocalDate.of(2026, 10, 28),
     )
 
     @Composable private fun CompactFrame(dark: Boolean = false, fontScale: Float = 1f, content: @Composable () -> Unit) {

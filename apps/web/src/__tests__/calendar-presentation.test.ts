@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calendarPredictionBand, calendarPredictionRole } from '../calendar-presentation';
+import { calendarPredictionBand, calendarPredictionContains } from '../calendar-presentation';
 import type { Prediction } from '../types';
 
 const prediction: Prediction = {
@@ -9,15 +9,15 @@ const prediction: Prediction = {
 };
 
 describe('Android-compatible calendar prediction projection', () => {
-  it('shows an inclusive dashed start interval followed by possible duration, including a year boundary', () => {
+  it('includes start and duration in one estimated band, including a year boundary', () => {
     const band = calendarPredictionBand(prediction);
     expect(band).not.toBeNull();
-    expect(calendarPredictionRole('2026-12-28', band)).toBeNull();
-    expect(calendarPredictionRole('2026-12-29', band)).toBe('predicted');
-    expect(calendarPredictionRole('2027-01-02', band)).toBe('predicted');
-    expect(calendarPredictionRole('2027-01-03', band)).toBe('predicted-duration');
-    expect(calendarPredictionRole('2027-01-06', band)).toBe('predicted-duration');
-    expect(calendarPredictionRole('2027-01-07', band)).toBeNull();
+    expect(calendarPredictionContains('2026-12-28', band)).toBe(false);
+    expect(calendarPredictionContains('2026-12-29', band)).toBe(true);
+    expect(calendarPredictionContains('2027-01-02', band)).toBe(true);
+    expect(calendarPredictionContains('2027-01-03', band)).toBe(true);
+    expect(calendarPredictionContains('2027-01-06', band)).toBe(true);
+    expect(calendarPredictionContains('2027-01-07', band)).toBe(false);
   });
 
   it.each(['predictedStartFrom', 'predictedStartTo', 'predictedEndFrom', 'predictedEndTo'] as const)('does not invent %s when a response is incomplete or invalid', (key) => {
@@ -43,14 +43,14 @@ describe('Android-compatible calendar prediction projection', () => {
     const withheld = { ...prediction };
     delete withheld.available;
     expect(calendarPredictionBand(withheld)).toBeNull();
-    expect(calendarPredictionRole('2027-01-01', null)).toBeNull();
+    expect(calendarPredictionContains('2027-01-01', null)).toBe(false);
   });
 
   it('does not modify incoming prediction data or force a duration after the latest end', () => {
     const frozen = Object.freeze({ ...prediction, predictedEndFrom: '2027-01-02', predictedEndTo: '2027-01-02' });
     const band = calendarPredictionBand(frozen);
-    expect(calendarPredictionRole('2027-01-02', band)).toBe('predicted');
-    expect(calendarPredictionRole('2027-01-03', band)).toBeNull();
+    expect(calendarPredictionContains('2027-01-02', band)).toBe(true);
+    expect(calendarPredictionContains('2027-01-03', band)).toBe(false);
     expect(frozen.predictedEndTo).toBe('2027-01-02');
   });
 });

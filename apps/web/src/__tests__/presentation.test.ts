@@ -52,7 +52,8 @@ describe('accessible calendar presentation', () => {
     const days = root.querySelectorAll('.calendar-day');
     expect(days.find((day) => day.dataset.date === '2026-09-11')?.attributes.get('aria-label')).toContain(translate('de', 'actualPeriod'));
     expect(days.find((day) => day.dataset.date === '2026-09-21')?.attributes.get('aria-label')).toContain(translate('de', 'predictedPeriod'));
-    expect(days.find((day) => day.dataset.date === '2026-09-22')?.attributes.get('aria-label')).not.toContain(translate('de', 'predictedPeriod'));
+    expect(days.find((day) => day.dataset.date === '2026-09-22')?.attributes.get('aria-label')).toContain(translate('de', 'predictedPeriod'));
+    expect(days.find((day) => day.dataset.date === '2026-09-26')?.attributes.get('aria-label')).not.toContain(translate('de', 'predictedPeriod'));
     expect(root.querySelectorAll('.day-marker').some((marker) => marker.textContent === '≈')).toBe(true);
   });
 
@@ -71,6 +72,27 @@ describe('accessible calendar presentation', () => {
     expect(future.root.querySelectorAll('.month-button')[1]!.disabled).toBe(true);
   });
 
+  it.each(['de', 'en'] as const)('renders one estimated category across start, duration and the year boundary in %s', (language) => {
+    const prediction = Object.freeze({
+      available: true, predictedStartFrom: '2026-12-29', predictedStartTo: '2027-01-02',
+      predictedEndFrom: '2027-01-01', predictedEndTo: '2027-01-06',
+    });
+    for (const [month, dates] of [
+      ['2026-12', ['2026-12-29', '2026-12-30', '2026-12-31']],
+      ['2027-01', ['2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04', '2027-01-05', '2027-01-06']],
+    ] as const) {
+      const { root } = fixture({ language, prediction, initialMonth: month });
+      const days = root.querySelectorAll('.predicted');
+      expect(days.map((day) => day.dataset.date)).toEqual(dates);
+      for (const day of days) {
+        expect(day.querySelectorAll('.day-marker')[0]?.textContent).toBe('≈');
+        expect(day.attributes.get('aria-label')).toContain(translate(language, 'predictedPeriod'));
+      }
+    }
+    expect(prediction.predictedStartTo).toBe('2027-01-02');
+    expect(prediction.predictedEndTo).toBe('2027-01-06');
+  });
+
   it.each(['de', 'en'] as const)('uses one dominant visual state and preserves accessible descriptions on overlapping days in %s', (language) => {
     const { root } = fixture({
       language,
@@ -85,11 +107,11 @@ describe('accessible calendar presentation', () => {
     for (const [date, state, marker, label] of [
       ['2026-09-12', 'actual', 'P', 'actualPeriod'],
       ['2026-09-14', 'predicted', '≈', 'predictedPeriod'],
-      ['2026-09-15', 'predicted-duration', '≈', 'predictedDuration'],
+      ['2026-09-15', 'predicted', '≈', 'predictedPeriod'],
       ['2026-09-16', 'fertile', 'F?', 'fertileEstimate'],
     ] as const) {
       const day = days.find((candidate) => candidate.dataset.date === date)!;
-      expect(day.className.split(' ').filter((name) => ['actual', 'predicted', 'predicted-duration', 'fertile'].includes(name))).toEqual([state]);
+      expect(day.className.split(' ').filter((name) => ['actual', 'predicted', 'fertile'].includes(name))).toEqual([state]);
       expect(day.querySelectorAll('.day-marker')[0]?.textContent).toBe(marker);
       expect(day.attributes.get('aria-label')).toContain(translate(language, label));
     }
@@ -129,14 +151,15 @@ describe('accessible calendar presentation', () => {
   it.each(['de', 'en'] as const)('matches every visible semantic symbol to a localized colored legend in %s', (language) => {
     const legend = createCalendarLegend(language, true) as unknown as CalendarElement;
     const keys = legend.querySelectorAll('.legend-key');
-    expect(keys.map((key) => key.textContent.split(' ')[0])).toEqual(['P', '≈', '≈', 'F?']);
-    expect(keys.map((key) => key.className)).toEqual(['legend-key actual-key', 'legend-key predicted-key', 'legend-key predicted-duration-key', 'legend-key fertile-key']);
+    expect(keys.map((key) => key.textContent.split(' ')[0])).toEqual(['P', '≈', 'F?']);
+    expect(keys.map((key) => key.className)).toEqual(['legend-key actual-key', 'legend-key predicted-key', 'legend-key fertile-key']);
     expect(keys.map((key) => key.textContent)).toEqual([
-      translate(language, 'calendarActualLegend'), translate(language, 'calendarStartLegend'),
-      translate(language, 'calendarDurationLegend'), translate(language, 'calendarFertileLegend'),
+      translate(language, 'calendarActualLegend'), translate(language, 'calendarPredictionLegend'),
+      translate(language, 'calendarFertileLegend'),
     ]);
     const hiddenFertility = createCalendarLegend(language, false) as unknown as CalendarElement;
     expect(hiddenFertility.querySelectorAll('.fertile-key')).toHaveLength(0);
+    expect(hiddenFertility.querySelectorAll('.legend-key')).toHaveLength(2);
   });
 });
 
@@ -182,7 +205,7 @@ describe('Android-aligned journal design contracts', () => {
   });
 
   it('uses the exact same semantic fill/ink for days and keys; state overlays cannot replace them', () => {
-    for (const [state, token] of [['actual', 'period'], ['predicted', 'prediction'], ['predicted-duration', 'prediction'], ['fertile', 'fertile']] as const) {
+    for (const [state, token] of [['actual', 'period'], ['predicted', 'prediction'], ['fertile', 'fertile']] as const) {
       const declaration = css.slice(css.indexOf(`.calendar-day.${state}, .${state}-key {`)).split('}')[0]!;
       expect(declaration).toContain(`background: var(--${token}-bg)`);
       expect(declaration).toContain(`color: var(--${token}-ink)`);
@@ -193,6 +216,24 @@ describe('Android-aligned journal design contracts', () => {
     // Positive control: the absence oracle must reject a color-destroying rule.
     expect(hasDestructiveOverlay(`${css}\n.calendar-day.selected { background: white; }`)).toBe(true);
     expect(css).toContain('.calendar-day.is-today .day-number { text-decoration: underline;');
+  });
+
+  it('keeps the entire predicted category dashed and distinct from recorded periods', () => {
+    const declaration = css.slice(css.indexOf('.calendar-day.predicted, .predicted-key {')).split('}')[0]!;
+    expect(declaration).toContain('border: 1px dashed var(--prediction-ink)');
+    const containsSplitStyle = (source: string) => /\.predicted-duration(?:\b|-key)/.test(source);
+    expect(containsSplitStyle(css)).toBe(false);
+    expect(containsSplitStyle(`${css}\n.calendar-day.predicted-duration { border-style: solid; }`)).toBe(true);
+  });
+
+  it.each(['de', 'en'] as const)('matches the single Android estimate label and legend in %s', (language) => {
+    const resources = readFileSync(new URL(`../../../android/app/src/main/res/${language === 'de' ? 'values' : 'values-en'}/strings.xml`, import.meta.url), 'utf8');
+    const nativeString = (name: string) => resources.match(new RegExp(`<string name="${name}">([^<]+)</string>`))?.[1];
+    expect(translate(language, 'predictedPeriod')).toBe(language === 'de' ? 'Geschätzte Periode' : 'Estimated period');
+    expect(nativeString('calendar_day_prediction_status')).toBe(translate(language, 'predictedPeriod'));
+    expect(nativeString('calendar_prediction_marker')).toBe(translate(language, 'calendarPredictionLegend'));
+    expect(nativeString('calendar_actual_marker')).toBe(translate(language, 'calendarActualLegend'));
+    expect(nativeString('calendar_fertility_marker')).toBe(translate(language, 'calendarFertileLegend'));
   });
 
   it('retains the native heading → forecast → action hierarchy and responsive navigation', () => {

@@ -229,7 +229,6 @@ label { display: grid; gap: 8px; font-size: 0.9rem; font-weight: 650; }
 .calendar-day { position: relative; display: grid; place-items: center; align-content: center; gap: 3px; width: 100%; aspect-ratio: 1; min-width: 48px; min-height: max(48px, 3.25rem); margin: 0; padding: 6px 2px; border: 1px solid transparent; border-radius: 10px; background: transparent; }
 .calendar-day.actual, .actual-key { background: var(--period-bg); color: var(--period-ink); border: 1px solid var(--period-ink); }
 .calendar-day.predicted, .predicted-key { background: var(--prediction-bg); color: var(--prediction-ink); border: 1px dashed var(--prediction-ink); }
-.calendar-day.predicted-duration, .predicted-duration-key { background: var(--prediction-bg); color: var(--prediction-ink); border: 1px solid var(--prediction-ink); }
 .calendar-day.fertile, .fertile-key { background: var(--fertile-bg); color: var(--fertile-ink); border: 1px solid var(--fertile-ink); }
 .calendar-day.is-today .day-number { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; font-weight: 750; }
 .calendar-day.selected { outline: 2px solid currentColor; outline-offset: -4px; }
@@ -365,7 +364,7 @@ label { display: grid; gap: 8px; font-size: 0.9rem; font-weight: 650; }
 }
 
 @media (forced-colors: active) {
-  .calendar-day.actual, .calendar-day.predicted, .calendar-day.predicted-duration, .calendar-day.fertile, .legend-key { border-color: CanvasText; }
+  .calendar-day.actual, .calendar-day.predicted, .calendar-day.fertile, .legend-key { border-color: CanvasText; }
   .calendar-day.selected, .segmented button.active, .bottom-nav button.active { outline: 2px solid Highlight; outline-offset: -3px; }
   .day-marker { color: CanvasText; }
 }

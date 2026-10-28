@@ -47,7 +47,7 @@
   },
   {
     "title": "Shared calendar appearance",
-    "description": "Android supplies the visual reference. Both clients use rose for recorded days, amber for predicted start/duration and teal for estimated fertility, with matching symbols and legends. Recorded entries take precedence. The browser displays only complete, valid prediction boundaries using the same projection as Android; this does not calculate new predictions or grant access to private data.",
+    "description": "Android supplies the visual reference. Both clients use rose for recorded days, one dashed amber category for the whole estimated period and teal for estimated fertility, with three matching symbols and legend entries. Recorded entries take precedence. The browser displays only complete, valid prediction boundaries using the same projection as Android; this does not calculate new predictions or grant access to private data.",
     "anchors": [
       { "path": "apps/android/app/src/main/java/de/lunara/app/ui/theme/CalendarColors.kt", "symbol": "CalendarColors", "purpose": "Explicit light/dark semantic colors independent of decorative branding" },
       { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/CalendarDayKind.kt", "symbol": "CalendarDayKind", "purpose": "Recorded, forecast and fertility presentation priority" },
@@ -55,6 +55,18 @@
       { "path": "apps/web/src/calendar-presentation.ts", "symbol": "calendarPredictionBand", "purpose": "Native-equivalent validation of existing prediction boundaries" },
       { "path": "apps/web/src/calendar.ts", "symbol": "SwipeCalendar", "purpose": "Browser calendar controls, category styling and accessible statuses" },
       { "path": "apps/web/src/calendar.ts", "symbol": "createCalendarLegend", "purpose": "Matching browser legend and meaningful non-color labels" }
+    ]
+  },
+  {
+    "title": "Prediction model and current-summary freshness",
+    "description": "API and offline engines use the same supported history and duration limits. Phase consumers use the existing prediction center and configured luteal assumption. Summary policies suppress past start windows and pending server edits without changing stored history or calendar bands; foreground midnight/resume updates are bounded. These checks prove software consistency, not clinical accuracy.",
+    "anchors": [
+      { "path": "services/api/src/prediction/prediction.algorithm.ts", "symbol": "calculatePrediction", "purpose": "Canonical cycle and duration model with uncertainty and eligibility" },
+      { "path": "services/api/src/prediction/prediction.algorithm.ts", "symbol": "estimatedOvulationDay", "purpose": "Common model center for permitted phase consumers, not a confirmed ovulation" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/prediction/LocalPredictionEngine.kt", "symbol": "LocalPredictionEngine", "purpose": "Native offline estimate" },
+      { "path": "apps/web/src/local-prediction.ts", "symbol": "calculateLocalPrediction", "purpose": "Browser offline estimate with matching duration selection and fallback bounds" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/PredictionFreshnessPolicy.kt", "symbol": "PredictionFreshnessPolicy", "purpose": "Native summary cutoff, pending changes and timezone day boundary" },
+      { "path": "apps/web/src/prediction-freshness.ts", "symbol": "predictionSummary", "purpose": "Browser current-summary classification without modifying cached data" }
     ]
   },
   {

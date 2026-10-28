@@ -92,6 +92,7 @@ data class MainUiState(
     val settingsBusy: Boolean = false,
     val settingsError: Boolean = false,
     val trackerPrediction: PredictionDto? = null,
+    val predictionReferenceDate: LocalDate = LocalDate.now(),
     val cycleProfile: CycleProfileDto? = null,
     val carePreferences: CarePreferencesDto? = null,
     val passwordChangeStatus: PasswordChangeStatus = PasswordChangeStatus.IDLE,
@@ -185,6 +186,7 @@ class MainViewModel @Inject constructor(
     private val settingsBusy = MutableStateFlow(false)
     private val settingsError = MutableStateFlow(false)
     private val trackerPrediction = MutableStateFlow<PredictionDto?>(null)
+    private val predictionClock = MutableStateFlow(Instant.now())
     private val cycleProfile = MutableStateFlow<CycleProfileDto?>(null)
     private val carePreferences = MutableStateFlow<CarePreferencesDto?>(null)
     private val passwordChangeStatus = MutableStateFlow(PasswordChangeStatus.IDLE)
@@ -251,7 +253,8 @@ class MainViewModel @Inject constructor(
         partnerRefresh,
         sessionOwnerId,
         sessionExtras,
-    ) { local, dashboard, ownerId, extra ->
+        predictionClock,
+    ) { local, dashboard, ownerId, extra, now ->
         // Activity-scoped ViewModels survive logout. Never project session-bound fields until
         // the observer below has reset and rebound them to the currently rendered account.
         if (!SessionUiIsolation.canExpose(local.sessionUserId, ownerId)) {
@@ -271,6 +274,7 @@ class MainViewModel @Inject constructor(
                 settingsBusy = extra.settingsBusy,
                 settingsError = extra.settingsError,
                 trackerPrediction = extra.trackerPrediction,
+                predictionReferenceDate = PredictionFreshnessPolicy.referenceDate(now, extra.cycleProfile?.timezone.takeUnless { local.isLocalMode }),
                 cycleProfile = extra.cycleProfile,
                 carePreferences = extra.carePreferences,
                 passwordChangeStatus = extra.passwordChangeStatus,
@@ -379,6 +383,7 @@ class MainViewModel @Inject constructor(
         settingsBusy.value = false
         settingsError.value = false
         trackerPrediction.value = null
+        predictionClock.value = Instant.now()
         cycleProfile.value = null
         carePreferences.value = null
         carePreferencesRevision += 1
@@ -608,9 +613,28 @@ class MainViewModel @Inject constructor(
         launchForSession(ownerId) { refreshTrackerPredictionNow(ownerId) }
     }
 
+    /** Called on foreground entry and once at the next local/profile day boundary. */
+    fun refreshPredictionDate() {
+        predictionClock.value = Instant.now()
+        // Local inputs have not changed: expire only the summary, keeping its calendar band.
+        if (preferencesStateMode == AppMode.LOCAL) return
+        val ownerId = sessionOwnerId.value ?: return
+        launchForSession(ownerId) {
+            if (preferencesStateRole == UserRole.TRACKER) refreshTrackerPredictionNow(ownerId)
+            else if (preferencesStateMode == AppMode.SERVER) refreshPartnerDashboardNow(ownerId)
+        }
+    }
+
     private suspend fun refreshTrackerPredictionNow(ownerId: String) {
-        runSessionOperation { dashboardRepository.trackerPrediction(ownerId) }
-            .onSuccess { prediction -> ifCurrentSession(ownerId) { trackerPrediction.value = prediction } }
+        try {
+            runSessionOperation { dashboardRepository.trackerPrediction(ownerId) }
+                .onSuccess { prediction -> ifCurrentSession(ownerId) { trackerPrediction.value = prediction } }
+        } finally {
+            ifCurrentSession(ownerId) {
+                // A failed offline refresh must still advance the current-summary cutoff.
+                predictionClock.value = Instant.now()
+            }
+        }
     }
 
     private suspend fun loadCycleProfileNow(ownerId: String) {

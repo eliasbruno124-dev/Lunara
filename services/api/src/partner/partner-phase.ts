@@ -1,5 +1,5 @@
 import { CyclePhase } from '@prisma/client';
-import { PredictionResult } from '../prediction/prediction.algorithm.js';
+import { estimatedOvulationDay, PredictionResult } from '../prediction/prediction.algorithm.js';
 
 const DAY_MS = 86_400_000;
 
@@ -52,7 +52,7 @@ export function estimatePartnerPhase(
   if (!latestPeriod) return null;
   const latestStart = epochDay(latestPeriod.startDate.toISOString().slice(0, 10));
   if (todayDay < latestStart || todayDay > predictedTo) return null;
-  const estimatedOvulation = predictedFrom - 14;
+  const estimatedOvulation = estimatedOvulationDay(prediction);
   return todayDay < estimatedOvulation
     ? CyclePhase.FOLLICULAR_ESTIMATE
     : CyclePhase.LUTEAL_ESTIMATE;

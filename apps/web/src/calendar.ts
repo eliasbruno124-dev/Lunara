@@ -10,7 +10,7 @@ import {
 } from './date';
 import { translate, type MessageKey } from './i18n';
 import { hasFertileEstimate } from './fertility-presentation';
-import { calendarPredictionBand, calendarPredictionRole, type CalendarPredictionBand } from './calendar-presentation';
+import { calendarPredictionBand, calendarPredictionContains, type CalendarPredictionBand } from './calendar-presentation';
 import type { Language, PeriodEvent, Prediction, Role } from './types';
 
 export interface SwipePoint {
@@ -40,15 +40,14 @@ export interface CalendarOptions {
 // These same symbols label the day and its legend, including in forced colors.
 const calendarStates = {
   actual: { marker: 'P', label: 'actualPeriod', legend: 'calendarActualLegend' },
-  predicted: { marker: '≈', label: 'predictedPeriod', legend: 'calendarStartLegend' },
-  'predicted-duration': { marker: '≈', label: 'predictedDuration', legend: 'calendarDurationLegend' },
+  predicted: { marker: '≈', label: 'predictedPeriod', legend: 'calendarPredictionLegend' },
   fertile: { marker: 'F?', label: 'fertileEstimate', legend: 'calendarFertileLegend' },
 } as const satisfies Record<string, { marker: string; label: MessageKey; legend: MessageKey }>;
 
 export function createCalendarLegend(language: Language, showFertile: boolean): HTMLElement {
   const legend = document.createElement('div');
   legend.className = 'calendar-legend';
-  for (const state of ['actual', 'predicted', 'predicted-duration', 'fertile'] as const) {
+  for (const state of ['actual', 'predicted', 'fertile'] as const) {
     if (state === 'fertile' && !showFertile) continue;
     const key = document.createElement('span');
     key.className = `legend-key ${state}-key`;
@@ -183,7 +182,7 @@ export class SwipeCalendar {
     const actual = this.options.periods.some((period) =>
       isWithin(date, period.startDate, period.endDate ?? period.startDate),
     );
-    const predicted = calendarPredictionRole(date, predictionBand);
+    const predicted = calendarPredictionContains(date, predictionBand);
     const fertile = Boolean(
       hasFertileEstimate(this.options.prediction) && this.options.prediction &&
         isWithin(
@@ -195,7 +194,7 @@ export class SwipeCalendar {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'calendar-day';
-    const state = actual ? 'actual' : predicted ?? (fertile ? 'fertile' : null);
+    const state = actual ? 'actual' : predicted ? 'predicted' : fertile ? 'fertile' : null;
     if (state) button.classList.add(state);
     if (date === todayIso()) button.classList.add('is-today');
     if (date === todayIso()) button.setAttribute('aria-current', 'date');
@@ -217,7 +216,7 @@ export class SwipeCalendar {
     // Android does, while a recorded day wins the visible fill and marker.
     const stateLabels = [
       actual ? translate(this.options.language, calendarStates.actual.label) : null,
-      predicted ? translate(this.options.language, calendarStates[predicted].label) : null,
+      predicted ? translate(this.options.language, calendarStates.predicted.label) : null,
       fertile ? translate(this.options.language, calendarStates.fertile.label) : null,
     ].filter(Boolean);
     button.setAttribute(

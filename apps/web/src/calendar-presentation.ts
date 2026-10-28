@@ -20,7 +20,7 @@ export function calendarPredictionBand(prediction: Prediction | null): CalendarP
   return { startFrom, startTo, endTo };
 }
 
-export function calendarPredictionRole(date: string, band: CalendarPredictionBand | null): 'predicted' | 'predicted-duration' | null {
-  if (!band || date < band.startFrom || date > band.endTo) return null;
-  return date <= band.startTo ? 'predicted' : 'predicted-duration';
+/** One estimated category covers the complete possible band, without changing its boundaries. */
+export function calendarPredictionContains(date: string, band: CalendarPredictionBand | null): boolean {
+  return band !== null && date >= band.startFrom && date <= band.endTo;
 }

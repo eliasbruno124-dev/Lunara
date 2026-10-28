@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
@@ -47,7 +48,6 @@ import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.remote.dto.FertilityEstimateDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.ui.main.CalendarLegend
-import de.lunara.app.ui.main.CalendarPredictionDayRole
 import de.lunara.app.ui.main.CalendarScreen
 import de.lunara.app.ui.main.DayCell
 import de.lunara.app.ui.theme.DarkCalendarColors
@@ -90,11 +90,10 @@ class CalendarColorsComposeTest {
                                 // Seven narrow cells reproduce the main calendar column width; today is present
                                 // in every category, including both recorded/forecast and forecast/fertile overlap.
                                 Row(Modifier.fillMaxWidth()) {
-                                    DayCell(date, true, true, CalendarPredictionDayRole.START_UNCERTAINTY, true, Modifier.weight(1f).testTag("sample-recorded"))
-                                    DayCell(date, true, false, CalendarPredictionDayRole.START_UNCERTAINTY, true, Modifier.weight(1f).testTag("sample-predicted-start"))
-                                    DayCell(date, true, false, CalendarPredictionDayRole.POSSIBLE_DURATION, true, Modifier.weight(1f).testTag("sample-predicted-duration"))
-                                    DayCell(date, true, false, CalendarPredictionDayRole.NONE, true, Modifier.weight(1f).testTag("sample-fertile"))
-                                    repeat(3) { DayCell(date, false, false, CalendarPredictionDayRole.NONE, false, Modifier.weight(1f)) }
+                                    DayCell(date, true, true, true, true, Modifier.weight(1f).testTag("sample-recorded"))
+                                    DayCell(date, true, false, true, true, Modifier.weight(1f).testTag("sample-predicted"))
+                                    DayCell(date, true, false, false, true, Modifier.weight(1f).testTag("sample-fertile"))
+                                    repeat(4) { DayCell(date, false, false, false, false, Modifier.weight(1f)) }
                                 }
                                 CalendarLegend(showFertility = true)
                             }
@@ -105,8 +104,7 @@ class CalendarColorsComposeTest {
         }
         listOf(
             Triple("recorded", "P", palette.recorded.container),
-            Triple("predicted-start", "≈", palette.predicted.container),
-            Triple("predicted-duration", "≈", palette.predicted.container),
+            Triple("predicted", "≈", palette.predicted.container),
             Triple("fertile", "F?", palette.fertile.container),
         ).forEach { (category, marker, color) ->
             compose.onNodeWithTag("sample-$category")
@@ -121,6 +119,11 @@ class CalendarColorsComposeTest {
             compose.onNodeWithTag("calendar-legend-$category").performScrollTo().assertIsDisplayed()
             assertContainsFill("calendar-legend-$category", color)
         }
+        compose.onAllNodes(hasTestTag("calendar-legend-predicted")).assertCountEquals(1)
+        compose.onNodeWithTag("calendar-legend-predicted-start").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-legend-predicted-duration").assertDoesNotExist()
+        compose.onNodeWithTag("sample-predicted")
+            .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_prediction_status), substring = true)
         compose.onNodeWithTag("sample-recorded").performScrollTo()
         capture("calendar-colors-$theme-${if (fontScale > 1f) "large" else "normal"}")
     }
@@ -149,7 +152,12 @@ class CalendarColorsComposeTest {
         }
         compose.onNodeWithTag("calendar-screen").performScrollToNode(hasTestTag("calendar-month-pager"))
         compose.onNodeWithTag("calendar-day-${month.atDay(3)}", useUnmergedTree = true).assert(hasAnyDescendant(hasText("P")))
-        compose.onNodeWithTag("calendar-day-${month.atDay(22)}", useUnmergedTree = true).assert(hasAnyDescendant(hasText("≈")))
+        for (day in 22..28) {
+            compose.onNodeWithTag("calendar-day-${month.atDay(day)}", useUnmergedTree = true)
+                .assert(hasAnyDescendant(hasText("≈")))
+                .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_prediction_status), substring = true)
+            assertContainsFill("calendar-day-${month.atDay(day)}", if (dark) DarkCalendarColors.predicted.container else LightCalendarColors.predicted.container)
+        }
         compose.onNodeWithTag("calendar-day-${month.atDay(12)}", useUnmergedTree = true).assert(hasAnyDescendant(hasText("F?")))
         capture("calendar-full-$theme")
         compose.onNodeWithTag("calendar-screen").performScrollToNode(hasTestTag("calendar-legend"))

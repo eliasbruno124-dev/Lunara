@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.3
+
+- Eine gemeinsame Kalenderkategorie für die geschätzte Periode, in App und Web.
+- Einheitliche Berechnung der Periodendauer im Web, auf Android und auf dem Server.
+- Korrigierte Phasengrenzen und sichtbare erfasste Perioden auch bei noch fehlender Prognose.
+- Keine veraltete nächste Periode nach einem Tageswechsel oder bei noch ausstehender Synchronisation anzeigen.
+- Verspätete Web-Antworten können neuere Freigabeänderungen nicht mehr überschreiben.
+
 ## 1.3.2
 
 - Weboberfläche an die Android-App angeglichen: Farben, Karten, Navigation und Einstellungen.

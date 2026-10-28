@@ -1,6 +1,6 @@
 # Lunara einrichten
 
-Diese Anleitung beschreibt Lunara 1.3.2. Die Bilder zeigen die tatsächliche
+Diese Anleitung beschreibt Lunara 1.3.3. Die Bilder zeigen die tatsächliche
 Oberfläche mit synthetischen Testkonten und Beispieldaten; keine privaten
 Konten, Passwörter oder Gesundheitsdaten.
 
@@ -157,15 +157,37 @@ Kalenderschätzung und darf **nicht zur Verhütung** verwendet werden.
 ### Kalenderfarben in App und Web
 
 - **Rosé, P:** tatsächlich erfasster Periodentag.
-- **Amber, ≈, gestrichelt:** möglicher Periodenbeginn.
-- **Amber, ≈, durchgezogen:** weiterer möglicher Periodentag.
+- **Amber, ≈, gestrichelt:** geschätzte Periode, einschließlich möglichem Beginn und weiterer Tage.
 - **Türkis, F?:** grob geschätztes fruchtbares Fenster.
 
 Erfasste Tage haben Vorrang vor Schätzungen. Der heutige Tag ist unterstrichen;
 eine Auswahl überschreibt seine Kategorie nicht. Die Legende erklärt die
 Symbole auch ohne Farberkennung. Alle Prognosen bleiben Schätzungen.
 
-<img src="screenshots/setup/08-calendar-colors.png" width="330" alt="Mobiler Webkalender mit Rosé für erfasste Tage, Amber für Prognosen und Türkis für geschätzte Fruchtbarkeit sowie vier erklärenden Legendenchips">
+<img src="screenshots/setup/08-calendar-colors.png" width="330" alt="Mobiler Webkalender mit drei Legendenchips: Rosé für erfasste Tage, Amber für geschätzte Perioden und Türkis für geschätzte Fruchtbarkeit">
+
+### Was die Schätzungen aussagen
+
+Lunara vergleicht die letzten geeigneten Zyklusabstände. Wenige oder stark
+schwankende Einträge ergeben größere Zeitfenster. Die angezeigte Sicherheit
+ist eine interne Einordnung der Datenbasis, keine gemessene Trefferquote.
+Auch regelmäßig erfasste Zyklen garantieren keinen bestimmten Starttag.
+
+Das fruchtbare Fenster wird aus dem Kalender und der eingestellten
+Lutealphasenlänge geschätzt. Temperatur, LH-Tests und Symptome werden nicht
+zur Bestätigung eines Eisprungs verrechnet. Das Fenster ist deshalb nicht
+zur Verhütung geeignet. Aktuelle medizinische Empfehlungen unterscheiden
+Kalenderprognosen von der Beobachtung tatsächlicher Fruchtbarkeitszeichen.
+
+Ist das erwartete Startfenster bereits vorbei oder sind Änderungen noch
+nicht synchronisiert, zeigt die Zusammenfassung keine vermeintlich aktuelle
+Prognose. Bestehende Einträge und Kalenderdaten bleiben dabei erhalten.
+
+Die Android-Ansicht der trackenden Person nutzt im Servermodus die bekannte
+Profilzeitzone. Web- und Partneransicht kennen diese Einstellung derzeit nicht
+und prüfen die Tagesgrenze nach Gerätezeit. Bei Reisen über Zeitzonen hinweg
+kann deshalb die Einstufung „aktuell“ rund um Mitternacht vom Server abweichen.
+Die gespeicherten Periodendaten werden dadurch nicht verschoben.
 
 ## 5. Sichern und das Gerät wechseln
 

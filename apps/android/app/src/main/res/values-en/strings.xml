@@ -180,7 +180,7 @@
     <string name="partner_tip_title">Today’s suggestion</string>
     <string name="no_partner_tip_available">No suggestion is shared or available today.</string>
     <string name="tip_uses_shared_phase">Considers a shared phase</string>
-    <string name="current_estimated_phase">Possible current cycle phase</string>
+    <string name="current_estimated_phase">Last shared cycle phase</string>
     <string name="phase_menstruation">Menstruation</string>
     <string name="phase_follicular_estimate">Follicular phase, estimated</string>
     <string name="phase_ovulation_estimate">Time around possible ovulation, estimated</string>
@@ -194,17 +194,14 @@
     <string name="check_in_error">The check-in could not be sent. Check-ins may be disabled or one may already be pending.</string>
     <string name="privacy_guard">Only explicitly shared information is shown.</string>
     <string name="calendar_actual_marker">P = recorded period day</string>
-    <string name="calendar_prediction_marker">~ = estimated range</string>
-    <string name="calendar_prediction_start_marker">≈ dashed = possible period start, estimated</string>
-    <string name="calendar_prediction_duration_marker">≈ solid outline = possible period day, estimated</string>
+    <string name="calendar_prediction_marker">≈ dashed = estimated period</string>
     <string name="calendar_fertility_marker">F? = fertility roughly estimated</string>
     <string name="calendar_day_period">%1$d, recorded period day</string>
     <string name="calendar_day_prediction">%1$d, estimated range</string>
     <string name="calendar_day_fertility">%1$d, roughly estimated fertile window</string>
     <string name="calendar_day_today_status">Today</string>
     <string name="calendar_day_recorded_status">Recorded period day</string>
-    <string name="calendar_day_prediction_start_status">Possible period start, estimated</string>
-    <string name="calendar_day_prediction_duration_status">Possible period day, estimated</string>
+    <string name="calendar_day_prediction_status">Estimated period</string>
     <string name="calendar_day_fertility_status">Roughly estimated fertile window</string>
     <string name="calendar_tracker_hint">Swipe sideways between months. Tap the first period day, then select the final day. Tap an existing range to change it.</string>
     <string name="calendar_add_day">Add a period on this day</string>
@@ -511,6 +508,7 @@
     <string name="journal_prediction_paused">Prediction is paused.</string>
     <string name="journal_prediction_special">No standard prediction is shown for the selected special mode.</string>
     <string name="journal_prediction_stale">The latest data is too old for a current estimate. Review your calendar entries.</string>
+    <string name="journal_prediction_pending">Your changes have not synced yet. The estimate will be updated afterwards.</string>
     <string name="session_recovery_short">Your entries stay on this device. Sign in again with the same account.</string>
     <string name="journal_refresh">Refresh</string>
     <string name="journal_retry">Try again</string>

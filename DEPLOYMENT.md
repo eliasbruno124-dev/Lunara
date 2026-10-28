@@ -1,4 +1,4 @@
-# Lunara 1.3.2 betreiben
+# Lunara 1.3.3 betreiben
 
 Diese Anleitung richtet sich an Betreiber einer eigenen Instanz.
 Die bebilderte [App-Einrichtung](docs/SETUP.md) beschreibt die Schritte auf
@@ -24,7 +24,7 @@ Vor dem Start werden benötigt:
 - ausreichend Speicherplatz für Images und PostgreSQL sowie ein Backupziel;
 - Zugriff auf den Quellcode und die passende signierte Release-APK.
 
-Der Stack baut **lokal** das Image `lunara-api:1.3.2`.
+Der Stack baut **lokal** das Image `lunara-api:1.3.3`.
 Ein veröffentlichtes GHCR-Image wird nicht vorausgesetzt.
 Die API liefert auch die Web-App und die APK aus. Die APK wird beim Build
 in das Image kopiert, nicht über einen zusätzlichen Host-Mount eingebunden.
@@ -76,7 +76,7 @@ vorhandenen Schlüssel. Öffne die Datei danach **lokal** im Editor und setze
 die öffentlichen Einstellungen passend zu deinem Server:
 
 ```dotenv
-APP_VERSION=1.3.2
+APP_VERSION=1.3.3
 PUBLIC_BASE_URL=https://lunara.example.com
 PUBLIC_HOST=lunara.example.com
 GATEWAY_MODE=direct

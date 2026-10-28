@@ -78,11 +78,11 @@ export class PartnerService {
       settings,
       prediction,
       phase:
-        settings.sharePhase && predictionResult.available
+        settings.sharePhase
           ? estimatePartnerPhase(
               today,
               latestStartedPeriod,
-              predictionResult,
+              predictionResult.available ? predictionResult : null,
               settings.shareFertileWindow,
             )
           : null,

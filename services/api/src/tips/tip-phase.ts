@@ -1,5 +1,5 @@
 import { CyclePhase } from '@prisma/client';
-import { PredictionResult } from '../prediction/prediction.algorithm.js';
+import { estimatedOvulationDay, PredictionResult } from '../prediction/prediction.algorithm.js';
 
 const DAY_MS = 86_400_000;
 
@@ -72,7 +72,7 @@ export function applicableTipPhases(
     todayDay <= predictedTo
   ) {
     if (!inSharedFertileWindow) {
-      const estimatedOvulation = predictedFrom - 14;
+      const estimatedOvulation = estimatedOvulationDay(prediction);
       phases.add(
         todayDay < estimatedOvulation
           ? CyclePhase.FOLLICULAR_ESTIMATE

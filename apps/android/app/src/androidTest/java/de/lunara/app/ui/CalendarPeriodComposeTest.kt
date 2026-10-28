@@ -1,5 +1,6 @@
 package de.lunara.app.ui
 
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsEnabled
@@ -8,7 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.runtime.mutableStateOf
+import de.lunara.app.R
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.remote.dto.PredictionDto
@@ -30,7 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 
 class CalendarPeriodComposeTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun trackerCanNavigateBackAndAddACompleteHistoricalPeriod() {
@@ -58,7 +60,7 @@ class CalendarPeriodComposeTest {
         compose.onNodeWithTag("calendar-day-$start").assertIsDisplayed().performClick()
         compose.onNodeWithTag("period-range-picker").assertIsDisplayed()
         compose.onNodeWithTag("period-picker-day-$end").performClick()
-        compose.onNodeWithTag("period-range-summary").assertTextContains("5 Tage ausgewählt")
+        compose.onNodeWithTag("period-range-summary").assertTextContains(compose.activity.getString(R.string.period_picker_days, 5))
         compose.onNodeWithTag("period-create-confirm").performClick()
 
         assertEquals(start to end, created)
@@ -197,7 +199,7 @@ class CalendarPeriodComposeTest {
         compose.runOnIdle { failureRevision.value += 1 }
 
         compose.onNodeWithTag("period-range-picker").assertIsDisplayed()
-        compose.onNodeWithTag("period-range-summary").assertTextContains("5 Tage ausgewählt")
+        compose.onNodeWithTag("period-range-summary").assertTextContains(compose.activity.getString(R.string.period_picker_days, 5))
         compose.onNodeWithTag("period-create-confirm").assertIsEnabled().performClick()
         compose.runOnIdle { assertEquals(2, createCalls) }
     }
@@ -237,10 +239,10 @@ class CalendarPeriodComposeTest {
         compose.onNodeWithTag("calendar-day-$possibleStart")
             .assertIsDisplayed()
             .assertHasNoClickAction()
-            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt", substring = true)
+            .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_prediction_status), substring = true)
         compose.onNodeWithTag("calendar-day-$possibleDuration")
             .assertHasNoClickAction()
-            .assertContentDescriptionContains("Möglicher Periodentag, geschätzt", substring = true)
+            .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_prediction_status), substring = true)
 
         // The outer LazyColumn composes this footer only once it is scrolled into view.
         // Its pager is a nested scrollable, so select the first (outermost) lazy node.
@@ -288,8 +290,8 @@ class CalendarPeriodComposeTest {
         compose.onNodeWithTag("calendar-month-pager").performTouchInput { swipeRight() }
         compose.onNodeWithTag("calendar-day-$actualDate")
             .assertTextContains("P")
-            .assertContentDescriptionContains("Erfasster Periodentag", substring = true)
-            .assertContentDescriptionContains("Möglicher Periodenbeginn, geschätzt", substring = true)
+            .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_recorded_status), substring = true)
+            .assertContentDescriptionContains(compose.activity.getString(R.string.calendar_day_prediction_status), substring = true)
     }
 
     @Test

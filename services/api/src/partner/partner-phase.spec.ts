@@ -1,5 +1,5 @@
 import { CyclePhase } from '@prisma/client';
-import { PredictionResult } from '../prediction/prediction.algorithm.js';
+import { calculatePrediction, PredictionResult } from '../prediction/prediction.algorithm.js';
 import { estimatePartnerPhase, localDateInTimeZone } from './partner-phase.js';
 
 const prediction: PredictionResult = {
@@ -48,6 +48,26 @@ const prediction: PredictionResult = {
 };
 
 describe('partner phase estimate', () => {
+  it.each([
+    [undefined, '2026-04-07', CyclePhase.FOLLICULAR_ESTIMATE],
+    [undefined, '2026-04-09', CyclePhase.LUTEAL_ESTIMATE],
+    [8, '2026-04-10', CyclePhase.FOLLICULAR_ESTIMATE],
+    [20, '2026-04-04', CyclePhase.LUTEAL_ESTIMATE],
+  ])('uses the same cycle center and luteal assumption (%s) as the prediction', (lutealLength, today, expected) => {
+    const result = calculatePrediction({
+      periods: ['2026-01-01', '2026-01-29', '2026-02-26', '2026-03-26'].map(startDate => ({ startDate })),
+      referenceDate: '2026-03-26', lutealLength,
+      fertilityPredictionEnabled: false,
+    });
+    expect(result.available).toBe(true);
+    if (!result.available) throw new Error('Expected synthetic prediction');
+    expect(estimatePartnerPhase(today, {
+      startDate: new Date('2026-03-26T00:00:00Z'), endDate: new Date('2026-03-30T00:00:00Z'),
+    }, result, false)).toBe(expected);
+    expect(result.fertileWindowFrom).toBeNull();
+    expect(result.fertileWindowTo).toBeNull();
+  });
+
   it('returns an explicitly estimated premenstrual phase with sufficient data', () => {
     expect(estimatePartnerPhase('2026-09-14', null, prediction)).toBe(
       CyclePhase.PREMENSTRUAL_ESTIMATE,

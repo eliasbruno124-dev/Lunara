@@ -36,6 +36,7 @@ import {
 } from './db';
 import { translate, type MessageKey } from './i18n';
 import { IdentityEpochCoordinator, StaleIdentityError } from './identity-epoch';
+import { LatestRequestCoordinator, SupersededRequestError } from './latest-request';
 import {
   captureInvitationHash,
   clearPendingInvitation,
@@ -44,6 +45,7 @@ import {
   storeInvitation,
 } from './invitation-link';
 import { calculateLocalPrediction } from './local-prediction';
+import { millisecondsUntilNextPredictionDay, predictionReferenceDate, predictionSummary } from './prediction-freshness';
 import {
   LocalVaultSession,
   type LocalVaultEnvelope,
@@ -101,6 +103,7 @@ class LunaraWebApp {
   private readonly api = new LunaraApi(window.location.origin);
   private readonly sync = new PeriodSyncEngine(this.api);
   private readonly serverIdentities = new IdentityEpochCoordinator();
+  private readonly refreshRequests = new LatestRequestCoordinator();
   private meta: MetaResponse | null = null;
   private user: UserIdentity | null = null;
   private periods: PeriodEvent[] = [];
@@ -123,6 +126,7 @@ class LunaraWebApp {
   private localExtras: PortableBackupExtras = defaultPortableExtras();
   private importReport: string | null = null;
   private vaultLockTimer: number | null = null;
+  private predictionDayTimer: number | null = null;
   private readonly localVaultCoordinator = new LocalVaultCoordinator();
   private loginChoice: 'server' | 'local' | null = null;
   private invitationCode: string | null = null;
@@ -160,9 +164,16 @@ class LunaraWebApp {
       window.addEventListener(eventName, () => this.armVaultLock(), { passive: true });
     }
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') this.lockLocalVault();
+      if (document.visibilityState === 'hidden') {
+        this.clearPredictionDayTimer();
+        this.lockLocalVault();
+      } else this.refreshPredictionDate();
     });
-    window.addEventListener('pagehide', () => this.lockLocalVault());
+    window.addEventListener('pagehide', () => {
+      this.clearPredictionDayTimer();
+      this.lockLocalVault();
+    });
+    window.addEventListener('pageshow', () => this.refreshPredictionDate());
   }
 
   async start(): Promise<void> {
@@ -263,7 +274,7 @@ class LunaraWebApp {
   private async loadCachedData(): Promise<void> {
     if (this.localMode) {
       if (!this.localVault.unlocked) return;
-      this.prediction = calculateLocalPrediction(this.periods, todayIso(), this.localExtras.profile);
+      this.prediction = calculateLocalPrediction(this.periods, predictionReferenceDate(), this.localExtras.profile);
       this.partnerTip = null;
       this.partnerCalendar.selectIdentity(null);
       this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
@@ -310,52 +321,59 @@ class LunaraWebApp {
     const user = this.user;
     if (!user || this.localMode || !navigator.onLine) return;
     const identityKey = serverIdentityKey(window.location.origin, user);
+    const request = this.refreshRequests.begin();
     try {
-      await this.serverIdentities.run(identityKey, async (assertCurrent) => {
+      await this.serverIdentities.run(identityKey, async (assertIdentity) => {
+        const assertCurrent = () => { assertIdentity(); request.assertCurrent(); };
         if (user.role === 'TRACKER') {
           const [periods, prediction] = await Promise.all([
             this.api.periods(),
             this.api.prediction(),
           ]);
-          assertCurrent();
-          await Promise.all([
-            periodStore.replace(periods),
-            settingsStore.put('prediction', prediction),
-          ]);
-          assertCurrent();
-          this.periods = periods;
-          this.prediction = prediction;
+          await request.commit(async () => {
+            assertCurrent();
+            await Promise.all([
+              periodStore.replace(periods),
+              settingsStore.put('prediction', prediction),
+            ]);
+            assertCurrent();
+            this.periods = periods;
+            this.prediction = prediction;
+          });
         } else {
           const [dashboard, tip] = await Promise.all([
             this.api.partnerDashboard(),
             this.api.todayTip().catch(() => null),
           ]);
-          assertCurrent();
-          const visible = visiblePartnerCalendar(dashboard);
-          const prediction = visible.prediction;
-          const periods = visible.periodDates.map((period, index) => ({
-            id: `shared-${index}-${period.startDate}`,
-            startDate: period.startDate,
-            endDate: period.endDate,
-          }));
-          await Promise.all([
-            settingsStore.put('partner-dashboard', dashboard),
-            settingsStore.put('partner-tip', tip),
-            settingsStore.put('prediction', prediction),
-          ]);
-          assertCurrent();
-          this.partnerTip = tip;
-          this.partnerCalendar.update(identityKey, dashboard);
-          this.prediction = prediction;
-          this.periods = periods;
+          await request.commit(async () => {
+            assertCurrent();
+            const visible = visiblePartnerCalendar(dashboard);
+            const prediction = visible.prediction;
+            const periods = visible.periodDates.map((period, index) => ({
+              id: `shared-${index}-${period.startDate}`,
+              startDate: period.startDate,
+              endDate: period.endDate,
+            }));
+            await Promise.all([
+              settingsStore.put('partner-dashboard', dashboard),
+              settingsStore.put('partner-tip', tip),
+              settingsStore.put('prediction', prediction),
+            ]);
+            assertCurrent();
+            this.partnerTip = tip;
+            this.partnerCalendar.update(identityKey, dashboard);
+            this.prediction = prediction;
+            this.periods = periods;
+          });
         }
       });
-      this.render();
+      if (request.isCurrent()) this.render();
     } catch (error) {
+      if (!request.isCurrent() || error instanceof SupersededRequestError || error instanceof StaleIdentityError) return;
       if (error instanceof ApiError && error.status === 401) {
         await this.handleUnauthorized(identityKey);
       }
-      if (!(error instanceof StaleIdentityError)) return;
+      return;
     }
   }
 
@@ -420,6 +438,7 @@ class LunaraWebApp {
   }
 
   private render(): void {
+    this.schedulePredictionDayRefresh();
     document.documentElement.lang = this.language;
     this.root.replaceChildren();
     if (this.invitationCode && this.user && !this.localMode) {
@@ -439,6 +458,29 @@ class LunaraWebApp {
     if (this.screen === 'settings') main.append(this.settingsView());
     frame.append(main, this.bottomNavigation());
     this.root.append(frame);
+  }
+
+  private clearPredictionDayTimer(): void {
+    if (this.predictionDayTimer !== null) window.clearTimeout(this.predictionDayTimer);
+    this.predictionDayTimer = null;
+  }
+
+  private schedulePredictionDayRefresh(): void {
+    this.clearPredictionDayTimer();
+    if (!this.user || document.visibilityState !== 'visible') return;
+    this.predictionDayTimer = window.setTimeout(() => this.refreshPredictionDate(), millisecondsUntilNextPredictionDay());
+  }
+
+  private refreshPredictionDate(): void {
+    if (!this.user || document.visibilityState !== 'visible') return;
+    // Reclassify cached summaries even offline; do not erase their historical calendar bands.
+    // An offline rollover must not replace an unfinished calendar/settings form.
+    if (this.screen === 'today') this.render();
+    else this.schedulePredictionDayRefresh();
+    if (!this.localMode && navigator.onLine) {
+      if (this.user.role === 'TRACKER') void this.performSync(false);
+      else void this.refreshData();
+    }
   }
 
   private invitationAcceptanceView(): HTMLElement {
@@ -901,7 +943,7 @@ class LunaraWebApp {
     );
     this.localExtras = state.extras;
     this.user = this.localIdentity(state.extras.settings.displayName);
-    this.prediction = calculateLocalPrediction(this.periods, todayIso(), state.extras.profile);
+    this.prediction = calculateLocalPrediction(this.periods, predictionReferenceDate(), state.extras.profile);
     this.partnerTip = null;
     this.partnerCalendar.selectIdentity(null);
     this.syncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
@@ -1041,18 +1083,16 @@ class LunaraWebApp {
   private predictionCard(): HTMLElement {
     const card = element('section', 'prediction-summary');
     card.append(element('h2', 'prediction-label', this.t('nextPeriod')));
-    if (
-      this.prediction?.available &&
-      this.prediction.predictedStartFrom &&
-      this.prediction.predictedStartTo
-    ) {
+    const summary = predictionSummary(this.prediction, predictionReferenceDate(),
+      !this.localMode && this.user?.role === 'TRACKER' && this.syncState.pending + this.syncState.failed > 0);
+    if (summary.kind === 'current' && this.prediction) {
       card.append(
         element(
           'p',
           'prediction-range',
           this.t('predictedRange', {
-            from: formatDate(this.prediction.predictedStartFrom, this.language, { day: 'numeric', year: undefined }),
-            to: formatDate(this.prediction.predictedStartTo, this.language, { day: 'numeric', year: undefined }),
+            from: formatDate(summary.from, this.language, { day: 'numeric', year: undefined }),
+            to: formatDate(summary.to, this.language, { day: 'numeric', year: undefined }),
           }),
         ),
       );
@@ -1068,6 +1108,9 @@ class LunaraWebApp {
       }
       basis.append(element('p', 'subtle', this.t('confidence', { value: this.t(confidenceKey) })));
       card.append(basis);
+    } else if (summary.kind === 'stale' || summary.kind === 'pending') {
+      card.append(element('p', 'prediction-range', this.t('predictionNotCurrent')));
+      card.append(element('p', 'subtle', this.t(summary.kind === 'stale' ? 'predictionStale' : 'predictionPending')));
     } else {
       card.append(element('p', 'prediction-range', this.t(this.user?.role === 'PARTNER' ? 'predictionUnavailable' : 'predictionEmpty')));
       card.append(element('p', 'subtle', this.t(this.user?.role === 'PARTNER' ? 'noPartnerPrediction' : 'noPrediction')));

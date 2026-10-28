@@ -58,6 +58,8 @@ export interface PredictionResult {
   algorithmVersion: string;
   typicalCycleLength: number;
   typicalPeriodLength: number;
+  /** Existing profile assumption, shared with phase consumers; not an observation. */
+  lutealLength?: number;
   variationDays: number;
   statistics: CycleStatistics;
   explanation: {
@@ -302,8 +304,8 @@ export function calculatePrediction(
     variationDays <= MAX_FERTILITY_VARIATION_DAYS;
   const fertilityAvailable =
     fertilityEnabled && fertilityHasEnoughData && fertilityDataReliable;
+  const lutealLength = finiteInteger(input.lutealLength, 8, 20) ?? 14;
   if (fertilityAvailable) {
-    const lutealLength = finiteInteger(input.lutealLength, 8, 20) ?? 14;
     const ovulationCenter = center - lutealLength;
     fertileWindowFrom = fromEpochDay(ovulationCenter - 5 - variationDays);
     fertileWindowTo = fromEpochDay(ovulationCenter + 1 + variationDays);
@@ -338,6 +340,7 @@ export function calculatePrediction(
     algorithmVersion: PREDICTION_ALGORITHM_VERSION,
     typicalCycleLength: robustCycleLength,
     typicalPeriodLength,
+    lutealLength,
     variationDays,
     statistics,
     explanation: {
@@ -355,6 +358,14 @@ export function calculatePrediction(
             : 'The interval uses recent observed cycles, a robust median and median absolute deviation.',
     },
   };
+}
+
+/** Same model center used by the calendar estimate, never a confirmed ovulation. */
+export function estimatedOvulationDay(prediction: PredictionResult): number {
+  const center = Math.round(
+    (epochDay(prediction.predictedStartFrom) + epochDay(prediction.predictedStartTo)) / 2,
+  );
+  return center - (finiteInteger(prediction.lutealLength, 8, 20) ?? 14);
 }
 
 function confidenceFor(

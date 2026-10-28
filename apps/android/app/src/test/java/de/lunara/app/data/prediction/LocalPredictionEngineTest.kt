@@ -110,6 +110,62 @@ class LocalPredictionEngineTest {
         assertEquals(14, calculate(periods.reversed()).typicalPeriodLength)
     }
 
+    @Test
+    fun observedSixteenDayDurationAndLatestTwelveMatchWebRegressionFixtures() {
+        val longPeriods = periodsForIntervals(List(3) { 28 }).map { period ->
+            period.copy(endDate = LocalDate.parse(period.startDate).plusDays(15).toString())
+        }
+        assertEquals(16, LocalPredictionEngine.calculate(LocalPredictionEngine.Input(longPeriods, longPeriods.last().startDate, typicalPeriodLength = 7), clock).typicalPeriodLength)
+        val periods = periodsForIntervals(List(24) { 28 }).mapIndexed { index, period ->
+            period.copy(endDate = LocalDate.parse(period.startDate).plusDays(if (index < 13) 1 else 7).toString())
+        }
+        for (ordered in listOf(periods, periods.reversed(), periods.filterIndexed { index, _ -> index % 2 == 0 } + periods.filterIndexed { index, _ -> index % 2 != 0 })) {
+            assertEquals(8, LocalPredictionEngine.calculate(LocalPredictionEngine.Input(ordered, periods.last().startDate), clock).typicalPeriodLength)
+        }
+    }
+
+    @Test
+    fun oversizedDurationExclusionHappensAfterSelectingTheLatestTwelve() {
+        val periods = periodsForIntervals(List(13) { 60 }).mapIndexed { index, period ->
+            period.copy(endDate = LocalDate.parse(period.startDate).plusDays(if (index < 2) 1 else 39).toString())
+        }
+        val input = LocalPredictionEngine.Input(periods, periods.last().startDate)
+        assertEquals(5, LocalPredictionEngine.calculate(input, clock).typicalPeriodLength)
+        assertEquals(9, LocalPredictionEngine.calculate(input.copy(typicalPeriodLength = 9), clock).typicalPeriodLength)
+    }
+
+    @Test
+    fun fallbackRangesAndConfidenceMatchWebRegressionFixtures() {
+        val single = LocalPredictionEngine.Input(periodsForIntervals(emptyList()), "2024-01-02")
+        for (fallback in listOf(0, 14, 91)) {
+            assertEquals("INSUFFICIENT_DATA", LocalPredictionEngine.calculate(single.copy(typicalCycleLength = fallback), clock).reason)
+        }
+        for (fallback in listOf(15, 90)) {
+            val result = LocalPredictionEngine.calculate(single.copy(typicalCycleLength = fallback), clock)
+            assertTrue(result.available)
+            assertEquals("LOW", result.confidence)
+            assertEquals(4, result.variationDays)
+        }
+        for ((intervals, confidence, halfWidth) in listOf(Triple(1, "LOW", 4), Triple(3, "MEDIUM", 3), Triple(6, "HIGH", 2))) {
+            val periods = periodsForIntervals(List(intervals) { 28 })
+            val input = LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true)
+            val result = LocalPredictionEngine.calculate(input, clock)
+            assertEquals(confidence, result.confidence)
+            assertEquals(halfWidth, result.variationDays)
+            assertEquals(intervals >= 3, result.fertilityEstimate?.available)
+            assertFalse(requireNotNull(LocalPredictionEngine.calculate(input.copy(fertilityPredictionEnabled = false), clock).fertilityEstimate).available)
+        }
+    }
+
+    @Test
+    fun latestStartEqualityRemainsAvailableBeforeTheNextDayExpires() {
+        val periods = periodsForIntervals(List(3) { 28 })
+        val input = LocalPredictionEngine.Input(periods, periods.last().startDate)
+        val end = requireNotNull(LocalPredictionEngine.calculate(input, clock).predictedStartTo)
+        assertTrue(LocalPredictionEngine.calculate(input.copy(referenceDate = end), clock).available)
+        assertEquals("STALE_HISTORY", LocalPredictionEngine.calculate(input.copy(referenceDate = LocalDate.parse(end).plusDays(1).toString()), clock).reason)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun invalidIsoDateIsRejectedInsteadOfTimezoneNormalized() {
         LocalPredictionEngine.calculate(
