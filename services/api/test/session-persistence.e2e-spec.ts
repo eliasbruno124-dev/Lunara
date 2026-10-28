@@ -22,22 +22,66 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 const issuer = 'https://synthetic-auth.example/application/o/session-test/';
 
 /** Never permit fixtures or their cleanup against any other database. */
-function requireDisposableDatabase(): void {
-  const url = new URL(process.env.DATABASE_URL ?? 'http://invalid');
+function requireDisposableDatabase(environment: NodeJS.ProcessEnv = process.env): void {
+  const expectedPort = environment.LUNARA_E2E_DB_PORT ?? '55432';
+  const url = new URL(environment.DATABASE_URL ?? 'http://invalid');
   if (
-    process.env.NODE_ENV !== 'test' ||
+    environment.NODE_ENV !== 'test' ||
+    !/^[1-9]\d{3,4}$/.test(expectedPort) ||
+    Number(expectedPort) < 1024 ||
+    Number(expectedPort) > 65535 ||
     !['postgres:', 'postgresql:'].includes(url.protocol) ||
     url.hostname !== '127.0.0.1' ||
-    url.port !== '55438' ||
+    url.port !== expectedPort ||
     url.pathname !== '/lunara_test' ||
     (url.search !== '' && url.search !== '?schema=public') ||
     url.hash !== ''
   ) {
     throw new Error(
-      'Session persistence tests require NODE_ENV=test and the dedicated loopback database on port 55438 named lunara_test',
+      'Session persistence tests require NODE_ENV=test and the dedicated loopback database lunara_test on LUNARA_E2E_DB_PORT (default 55432)',
     );
   }
 }
+
+describe('Disposable database safety guard', () => {
+  const environment = {
+    NODE_ENV: 'test',
+    DATABASE_URL: 'postgresql://lunara_test:integration-only-password@127.0.0.1:55432/lunara_test?schema=public',
+  };
+
+  it('accepts the documented default test port', () => {
+    expect(() => requireDisposableDatabase(environment)).not.toThrow();
+  });
+
+  it('accepts an explicitly configured dedicated test port', () => {
+    expect(() => requireDisposableDatabase({
+      ...environment,
+      LUNARA_E2E_DB_PORT: '55438',
+      DATABASE_URL: environment.DATABASE_URL.replace(':55432/', ':55438/'),
+    })).not.toThrow();
+  });
+
+  it.each([
+    { NODE_ENV: 'production' },
+    { LUNARA_E2E_DB_PORT: '55438' },
+    { LUNARA_E2E_DB_PORT: '' },
+    { LUNARA_E2E_DB_PORT: '1023' },
+    { LUNARA_E2E_DB_PORT: '65536' },
+    { LUNARA_E2E_DB_PORT: '55432x' },
+    { LUNARA_E2E_DB_PORT: '055432' },
+    { DATABASE_URL: environment.DATABASE_URL.replace('127.0.0.1', 'localhost') },
+    { DATABASE_URL: environment.DATABASE_URL.replace('127.0.0.1', '[::1]') },
+    { DATABASE_URL: environment.DATABASE_URL.replace('127.0.0.1', 'db.example.com') },
+    { DATABASE_URL: environment.DATABASE_URL.replace(':55432/', ':5432/') },
+    { DATABASE_URL: environment.DATABASE_URL.replace('/lunara_test?', '/lunara?') },
+    { DATABASE_URL: environment.DATABASE_URL.replace('schema=public', 'schema=production') },
+    { DATABASE_URL: environment.DATABASE_URL + '&host=/var/run/postgresql' },
+    { DATABASE_URL: environment.DATABASE_URL + '#fragment' },
+    { DATABASE_URL: environment.DATABASE_URL.replace('postgresql:', 'https:') },
+  ])('rejects unsafe or mismatched database configuration %#', (override) => {
+    expect(() => requireDisposableDatabase({ ...environment, ...override })).toThrow();
+  });
+});
 
 function barrier() {
   let resolve!: () => void;

@@ -4,7 +4,7 @@ Generated from source. Run `npm run code-map:check` before relying on line links
 
 All non-ignored repository files, excluding generated maps and APK artifacts. Kotlin PSI and TypeScript syntax inventory; not a resolved call graph. Generated API client files are hashed but declarations are omitted.
 
-Files: 573. Parsed declarations: 14395. Full hashes and symbols: [code-map.json](code-map.json).
+Files: 573. Parsed declarations: 14399. Full hashes and symbols: [code-map.json](code-map.json).
 
 ## App entry and presentation
 
@@ -628,7 +628,7 @@ The server reports effective sharing permissions without disclosing whether priv
 | [services/api/test/core-flow.e2e-spec.ts](../services/api/test/core-flow.e2e-spec.ts) | Automated regression | 176 |
 | [services/api/test/jest-e2e.json](../services/api/test/jest-e2e.json) | Automated regression | 0 |
 | [services/api/test/refresh-replay.e2e-spec.ts](../services/api/test/refresh-replay.e2e-spec.ts) | Automated regression | 56 |
-| [services/api/test/session-persistence.e2e-spec.ts](../services/api/test/session-persistence.e2e-spec.ts) | Automated regression | 66 |
+| [services/api/test/session-persistence.e2e-spec.ts](../services/api/test/session-persistence.e2e-spec.ts) | Automated regression | 70 |
 | [services/api/tsconfig.build.json](../services/api/tsconfig.build.json) | Documentation or project configuration | 0 |
 | [services/api/tsconfig.json](../services/api/tsconfig.json) | Documentation or project configuration | 0 |
 | [tools/code-map/build.gradle.kts](../tools/code-map/build.gradle.kts) | Build and maintenance | 0 |
@@ -17542,69 +17542,73 @@ The server reports effective sharing permissions without disclosing whether priv
 |---|---|---|
 | VariableDeclaration | issuer | [22](../services/api/test/session-persistence.e2e-spec.ts#L22) |
 | FunctionDeclaration | requireDisposableDatabase | [25](../services/api/test/session-persistence.e2e-spec.ts#L25) |
-| VariableDeclaration | requireDisposableDatabase.url | [26](../services/api/test/session-persistence.e2e-spec.ts#L26) |
-| FunctionDeclaration | barrier | [42](../services/api/test/session-persistence.e2e-spec.ts#L42) |
-| VariableDeclaration | barrier.resolve | [43](../services/api/test/session-persistence.e2e-spec.ts#L43) |
-| VariableDeclaration | barrier.promise | [44](../services/api/test/session-persistence.e2e-spec.ts#L44) |
-| Parameter | barrier.promise.done | [44](../services/api/test/session-persistence.e2e-spec.ts#L44) |
-| VariableDeclaration | app | [51](../services/api/test/session-persistence.e2e-spec.ts#L51) |
-| VariableDeclaration | prisma | [52](../services/api/test/session-persistence.e2e-spec.ts#L52) |
-| VariableDeclaration | auth | [53](../services/api/test/session-persistence.e2e-spec.ts#L53) |
-| VariableDeclaration | providerAvailable | [54](../services/api/test/session-persistence.e2e-spec.ts#L54) |
-| VariableDeclaration | fixtureUsers | [55](../services/api/test/session-persistence.e2e-spec.ts#L55) |
-| VariableDeclaration | fixtureHouseholds | [56](../services/api/test/session-persistence.e2e-spec.ts#L56) |
-| VariableDeclaration | proofs | [57](../services/api/test/session-persistence.e2e-spec.ts#L57) |
-| VariableDeclaration | verifier | [61](../services/api/test/session-persistence.e2e-spec.ts#L61) |
-| Parameter | verifier.proof | [62](../services/api/test/session-persistence.e2e-spec.ts#L62) |
-| VariableDeclaration | verifier.identity | [70](../services/api/test/session-persistence.e2e-spec.ts#L70) |
-| VariableDeclaration | module | [79](../services/api/test/session-persistence.e2e-spec.ts#L79) |
-| FunctionDeclaration | fixture | [127](../services/api/test/session-persistence.e2e-spec.ts#L127) |
-| Parameter | fixture.method | [127](../services/api/test/session-persistence.e2e-spec.ts#L127) |
-| VariableDeclaration | fixture.subject | [128](../services/api/test/session-persistence.e2e-spec.ts#L128) |
-| VariableDeclaration | fixture.proof | [129](../services/api/test/session-persistence.e2e-spec.ts#L129) |
-| VariableDeclaration | fixture.seconds | [130](../services/api/test/session-persistence.e2e-spec.ts#L130) |
-| Parameter | fixture.tx | [137](../services/api/test/session-persistence.e2e-spec.ts#L137) |
-| VariableDeclaration | fixture.household | [138](../services/api/test/session-persistence.e2e-spec.ts#L138) |
-| VariableDeclaration | fixture.user | [142](../services/api/test/session-persistence.e2e-spec.ts#L142) |
-| VariableDeclaration | fixture.membership | [150](../services/api/test/session-persistence.e2e-spec.ts#L150) |
-| VariableDeclaration | fixture.identity | [157](../services/api/test/session-persistence.e2e-spec.ts#L157) |
-| VariableDeclaration | fixture.initial | [163](../services/api/test/session-persistence.e2e-spec.ts#L163) |
-| FunctionDeclaration | refreshPayload | [184](../services/api/test/session-persistence.e2e-spec.ts#L184) |
-| Parameter | refreshPayload.initial | [184](../services/api/test/session-persistence.e2e-spec.ts#L184) |
-| Parameter | refreshPayload.proof | [184](../services/api/test/session-persistence.e2e-spec.ts#L184) |
-| FunctionDeclaration | hasBlockedAuthenticationLock | [192](../services/api/test/session-persistence.e2e-spec.ts#L192) |
-| Parameter | hasBlockedAuthenticationLock.userId | [192](../services/api/test/session-persistence.e2e-spec.ts#L192) |
-| VariableDeclaration | hasBlockedAuthenticationLock.deadline | [193](../services/api/test/session-persistence.e2e-spec.ts#L193) |
-| VariableDeclaration | hasBlockedAuthenticationLock.rows | [195](../services/api/test/session-persistence.e2e-spec.ts#L195) |
-| Parameter | hasBlockedAuthenticationLock.resolve | [204](../services/api/test/session-persistence.e2e-spec.ts#L204) |
-| VariableDeclaration | f | [210](../services/api/test/session-persistence.e2e-spec.ts#L210) |
-| VariableDeclaration | before | [211](../services/api/test/session-persistence.e2e-spec.ts#L211) |
-| VariableDeclaration | payload | [218](../services/api/test/session-persistence.e2e-spec.ts#L218) |
-| VariableDeclaration | renewed | [219](../services/api/test/session-persistence.e2e-spec.ts#L219) |
-| VariableDeclaration | replay | [223](../services/api/test/session-persistence.e2e-spec.ts#L223) |
-| VariableDeclaration | next | [227](../services/api/test/session-persistence.e2e-spec.ts#L227) |
-| VariableDeclaration | successor | [231](../services/api/test/session-persistence.e2e-spec.ts#L231) |
-| VariableDeclaration | me | [260](../services/api/test/session-persistence.e2e-spec.ts#L260) |
-| VariableDeclaration | f | [268](../services/api/test/session-persistence.e2e-spec.ts#L268) |
-| VariableDeclaration | before | [269](../services/api/test/session-persistence.e2e-spec.ts#L269) |
-| VariableDeclaration | payload | [272](../services/api/test/session-persistence.e2e-spec.ts#L272) |
-| VariableDeclaration | f | [306](../services/api/test/session-persistence.e2e-spec.ts#L306) |
-| VariableDeclaration | requestId | [307](../services/api/test/session-persistence.e2e-spec.ts#L307) |
-| VariableDeclaration | results | [308](../services/api/test/session-persistence.e2e-spec.ts#L308) |
-| Parameter | value | [313](../services/api/test/session-persistence.e2e-spec.ts#L313) |
-| Parameter | value | [314](../services/api/test/session-persistence.e2e-spec.ts#L314) |
-| Parameter | state | [338](../services/api/test/session-persistence.e2e-spec.ts#L338) |
-| VariableDeclaration | f | [339](../services/api/test/session-persistence.e2e-spec.ts#L339) |
-| VariableDeclaration | proof | [340](../services/api/test/session-persistence.e2e-spec.ts#L340) |
-| VariableDeclaration | other | [369](../services/api/test/session-persistence.e2e-spec.ts#L369) |
-| VariableDeclaration | f | [392](../services/api/test/session-persistence.e2e-spec.ts#L392) |
-| VariableDeclaration | f | [405](../services/api/test/session-persistence.e2e-spec.ts#L405) |
-| VariableDeclaration | locked | [406](../services/api/test/session-persistence.e2e-spec.ts#L406) |
-| VariableDeclaration | release | [407](../services/api/test/session-persistence.e2e-spec.ts#L407) |
-| VariableDeclaration | revocation | [408](../services/api/test/session-persistence.e2e-spec.ts#L408) |
-| Parameter | revocation.tx | [408](../services/api/test/session-persistence.e2e-spec.ts#L408) |
-| VariableDeclaration | pending | [418](../services/api/test/session-persistence.e2e-spec.ts#L418) |
-| Parameter | pending.error | [422](../services/api/test/session-persistence.e2e-spec.ts#L422) |
-| VariableDeclaration | outcome | [424](../services/api/test/session-persistence.e2e-spec.ts#L424) |
+| Parameter | requireDisposableDatabase.environment | [25](../services/api/test/session-persistence.e2e-spec.ts#L25) |
+| VariableDeclaration | requireDisposableDatabase.expectedPort | [26](../services/api/test/session-persistence.e2e-spec.ts#L26) |
+| VariableDeclaration | requireDisposableDatabase.url | [27](../services/api/test/session-persistence.e2e-spec.ts#L27) |
+| VariableDeclaration | environment | [47](../services/api/test/session-persistence.e2e-spec.ts#L47) |
+| Parameter | override | [81](../services/api/test/session-persistence.e2e-spec.ts#L81) |
+| FunctionDeclaration | barrier | [86](../services/api/test/session-persistence.e2e-spec.ts#L86) |
+| VariableDeclaration | barrier.resolve | [87](../services/api/test/session-persistence.e2e-spec.ts#L87) |
+| VariableDeclaration | barrier.promise | [88](../services/api/test/session-persistence.e2e-spec.ts#L88) |
+| Parameter | barrier.promise.done | [88](../services/api/test/session-persistence.e2e-spec.ts#L88) |
+| VariableDeclaration | app | [95](../services/api/test/session-persistence.e2e-spec.ts#L95) |
+| VariableDeclaration | prisma | [96](../services/api/test/session-persistence.e2e-spec.ts#L96) |
+| VariableDeclaration | auth | [97](../services/api/test/session-persistence.e2e-spec.ts#L97) |
+| VariableDeclaration | providerAvailable | [98](../services/api/test/session-persistence.e2e-spec.ts#L98) |
+| VariableDeclaration | fixtureUsers | [99](../services/api/test/session-persistence.e2e-spec.ts#L99) |
+| VariableDeclaration | fixtureHouseholds | [100](../services/api/test/session-persistence.e2e-spec.ts#L100) |
+| VariableDeclaration | proofs | [101](../services/api/test/session-persistence.e2e-spec.ts#L101) |
+| VariableDeclaration | verifier | [105](../services/api/test/session-persistence.e2e-spec.ts#L105) |
+| Parameter | verifier.proof | [106](../services/api/test/session-persistence.e2e-spec.ts#L106) |
+| VariableDeclaration | verifier.identity | [114](../services/api/test/session-persistence.e2e-spec.ts#L114) |
+| VariableDeclaration | module | [123](../services/api/test/session-persistence.e2e-spec.ts#L123) |
+| FunctionDeclaration | fixture | [171](../services/api/test/session-persistence.e2e-spec.ts#L171) |
+| Parameter | fixture.method | [171](../services/api/test/session-persistence.e2e-spec.ts#L171) |
+| VariableDeclaration | fixture.subject | [172](../services/api/test/session-persistence.e2e-spec.ts#L172) |
+| VariableDeclaration | fixture.proof | [173](../services/api/test/session-persistence.e2e-spec.ts#L173) |
+| VariableDeclaration | fixture.seconds | [174](../services/api/test/session-persistence.e2e-spec.ts#L174) |
+| Parameter | fixture.tx | [181](../services/api/test/session-persistence.e2e-spec.ts#L181) |
+| VariableDeclaration | fixture.household | [182](../services/api/test/session-persistence.e2e-spec.ts#L182) |
+| VariableDeclaration | fixture.user | [186](../services/api/test/session-persistence.e2e-spec.ts#L186) |
+| VariableDeclaration | fixture.membership | [194](../services/api/test/session-persistence.e2e-spec.ts#L194) |
+| VariableDeclaration | fixture.identity | [201](../services/api/test/session-persistence.e2e-spec.ts#L201) |
+| VariableDeclaration | fixture.initial | [207](../services/api/test/session-persistence.e2e-spec.ts#L207) |
+| FunctionDeclaration | refreshPayload | [228](../services/api/test/session-persistence.e2e-spec.ts#L228) |
+| Parameter | refreshPayload.initial | [228](../services/api/test/session-persistence.e2e-spec.ts#L228) |
+| Parameter | refreshPayload.proof | [228](../services/api/test/session-persistence.e2e-spec.ts#L228) |
+| FunctionDeclaration | hasBlockedAuthenticationLock | [236](../services/api/test/session-persistence.e2e-spec.ts#L236) |
+| Parameter | hasBlockedAuthenticationLock.userId | [236](../services/api/test/session-persistence.e2e-spec.ts#L236) |
+| VariableDeclaration | hasBlockedAuthenticationLock.deadline | [237](../services/api/test/session-persistence.e2e-spec.ts#L237) |
+| VariableDeclaration | hasBlockedAuthenticationLock.rows | [239](../services/api/test/session-persistence.e2e-spec.ts#L239) |
+| Parameter | hasBlockedAuthenticationLock.resolve | [248](../services/api/test/session-persistence.e2e-spec.ts#L248) |
+| VariableDeclaration | f | [254](../services/api/test/session-persistence.e2e-spec.ts#L254) |
+| VariableDeclaration | before | [255](../services/api/test/session-persistence.e2e-spec.ts#L255) |
+| VariableDeclaration | payload | [262](../services/api/test/session-persistence.e2e-spec.ts#L262) |
+| VariableDeclaration | renewed | [263](../services/api/test/session-persistence.e2e-spec.ts#L263) |
+| VariableDeclaration | replay | [267](../services/api/test/session-persistence.e2e-spec.ts#L267) |
+| VariableDeclaration | next | [271](../services/api/test/session-persistence.e2e-spec.ts#L271) |
+| VariableDeclaration | successor | [275](../services/api/test/session-persistence.e2e-spec.ts#L275) |
+| VariableDeclaration | me | [304](../services/api/test/session-persistence.e2e-spec.ts#L304) |
+| VariableDeclaration | f | [312](../services/api/test/session-persistence.e2e-spec.ts#L312) |
+| VariableDeclaration | before | [313](../services/api/test/session-persistence.e2e-spec.ts#L313) |
+| VariableDeclaration | payload | [316](../services/api/test/session-persistence.e2e-spec.ts#L316) |
+| VariableDeclaration | f | [350](../services/api/test/session-persistence.e2e-spec.ts#L350) |
+| VariableDeclaration | requestId | [351](../services/api/test/session-persistence.e2e-spec.ts#L351) |
+| VariableDeclaration | results | [352](../services/api/test/session-persistence.e2e-spec.ts#L352) |
+| Parameter | value | [357](../services/api/test/session-persistence.e2e-spec.ts#L357) |
+| Parameter | value | [358](../services/api/test/session-persistence.e2e-spec.ts#L358) |
+| Parameter | state | [382](../services/api/test/session-persistence.e2e-spec.ts#L382) |
+| VariableDeclaration | f | [383](../services/api/test/session-persistence.e2e-spec.ts#L383) |
+| VariableDeclaration | proof | [384](../services/api/test/session-persistence.e2e-spec.ts#L384) |
+| VariableDeclaration | other | [413](../services/api/test/session-persistence.e2e-spec.ts#L413) |
+| VariableDeclaration | f | [436](../services/api/test/session-persistence.e2e-spec.ts#L436) |
+| VariableDeclaration | f | [449](../services/api/test/session-persistence.e2e-spec.ts#L449) |
+| VariableDeclaration | locked | [450](../services/api/test/session-persistence.e2e-spec.ts#L450) |
+| VariableDeclaration | release | [451](../services/api/test/session-persistence.e2e-spec.ts#L451) |
+| VariableDeclaration | revocation | [452](../services/api/test/session-persistence.e2e-spec.ts#L452) |
+| Parameter | revocation.tx | [452](../services/api/test/session-persistence.e2e-spec.ts#L452) |
+| VariableDeclaration | pending | [462](../services/api/test/session-persistence.e2e-spec.ts#L462) |
+| Parameter | pending.error | [466](../services/api/test/session-persistence.e2e-spec.ts#L466) |
+| VariableDeclaration | outcome | [468](../services/api/test/session-persistence.e2e-spec.ts#L468) |
 
 </details>

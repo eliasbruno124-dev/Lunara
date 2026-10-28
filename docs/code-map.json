@@ -50,9 +50,9 @@
     {
       "path": ".github/workflows/container-security.yml",
       "role": "CI",
-      "bytes": 3909,
-      "sha256": "5e3c24ac1441b47089970a6671d9053b7a254b7cb9eb3c0fa514e0da658cb42b",
-      "lines": 136,
+      "bytes": 3971,
+      "sha256": "e412ee0b62c8dbc911119fc2d13fe377399201df809c8bbcf766d20965c3e959",
+      "lines": 138,
       "symbols": []
     },
     {
@@ -112,9 +112,9 @@
     {
       "path": "FINAL_REPORT.md",
       "role": "Documentation or project configuration",
-      "bytes": 4467,
-      "sha256": "a888dbc8241b1b31c42a43484f7f286a33e69c03729cded7bbbd5e1014e1e5e8",
-      "lines": 74,
+      "bytes": 4855,
+      "sha256": "a2f3840d4ce65be474bcfa4568f75ed0a0dcefd1ce4e1f2a1fc31669f423705e",
+      "lines": 78,
       "symbols": []
     },
     {
@@ -66724,8 +66724,8 @@
     {
       "path": "infra/docker/api.Dockerfile",
       "role": "Deployment",
-      "bytes": 2662,
-      "sha256": "130f71aa948cabf930529507a172b1e3af1fdbe77f1cfc3cb57298ec7d900221",
+      "bytes": 2622,
+      "sha256": "1444803561c6423fc9c218838cd9582bc1d9ee1698502c7ebab71830c6dddc4b",
       "symbols": []
     },
     {
@@ -90778,9 +90778,9 @@
     {
       "path": "services/api/test/session-persistence.e2e-spec.ts",
       "role": "Automated regression",
-      "bytes": 14638,
-      "sha256": "57b49ea32589c6082cab8c18c260fc18865890f44567183da82ec8f1b51bcfaa",
-      "lines": 447,
+      "bytes": 16682,
+      "sha256": "c4ce84e96582fcafa54f96f320c3b6b128f2b795b1a348091a6799089383ee9e",
+      "lines": 491,
       "symbols": [
         {
           "name": "issuer",
@@ -90795,387 +90795,411 @@
           "owner": ""
         },
         {
-          "name": "url",
+          "name": "environment",
+          "kind": "Parameter",
+          "line": 25,
+          "owner": "requireDisposableDatabase"
+        },
+        {
+          "name": "expectedPort",
           "kind": "VariableDeclaration",
           "line": 26,
           "owner": "requireDisposableDatabase"
         },
         {
+          "name": "url",
+          "kind": "VariableDeclaration",
+          "line": 27,
+          "owner": "requireDisposableDatabase"
+        },
+        {
+          "name": "environment",
+          "kind": "VariableDeclaration",
+          "line": 47,
+          "owner": ""
+        },
+        {
+          "name": "override",
+          "kind": "Parameter",
+          "line": 81,
+          "owner": ""
+        },
+        {
           "name": "barrier",
           "kind": "FunctionDeclaration",
-          "line": 42,
+          "line": 86,
           "owner": ""
         },
         {
           "name": "resolve",
           "kind": "VariableDeclaration",
-          "line": 43,
+          "line": 87,
           "owner": "barrier"
         },
         {
           "name": "promise",
           "kind": "VariableDeclaration",
-          "line": 44,
+          "line": 88,
           "owner": "barrier"
         },
         {
           "name": "done",
           "kind": "Parameter",
-          "line": 44,
+          "line": 88,
           "owner": "barrier.promise"
         },
         {
           "name": "app",
           "kind": "VariableDeclaration",
-          "line": 51,
+          "line": 95,
           "owner": ""
         },
         {
           "name": "prisma",
           "kind": "VariableDeclaration",
-          "line": 52,
+          "line": 96,
           "owner": ""
         },
         {
           "name": "auth",
           "kind": "VariableDeclaration",
-          "line": 53,
+          "line": 97,
           "owner": ""
         },
         {
           "name": "providerAvailable",
           "kind": "VariableDeclaration",
-          "line": 54,
+          "line": 98,
           "owner": ""
         },
         {
           "name": "fixtureUsers",
           "kind": "VariableDeclaration",
-          "line": 55,
+          "line": 99,
           "owner": ""
         },
         {
           "name": "fixtureHouseholds",
           "kind": "VariableDeclaration",
-          "line": 56,
+          "line": 100,
           "owner": ""
         },
         {
           "name": "proofs",
           "kind": "VariableDeclaration",
-          "line": 57,
+          "line": 101,
           "owner": ""
         },
         {
           "name": "verifier",
           "kind": "VariableDeclaration",
-          "line": 61,
+          "line": 105,
           "owner": ""
         },
         {
           "name": "proof",
           "kind": "Parameter",
-          "line": 62,
+          "line": 106,
           "owner": "verifier"
         },
         {
           "name": "identity",
           "kind": "VariableDeclaration",
-          "line": 70,
+          "line": 114,
           "owner": "verifier"
         },
         {
           "name": "module",
           "kind": "VariableDeclaration",
-          "line": 79,
+          "line": 123,
           "owner": ""
         },
         {
           "name": "fixture",
           "kind": "FunctionDeclaration",
-          "line": 127,
+          "line": 171,
           "owner": ""
         },
         {
           "name": "method",
           "kind": "Parameter",
-          "line": 127,
+          "line": 171,
           "owner": "fixture"
         },
         {
           "name": "subject",
           "kind": "VariableDeclaration",
-          "line": 128,
+          "line": 172,
           "owner": "fixture"
         },
         {
           "name": "proof",
           "kind": "VariableDeclaration",
-          "line": 129,
+          "line": 173,
           "owner": "fixture"
         },
         {
           "name": "seconds",
           "kind": "VariableDeclaration",
-          "line": 130,
+          "line": 174,
           "owner": "fixture"
         },
         {
           "name": "tx",
           "kind": "Parameter",
-          "line": 137,
+          "line": 181,
           "owner": "fixture"
         },
         {
           "name": "household",
           "kind": "VariableDeclaration",
-          "line": 138,
+          "line": 182,
           "owner": "fixture"
         },
         {
           "name": "user",
           "kind": "VariableDeclaration",
-          "line": 142,
+          "line": 186,
           "owner": "fixture"
         },
         {
           "name": "membership",
           "kind": "VariableDeclaration",
-          "line": 150,
+          "line": 194,
           "owner": "fixture"
         },
         {
           "name": "identity",
           "kind": "VariableDeclaration",
-          "line": 157,
+          "line": 201,
           "owner": "fixture"
         },
         {
           "name": "initial",
           "kind": "VariableDeclaration",
-          "line": 163,
+          "line": 207,
           "owner": "fixture"
         },
         {
           "name": "refreshPayload",
           "kind": "FunctionDeclaration",
-          "line": 184,
+          "line": 228,
           "owner": ""
         },
         {
           "name": "initial",
           "kind": "Parameter",
-          "line": 184,
+          "line": 228,
           "owner": "refreshPayload"
         },
         {
           "name": "proof",
           "kind": "Parameter",
-          "line": 184,
+          "line": 228,
           "owner": "refreshPayload"
         },
         {
           "name": "hasBlockedAuthenticationLock",
           "kind": "FunctionDeclaration",
-          "line": 192,
+          "line": 236,
           "owner": ""
         },
         {
           "name": "userId",
           "kind": "Parameter",
-          "line": 192,
+          "line": 236,
           "owner": "hasBlockedAuthenticationLock"
         },
         {
           "name": "deadline",
           "kind": "VariableDeclaration",
-          "line": 193,
+          "line": 237,
           "owner": "hasBlockedAuthenticationLock"
         },
         {
           "name": "rows",
           "kind": "VariableDeclaration",
-          "line": 195,
+          "line": 239,
           "owner": "hasBlockedAuthenticationLock"
         },
         {
           "name": "resolve",
           "kind": "Parameter",
-          "line": 204,
+          "line": 248,
           "owner": "hasBlockedAuthenticationLock"
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 210,
+          "line": 254,
           "owner": ""
         },
         {
           "name": "before",
           "kind": "VariableDeclaration",
-          "line": 211,
+          "line": 255,
           "owner": ""
         },
         {
           "name": "payload",
           "kind": "VariableDeclaration",
-          "line": 218,
+          "line": 262,
           "owner": ""
         },
         {
           "name": "renewed",
           "kind": "VariableDeclaration",
-          "line": 219,
+          "line": 263,
           "owner": ""
         },
         {
           "name": "replay",
           "kind": "VariableDeclaration",
-          "line": 223,
+          "line": 267,
           "owner": ""
         },
         {
           "name": "next",
           "kind": "VariableDeclaration",
-          "line": 227,
+          "line": 271,
           "owner": ""
         },
         {
           "name": "successor",
           "kind": "VariableDeclaration",
-          "line": 231,
+          "line": 275,
           "owner": ""
         },
         {
           "name": "me",
           "kind": "VariableDeclaration",
-          "line": 260,
+          "line": 304,
           "owner": ""
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 268,
+          "line": 312,
           "owner": ""
         },
         {
           "name": "before",
           "kind": "VariableDeclaration",
-          "line": 269,
+          "line": 313,
           "owner": ""
         },
         {
           "name": "payload",
           "kind": "VariableDeclaration",
-          "line": 272,
+          "line": 316,
           "owner": ""
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 306,
+          "line": 350,
           "owner": ""
         },
         {
           "name": "requestId",
           "kind": "VariableDeclaration",
-          "line": 307,
+          "line": 351,
           "owner": ""
         },
         {
           "name": "results",
           "kind": "VariableDeclaration",
-          "line": 308,
+          "line": 352,
           "owner": ""
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 313,
+          "line": 357,
           "owner": ""
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 314,
+          "line": 358,
           "owner": ""
         },
         {
           "name": "state",
           "kind": "Parameter",
-          "line": 338,
+          "line": 382,
           "owner": ""
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 339,
+          "line": 383,
           "owner": ""
         },
         {
           "name": "proof",
           "kind": "VariableDeclaration",
-          "line": 340,
+          "line": 384,
           "owner": ""
         },
         {
           "name": "other",
           "kind": "VariableDeclaration",
-          "line": 369,
+          "line": 413,
           "owner": ""
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 392,
+          "line": 436,
           "owner": ""
         },
         {
           "name": "f",
           "kind": "VariableDeclaration",
-          "line": 405,
+          "line": 449,
           "owner": ""
         },
         {
           "name": "locked",
           "kind": "VariableDeclaration",
-          "line": 406,
+          "line": 450,
           "owner": ""
         },
         {
           "name": "release",
           "kind": "VariableDeclaration",
-          "line": 407,
+          "line": 451,
           "owner": ""
         },
         {
           "name": "revocation",
           "kind": "VariableDeclaration",
-          "line": 408,
+          "line": 452,
           "owner": ""
         },
         {
           "name": "tx",
           "kind": "Parameter",
-          "line": 408,
+          "line": 452,
           "owner": "revocation"
         },
         {
           "name": "pending",
           "kind": "VariableDeclaration",
-          "line": 418,
+          "line": 462,
           "owner": ""
         },
         {
           "name": "error",
           "kind": "Parameter",
-          "line": 422,
+          "line": 466,
           "owner": "pending"
         },
         {
           "name": "outcome",
           "kind": "VariableDeclaration",
-          "line": 424,
+          "line": 468,
           "owner": ""
         }
       ]

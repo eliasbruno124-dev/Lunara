@@ -24,7 +24,7 @@ Stand: 28. Oktober 2026. Dieser Bericht beschreibt ausgeführte Prüfungen;
 | --- | --- |
 | API | 326 Tests in 32 Suites; Lint und Build bestanden |
 | Web | 156 Tests in 19 Dateien; TypeScript und Produktionsbuild bestanden |
-| PostgreSQL | 23 Integrationstests auf eigener flüchtiger Testdatenbank bestanden |
+| PostgreSQL | Integrationstests einschließlich Schutz vor unsicheren Datenbankzielen auf dem Standardport und einem expliziten Testport bestanden |
 | Android JVM | 309 Tests in 55 Suites, Variante LocalDebug, bestanden |
 | Android Gerät | Je 39 Oberflächentests auf Deutsch und Englisch sowie 4 Screenshotfälle bestanden |
 | Browser | 43 Assertions in 3 getrennten synthetischen Kontexten; Import, Export, lokaler Tresor, Partnerkalender und Freigabewiderruf |
@@ -42,6 +42,10 @@ Ein anfangs fehlgeschlagener Wiederholungslauf nutzte eine bereits gefüllte
 Testdatenbank; nach korrekt begrenztem Zurücksetzen ausschließlich dieser
 Testdatenbank bestand die Suite. Drei Kalendertests wurden korrigiert, weil
 sie Text am Elternelement statt am tatsächlichen sichtbaren Kind prüften.
+Der CI-Lauf deckte außerdem einen fest codierten Testport auf; der Schutz folgt
+jetzt dem ausdrücklich konfigurierten Port, ohne andere Datenbankziele zuzulassen.
+Der Containerbau aktualisiert `perl-base` gezielt aus den Debian-Paketquellen
+und erhält in CI die tatsächliche Quellrevision statt eines veralteten Labels.
 
 ## Datenübertragung und Grenzen
 

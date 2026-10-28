@@ -99,6 +99,8 @@ jobs:
           load: true
           push: false
           tags: lunara-api:ci
+          build-args: |
+            VCS_REF=${{ github.sha }}
 
       # Pinned to the reviewed v0.24.0 commit rather than a mutable v0 tag.
       - name: Generate CycloneDX SBOM with Syft
