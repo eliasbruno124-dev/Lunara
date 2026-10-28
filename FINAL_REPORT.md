@@ -1,9 +1,21 @@
-# Lunara 1.3.1 – Prüfstand
+# Lunara 1.3.2 – Prüfstand
 
 Stand: 28. Oktober 2026. Dieser Bericht beschreibt ausgeführte Prüfungen;
 ältere Berichte und Artefakte bleiben in der Git-Historie erhalten.
 
 ## Änderungen
+
+- Die Weboberfläche folgt dem Design der Android-App: gemeinsame Farbwelt,
+  Karten, Typografie-Hierarchie, Navigation und Einstellungsbereiche. Große
+  Bildschirme behalten ein angepasstes Desktop-Layout.
+- Erfasste Perioden sind rosé, Prognosen amber und das geschätzte fruchtbare
+  Fenster türkis. Beide Oberflächen verwenden dieselbe Legende und zusätzliche
+  Kennzeichen. Auswahl und heutiger Tag überschreiben diese Farben nicht.
+- Schmale Kalender, große Schrift und Hell-/Dunkelmodus wurden nachgeprüft.
+  Die Webansicht zeigt das gültige Prognoseintervall wie die Android-App;
+  die Berechnung selbst bleibt unverändert.
+
+Die zuvor im selben unveröffentlichten Update ergänzten Funktionen bleiben enthalten:
 
 - Kalender und Partner-Einstellungen unterscheiden fehlende Freigaben,
   Ladefehler, leere Einträge und nicht verfügbare Schätzungen.
@@ -23,29 +35,37 @@ Stand: 28. Oktober 2026. Dieser Bericht beschreibt ausgeführte Prüfungen;
 | Bereich | Ergebnis |
 | --- | --- |
 | API | 326 Tests in 32 Suites; Lint und Build bestanden |
-| Web | 156 Tests in 19 Dateien; TypeScript und Produktionsbuild bestanden |
-| PostgreSQL | Integrationstests einschließlich Schutz vor unsicheren Datenbankzielen auf dem Standardport und einem expliziten Testport bestanden |
-| Android JVM | 309 Tests in 55 Suites, Variante LocalDebug, bestanden |
-| Android Gerät | Je 39 Oberflächentests auf Deutsch und Englisch sowie 4 Screenshotfälle bestanden |
-| Browser | 43 Assertions in 3 getrennten synthetischen Kontexten; Import, Export, lokaler Tresor, Partnerkalender und Freigabewiderruf |
-| Android Release | Signierte APK und AAB gebaut; ProductionRelease-Lint bestanden |
-| Update-Kompatibilität | Paket de.lunara.app, Version 1.3.1, versionCode 21, gleiches Signierzertifikat |
+| Web | 185 Tests in 21 Dateien; TypeScript und Produktionsbuild bestanden |
+| Android JVM | 32 gezielte Regressionstests bestanden; vollständige 309er-Suite zuvor für 1.3.1 geprüft |
+| Android Gerät | Je 45 Oberflächentests auf Deutsch und Englisch bestanden, einschließlich Kalenderfarben, Überlauf und Partnerfreigaben |
+| Browser | 165 Assertions mit synthetischen Daten; Import, Export, lokaler Tresor, Partnerkalender, Freigabewiderruf und 18 Ansichten in Hell/Dunkel |
+| Kalenderbreite | 18 zusätzliche Chromium-Layouts mit Breiten von 280 bis 700 px und drei Schriftgrößen; Gegenprobe erkennt den ursprünglichen Überlauf |
+| Android Release | Signierte APK und AAB gebaut; Lint ohne Fehler, 96 Warnungen |
+| Update-Kompatibilität | Paket de.lunara.app, Version 1.3.2, versionCode 22, gleiches Signierzertifikat |
 | Paketierung | Docker-Image enthält exakt die geprüften Web-Assets und die signierte APK |
 | Produktion | API-only-Update; Health/Readiness, Download-Hash, HTTP Range und Authentifizierungsgrenzen geprüft |
 | Datenbestand | Prüfsummen für Perioden, Freigaben und Benutzer vor/nach Update identisch; Datenbankcontainer unverändert |
-| Abhängigkeiten | npm-Audit der Produktionsabhängigkeiten ohne gemeldete Schwachstellen zum Prüfzeitpunkt |
+| Dashy | Gemeinsame Lunara-Kachel mit vorhandenem Logo; Sichtbarkeit und Zugangsrichtlinien für alle sechs normalen Benutzer geprüft |
 
 Die Geräteprüfung lief auf einem isolierten Android-Emulator, nicht auf den
 physischen Geräten der Nutzer. Browser- und Gerätetests verwenden ausschließlich
 synthetische Daten. Der Live-Download wurde zusätzlich über HTTPS geprüft.
-Ein anfangs fehlgeschlagener Wiederholungslauf nutzte eine bereits gefüllte
-Testdatenbank; nach korrekt begrenztem Zurücksetzen ausschließlich dieser
-Testdatenbank bestand die Suite. Drei Kalendertests wurden korrigiert, weil
-sie Text am Elternelement statt am tatsächlichen sichtbaren Kind prüften.
-Der CI-Lauf deckte außerdem einen fest codierten Testport auf; der Schutz folgt
-jetzt dem ausdrücklich konfigurierten Port, ohne andere Datenbankziele zuzulassen.
-Der Containerbau aktualisiert `perl-base` gezielt aus den Debian-Paketquellen
-und erhält in CI die tatsächliche Quellrevision statt eines veralteten Labels.
+Die kleinen Weblayouts deckten einen Überlauf durch das Zusammenspiel von
+Seitenverhältnis und Mindesthöhe auf; die Tagesfelder passen jetzt in ihre
+jeweilige Spalte. In Android wurde die Textbreite der Tageskennzeichen mit
+der Zellbreite abgeglichen, ohne die strengen Überlaufprüfungen abzuschwächen.
+
+Der Live-Container `local/lunara-api:1.3.2-calendar-20261028` wurde aus der
+Quellrevision `9853dd3` gebaut. Der Datenbankcontainer wurde nicht neu erstellt.
+API und Web sind gesund; ausgelieferte Web-Assets und APK stimmen bytegenau
+mit den geprüften Artefakten überein. Der HTML-Abruf berücksichtigt wie ein
+Browser den `Accept: text/html`-Header; ohne ihn liefert die Wurzelroute die
+API-Auskunft statt der Weboberfläche.
+
+Die zusätzlichen PostgreSQL-Integrationstests und der damalige Abhängigkeits-Audit
+gehören zum vorangegangenen 1.3.1-Prüflauf, nicht zu einer erneuten vollständigen
+Datenbank- oder Sicherheitsprüfung dieser Designänderung. Es wurden keine
+Server-Datenmodelle oder Partnerfreigaben geändert.
 
 ## Datenübertragung und Grenzen
 
