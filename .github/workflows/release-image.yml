@@ -69,9 +69,11 @@ jobs:
             echo "APK package/version does not match ${version}" >&2
             exit 1
           }
-          signer="$("${build_tools}/apksigner" verify --print-certs "${apk}" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          [[ "${signer}" == "${RELEASE_SIGNER_SHA256}" ]] || {
-            echo "APK is not signed with the release certificate" >&2
+          certs="$("${build_tools}/apksigner" verify --print-certs "${apk}")"
+          digests="$(printf '%s\n' "${certs}" | sed -n 's/^Signer.*certificate SHA-256 digest: *//p' | sort -u)"
+          echo "Signer digests: ${digests}"
+          [[ "${digests}" == "${RELEASE_SIGNER_SHA256}" ]] || {
+            echo "APK is not signed (only) with the release certificate" >&2
             exit 1
           }
 
