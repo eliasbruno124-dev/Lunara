@@ -66,8 +66,8 @@
     {
       "path": ".github/workflows/release-image.yml",
       "role": "CI",
-      "bytes": 5157,
-      "sha256": "aae4d504163616465d459078a7c7d4bd281dba870c45eb2be467de376238859e",
+      "bytes": 5187,
+      "sha256": "ab6807152a439e3b3129597a1b34e880b76083ee8c8f15bd4e7a934594663b78",
       "lines": 129,
       "symbols": []
     },
@@ -71252,9 +71252,9 @@
     {
       "path": "docs/INSTALL.md",
       "role": "Documentation or project configuration",
-      "bytes": 15294,
-      "sha256": "44fea274220da1421da2f2ad1f57c78873136cf9275132b5b8c8d8965c740980",
-      "lines": 345,
+      "bytes": 15474,
+      "sha256": "5c805e8a03b74563bcc373c8eac84a1ec68f6c1cb06d4832ed6a4bd654a9ab17",
+      "lines": 347,
       "symbols": []
     },
     {

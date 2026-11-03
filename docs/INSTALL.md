@@ -165,19 +165,21 @@ Benutzername und Passwort werden abgefragt und erscheinen weder auf dem
 Bildschirm noch in der Shell-History:
 
 ```bash
-read -rp  'Benutzername: ' LUNARA_USER
-read -rsp 'Passwort (mind. 8 Zeichen): ' LUNARA_PASSWORD; echo
+IFS= read -rp  'Benutzername: ' LUNARA_USER
+IFS= read -rsp 'Passwort (mind. 8 Zeichen): ' LUNARA_PASSWORD; echo
 TOKEN=$(grep ^BOOTSTRAP_TOKEN= .env | cut -d= -f2-)
 jq -n --arg u "$LUNARA_USER" --arg p "$LUNARA_PASSWORD" --arg t "$TOKEN" \
   '{username:$u, password:$p, displayName:$u, deviceName:"Einrichtung",
     preferredLanguage:"DE", bootstrapToken:$t}' \
   | curl -fsS https://lunara.deine-domain.de/api/v1/setup \
       -H 'Content-Type: application/json' --data-binary @- > /dev/null \
-  && echo "Konto angelegt"
+  && echo "Konto angelegt" \
+  || echo "FEHLER: Konto wurde NICHT angelegt – Token noch nicht entfernen"
 unset LUNARA_PASSWORD TOKEN
 ```
 
-Danach den Token entfernen, denn er wird nie wieder gebraucht:
+**Erst wenn das Konto angelegt ist** (Meldung „Konto angelegt“ bzw. Anmeldung
+in der App klappt), den Token entfernen. Er wird nie wieder gebraucht:
 
 ```bash
 sed -i 's/^BOOTSTRAP_TOKEN=.*/BOOTSTRAP_TOKEN=/' .env

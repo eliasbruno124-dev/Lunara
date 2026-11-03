@@ -51,7 +51,7 @@ jobs:
             exit 1
           fi
           revision="$(git rev-parse HEAD)"
-          newest="$(git tag --list 'v*.*.*' --sort=-v:refname | head -n 1)"
+          newest="$(git tag --list 'v*.*.*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "revision=${revision}" >> "${GITHUB_OUTPUT}"
           echo "latest=$([[ "${newest}" == "${tag}" ]] && echo true || echo false)" >> "${GITHUB_OUTPUT}"
