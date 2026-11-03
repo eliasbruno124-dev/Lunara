@@ -71672,29 +71672,29 @@
     {
       "path": "docs/screenshots/android-partner-forecast-121.png",
       "role": "Documentation or project configuration",
-      "bytes": 185384,
-      "sha256": "690217345cc43d37a9819d29b9dc3bfcc7caf273bf421e84e9d72ce3d4fa7d73",
+      "bytes": 177485,
+      "sha256": "c45c1362f2009e3216c9bae19268ab27582896a1058d413d40ec53005aa24569",
       "symbols": []
     },
     {
       "path": "docs/screenshots/android-partner-tip-121.png",
       "role": "Documentation or project configuration",
-      "bytes": 181447,
-      "sha256": "5e7b61cf2cb9a5a2784b59b695280a7e44d98eca021e0fafa3b8717517da6099",
+      "bytes": 180251,
+      "sha256": "6ac37fff2f7554375f1539c973a133b69142d4a602c4547838428c3ddc5d9051",
       "symbols": []
     },
     {
       "path": "docs/screenshots/android-tracker-dark.png",
       "role": "Documentation or project configuration",
-      "bytes": 160086,
-      "sha256": "6ac450cabd6b95c5e409d844e99bc8c01e1920bf5c133585b95bdfa14b0aeb45",
+      "bytes": 161741,
+      "sha256": "37a746c5e36ca33520c3f28841bc2021d7330b7318bc24bf22e20af2dbb66e27",
       "symbols": []
     },
     {
       "path": "docs/screenshots/android-tracker-light.png",
       "role": "Documentation or project configuration",
-      "bytes": 161006,
-      "sha256": "38d5150cd12d00ca7fda36d23dba360ad2b3cd947edf35d84654b3f5eed9f9fc",
+      "bytes": 162575,
+      "sha256": "4674086c64e6c35355990824b457d3a9479d24c5151f5c0aac66c689c3da37a5",
       "symbols": []
     },
     {
@@ -71770,43 +71770,43 @@
     {
       "path": "docs/screenshots/setup/01-mode-selection.png",
       "role": "Documentation or project configuration",
-      "bytes": 192615,
-      "sha256": "a2119a910fa3398b8f78fbab22f573a05f500eadffcc0cd529a958df59348cc5",
+      "bytes": 183650,
+      "sha256": "348bf0cd1a957d2e842ec543683e66f98b12b4a4287801d05a91d822355a9d23",
       "symbols": []
     },
     {
       "path": "docs/screenshots/setup/02-server-connection.png",
       "role": "Documentation or project configuration",
-      "bytes": 105400,
-      "sha256": "972f5a151b1b42009fb40072c581c1ca7e48ebdd794e84479de47db85969abd2",
+      "bytes": 91894,
+      "sha256": "deaa68baa989d688352c62d9e80cbb36b795d799c2d289d2f52e8abe5918e17b",
       "symbols": []
     },
     {
       "path": "docs/screenshots/setup/03-tracker-sharing.png",
       "role": "Documentation or project configuration",
-      "bytes": 246139,
-      "sha256": "d41cf4107e658c1309258accede89a17dd9c85b8865ddc8fd46b31412dc9364f",
+      "bytes": 152682,
+      "sha256": "d0b58e0f62ebf310bfa3c059e93821c79a239ee3db44f17796a6da1a7ef38f5c",
       "symbols": []
     },
     {
       "path": "docs/screenshots/setup/03b-tracker-fertility.png",
       "role": "Documentation or project configuration",
-      "bytes": 244552,
-      "sha256": "2f407ba09f192325bbfb716f64843bb9e77e6a5e92a823c9c580a069bca681eb",
+      "bytes": 211089,
+      "sha256": "0f9f186b591b07d09b2002c9a2e0ef3415bd7c86f6a46613fdd40678e19d9533",
       "symbols": []
     },
     {
       "path": "docs/screenshots/setup/04-partner-sharing-status.png",
       "role": "Documentation or project configuration",
-      "bytes": 152761,
-      "sha256": "91a8e1fe9154d6ce44b8f4af2c1d390b0195cd4b93b9ef15633751e6b53731cd",
+      "bytes": 149606,
+      "sha256": "1685be7642023ffedd2c3affdbaa3bc751b53e3485d0485014597b9f097ee44a",
       "symbols": []
     },
     {
       "path": "docs/screenshots/web-settings.png",
       "role": "Documentation or project configuration",
-      "bytes": 37121,
-      "sha256": "759538c0495f41571567aa1251ab7ec465f4f65d49d1977432b91b0a0816d7d5",
+      "bytes": 196412,
+      "sha256": "553937548b4c063799aa6bc3112ce8280e0a4f3984fb5771a8450a912ecb2cac",
       "symbols": []
     },
     {
@@ -73171,9 +73171,9 @@
     {
       "path": "scripts/android-ui-ci.sh",
       "role": "Build and maintenance",
-      "bytes": 1793,
-      "sha256": "c3bcc4be9f8ecbf80ebef8411b0ccd3fc11db658cc1d42e1dd8ab89d9b91bd45",
-      "lines": 34,
+      "bytes": 1968,
+      "sha256": "b662f9cfe55a9a07f3c9842a9ca086dee7fb63a316e164680fb71498e406bfc0",
+      "lines": 36,
       "symbols": []
     },
     {
