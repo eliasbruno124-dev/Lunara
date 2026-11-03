@@ -75,7 +75,7 @@ jobs:
             exit 1
           }
           printf '%s\n' "${certs}" | sed 's/^/apksigner: /'
-          digests="$(printf '%s\n' "${certs}" | sed -n 's/^Signer.*certificate SHA-256 digest: *//p' | sort -u)"
+          digests="$(printf '%s\n' "${certs}" | sed -n 's/^.*Signer.*certificate SHA-256 digest: *//p' | sort -u)"
           echo "Signer digests: ${digests}"
           [[ "${digests}" == "${RELEASE_SIGNER_SHA256}" ]] || {
             echo "APK is not signed (only) with the release certificate" >&2
