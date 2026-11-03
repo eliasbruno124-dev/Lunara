@@ -28,7 +28,7 @@ RUN npm ci --omit=dev \
     && npm run prisma:generate --workspace=@lunara/api
 
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587 AS runtime
-LABEL org.opencontainers.image.version="1.3.4-node-24.21.0"
+LABEL org.opencontainers.image.version="1.3.5-node-24.21.0"
 ENV NODE_ENV=production \
     PORT=3000
 RUN apt-get update \

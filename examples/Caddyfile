@@ -1,5 +1,5 @@
-# Caddy holt das HTTPS-Zertifikat automatisch. Voraussetzung: Die Domain in
-# LUNARA_DOMAIN zeigt per DNS auf diesen Server und die Ports 80/443 sind offen.
+# Caddy obtains the HTTPS certificate automatically. Requirement: the domain in
+# LUNARA_DOMAIN points to this server via DNS and ports 80/443 are open.
 {$LUNARA_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy lunara:3000

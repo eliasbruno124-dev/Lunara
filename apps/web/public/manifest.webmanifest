@@ -1,8 +1,8 @@
 {
-  "name": "Lunara – private Zyklusbegleitung",
+  "name": "Lunara – private cycle companion",
   "short_name": "Lunara",
-  "description": "Private, selbst gehostete Zyklusbegleitung für zwei Menschen.",
-  "lang": "de",
+  "description": "Private, self-hosted cycle tracking for two people.",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

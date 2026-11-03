@@ -1,192 +1,183 @@
-# Datenschutz
+# Privacy
 
-Lunara enthält keine Werbung, Telemetrie, externe Nutzungsanalyse,
-Marketing-SDKs, Firebase- oder Google-Play-Services-Pflicht. Welche Daten ein
-externer Reverse Proxy, Authentik, DNS-/CDN-Anbieter, Google Play, das
-Betriebssystem oder ein vom Benutzer ausgewählter Dateidienst verarbeitet,
-liegt außerhalb des Lunara-Anwendungscodes und muss der jeweilige Betreiber
-gesondert dokumentieren.
+Lunara contains no advertising, telemetry, external usage analytics,
+marketing SDKs, or Firebase or Google Play Services requirement. Data
+processing by an external reverse proxy, Authentik, DNS/CDN provider,
+Google Play, the operating system, or a file service chosen by the user
+is outside the Lunara application code and must be documented separately
+by the respective operator.
 
-## Betriebsarten und Speicherorte
+## Operating modes and storage locations
 
-| Modus | Primärer Speicher | Netzwerkübertragung |
+| Mode | Primary storage | Network transfer |
 | --- | --- | --- |
-| Android Solo | SQLCipher-Datenbank und Keystore-geschützte Einstellungen auf einem Gerät | keine Kernübertragung; nur ein vom Benutzer bewusst gewählter Backup-Dateianbieter |
-| Self-hosted Android | verschlüsselter lokaler Cache plus eigene Lunara-Instanz | HTTPS zur konfigurierten Domain |
-| PWA Solo | passphrasenverschlüsselter Vault in origin-gebundenem IndexedDB | keine Kernübertragung |
-| Self-hosted PWA | origin-gebundener Offlinecache plus eigene Lunara-Instanz | HTTPS zur gleichen Origin und optional zu den konfigurierten OIDC-Endpunkten |
+| Local-only Android | SQLCipher database and Keystore-protected settings on one device | No core data transfer; only a backup file provider explicitly chosen by the user |
+| Self-hosted Android | Encrypted local cache plus your own Lunara instance | HTTPS to the configured domain |
+| Local-only PWA | Passphrase-encrypted vault in origin-bound IndexedDB | No core data transfer |
+| Self-hosted PWA | Origin-bound offline cache plus your own Lunara instance | HTTPS to the same origin and optionally to the configured OIDC endpoints |
 
-## Solo auf Android
+## Local-only mode on Android
 
-Der Solomodus benötigt weder Konto noch Server. Er speichert Perioden,
-Tageslogs, lokale Prognosegrundlage, Profil- und Benachrichtigungseinstellungen
-ausschließlich auf dem Gerät. Die Datenbank ist mit SQLCipher verschlüsselt;
-Schlüssel und weitere Secrets sind an Android Keystore gebunden.
+Local-only mode requires neither an account nor a server. It stores periods,
+daily logs, the local prediction basis, profile settings, and notification
+settings exclusively on the device. The database is encrypted with SQLCipher,
+and keys and other secrets are bound to Android Keystore.
 
-Automatisches Android-Cloudbackup und systemseitige Gerät-zu-Gerät-
-Übertragung sind vollständig deaktiviert. Insbesondere lädt Lunara keine
-Gesundheitsdaten automatisch in ein Google-Konto.
+Automatic Android cloud backup and system-managed device-to-device transfer
+are completely disabled. In particular, Lunara does not automatically upload
+health data to a Google account.
 
-Für einen freiwilligen Gerätewechsel kann der Benutzer eine
-passphrasenverschlüsselte `.lunara`-Datei erzeugen. Der Android-Systemdateidialog
-zeigt alle vom Benutzer installierten Anbieter, darunter gegebenenfalls lokale
-Ordner, USB, Nextcloud oder Google Drive. Lunara erhält dabei nur Zugriff auf
-die konkret gewählte Datei, integriert kein Google-SDK und kennt keine
-Anmeldedaten des Anbieters. Der Anbieter kann die verschlüsselte Datei nach
-seinen eigenen Bedingungen verarbeiten.
+To transfer data to another device voluntarily, the user can create a
+passphrase-encrypted `.lunara` file. The Android system file picker shows all
+providers installed by the user, potentially including local folders, USB,
+Nextcloud, or Google Drive. Lunara receives access only to the specific file
+selected, integrates no Google SDK, and knows no provider credentials.
+The provider may process the encrypted file under its own terms.
 
-Die Backup-Passphrase wird nicht gespeichert und ist nicht wiederherstellbar.
-Ein Import ersetzt nach strikter Prüfung die vorhandenen Solodaten. Ein
-Import-Journal vollendet unterbrochene Einstellungswiederherstellung beim
-nächsten Start. Vor dem Löschen des alten Geräts müssen Zeitraum, Tageslogs und
-Einstellungen auf dem neuen Gerät geprüft werden.
+The backup passphrase is not stored and cannot be recovered. After strict
+validation, import replaces the existing local-only data. An import journal
+completes interrupted settings restoration at the next startup. Before wiping
+the old device, check the date range, daily logs, and settings on the new device.
 
-## Self-hosted gespeicherte Daten
+## Data stored in self-hosted mode
 
-Je nach Verwendung speichert der Server:
+Depending on use, the server stores:
 
-- **Konto:** Benutzername, Anzeigename, Sprache, deaktivierter Zustand,
-  Gerätesitzungen und serverseitige Rolle;
-- **interne Beziehungsgrenze:** UUID-Mandant, Mitgliedschaften, Einladungen,
-  Freigaben und Care Preferences;
-- **Gesundheit:** Periodenstart/-ende als lokales Kalenderdatum, Tageslogs,
-  Blutungsstärke, Schmerz, Stimmung, Energie, Schlaf, Temperatur,
-  Ovulationstest-Markierung, Symptome und optionale Notizen;
-- **Ableitungen:** Prognosezeitraum, Statistik, Erklärung und nur nach Opt-in
-  das grob geschätzte fruchtbare Fenster;
-- **Unterstützung:** Tippfeedback, eigene Tipps und zeitlich begrenzte
-  Check-ins;
-- **Sicherheit:** Anmeldung, fehlgeschlagene Anmeldung, neues Gerät,
-  Sitzungs-/Einladungswiderruf, OIDC-Verknüpfung, Freigabeänderung, Export und
-  Kontolöschung.
+- **Account:** Username, display name, language, disabled state,
+  device sessions, and server-side role;
+- **Internal relationship boundary:** UUID tenant, memberships, invitations,
+  sharing settings, and care preferences;
+- **Health:** Period start/end as local calendar dates, daily logs,
+  flow level, pain, mood, energy, sleep, temperature, ovulation test markers,
+  symptoms, and optional notes;
+- **Derived data:** Prediction window, statistics, explanation, and, only
+  after opting in, the roughly estimated fertile window;
+- **Support:** Tip feedback, personal tips, and time-limited check-ins;
+- **Security:** Sign-in, failed sign-in, new device, session/invitation
+  revocation, OIDC linking, sharing changes, export, and account deletion.
 
-Audit-Ereignisse enthalten keine Gesundheitswerte oder Notizinhalte.
-Freitextnotizen werden vor dem Schreiben mit dem Server-Master-Key
-verschlüsselt. Daten, Datum, Rolle und sonstige strukturierte Metadaten liegen
-nicht anwendungsseitig verschlüsselt in PostgreSQL. Check-in-Texte sind in
-Version 1 ebenfalls nicht zusätzlich mit dem Master-Key verschlüsselt.
+Audit events contain no health values or note contents. Free-text notes
+are encrypted with the server master key before writing. Data, dates,
+roles, and other structured metadata are stored in PostgreSQL without
+application-level encryption. In version 1, check-in text is likewise not
+additionally encrypted with the master key.
 
-Eine Instanz kann mehrere Paare aufnehmen. Jede öffentliche Tracker-
-Registrierung erzeugt eine neue serverseitig isolierte Beziehungsgrenze. Eine
-Partnerperson tritt ausschließlich über einen einmal verwendbaren Code mit
-eigenem Konto bei. Die technische Entität heißt intern `Household`, ist aber
-kein sichtbares Pflichtkonzept und keine gemeinsame Anmeldung.
+An instance can accommodate multiple couples. Each public tracker registration
+creates a new server-isolated relationship boundary. A partner joins exclusively
+through a single-use code with a separate account. Internally, the technical
+entity is named `Household`, but this is neither a mandatory visible concept
+nor a shared sign-in.
 
 ## Authentik/OIDC
 
-Authentik ist optional. Ohne Authentik verwendet Lunara nur die eigenen
-Konten. Mit Authentik veröffentlicht `/api/v1/meta` die nicht geheimen OIDC-
-Konfigurationswerte, damit der Client den Login starten kann.
+Authentik is optional. Without Authentik, Lunara uses only its own accounts.
+With Authentik, `/api/v1/meta` publishes the nonsecret OIDC configuration values
+so that the client can initiate sign-in.
 
-Nach bewusster Verknüpfung speichert Lunara:
+After explicit linking, Lunara stores:
 
-- den exakt geprüften OIDC-Issuer;
-- das opaque Subject der Authentik-Identität;
-- Zeitpunkt der Verknüpfung und letzten Nutzung;
-- die Zuordnung zum bestehenden Lunara-Benutzer.
+- The exact verified OIDC issuer;
+- The opaque subject of the Authentik identity;
+- The time of linking and last use;
+- The association with the existing Lunara user.
 
-Lunara übernimmt keine E-Mail-Adresse, kein Authentik-Passwort und kein Profil
-automatisch. Ein OIDC-Zugriffstoken wird nur zur Prüfung und zum Öffnen des
-Authentik-Proxys verwendet; Lunara speichert serverseitig keine Klartextkopie
-davon. Authentik selbst kann Login-, IP- und Sicherheitsereignisse nach der
-Konfiguration des Instanzbetreibers protokollieren.
+Lunara does not automatically adopt an email address, Authentik password,
+or profile. An OIDC access token is used only for verification and opening
+the Authentik proxy. Lunara stores no plaintext copy of it on the server.
+Authentik itself may log sign-in, IP, and security events according to
+the instance operator's configuration.
 
-`/api/v1/meta` und `/.well-known/assetlinks.json` sind im Authentik-Modus
-öffentlich. Meta enthält Produkt-/Versions-/Kompatibilitätsdaten, keine
-Konten. Asset Links enthält nur Package-ID und öffentliche
-Zertifikatsfingerprints.
+`/api/v1/meta` and `/.well-known/assetlinks.json` are public in Authentik mode.
+Metadata contains product/version/compatibility information, without accounts.
+Asset links contain only the package ID and public certificate fingerprints.
 
-## Partnerfreigaben
+## Partner sharing
 
-Standardmäßig sieht `PARTNER` nur den erwarteten Periodenzeitraum. Notizen,
-Symptome, Blutungsstärke, Schmerzen, Stimmung, Energie, Schlaf, tatsächliche
-Periodendaten, Phase und Fertilitätsdaten sind aus.
+By default, `PARTNER` sees only the expected period window. Notes, symptoms,
+flow level, pain, mood, energy, sleep, actual period dates, phase, and
+fertility data are disabled.
 
-Bei jeder Partneranfrage filtert der Server anhand:
+For every partner request, the server filters based on:
 
-- der aktuell aktiven Einzelfreigaben;
-- einer globalen Freigabepause;
-- eines optionalen privaten Tags;
-- des persönlichen Fertilitäts-Opt-ins;
-- der Einstellung für symptomabhängige Tipps.
+- Currently active individual sharing permissions;
+- A global sharing pause;
+- An optional private day;
+- The personal fertility opt-in;
+- The setting for symptom-dependent tips.
 
-Ein Freigabeentzug wirkt auf die nächste Serverantwort und bereinigt den
-autoritativen Partnercache. Er kann keine zuvor außerhalb von Lunara
-gespeicherten Screenshots, Abschriften oder Erinnerungen zurückholen. Tipps
-dürfen gesperrte Symptome weder nennen noch indirekt verraten.
+Revoking sharing affects the next server response and clears the authoritative
+partner cache. It cannot recover screenshots, transcripts, or memories
+previously saved outside Lunara. Tips must not mention blocked symptoms
+or reveal them indirectly.
 
-Das geschätzte fruchtbare Fenster ist standardmäßig deaktiviert, benötigt
-ausreichende Daten und eine getrennte Partnerfreigabe. Es bestätigt keine
-Ovulation und darf nicht zur Verhütung verwendet werden.
+The estimated fertile window is disabled by default, requires sufficient data,
+and needs separate partner sharing permission. It does not confirm ovulation
+and must not be used for contraception.
 
-## PWA und Offline-Speicher
+## PWA and offline storage
 
-Die PWA speichert Perioden, Offline-Mutationen, Sync-Cursor und Sitzungszustand
-in origin-gebundenem IndexedDB. Refresh- und Access-Tokens werden mit Web
-Crypto gekapselt. Im lokalen Solomodus liegt der komplette Vault mit
-AES-256-GCM und einem aus der nicht gespeicherten Solo-Passphrase abgeleiteten
-Schlüssel versiegelt vor; nach einem Seitenneustart ist erneutes Entsperren
-nötig.
+The PWA stores periods, offline mutations, sync cursors, and session state
+in origin-bound IndexedDB. Refresh and access tokens are wrapped with Web
+Crypto. In local-only mode, the entire vault is sealed with AES-256-GCM
+and a key derived from the unstored local-only passphrase. It must be
+unlocked again after a page restart.
 
-Im Self-hosted Modus können synchronisierte Gesundheitsdaten als normaler
-origin-gebundener Offlinecache gespeichert werden. Dieser Servercache ist
-nicht zusätzlich passphrasenverschlüsselt. Nutzer sollen ein persönliches,
-gesperrtes Browserprofil verwenden und die PWA auf geteilten Geräten
-abmelden.
+In self-hosted mode, synchronized health data can be stored as an ordinary
+origin-bound offline cache. This server cache has no additional passphrase
+encryption. Users should use a personal, locked browser profile and sign
+out of the PWA on shared devices.
 
-Screenshot-Schutz und Browserbenachrichtigungen sind in der PWA derzeit nicht
-ausführbar. Entsprechende importierte Einstellungen werden nicht verworfen,
-sondern im verschlüsselten Vault erhalten und als im Browser nicht anwendbar
-angezeigt. Der Solo-Vault sperrt bei versteckter Seite, `pagehide` und nach
-spätestens 15 Minuten Inaktivität; danach ist die Passphrase erneut nötig.
+Screenshot protection and browser notifications currently cannot run in
+the PWA. Corresponding imported settings are retained in the encrypted vault
+and shown as not applicable in the browser. The local-only vault locks when
+the page is hidden, on `pagehide`, and no later than 15 minutes of inactivity.
+The passphrase is then required again.
 
-Beim Kontoidentitätswechsel oder Logout werden kontogebundene Caches und
-Mutationsqueues bereinigt. Der Service Worker cached keine API-, Health-,
-Ready- oder OpenAPI-Antworten.
+Account identity changes or logout clear account-bound caches and mutation
+queues. The service worker does not cache API, health, ready, or OpenAPI responses.
 
-## Benachrichtigungen
+## Notifications
 
-Android-Erinnerungen sind pro Gerät standardmäßig aus und laufen lokal über
-WorkManager. Es gibt keine Firebase-Verbindung. Konfigurierbar sind unter
-anderem der geschätzte Periodenzeitraum, das nur grob geschätzte fruchtbare
-Fenster, Tracker-Eingabe, Partner-Tipp, Wunschzeit, Ruhezeit und maximale
-Tageshäufigkeit. Der Sperrbildschirmtext ist standardmäßig neutral.
+Android reminders are disabled by default on each device and run locally
+through WorkManager. There is no Firebase connection. Configurable options
+include the estimated period window, the roughly estimated fertile window,
+tracker logging, partner tips, preferred time, quiet hours, and maximum daily
+frequency. Lock-screen text is neutral by default.
 
-Partnerhinweise benötigen eine aktuelle serverseitig freigabefilterte
-Antwort. Ohne aktuelle Verbindung werden keine alten sensiblen Partnerhinweise
-erzeugt. Android darf WorkManager-Aufgaben aus Energiespargründen verzögern.
+Partner notifications require a current response filtered by sharing permissions
+on the server. Without a current connection, no old sensitive partner
+notifications are generated. Android may delay WorkManager tasks for
+power-saving reasons.
 
-## Export, Import und Löschung
+## Export, import, and deletion
 
-Die Server-API unterstützt JSON, Perioden-CSV, Tageslog-CSV sowie einen
-AES-256-GCM-passwortgeschützten JSON-Export. Der Serverimport validiert Lunara-
-JSON, bietet eine Vorschau und erkennt Duplikate. Ein visueller generischer
-CSV-Zuordnungsassistent und vollständiges Import-Undo sind noch nicht
-implementiert.
+The server API supports JSON, period CSV, daily log CSV, and an AES-256-GCM
+password-protected JSON export. Server import validates Lunara JSON, provides
+a preview, and detects duplicates. A visual generic CSV mapping wizard and
+complete import undo are not yet implemented.
 
-Die native Solofunktion verwendet das separate portable `.lunara`-Format und
-ist direkt in den Android-Einstellungen verfügbar. Es ersetzt nach Bestätigung
-den lokalen Solo-Datenbestand; Serverkonten werden dadurch nicht importiert.
+The native local-only feature uses the separate portable `.lunara` format
+and is available directly in Android Settings. After confirmation, it replaces
+the local-only data on the device. Server accounts are not imported by this process.
 
-Die Kontolöschungs-API verlangt eine erneute persönliche Bestätigung,
-widerruft Sessions und löscht den betroffenen internen Mandanten entsprechend
-der Rolle. Die vollständige Android-Oberfläche für serverseitigen Export,
-Import und Kontolöschung ist noch nicht abgeschlossen. Serverbackups können
-gelöschte Daten bis zum Ablauf der vom Instanzbetreiber festgelegten
-Aufbewahrungsfrist enthalten.
+The account deletion API requires renewed personal confirmation, revokes
+sessions, and deletes the affected internal tenant according to the role.
+The complete Android interface for server-side export, import, and account
+deletion is not yet finished. Server backups may contain deleted data until
+the retention period set by the instance operator expires.
 
-## Verantwortlichkeiten
+## Responsibilities
 
-- Der App-Publisher verantwortet APK/AAB, eingebaute SDKs, Store-Angaben und
-  Updatekanal.
-- Der Self-hosting-Betreiber verantwortet Serverstandort, Domain, TLS,
-  Authentik-/Proxy-Logs, Backups, Aufbewahrung und Adminzugriff.
-- Die trackende Person bestimmt die Partnerfreigaben.
-- Die Partnerperson darf nur die serverseitig freigegebene Projektion nutzen.
-- Ein freiwillig gewählter Backup-Dateianbieter verantwortet seine eigene
-  Verarbeitung der verschlüsselten Datei.
+- The app publisher is responsible for the APK/AAB, bundled SDKs, store
+  information, and update channel.
+- The self-hosting operator is responsible for server location, domain,
+  TLS, Authentik/proxy logs, backups, retention, and administrative access.
+- The person tracking their cycle determines partner sharing permissions.
+- The partner may use only the projection shared by the server.
+- A voluntarily chosen backup file provider is responsible for its own
+  processing of the encrypted file.
 
-Diese technische Datei ersetzt keine auf den konkreten Publisher, Betreiber,
-Zielländer und Aufbewahrungsfristen zugeschnittene öffentliche
-Datenschutzerklärung. Für Google Play werden eine anonym erreichbare
-Datenschutzseite und eine Kontolöschungsseite benötigt.
+This technical file does not replace a public privacy policy tailored to
+the specific publisher, operator, target countries, and retention periods.
+Google Play requires an anonymously accessible privacy page and an
+account deletion page.

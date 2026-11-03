@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import de.lunara.app.core.locale.AppLanguage
 import de.lunara.app.MainActivity
 import de.lunara.app.R
 import javax.inject.Inject
@@ -23,6 +24,9 @@ import javax.inject.Singleton
 class LunaraNotificationManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
+    // Android 12 and older: resolve texts in the language chosen since process start.
+    private fun text(id: Int): String = AppLanguage.wrap(context).getString(id)
+
     fun createChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -30,18 +34,18 @@ class LunaraNotificationManager @Inject constructor(
             listOf(
                 NotificationChannel(
                     CYCLE_CHANNEL,
-                    context.getString(R.string.notification_channel_cycle),
+                    text(R.string.notification_channel_cycle),
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply {
-                    description = context.getString(R.string.notification_channel_cycle_description)
+                    description = text(R.string.notification_channel_cycle_description)
                     lockscreenVisibility = Notification.VISIBILITY_PRIVATE
                 },
                 NotificationChannel(
                     SUPPORT_CHANNEL,
-                    context.getString(R.string.notification_channel_support),
+                    text(R.string.notification_channel_support),
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply {
-                    description = context.getString(R.string.notification_channel_support_description)
+                    description = text(R.string.notification_channel_support_description)
                     lockscreenVisibility = Notification.VISIBILITY_PRIVATE
                 },
             ),
@@ -55,8 +59,8 @@ class LunaraNotificationManager @Inject constructor(
         val (title, body) = localizedContent(candidate.content)
         val generic = NotificationCompat.Builder(context, channel(candidate.type))
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notification_generic_title))
-            .setContentText(context.getString(R.string.notification_generic_body))
+            .setContentTitle(text(R.string.notification_generic_title))
+            .setContentText(text(R.string.notification_generic_body))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
@@ -108,7 +112,7 @@ class LunaraNotificationManager @Inject constructor(
             R.string.notification_log_title to R.string.notification_log_body
         NotificationContent.PARTNER_TIP_AVAILABLE ->
             R.string.notification_tip_title to R.string.notification_tip_body
-    }.let { (title, body) -> context.getString(title) to context.getString(body) }
+    }.let { (title, body) -> text(title) to text(body) }
 
     private fun channel(type: NotificationType): String = when (type) {
         NotificationType.PARTNER_TIP -> SUPPORT_CHANNEL

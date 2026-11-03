@@ -1,42 +1,38 @@
-# Google-Play-Veröffentlichung
+# Google Play release
 
-Stand dieser Checkliste: 25. August 2026. Google ändert Fristen und Formulare
-regelmäßig; deshalb müssen die verlinkten Primärquellen vor **jeder** Einreichung
-noch einmal geprüft werden. Dieses Dokument ist eine technische und
-produktbezogene Checkliste, keine Rechtsberatung.
+Checklist as of August 25, 2026. Google regularly changes deadlines and forms,
+so the linked primary sources must be checked again before **every** submission.
+This document is a technical and product checklist, not legal advice.
 
-## Harte Freigabebedingungen
+## Mandatory release conditions
 
-Lunara darf erst an einen öffentlichen Play-Track übergeben werden, wenn alle
-folgenden Punkte belegt sind:
+Lunara may only be submitted to a public Play track once all of the following
+points have been demonstrated:
 
-- eine verifizierte Organisation ist Publisher. Google verlangt für Health Apps
-  ein Organisationskonto; dafür ist grundsätzlich eine D-U-N-S-Nummer nötig;
-- `de.lunara.app` ist als dauerhafte Application-ID bestätigt. Eine in Play
-  angelegte Paket-ID kann nicht wiederverwendet werden;
-- ein signiertes **Production-Release-AAB** wurde aus genau dem freizugebenden
-  Commit gebaut und auf einem internen Track installiert;
-- Release-Tests, Datenschutzprüfung und ein Netzwerk-/SDK-Audit sind
-  abgeschlossen;
-- öffentliche Datenschutz- und Kontolöschungsseiten sowie ein erreichbarer
-  Supportkontakt existieren;
-- Google kann Solo- und Servermodus mit dauerhaften Review-Zugängen vollständig
-  prüfen;
-- Health-Apps-Erklärung, Data Safety, App Access, Zielgruppe, Inhaltsbewertung
-  und alle weiteren in Play Console angezeigten Erklärungen sind vollständig
-  und stimmen mit der ausgelieferten App überein.
+- a verified organization is the publisher. Google requires an organization
+  account for health apps; this generally requires a D-U-N-S number;
+- `de.lunara.app` is confirmed as the permanent application ID. A package ID
+  created in Play cannot be reused;
+- a signed **production release AAB** was built from exactly the commit being
+  released and installed from an internal track;
+- release testing, a privacy review and a network/SDK audit are complete;
+- public privacy and account deletion pages and a reachable support contact exist;
+- Google can fully review local-only and server modes using persistent review access;
+- the Health apps declaration, Data safety, App access, target audience, content
+  rating and all other declarations shown in Play Console are complete and
+  match the app being shipped.
 
-Google beschreibt die aktuellen Kontoanforderungen unter
+Google describes the current account requirements in
 [Play Console Requirements](https://support.google.com/googleplay/android-developer/answer/10788890?hl=en)
-und die benötigten Organisationsangaben unter
+and the required organization information in
 [Required information to create a Play Console developer account](https://support.google.com/googleplay/android-developer/answer/13628312?hl=en).
 
-## AAB, Versionierung und Signierung
+## AAB, versioning and signing
 
-Die Production-Debug/Testinstallation, Release-APK und ein unsigned Bundle aus
-`artifacts/` sind **keine** Play-Store-Artefakte. Für Play wird ein mit dem privaten
-Upload-Key signiertes Android App Bundle gebaut. Der Keystore liegt nur auf
-dem Release-Server; Gradle liest ihn über exakt diese vier Variablen:
+The production debug/test installation, release APK and an unsigned bundle
+from `artifacts/` are **not** Play Store artifacts. For Play, build an Android
+App Bundle signed with the private upload key. The keystore exists only on
+the release server; Gradle reads it through exactly these four variables:
 
 ```bash
 export LUNARA_UPLOAD_KEYSTORE=/sicherer/pfad/lunara-upload.p12
@@ -47,226 +43,217 @@ cd apps/android
 ./gradlew clean bundleProductionRelease
 ```
 
-Der erwartete Gradle-Ausgabepfad ist
-`app/build/outputs/bundle/productionRelease/app-production-release.aab`. Der
-Befehl ist erst releasefähig, wenn alle vier Werte gesetzt sind. Eine
-Teilkonfiguration bricht bewusst ab; fehlen alle vier Werte, erzeugt Gradle
-ein unsigniertes Referenzbundle. Keystore, Alias und Passwörter dürfen weder in
-Git noch in CI-Logs oder Build-Artefakten landen. Der lokale 1.1.0-
-Releasekandidat `artifacts/lunara-play-upload.aab` wurde tatsächlich mit einem
-serverlokalen Upload-Key gebaut und seine Signatur geprüft. Das beweist noch
-nicht die Freigabe oder Installation durch Google Play.
+The expected Gradle output path is
+`app/build/outputs/bundle/productionRelease/app-production-release.aab`.
+The command is only suitable for release when all four values are set.
+A partial configuration deliberately aborts; if all four values are absent,
+Gradle produces an unsigned reference bundle. The keystore, alias and passwords
+must never appear in Git, CI logs or build artifacts. The local 1.1.0 release
+candidate `artifacts/lunara-play-upload.aab` was actually built using an upload
+key stored only on the server, and its signature was verified. This does not
+yet demonstrate approval or installation through Google Play.
 
-Für neue Apps ist Play App Signing verpflichtend. Dabei bleiben zwei Aufgaben
-getrennt:
+Play App Signing is mandatory for new apps. It separates two responsibilities:
 
-- Der Betreiber schützt den **Upload-Key** und signiert damit das AAB.
-- Google Play verwaltet den **App-Signing-Key** und signiert die an Geräte
-  ausgelieferten APKs.
+- The operator protects the **upload key** and uses it to sign the AAB.
+- Google Play manages the **app signing key** and signs the APKs delivered to devices.
 
-Upload- und App-Signing-Key sollen verschieden sein. Lunara verwendet auf dem
-beim Build konfigurierten Host für Authentik-OIDC einen Android-verifizierten
-HTTPS App Link. Deshalb muss nach der Play-App-Signing-Aktivierung der SHA-256-
-Fingerprint des **Play App Signing Certificate** in der Lunara-
-`assetlinks.json` stehen; der Upload-Zertifikatsfingerprint allein ist dafür
-falsch. Anschließend muss die Domainverifikation mit einem aus dem internen
-Play-Track installierten Build geprüft werden.
+The upload and app signing keys should be different. For Authentik OIDC,
+Lunara uses an Android-verified HTTPS App Link on the host configured at
+build time. After enabling Play App Signing, the SHA-256 fingerprint of the
+**Play App Signing Certificate** must therefore be present in Lunara's
+`assetlinks.json`; the upload certificate fingerprint alone is incorrect for
+this purpose. Then verify the domain association using a build installed
+from the internal Play track.
 
-Die Play-/Production-App verwendet diesen festen Publisher-App-Link unabhängig
-von der Self-hosting-API- oder Authentik-Domain. Jeder Instanzbetreiber
-registriert exakt denselben HTTPS-Redirect. Der Production-OIDC-Provider darf
-keinen Custom-Scheme- oder Debug-Redirect enthalten: PKCE authentifiziert
-keinen öffentlichen Client und würde eine fremde App mit eigener
-PKCE-Anfrage nicht als Lunara ausweisen.
+The Play/production app uses this fixed publisher App Link independently of
+the self-hosted API or Authentik domain. Every instance operator registers
+exactly the same HTTPS redirect. The production OIDC provider must not contain
+a custom-scheme or debug redirect: PKCE does not authenticate a public client
+and would not identify a third-party app making its own PKCE request as Lunara.
 
-Ein Betreiber kann für eine eigene Distribution einen Production-Build mit
-`LUNARA_APP_LINK_HOST` erstellen, auf diesem kontrollierten Host die passende
-`assetlinks.json` veröffentlichen und ausschließlich dessen HTTPS-Redirect
-registrieren. Custom Scheme bleibt ausschließlich dem Android-`local`-Flavor
-mit getrenntem Entwicklungsprovider und eigener client_id vorbehalten; kein
-Production-Manifest enthält diesen Intent-Filter.
+For their own distribution, an operator can create a production build with
+`LUNARA_APP_LINK_HOST`, publish the matching `assetlinks.json` on that controlled
+host and register only its HTTPS redirect. A custom scheme remains reserved
+for the Android `local` flavor with a separate development provider and its
+own client_id; no production manifest contains that intent filter.
 
-Der private 1.1.0-Production-Release wurde für `lunara.3li361.de` mit dem
-zugehörigen HTTPS App Link verifiziert. Diese Prüfung überträgt sich nicht
-automatisch auf einen später von Google mit einem anderen App-Signing-Key
-signierten Build; nach Play-Einschreibung ist die Verifikation mit dem Play-
-Zertifikat zu wiederholen.
+The private 1.1.0 production release was verified for `lunara.3li361.de`
+with its corresponding HTTPS App Link. This verification does not automatically
+apply to a later build signed by Google with a different app signing key;
+after enrolling in Play, repeat the verification with the Play certificate.
 
-Offizielle Details zur Schlüsseltrennung stehen in
+Official details about key separation are available in
 [Use Play App Signing](https://support.google.com/googleplay/android-developer/answer/9842756?hl=en)
-und [Upload your app to the Play Console](https://developer.android.com/studio/publish/upload-bundle).
+and [Upload your app to the Play Console](https://developer.android.com/studio/publish/upload-bundle).
 
-Vor jedem Upload:
+Before every upload:
 
-1. `versionCode` strikt erhöhen und `versionName`/Changelog festlegen.
-2. Production-Flavor bauen; keine Debug-Signatur, keine unsichere HTTP-Option.
-3. AAB-Signatur, Manifest, Berechtigungen, minSdk und targetSdk prüfen.
-4. Commit, AAB und SBOM mit SHA-256 dokumentieren; Upload-Key getrennt sichern.
-5. Play-App-Signing-Zertifikat in `assetlinks.json` eintragen, öffentliche
-   Antwort sowie Android-Domainverifikation prüfen.
-6. Das von Play erzeugte Artefakt vom internen Track auf echten Geräten
-   installieren und Solo-, Server-, OIDC-, Backup- und Upgradepfad testen.
+1. Strictly increase `versionCode` and set `versionName` and the changelog.
+2. Build the production flavor; use no debug signature or insecure HTTP option.
+3. Check the AAB signature, manifest, permissions, minSdk and targetSdk.
+4. Record the commit, AAB and SBOM with SHA-256; back up the upload key separately.
+5. Add the Play App Signing certificate to `assetlinks.json`, then check the
+   public response and Android domain verification.
+6. Install the artifact generated by Play from the internal track on real
+   devices and test local-only, server, OIDC, backup and upgrade flows.
 
-Die App zielt im aktuellen Projekt auf API 36. Ab 31. August 2026 müssen neue
-Apps und Updates für Android-Smartphones API 36 oder höher ansprechen; die
-verbindliche, aktuelle Tabelle steht unter
+The current project targets API 36. From August 31, 2026, new apps and updates
+for Android phones must target API 36 or higher; the binding, current table
+is available in
 [Target API level requirements](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en).
 
-## Play-Console-Ablauf
+## Play Console process
 
-1. Organisationskonto und Publisher-Daten verifizieren; Support-E-Mail,
-   Telefonnummer und Website dauerhaft erreichbar halten.
-2. App mit endgültiger Paket-ID anlegen und Play-App-Signing-Bedingungen
-   akzeptieren.
-3. Store Listing mit den vorbereiteten deutschen und englischen Texten,
-   eigenem Icon sowie echten, lokalisierten Screenshots anlegen.
-4. App-Inhalte vollständig ausfüllen: Datenschutz, Data Safety, Health Apps,
-   App Access, Werbung, Alters-/Zielgruppe und Inhaltsbewertung.
-5. Signiertes AAB zuerst intern verteilen, danach kontrolliert geschlossen
-   testen und erst nach behobenen Pre-Launch-/Policy-Befunden veröffentlichen.
-6. Für Produktion einen gestaffelten Rollout mit beobachteter Server-
-   Kompatibilität und dokumentiertem Rollback verwenden.
+1. Verify the organization account and publisher information; keep the support
+   email address, phone number and website permanently reachable.
+2. Create the app with its final package ID and accept the Play App Signing terms.
+3. Create the store listing using the prepared German and English text,
+   your own icon and real, localized screenshots.
+4. Complete all app content sections: privacy, Data safety, Health apps,
+   App access, ads, age/target audience and content rating.
+5. Distribute the signed AAB internally first, then conduct a controlled closed
+   test, and publish only after resolving pre-launch and policy findings.
+6. For production, use a staged rollout with monitored server compatibility
+   and a documented rollback procedure.
 
-Google dokumentiert App-Anlage, dauerhafte Paket-ID und Listing-Grenzen unter
+Google documents app creation, permanent package IDs and listing limits in
 [Create and set up your app](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en).
 
-### Testanforderungen
+### Testing requirements
 
-Für **persönliche** Entwicklerkonten, die nach dem 13. November 2023 erstellt
-wurden, verlangt Google derzeit einen geschlossenen Test mit mindestens zwölf
-durchgehend angemeldeten Testpersonen über mindestens 14 aufeinanderfolgende
-Tage, bevor Produktionszugang beantragt werden kann. Lunara ist eine Health
-App und soll gemäß der aktuellen Kontorichtlinie über ein Organisationskonto
-veröffentlicht werden; diese besondere Personal-Account-Regel ersetzt dennoch
-keine sorgfältigen internen und geschlossenen Tests. Primärquellen:
+For **personal** developer accounts created after November 13, 2023,
+Google currently requires a closed test with at least twelve continuously
+opted-in testers over at least 14 consecutive days before production access
+can be requested. Lunara is a health app and should be published through an
+organization account under the current account policy; this special personal
+account rule still does not replace careful internal and closed testing.
+Primary sources:
 [Testing requirements for new personal accounts](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)
-und [Set up a test](https://support.google.com/googleplay/android-developer/answer/9845334?hl=en).
+and [Set up a test](https://support.google.com/googleplay/android-developer/answer/9845334?hl=en).
 
 ## Health Apps Declaration
 
-Lunara muss mindestens als **Period Tracking** erklärt werden. Diese Google-
-Kategorie umfasst ausdrücklich Menstruationszyklus-Tracking, Ovulations-
-Tracking/-Vorhersage und Fertility Awareness. Die optionale Schätzung eines
-fruchtbaren Fensters darf deshalb nicht weggelassen werden.
+Lunara must be declared as at least **Period Tracking**. This Google category
+explicitly includes menstrual cycle tracking, ovulation tracking/prediction
+and fertility awareness. The optional fertile window estimate must therefore
+not be omitted.
 
-Weitere Kategorien werden nur gewählt, wenn der tatsächlich eingereichte Build
-sie als eigenständige Funktion anbietet. Ein einzelnes Feld zur Schlafqualität
-im Zykluslog ist beispielsweise nicht automatisch als eigenständiges
-Schlafmanagement zu vermarkten; andererseits darf eine solche Funktion auch
-nicht verborgen werden, falls sie im Produkt zu einem echten Schlaftracking
-ausgebaut wird. Maßgeblich ist stets der prüfbare Funktionsumfang, nicht der
-gewünschte Marketingtext.
+Select additional categories only if the build actually being submitted
+offers them as a standalone feature. For example, a single sleep quality
+field in the cycle log should not automatically be marketed as standalone
+sleep management; conversely, such a feature must not be hidden if the product
+is expanded to provide actual sleep tracking. The verifiable feature set
+always determines the declaration, rather than the desired marketing copy.
 
-Die Erklärung wird unter **Policy > App content > Health apps** ausgefüllt.
-Google erläutert Kategorien und Ablauf unter
+Complete the declaration under **Policy > App content > Health apps**.
+Google explains the categories and process in
 [Provide information for the Health apps declaration](https://support.google.com/googleplay/android-developer/answer/14738291?hl=en).
 
-Lunara wird nicht als Medizinprodukt positioniert. Die Store-Beschreibung und
-relevante In-App-Ansichten müssen daher klar sagen:
+Lunara is not positioned as a medical device. The store description and
+relevant in-app screens must therefore clearly state:
 
-> Lunara ist kein Medizinprodukt und diagnostiziert, behandelt, heilt oder
-> verhindert keine Erkrankung. Wende dich für medizinische Beratung, Diagnose
-> oder Behandlung an medizinisches Fachpersonal.
+> Lunara is not a medical device and does not diagnose, treat, cure or
+> prevent any disease. Consult a healthcare professional for medical advice,
+> diagnosis or treatment.
 
-Zusätzlich gilt: Zyklusphase, nächster Periodenzeitraum und fruchtbares Fenster
-sind statistische Schätzungen. Das fruchtbare Fenster bestätigt keine
-Ovulation und darf nicht als Verhütungsmethode verwendet werden. Google fordert
-für nicht regulierte Health Apps einen eindeutigen Nicht-Medizinprodukt-
-Disclaimer und den Verweis auf Fachpersonal; siehe
+In addition, cycle phase, the next period window and the fertile window
+are statistical estimates. The fertile window does not confirm ovulation
+and must not be used as a contraceptive method. Google requires a clear
+non-medical-device disclaimer and a reference to healthcare professionals
+for unregulated health apps; see
 [Health Content and Services](https://support.google.com/googleplay/android-developer/answer/16679511?hl=en).
 
-Die beabsichtigte Produktklassifizierung muss vor Vermarktung in allen
-Zielländern von einer dafür qualifizierten Stelle geprüft werden. Der
-Disclaimer allein entscheidet keine gesetzliche Medizinprodukteinstufung.
+Before marketing, the intended product classification must be reviewed by
+a qualified body in every target country. The disclaimer alone does not
+determine the legal classification as a medical device.
 
 ## Data Safety
 
-Google definiert „collected“ grundsätzlich als Übertragung aus der App vom
-Gerät. Der Solo-Modus verarbeitet seine Daten nur lokal und fällt insoweit
-nicht unter diese Übertragung. Sobald der freiwillige Self-hosted-Modus Daten
-an einen ausgewählten Server sendet, findet jedoch eine Off-Device-Übertragung
-statt. Deshalb wäre die pauschale Antwort „keine Daten erhoben“ für das gesamte
-Play-Paket nicht belastbar.
+Google generally defines "collected" as transmission from the app off the
+device. Local-only mode processes its data solely on the device and therefore
+does not involve such transmission. However, once the optional self-hosted
+mode sends data to a selected server, an off-device transmission takes place.
+A blanket "no data collected" answer for the entire Play package would
+therefore be unsupported.
 
-Vor dem Ausfüllen muss ein finaler Traffic- und SDK-Audit genau des signierten
-AAB erfolgen. Als Arbeitsgrundlage sind mindestens diese Datentypen zu prüfen:
+Before completing the form, conduct a final traffic and SDK audit of the
+exact signed AAB. At minimum, assess these data types as a starting point:
 
-| Play-Datentyp | Lunara-Beispiele im Servermodus | Typischer Zweck |
+| Play data type | Lunara examples in server mode | Typical purpose |
 | --- | --- | --- |
-| Name | frei gewählter Anzeigename | App-Funktion, Kontoverwaltung |
-| User IDs | Benutzername, interne Konto-/Sitzungskennung, OIDC-Subjekt | Anmeldung, Kontoverwaltung, Sicherheit |
-| Health info | Perioden, Symptome, Schmerzen, Temperatur, Schlafqualität, abgeleitete Zeiträume | App-Funktion |
-| Other user-generated content | Notizen, eigene Symptome, Care Preferences, eigene Tipps | App-Funktion, Personalisierung |
-| Other in-app messages | Check-in-Fragen und Antworten | App-Funktion |
-| Device or other IDs | nur wählen, falls die finale Implementierung eine nach Googles Definition personen-/gerätebeziehbare Gerätekennung überträgt | Sitzung/Sicherheit |
+| Name | freely chosen display name | App functionality, account management |
+| User IDs | username, internal account/session ID, OIDC subject | Sign-in, account management, security |
+| Health info | periods, symptoms, pain, temperature, sleep quality, derived windows | App functionality |
+| Other user-generated content | notes, custom symptoms, care preferences, personal tips | App functionality, personalization |
+| Other in-app messages | check-in questions and answers | App functionality |
+| Device or other IDs | select only if the final implementation transmits a device ID that can identify a person/device under Google's definition | Session/security |
 
-Die Tabelle ist **keine vorab ausgefüllte Erklärung**. Für jeden Datentyp sind
-Collection, Sharing, Optionalität, Zweck, Aufbewahrung und Löschung anhand des
-Release-Builds zu beantworten. Weil jede Person den Solo-Modus ohne Server
-wählen kann, kann Off-Device-Collection voraussichtlich als optional gelten;
-auch das ist unmittelbar vor Einreichung gegen den echten Ablauf zu prüfen.
+This table is **not a pre-completed declaration**. For every data type,
+answer the collection, sharing, optionality, purpose, retention and deletion
+questions on the basis of the release build. Because anyone can choose
+local-only mode without a server, off-device collection can probably be
+classified as optional; this also needs to be checked against the actual
+flow immediately before submission.
 
-Partnerfreigaben sind bewusste, nutzergesteuerte Übertragungen. Ob sie in der
-Play-Taxonomie unter die Ausnahme für nutzerinitiierte Weitergabe fallen und
-wie der unabhängige Self-host-Betreiber einzuordnen ist, muss konsistent mit
-Datenschutztext und realem Betriebsmodell entschieden werden. Nicht
-automatisch „no sharing“ auswählen.
+Partner sharing consists of deliberate, user-controlled transmissions.
+Whether these fall under the Play taxonomy exception for user-initiated
+sharing, and how the independent self-hosting operator should be classified,
+must be decided consistently with the privacy text and actual operating
+model. Do not automatically select "no sharing".
 
-Lunara selbst verwendet keine Werbe- oder Analytics-SDKs. Das bedeutet nicht,
-dass Google Play, Android, der gewählte Reverse Proxy, Authentik oder der
-selbst betriebene Server keinerlei technische Daten verarbeiten. Diese
-Verarbeitung ist getrennt zu erheben und ehrlich zu beschreiben. Die App darf
-„data encrypted in transit“ nur angeben, solange der Production-Build HTTPS
-erzwingt und alle produktiven Ziele korrektes TLS verwenden.
+Lunara itself uses no advertising or analytics SDKs. This does not mean
+that Google Play, Android, the selected reverse proxy, Authentik or the
+self-hosted server process no technical data. Identify and describe this
+processing separately and honestly. The app may only declare "data encrypted
+in transit" while the production build enforces HTTPS and all production
+destinations use correct TLS.
 
-Offizielle Definitionen, Ausnahmen, globale Betrachtung aller veröffentlichten
-Versionen und Datentypen stehen unter
+Official definitions, exceptions, the global assessment of all published
+versions and data types are available in
 [Provide information for the Data safety section](https://support.google.com/googleplay/android-developer/answer/10787469)
-und [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en).
+and [User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en).
 
-## Datenschutz- und Löschseiten
+## Privacy and deletion pages
 
-Die Repository-Datei `PRIVACY.md` ist eine gute technische Grundlage, aber ein
-privates GitHub-Repository und eine durch Authentik gesperrte Domain erfüllen
-die Play-Vorgabe nicht. Vor Veröffentlichung werden benötigt:
+The repository file `PRIVACY.md` is a useful technical starting point, but
+a private GitHub repository and a domain protected by Authentik do not meet
+the Play requirement. Before publication, you need:
 
-- eine aktive, weltweit öffentlich erreichbare, nicht geogesperrte HTTPS-URL;
-- eine normale, nicht editierbare Webseite, ausdrücklich **kein PDF**;
-- derselbe Link in Play Console und gut auffindbar in der App;
-- Name von App und Publisher, Datenschutzkontakt, alle Datenarten,
-  Empfänger/Rollen, Zwecke, Schutz, Aufbewahrung, Export und Löschung;
-- eine zweite öffentliche URL, über die eine Kontolöschung angefordert werden
-  kann, falls die App serverseitige Konten erstellen lässt;
-- eine klar auffindbare Löschfunktion in der App selbst. Deaktivieren oder
-  Sperren eines Kontos reicht nicht als Löschung.
+- an active HTTPS URL accessible publicly worldwide, without geographic restrictions;
+- a regular, non-editable webpage, explicitly **not a PDF**;
+- the same link in Play Console and an easily discoverable link in the app;
+- the app and publisher names, a privacy contact, all data types,
+  recipients/roles, purposes, protection, retention, export and deletion;
+- a second public URL through which account deletion can be requested
+  if the app allows server-side accounts to be created;
+- a clearly discoverable deletion feature within the app itself. Disabling
+  or suspending an account is insufficient for deletion.
 
-Beim Self-hosting muss die öffentliche Seite erklären, welche Pflichten beim
-Publisher und welche beim jeweiligen Instanzbetreiber liegen. Sie muss auch
-Solo-Modus, manuellen Backuptransfer, Self-hosted-Servermodus, PWA, optionales
-Authentik und mögliche Infrastruktur-Logs abdecken. Konkrete
-Aufbewahrungsfristen dürfen erst eingetragen werden, wenn der Betreiber sie
-tatsächlich durchsetzt.
+For self-hosting, the public page must explain which obligations belong to
+the publisher and which belong to each instance operator. It must also cover
+local-only mode, manual backup transfers, self-hosted server mode, the PWA,
+optional Authentik and possible infrastructure logs. Only specify concrete
+retention periods once the operator actually enforces them.
 
-## Reviewer-Zugang für eine Self-hosted App
+## Reviewer access for a self-hosted app
 
-Für den Review wird eine eigene, dauerhaft erreichbare Instanz mit rein
-synthetischen Beispieldaten bereitgestellt. Sie ist vom Produktivsystem
-getrennt und enthält keine realen Gesundheitsdaten. In **App content > App
-access** werden bis zu zwei wiederverwendbare Konten bereitgestellt:
+Provide a dedicated, permanently reachable instance containing exclusively
+synthetic example data for review. It is isolated from production and
+contains no real health data. Under **App content > App access**, provide
+up to two reusable accounts:
 
-- ein `TRACKER` mit vollständigem Zugriff auf Eintrag, Prognose, Freigaben und
-  Partner-Einladung;
-- ein `PARTNER`, um die serverseitig gefilterte Partneransicht zu prüfen.
+- a `TRACKER` with full access to logging, predictions, sharing and partner invitations;
+- a `PARTNER` for reviewing the partner view filtered by the server.
 
-Der Zugang muss rund um die Uhr, unabhängig vom Standort und ohne ablaufendes
-OTP, manuelle Freischaltung oder nicht dokumentierte QR-Abhängigkeit
-funktionieren. Falls Authentik aktiviert ist, benötigt der Reviewer entweder
-einen dedizierten wiederverwendbaren Authentik-Testzugang ohne erzwungenes 2FA
-oder eine ausschließlich für die Review-Instanz dokumentierte, sichere
-Alternative. Zugangsdaten werden **nur** in Play Console hinterlegt, niemals in
-dieser Datei, Git, Screenshots oder Store-Texten.
+Access must work around the clock, regardless of location, without an expiring
+OTP, manual activation or an undocumented QR dependency. If Authentik is enabled,
+the reviewer needs either a dedicated, reusable Authentik test account without
+mandatory 2FA or a secure alternative documented exclusively for the review
+instance. Store credentials **only** in Play Console, never in this file,
+Git, screenshots or store text.
 
-Vorlage für die englischen App-Access-Anweisungen:
+Template for the English App access instructions:
 
 ```text
 1. Start Lunara and choose "Use own server".
@@ -282,28 +269,28 @@ PARTNER username: <PLAY_CONSOLE_ONLY>
 PARTNER password: <PLAY_CONSOLE_ONLY>
 ```
 
-Vor jeder Einreichung die Anleitung auf einem frischen Gerät exakt aus dem
-Play-Formular nachspielen. Google fordert aktive Demo-Zugänge und alle
-Hilfsmittel für die vollständige Prüfung ausdrücklich in den
+Before every submission, follow the instructions exactly as written in the
+Play form on a fresh device. Google explicitly requires active demo accounts
+and all resources needed for a complete review in
 [Play Console Requirements](https://support.google.com/googleplay/android-developer/answer/10788890?hl=en).
 
-## Letzte Go/No-Go-Prüfung
+## Final go/no-go check
 
-- [ ] Organisationskonto, D-U-N-S und veröffentlichte Kontaktdaten stimmen.
-- [ ] Application-ID, App-Name und Branding sind langfristig entschieden.
-- [ ] Signiertes Production-AAB aus sauberem Commit; Upload-Key extern
-      gesichert und Play App Signing aktiviert.
-- [ ] Play-App-Signing-Fingerprint in öffentlicher `assetlinks.json`; App Link
-      mit einem aus dem internen Track installierten Build verifiziert.
-- [ ] API 36 oder die dann neuere verpflichtende Stufe ist erfüllt.
-- [ ] Internes Play-Artefakt auf mindestens zwei Android-Versionen und einem
-      kleinen sowie großen Bildschirm geprüft.
-- [ ] Solo-Daten, manueller verschlüsselter Restore und Self-hosted Sync geprüft.
-- [ ] Tracker-/Partnerrollen, Freigabeentzug und OIDC-Login geprüft.
-- [ ] Health Apps Declaration und Disclaimer stimmen mit allen Funktionen überein.
-- [ ] Data Safety basiert auf finalem Traffic-/SDK-Audit, nicht auf Annahmen.
-- [ ] Öffentliche Privacy- und Account-Deletion-URLs sind anonym erreichbar.
-- [ ] Review-Instanz und beide Konten funktionieren ohne zeitabhängige Schritte.
-- [ ] Store-Texte, Screenshots und Supportseite enthalten keine fremden Assets,
-      medizinischen Versprechen oder vertraulichen Daten.
-- [ ] Bekannte Einschränkungen, Support- und Updatezeitraum sind veröffentlicht.
+- [ ] Organization account, D-U-N-S and published contact details are correct.
+- [ ] Application ID, app name and branding are decided for the long term.
+- [ ] Signed production AAB from a clean commit; upload key backed up externally
+      and Play App Signing enabled.
+- [ ] Play App Signing fingerprint in public `assetlinks.json`; App Link
+      verified with a build installed from the internal track.
+- [ ] API 36 or the newer level required at that time is met.
+- [ ] Internal Play artifact tested on at least two Android versions and on
+      a small and a large screen.
+- [ ] Local-only data, manual encrypted restore and self-hosted sync tested.
+- [ ] Tracker/partner roles, sharing revocation and OIDC sign-in tested.
+- [ ] Health Apps Declaration and disclaimer match all features.
+- [ ] Data Safety is based on the final traffic/SDK audit, rather than assumptions.
+- [ ] Public privacy and account deletion URLs are accessible anonymously.
+- [ ] Review instance and both accounts work without time-dependent steps.
+- [ ] Store text, screenshots and support page contain no third-party assets,
+      medical promises or confidential data.
+- [ ] Known limitations and support/update periods are published.

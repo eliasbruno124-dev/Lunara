@@ -158,8 +158,8 @@ promoted into the global seed. Existing private notes are not used as wishes.
 
 ## Localization
 
-The server selects the account's preferred language, with German as the product
-default and English as the supported fallback. A seed migration must fail if
+The server selects the account's preferred language, with English as the product
+default (since 1.3.5) and German as the second supported language. A seed migration must fail if
 either locale or any of `title`, `body`, and `callToAction` is missing.
 Clients must not combine fields from different locales in a single tip.
 Personal wishes entered in Android preserve the author's words in both language

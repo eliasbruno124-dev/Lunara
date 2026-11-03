@@ -1,9 +1,11 @@
 package de.lunara.app
 
 import android.app.Application
+import android.content.Context
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import de.lunara.app.core.locale.AppLanguage
 import de.lunara.app.notifications.LunaraNotificationManager
 import de.lunara.app.data.backup.PortableLocalBackupRepository
 import kotlinx.coroutines.CoroutineScope
@@ -19,8 +21,14 @@ class LunaraApplication : Application(), Configuration.Provider {
     @Inject lateinit var portableLocalBackupRepository: PortableLocalBackupRepository
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    override fun attachBaseContext(base: Context) {
+        AppLanguage.initialize(base)
+        super.attachBaseContext(AppLanguage.wrap(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
+        AppLanguage.handOverToFramework(this)
         notificationManager.createChannels()
         applicationScope.launch {
             runCatching { portableLocalBackupRepository.resumePendingImport() }

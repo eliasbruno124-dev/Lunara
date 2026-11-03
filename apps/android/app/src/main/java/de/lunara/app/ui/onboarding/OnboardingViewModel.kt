@@ -1,9 +1,8 @@
 package de.lunara.app.ui.onboarding
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
+import de.lunara.app.core.locale.AppLanguage
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import de.lunara.app.BuildConfig
@@ -67,7 +66,7 @@ enum class OnboardingError {
 
 data class OnboardingUiState(
     val stage: OnboardingStage = OnboardingStage.INTRO,
-    val language: String = "de",
+    val language: String = AppLanguage.DEFAULT,
     // Deliberately blank: a production server or credential-bearing gateway URL must never
     // appear in a distributable APK or be silently selected for a new user.
     val serverUrl: String = "",
@@ -93,10 +92,10 @@ class OnboardingViewModel @Inject constructor(
     private val _state = MutableStateFlow(OnboardingUiState())
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
 
+    /** Mirrors the language the UI is currently shown in; persisting it is the caller's job. */
     fun chooseLanguage(language: String) {
-        require(language == "de" || language == "en")
+        require(AppLanguage.isSupported(language))
         _state.update { it.copy(language = language) }
-        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(language))
     }
 
     fun continueFromIntro() = _state.update { it.copy(stage = OnboardingStage.SERVER, error = null) }

@@ -14,12 +14,12 @@ lunara_compose() {
 
 exec 9>"${lock_file}"
 if ! flock -n 9; then
-  echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
+  echo "Another Lunara backup, update, or restore operation is already running." >&2
   exit 1
 fi
 
 if [[ ! -f "${env_file}" ]]; then
-  echo "Fehlt: ${env_file}" >&2
+  echo "Missing: ${env_file}" >&2
   exit 1
 fi
 
@@ -58,5 +58,5 @@ NOTE
 )
 chmod 0600 -- "${archive}"
 
-echo "Backup erstellt: ${archive}"
-echo "APP_MASTER_KEY ist absichtlich nicht enthalten und muss separat gesichert sein."
+echo "Backup created: ${archive}"
+echo "APP_MASTER_KEY is intentionally excluded and must be backed up separately."

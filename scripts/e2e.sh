@@ -9,7 +9,7 @@ project_name="lunara-e2e-$RANDOM-$$"
 db_port="${LUNARA_E2E_DB_PORT:-55432}"
 
 if [[ ! "${db_port}" =~ ^[0-9]+$ ]] || (( db_port < 1024 || db_port > 65535 )); then
-  echo "LUNARA_E2E_DB_PORT muss ein freier Port zwischen 1024 und 65535 sein." >&2
+  echo "LUNARA_E2E_DB_PORT must be an available port between 1024 and 65535." >&2
   exit 1
 fi
 export LUNARA_E2E_DB_PORT="${db_port}"
@@ -44,4 +44,4 @@ npm run prisma:migrate:deploy --workspace=@lunara/api
 npm run build --workspace=@lunara/api
 npm run test:e2e --workspace=@lunara/api
 
-echo "Isolierter PostgreSQL-18-E2E-Ablauf erfolgreich."
+echo "Isolated PostgreSQL 18 E2E flow succeeded."

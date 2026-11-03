@@ -72,7 +72,7 @@ export class JoinHouseholdDto extends CredentialsDto {
 
   @ApiPropertyOptional({
     enum: PreferredLanguage,
-    default: PreferredLanguage.DE,
+    default: PreferredLanguage.EN,
   })
   @IsOptional()
   @IsEnum(PreferredLanguage)

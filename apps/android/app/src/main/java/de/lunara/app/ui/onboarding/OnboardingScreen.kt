@@ -51,6 +51,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import android.app.Activity
+import android.os.Build
+import de.lunara.app.core.locale.AppLanguage
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.heading
@@ -77,12 +83,22 @@ import com.journeyapps.barcodescanner.ScanContract
 @Composable
 fun OnboardingRoute(viewModel: OnboardingViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val shownLanguage = LocalConfiguration.current.locales[0].language
+    LaunchedEffect(shownLanguage) {
+        viewModel.chooseLanguage(if (shownLanguage == AppLanguage.GERMAN) AppLanguage.GERMAN else AppLanguage.ENGLISH)
+    }
     val authentikLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         viewModel.completeAuthentikLogin(result.data)
     }
     OnboardingScreen(
         state = state,
-        onLanguage = viewModel::chooseLanguage,
+        onLanguage = { language ->
+            viewModel.chooseLanguage(language)
+            AppLanguage.set(context, language)
+            // Android 13+ recreates the activity itself after the per-app language changes.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) (context as? Activity)?.recreate()
+        },
         onContinue = viewModel::continueFromIntro,
         onLocalMode = viewModel::beginLocalSetup,
         onLocalSubmit = viewModel::submitLocalSetup,

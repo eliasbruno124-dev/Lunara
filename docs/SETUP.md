@@ -1,311 +1,291 @@
-# Lunara einrichten
+# Setting up Lunara
 
-Diese Anleitung beschreibt Lunara 1.3.4. Die Bilder zeigen die tatsächliche
-Oberfläche mit synthetischen Testkonten und Beispieldaten; keine privaten
-Konten, Passwörter oder Gesundheitsdaten.
+This guide describes Lunara 1.3.5. The screenshots show the real interface
+with synthetic test accounts and sample data; no private accounts, passwords
+or health data.
 
-## 1. Nur allein nutzen? Die APK genügt
+Lunara starts in English on new installations. German can be selected on the
+first screen (and on Android 13+ also in the system's per-app language
+settings).
 
-Für die lokale Android-Nutzung brauchst du **nur die APK aus GitHub und ein
-Android-Gerät ab Android 8**. Du benötigst keinen eigenen Server, kein Docker,
-kein Authentik und kein Benutzerkonto. Die Server-Anleitung ist für diesen
-Weg nicht erforderlich.
+## 1. Just for yourself? The APK is enough
 
-1. Öffne die [Lunara-Releases auf GitHub](https://github.com/eliasbruno124-dev/Lunara/releases)
-   und lade die signierte `lunara-release.apk` des gewünschten Releases.
-2. Öffne die Datei auf Android. Erlaube bei Bedarf die Installation aus dem
-   verwendeten Browser oder Dateimanager. Nur Dateien aus einer Quelle
-   installieren, der du vertraust.
-3. Starte Lunara und wähle **Nur auf diesem Gerät**.
-4. Gib einen Anzeigenamen ein und wähle **Lokal starten**.
+For local use on Android you **only need the APK from GitHub and a device with
+Android 8 or newer**. You do not need your own server, Docker, Authentik or a
+user account. The server guide is not required for this path.
 
-<img src="screenshots/setup/01-mode-selection.png" width="330" alt="Lunara-Start mit den getrennten Wegen Nur auf diesem Gerät und Server oder Partner verbinden">
+1. Open the [Lunara releases on GitHub](https://github.com/eliasbruno124-dev/Lunara/releases)
+   and download the signed `lunara-release.apk` of the release you want.
+2. Open the file on Android. If asked, allow installation from the browser or
+   file manager you used. Only install files from a source you trust.
+3. Start Lunara and choose **Only on this device**.
+4. Enter a display name and choose **Start locally**.
 
-Der Anzeigename erzeugt kein Serverkonto. Perioden, Tagesprotokolle,
-Kalender und lokale Erinnerungen funktionieren auf dem Gerät.
-Die Datenbank ist mit SQLCipher und einem Android-Keystore-Schlüssel
-verschlüsselt. Es gibt in diesem Modus keine Partnersynchronisation.
+<img src="screenshots/setup/01-mode-selection.png" width="330" alt="Lunara start with the separate paths Only on this device and Connect a server or partner">
 
-Wichtig: Deinstallation, Löschen der App-Daten oder Verlust des Geräts sind
-kein Gerätewechselverfahren. Erstelle regelmäßig ein
-[verschlüsseltes Backup](#5-sichern-und-das-gerät-wechseln).
+The display name does not create a server account. Periods, daily logs, the
+calendar and local reminders work on the device. The database is encrypted
+with SQLCipher and an Android Keystore key. There is no partner
+synchronization in this mode.
 
-## 2. Mit einem eigenen Server verbinden
+Important: uninstalling, clearing the app data or losing the device is not a
+way to change devices. Create an
+[encrypted backup](#5-backing-up-and-changing-devices) regularly.
 
-Diesen Abschnitt brauchst du nur für Geräte-Synchronisation oder die
-gemeinsame Nutzung. Falls noch kein Lunara-Server existiert, richtet ihn
-der Betreiber zuerst anhand von [DEPLOYMENT.md](../DEPLOYMENT.md) ein.
-Die App installiert keinen Docker-Stack und keinen Authentik-Server.
+## 2. Connecting to your own server
+
+You only need this section for device synchronization or sharing. If no
+Lunara server exists yet, the operator sets it up first using
+[INSTALL.md](INSTALL.md) or [DEPLOYMENT.md](../DEPLOYMENT.md). The app does not
+install a Docker stack or an Authentik server.
 
 ### Android
 
-1. Wähle beim Start **Server oder Partner verbinden**.
-2. Trage die normale HTTPS-Adresse ein, zum Beispiel
-   `https://lunara.example.com`. Keine Passwörter oder Tokens in die URL
-   aufnehmen.
-3. Wähle **Verbindung testen**. Erst nach einer erfolgreichen Prüfung
-   erscheint der passende Anmelde-/Einrichtungsweg.
+1. On first start choose **Connect a server or partner**.
+2. Enter the normal HTTPS address, for example `https://lunara.example.com`.
+   Do not put passwords or tokens into the URL.
+3. Choose **Test connection**. The matching sign-in or setup path only appears
+   after a successful check.
 
-<img src="screenshots/setup/02-server-connection.png" width="330" alt="Android-Einrichtung mit Server-URL und Verbindung testen; Beispieladresse ohne Zugangsdaten">
+<img src="screenshots/setup/02-server-connection.png" width="330" alt="Android setup with server URL and Test connection; example address without credentials">
 
-Welche Auswahl danach richtig ist:
+Which option is right afterwards:
 
-| Situation | Vorgehen |
+| Situation | What to do |
 | --- | --- |
-| Noch vollständig leerer Server | Betreiber erstellt über **Lunara erstmals einrichten** das erste Trackerkonto mit dem lokal verwahrten Bootstrap-Token. |
-| Vorhandenes Konto | **Ich habe bereits ein Konto** wählen und mit derselben Identität anmelden. |
-| Neue eigene Tracker-Beziehung | Nur bei aktivierter Registrierung **Neue Beziehung starten** wählen. |
-| Einladung als Partner erhalten | **Ich habe eine Einladung** wählen und den persönlichen Code verwenden. |
-| Authentik wird angeboten | Im Systembrowser mit dem vorgesehenen eigenen Authentik-Konto anmelden; die App erhält die Rückkehr über ihren verifizierten App-Link. |
+| Completely empty server | The operator creates the first tracker account via **Set up Lunara for the first time** using the bootstrap token kept on the server. |
+| Existing account | Choose **I already have an account** and sign in with the same identity. |
+| New tracker relationship of your own | Only if registration is enabled: choose **Start a new relationship**. |
+| Received an invitation as a partner | Choose **I have an invitation** and use the personal code. |
+| Authentik is offered | Sign in with your own Authentik account in the system browser; the app receives the return via its verified app link. |
 
-Ein Bootstrap-Token gehört nur in das dafür vorgesehene App-Feld der eigenen
-Instanz – niemals in Chat, Screenshot oder GitHub. Nach der Einrichtung wird
-er nicht zum normalen Anmelden gebraucht.
+A bootstrap token only belongs in the dedicated app field of your own
+instance – never in a chat, screenshot or GitHub. It is not needed for normal
+sign-in after setup.
 
-Bei Authentik nicht versehentlich ein neues Trackerprofil anlegen, wenn du
-ein bestehendes Profil öffnen oder als Partner beitreten möchtest.
-Gleiche E-Mail-Adresse oder gleicher Anzeigename verknüpfen keine Konten
-automatisch. Auf einer fremden API-Domain muss der Betreiber außerdem die
-[Publisher-App-Link-Vorgaben](../DEPLOYMENT.md#android-api-domain-ist-nicht-der-callback-host)
-des verwendeten Android-Builds beachten.
+With Authentik, do not accidentally create a new tracker profile if you want to
+open an existing profile or join as a partner. The same e-mail address or
+display name does not link accounts automatically. On a different API domain
+the operator also has to follow the
+[publisher app-link requirements](../DEPLOYMENT.md#android-the-api-domain-is-not-the-callback-host)
+of the Android build in use.
 
-### Web-App
+### Web app
 
-Öffne dieselbe HTTPS-Adresse im Browser. Ein bereits eingerichtetes
-Serverkonto kann dort angemeldet werden. Eine leere Instanz wird zuerst
-über Android eingerichtet.
+Open the same HTTPS address in the browser. An account that already exists on
+the server can sign in there. An empty instance is set up first via Android or
+directly on the server (see [INSTALL.md](INSTALL.md#5-creating-the-first-account)).
 
-Die Web-App lässt sich bei unterstützten Browsern installieren. Auf iPhone:
-**Teilen → Zum Home-Bildschirm**. Die Installation als Web-App und die native
-Android-APK sind zwei verschiedene Dinge.
+The web app can be installed in supported browsers. On iPhone:
+**Share → Add to Home Screen**. Installing the web app and the native Android
+APK are two different things.
 
-Unter **Einstellungen → App & Verbindung** befindet sich immer der native
-APK-Download. Er lädt `/api/v1/downloads/lunara.apk` von genau diesem Server.
-Bei Authentik bleibt die bestehende Gateway-Anmeldung erforderlich.
+Under **Settings → App & connection** there is always the native APK download.
+It loads `/api/v1/downloads/lunara.apk` from exactly this server. With
+Authentik, the existing gateway sign-in is still required.
 
-<img src="screenshots/setup/05-web-apk-download.png" width="660" alt="Web-Einstellungen App und Verbindung mit dem nativen Android-APK-Download">
+<img src="screenshots/hd/06-app-and-connection.png" width="330" alt="Web settings App & connection with the native Android APK download">
 
-Die Web-App hat auch einen lokalen Solomodus mit passphrasenverschlüsseltem
-Tresor. Sie muss jedoch zunächst von einem erreichbaren Webserver geladen
-werden. Für Android-Solo ohne eigene Infrastruktur ist die APK der direkte
-Weg.
+The web app also has a local solo mode with a passphrase-encrypted vault.
+However, it first has to be loaded from a reachable web server. For Android
+solo use without your own infrastructure, the APK is the direct path.
 
-## 3. Partner verbinden
+## 3. Connecting a partner
 
-Die trackende Person und der Partner verwenden getrennte Konten.
-Ein gemeinsames Passwort ist weder nötig noch vorgesehen.
+The tracking person and the partner use separate accounts. A shared password
+is neither needed nor intended.
 
-1. Trackende Person: **Android-Einstellungen → Partner verbinden** oder
-   **Web-Einstellungen → Gemeinsam nutzen** öffnen und eine Einladung
-   erstellen.
-2. Den einmal verwendbaren Code beziehungsweise Einladungslink nur an die
-   vorgesehene Person weitergeben. Er enthält kein Kontopasswort.
-3. Partner: Einladung in der App eingeben oder scannen beziehungsweise den
-   Link öffnen und mit dem eigenen Konto ausdrücklich bestätigen.
-4. Bei Authentik erst den vorgesehenen persönlichen Zugang bestätigen und
-   die Einladung mit genau diesem Konto einlösen.
+1. Tracking person: open **Android settings → Connect partner** or
+   **Web settings → Using Lunara together** and create an invitation.
+2. Only pass the single-use code or invitation link on to the intended person.
+   It does not contain an account password.
+3. Partner: enter or scan the invitation in the app, or open the link, and
+   confirm it explicitly with your own account.
+4. With Authentik, first confirm the intended personal access and redeem the
+   invitation with exactly that account.
 
-Ein vorhandenes leeres Trackerkonto kann nach ausdrücklicher Bestätigung
-zum Partnerkonto werden. Ein Konto mit bestehenden Gesundheitsdaten wird
-nicht stillschweigend geleert oder verschoben. Ist bereits eine Verbindung
-vorhanden, keine weiteren Konten „zum Ausprobieren“ anlegen.
+An existing empty tracker account can become a partner account after explicit
+confirmation. An account with existing health data is never silently emptied
+or moved. If a connection already exists, do not create additional accounts
+"to try things out".
 
-## 4. Freigaben bewusst wählen
+## 4. Choosing what to share
 
-**Verbunden zu sein ist nicht dasselbe wie Daten zu teilen.** Die trackende
-Person entscheidet unter **Android-Einstellungen → Datenschutzfreigaben**,
-was der Partner sehen darf.
+**Being connected is not the same as sharing data.** The tracking person
+decides under **Android settings → Privacy sharing** what the partner may see.
 
-Für den Kalender sind insbesondere getrennt:
+For the calendar, these are separate:
 
-- **Tatsächliche Periodendaten teilen**: bereits erfasste Perioden.
-- **Erwarteten Zeitraum teilen**: geschätzter nächster Zeitraum.
-- **Geschätztes fruchtbares Fenster teilen**: die optionale grobe
-  Fruchtbarkeitsschätzung.
+- **Share actual period dates**: periods that have already been recorded.
+- **Share expected date range**: the estimated next range.
+- **Share estimated fertile window**: the optional rough fertility estimate.
 
 <p>
-  <img src="screenshots/setup/03-tracker-sharing.png" width="330" alt="Tracker-Datenschutzfreigaben mit getrennten Schaltern für die erlaubten Kalenderangaben">
-  <img src="screenshots/setup/03b-tracker-fertility.png" width="330" alt="Weiter gescrollte Freigaben mit dem vollständigen Hinweis: Das geschätzte fruchtbare Fenster ist nicht zur Verhütung geeignet">
+  <img src="screenshots/setup/03-tracker-sharing.png" width="330" alt="Tracker privacy sharing with separate switches for the permitted calendar details">
+  <img src="screenshots/setup/03b-tracker-fertility.png" width="330" alt="Sharing scrolled further, with the full note that the estimated fertile window is not suitable for contraception">
 </p>
 
-Die optionale Fruchtbarkeitsschätzung muss zusätzlich unter
-**Zyklus & Schätzungen** bewusst aktiviert sein. Eine Freigabe allein erzeugt
-noch keine Schätzung. Es müssen genügend geeignete vollständige Zyklen
-vorliegen; Sondermodi oder unzureichend verlässliche Daten können eine
-Schätzung verhindern.
+The optional fertility estimate additionally has to be enabled on purpose
+under **Cycle & estimates**. Sharing alone does not create an estimate. There
+must be enough suitable complete cycles; special modes or insufficiently
+reliable data can prevent an estimate.
 
-Der Partner kann den effektiven Status ansehen, aber nicht umschalten:
+The partner can see the effective status but cannot change it:
 
-- Android: **Einstellungen → Partner verbinden → Kalenderfreigaben**.
-- Web: **Einstellungen → Gemeinsam nutzen → Kalenderfreigaben**.
+- Android: **Settings → Connect partner → Calendar sharing**.
+- Web: **Settings → Using Lunara together → Calendar sharing**.
 
-<img src="screenshots/setup/04-partner-sharing-status.png" width="330" alt="Partneransicht mit rein lesendem Freigabestatus für Periodendaten und fruchtbares Zeitfenster">
+<img src="screenshots/setup/04-partner-sharing-status.png" width="330" alt="Partner view with read-only sharing status for period dates and the fertile window">
 
-„Nicht freigegeben“ ist kein Hinweis auf gelöschte Daten. „Freigegeben“
-garantiert umgekehrt noch keine vorhandenen Einträge oder berechenbare
-Schätzung. Bei älteren Servern oder fehlender Antwort kann der Status
-unbekannt sein. Offline angezeigte Zustände sind zuletzt gespeicherte
-Informationen, keine aktuelle Bestätigung des Servers.
+"Not shared" is no indication of deleted data. Conversely, "Shared" does not
+guarantee that entries exist or that an estimate can be calculated. With older
+servers or a missing response the status can be unknown. States shown offline
+are the last saved information, not a current confirmation from the server.
 
-Eine Freigabepause oder ein privater Tag kann die effektive Sichtbarkeit
-einschränken. Die Partneransicht verrät daraus keine verborgenen Einträge
-und bietet keine Möglichkeit, diese Schutzmechanismen zu umgehen.
+A sharing pause or a private day can restrict the effective visibility. The
+partner view does not reveal hidden entries and offers no way to bypass these
+protections.
 
-Lunara bestätigt keinen Eisprung. Das fruchtbare Fenster ist eine unsichere
-Kalenderschätzung und darf **nicht zur Verhütung** verwendet werden.
+Lunara does not confirm ovulation. The fertile window is an uncertain calendar
+estimate and must **not be used for contraception**.
 
-### Kalenderfarben in App und Web
+### Calendar colours in the app and on the web
 
-- **Rosé, P:** tatsächlich erfasster Periodentag.
-- **Amber, ≈, gestrichelt:** geschätzte Periode, einschließlich möglichem Beginn und weiterer Tage.
-- **Türkis, F?:** grob geschätztes fruchtbares Fenster.
+- **Rose, P:** a period day that was actually recorded.
+- **Amber, ≈, dashed:** estimated period, including the possible start and
+  further days.
+- **Teal, F?:** roughly estimated fertile window.
 
-Erfasste Tage haben Vorrang vor Schätzungen. Der heutige Tag ist unterstrichen;
-eine Auswahl überschreibt seine Kategorie nicht. Die Legende erklärt die
-Symbole auch ohne Farberkennung. Alle Prognosen bleiben Schätzungen.
+Recorded days take precedence over estimates. Today is underlined; a selection
+does not override its category. The legend explains the symbols without
+relying on colour. All predictions remain estimates.
 
-<img src="screenshots/setup/08-calendar-colors.png" width="330" alt="Mobiler Webkalender mit drei Legendenchips: Rosé für erfasste Tage, Amber für geschätzte Perioden und Türkis für geschätzte Fruchtbarkeit">
+<img src="screenshots/hd/04-tracker-calendar-estimate.png" width="330" alt="Mobile web calendar with an estimated period and the legend for recorded and estimated days">
 
-### Was die Schätzungen aussagen
+### What the estimates mean
 
-Lunara vergleicht die letzten geeigneten Zyklusabstände. Wenige oder stark
-schwankende Einträge ergeben größere Zeitfenster. Die angezeigte Sicherheit
-ist eine interne Einordnung der Datenbasis, keine gemessene Trefferquote.
-Auch regelmäßig erfasste Zyklen garantieren keinen bestimmten Starttag.
+Lunara compares the most recent suitable cycle lengths. Few or strongly
+varying entries produce wider ranges. The confidence shown is an internal
+classification of the data basis, not a measured hit rate. Even regularly
+recorded cycles do not guarantee a particular start day.
 
-Das fruchtbare Fenster wird aus dem Kalender und der eingestellten
-Lutealphasenlänge geschätzt. Temperatur, LH-Tests und Symptome werden nicht
-zur Bestätigung eines Eisprungs verrechnet. Das Fenster ist deshalb nicht
-zur Verhütung geeignet. Aktuelle medizinische Empfehlungen unterscheiden
-Kalenderprognosen von der Beobachtung tatsächlicher Fruchtbarkeitszeichen.
+The fertile window is estimated from the calendar and the configured luteal
+phase length. Temperature, LH tests and symptoms are not used to confirm
+ovulation. The window is therefore not suitable for contraception. Current
+medical recommendations distinguish calendar predictions from observing actual
+fertility signs.
 
-Ist das erwartete Startfenster bereits vorbei oder sind Änderungen noch
-nicht synchronisiert, zeigt die Zusammenfassung keine vermeintlich aktuelle
-Prognose. Bestehende Einträge und Kalenderdaten bleiben dabei erhalten.
+If the expected start range has already passed or changes have not been
+synchronized yet, the summary does not show a supposedly current prediction.
+Existing entries and calendar data are kept.
 
-Die Android-Ansicht der trackenden Person nutzt im Servermodus die bekannte
-Profilzeitzone. Web- und Partneransicht kennen diese Einstellung derzeit nicht
-und prüfen die Tagesgrenze nach Gerätezeit. Bei Reisen über Zeitzonen hinweg
-kann deshalb die Einstufung „aktuell“ rund um Mitternacht vom Server abweichen.
-Die gespeicherten Periodendaten werden dadurch nicht verschoben.
+In server mode, the tracking person's Android view uses the known profile time
+zone. The web and partner views do not know this setting yet and check the day
+boundary using the device time. When travelling across time zones, the
+"current" classification around midnight can therefore differ from the server.
+The stored period data is not shifted by this.
 
-## 5. Sichern und das Gerät wechseln
+## 5. Backing up and changing devices
 
-### Android im Solomodus
+### Android in solo mode
 
-**Einstellungen → Konto und Sicherheit → Portables verschlüsseltes Backup**
-öffnen und **Backup erstellen** wählen. Die `.lunara`-Datei über den
-Systemdateidialog an einem eigenen sicheren Ziel speichern. Ein installierter
-Dateianbieter wie Nextcloud, Google Drive oder ein USB-Speicher kann dabei
-als Ziel dienen; Lunara benötigt dafür kein eigenes Cloudkonto.
+Open **Settings → Account and security → Portable encrypted backup** and choose
+**Create backup**. Save the `.lunara` file to a safe destination of your choice
+via the system file dialog. An installed file provider such as Nextcloud,
+Google Drive or a USB drive can serve as the destination; Lunara does not need
+its own cloud account for this.
 
-Eine eigene starke Backup-Passphrase wählen und getrennt sicher aufbewahren.
-Sie wird nicht gespeichert und kann nicht zurückgesetzt werden.
-Auf dem neuen Gerät die APK installieren, den lokalen Modus starten und
-im selben Bereich **Backup wiederherstellen** wählen. Der Import ersetzt
-vorhandene lokale Daten – vorher gegebenenfalls ebenfalls sichern.
+Choose your own strong backup passphrase and keep it safe separately. It is not
+stored and cannot be reset. On the new device, install the APK, start local
+mode and choose **Restore backup** in the same section. The import replaces
+existing local data – back that up first if necessary.
 
-Automatisches Android-Cloudbackup ersetzt dieses Verfahren nicht. Der
-Geräteschlüssel lässt sich nicht zusammen mit normalen App-Dateien auf ein
-anderes Handy kopieren.
+Automatic Android cloud backup does not replace this procedure. The device key
+cannot be copied to another phone together with normal app files.
 
-### Web-Solomodus
+### Web solo mode
 
-Unter **Einstellungen → Deine Daten** ein verschlüsseltes Backup exportieren.
-Browserdaten können durch Löschen des Website-Speichers oder bei
-Speicherdruck verloren gehen. Ohne Tresor-/Backup-Passphrase gibt es keine
-Wiederherstellung durch den Betreiber.
+Export an encrypted backup under **Settings → Your data**. Browser data can be
+lost when site storage is cleared or under storage pressure. Without the vault
+or backup passphrase the operator cannot restore anything.
 
-### Serverbetrieb
+### Server operation
 
-Synchronisation ist kein historisches Backup. Der Betreiber sichert die
-Datenbank und den Master-Key getrennt nach der
-[Backup-Anleitung](../DEPLOYMENT.md#8-backup-und-updates).
+Synchronization is not a historical backup. The operator backs up the database
+and the master key separately according to the
+[backup guide](../DEPLOYMENT.md#8-backups-and-updates) or
+[INSTALL.md](INSTALL.md#8-updates-backup-and-restore).
 
-## 6. Perioden als CSV/JSON übertragen
+## 6. Transferring periods as CSV/JSON
 
-Unter **Android-Einstellungen → Konto und Sicherheit → Perioden übertragen** beziehungsweise
-**Web-Einstellungen → Deine Daten → Perioden übertragen** lassen sich
-eigene Perioden exportieren oder aus einer Datei importieren. Die Funktion
-ist für die trackende Person vorgesehen, auch im lokalen Modus. Partner
-können damit keine fremden Perioden verändern. Schätzungen werden nicht als
-tatsächliche Perioden übernommen.
+Under **Android settings → Account and security → Transfer periods** or
+**Web settings → Your data → Transfer periods** you can export your own periods
+or import them from a file. The feature is meant for the tracking person, also
+in local mode. Partners cannot change anyone else's periods with it. Estimates
+are not imported as actual periods.
 
-CSV/JSON sind **unverschlüsselte Gesundheitsdaten**, keine passwortgeschützte
-Sicherung. Dateien nur an selbst gewählte sichere Ziele speichern und nicht
-in öffentliche Tickets, Chats oder Git-Repositories hochladen.
-Für eine vollständige lokale Wiederherstellung bleibt das
-[verschlüsselte Backup](#5-sichern-und-das-gerät-wechseln) der richtige Weg.
+CSV/JSON are **unencrypted health data**, not a password-protected backup. Only
+save the files to safe destinations of your choice and do not upload them to
+public tickets, chats or Git repositories. For a complete local restore, the
+[encrypted backup](#5-backing-up-and-changing-devices) remains the right path.
 
-### Exportieren
+### Exporting
 
-Den Hinweis auf unverschlüsselte Daten bewusst bestätigen und anschließend
-in Android **Als CSV exportieren** oder **Als JSON exportieren** wählen;
-im Web heißen die Schaltflächen **CSV exportieren** und **JSON exportieren**. Die Dateien
-enthalten tatsächliche Einträge. CSV ist für Tabellenprogramme geeignet;
-JSON erhält die strukturierte Darstellung. Eine andere Zyklus-App kann
-jedoch ein eigenes Importformat verlangen. Lunara garantiert nicht den
-direkten Import in jede Fremd-App.
+Explicitly confirm the note about unencrypted data, then choose **Export CSV**
+or **Export JSON**. The files contain actual entries. CSV suits spreadsheet
+programs; JSON keeps the structured representation. Another cycle app may
+require its own import format, though. Lunara does not guarantee direct import
+into every third-party app.
 
-Exportiert wird der aktuell auf dem Gerät geladene Stand, einschließlich
-noch nicht synchronisierter eigener Einträge. Für einen möglichst aktuellen
-Serverstand zuerst synchronisieren beziehungsweise aktualisieren. Ein
-Offline-Export ist kein Nachweis, dass alle Servereinträge enthalten sind.
+The export contains the state currently loaded on the device, including your
+own entries that have not been synchronized yet. For the most current server
+state, synchronize or refresh first. An offline export is no proof that all
+server entries are included.
 
-<img src="screenshots/setup/06-web-period-transfer.png" width="660" alt="Web-Periodenübertragung mit Klartextwarnung, ausdrücklicher Exportbestätigung und Dateiimport">
+### Importing
 
-### Importieren
+1. Select a CSV or JSON file.
+2. Check the preview and possible errors. No periods have been imported yet.
+3. Only import the entries after explicit confirmation. A single invalid line
+   or overlap blocks the whole import; only identical duplicates are skipped.
 
-1. Eine CSV- oder JSON-Datei auswählen.
-2. Die Vorschau und mögliche Fehler prüfen. Noch wurden keine Perioden
-   übernommen.
-3. Erst nach ausdrücklicher Bestätigung die Einträge importieren. Eine
-   ungültige Zeile oder Überschneidung blockiert den gesamten Import;
-   lediglich identische Duplikate werden übersprungen.
+In web server mode the connection must be online and the existing
+synchronization queue must be processed first. This is checked again before
+the preview and the confirmation. The local web vault does not need server
+synchronization for this.
 
-<img src="screenshots/setup/07-web-import-preview.png" width="660" alt="Web-Importvorschau für eine synthetische CSV: ein neuer Eintrag, keine Duplikate oder Überschneidungen, vor der ausdrücklichen Bestätigung">
+Android can also import your own periods offline in server mode. The imported
+entries are stored locally and transferred as pending changes through the
+normal sync. In Android solo mode they stay exclusively local.
 
-Im Web-Servermodus muss die Verbindung online sein und die vorhandene
-Synchronisationswarteschlange zuerst abgearbeitet werden. Das wird vor
-Vorschau und Bestätigung erneut geprüft. Der lokale Web-Tresor benötigt
-dafür keine Serversynchronisation.
+Limits and rules:
 
-Android kann eigene Perioden auch im Servermodus offline importieren.
-Die übernommenen Einträge werden lokal gespeichert und als wartende
-Änderungen über den normalen Sync übertragen. Im Android-Solomodus bleiben
-sie ausschließlich lokal.
+- At most **2 MiB** file size and **5,000 periods**.
+- Identical periods that already exist are skipped. Overlaps are blocked, not
+  silently merged.
+- CSV supports comma, semicolon or tab as separator, UTF-8 with or without BOM,
+  UTF-16 with BOM and correctly placed quotation marks.
+- A start date is required. The end date column is optional; a missing end date
+  means an **ongoing, open period**, not an unknown historical end. It stays
+  open until you end it and can therefore collide with later entries. An end
+  is never guessed.
+- Invalid data, entries in the future and an end before the start are rejected.
+- The standard format `startDate,endDate` and recognized German and English
+  column names are supported. Not every third-party export structure is
+  automatically compatible.
+- `YYYY-MM-DD`, `YYYY/MM/DD` and `DD.MM.YYYY` are unambiguous. Other spellings
+  with slashes are only accepted if day and month are unambiguous;
+  `01/04/2026` is not guessed.
+- JSON accepts the Lunara format shown below, a plain list and unencrypted
+  documents with `periods` or `data.periods`. Foreign metadata never changes
+  the account, settings or sharing.
 
-Grenzen und Regeln:
+An encrypted `.lunara` backup is still opened via the backup restore with its
+passphrase, not as a CSV/JSON import.
 
-- Maximal **2 MiB** Dateigröße und **5.000 Perioden**.
-- Bereits vorhandene identische Perioden werden übersprungen.
-  Überschneidungen werden blockiert, nicht still zusammengeführt.
-- CSV unterstützt Komma, Semikolon oder Tabulator als Trennzeichen,
-  UTF-8 mit oder ohne BOM, UTF-16 mit BOM und korrekt gesetzte
-  Anführungszeichen.
-- Ein Startdatum ist erforderlich. Die Enddatumsspalte ist optional;
-  ein fehlendes Enddatum bezeichnet eine **noch laufende, offene Periode**,
-  kein unbekanntes historisches Ende. Sie bleibt offen, bis du sie beendest,
-  und kann deshalb mit späteren Einträgen kollidieren. Ein Ende wird nicht
-  erraten.
-- Ungültige Daten, Einträge in der Zukunft und ein Ende vor dem Beginn
-  werden abgelehnt.
-- Unterstützt werden das Standardformat `startDate,endDate` sowie erkannte
-  deutsche und englische Spaltenbezeichnungen. Nicht jede fremde
-  Exportstruktur ist automatisch kompatibel.
-- Eindeutig sind `YYYY-MM-DD`, `YYYY/MM/DD` und `DD.MM.YYYY`.
-  Weitere Schreibweisen mit Schrägstrichen werden nur übernommen, wenn
-  Tag und Monat eindeutig sind; `01/04/2026` wird nicht geraten.
-- JSON akzeptiert das unten gezeigte Lunara-Format, eine direkte Liste
-  sowie unverschlüsselte Dokumente mit `periods` oder `data.periods`.
-  Fremde Metadaten verändern weder Konto noch Einstellungen oder Freigaben.
+### Small synthetic examples
 
-Eine verschlüsselte `.lunara`-Sicherung wird weiterhin über die eigene
-Backup-Wiederherstellung mit Passphrase geöffnet, nicht als CSV/JSON-Import.
-
-### Kleine synthetische Beispiele
-
-Diese frei erfundenen Testdaten dienen nur zum Verstehen des Dateiformats.
+This made-up test data only serves to explain the file format.
 
 CSV:
 
@@ -328,43 +308,40 @@ JSON:
 }
 ```
 
-Bei nicht unterstützten Spalten oder mehrdeutigen Datumswerten die Datei
-zuerst in einer **Kopie** auf das eindeutige Standardformat bringen und die
-Vorschau erneut kontrollieren. Das Original als eigene Sicherung behalten.
+For unsupported columns or ambiguous dates, first convert a **copy** of the
+file to the unambiguous standard format and check the preview again. Keep the
+original as your own backup.
 
-## 7. Updates und häufige Fragen
+## 7. Updates and frequently asked questions
 
-### Muss ich die App vor einem Update löschen?
+### Do I have to delete the app before an update?
 
-Nein. Die neue signierte APK über die vorhandene Installation installieren.
-Deinstallation oder das Löschen der App-Daten kann lokale Einträge und
-Geräteschlüssel entfernen. Eine selbst signierte APK kann die bestehende
-Signatur nicht ersetzen.
+No. Install the new signed APK over the existing installation. Uninstalling or
+clearing the app data can remove local entries and device keys. A self-signed
+APK cannot replace the existing signature.
 
-### Warum ist der Partnerkalender leer?
+### Why is the partner calendar empty?
 
-Zuerst Verbindung und Aktualisierungsstatus prüfen, dann die beiden
-Kalenderfreigaben in den Partner-Einstellungen ansehen. Die trackende Person
-entscheidet über Änderungen. Bei erteilter Freigabe können noch Einträge
-oder geeignete Zyklen fehlen. Nicht durch neue Konten, Neuinstallation oder
-Löschen lokaler Daten „reparieren“.
+First check the connection and refresh status, then look at the two calendar
+sharing options in the partner settings. The tracking person decides on
+changes. Even with sharing enabled, entries or suitable cycles may still be
+missing. Do not "repair" this with new accounts, a reinstall or by clearing
+local data.
 
-### Bleibe ich dauerhaft angemeldet?
+### Do I stay signed in permanently?
 
-Lunara erneuert gültige Zugangsdaten automatisch, verspricht aber keinen
-unbegrenzten Login. Tatsächlich abgelaufene oder widerrufene
-Provider-Zugangsdaten, gelöschte Konten oder verlorene Geräteschlüssel
-können eine erneute Anmeldung nötig machen.
+Lunara renews valid credentials automatically but does not promise unlimited
+sign-in. Genuinely expired or revoked provider credentials, deleted accounts or
+lost device keys can make signing in again necessary.
 
-Bei **Anmeldung erneuern** dasselbe Konto verwenden. Lokale Einträge und
-wartende Änderungen bleiben bei diesem Weg erhalten; Abmelden oder
-App-Daten löschen ist dafür nicht nötig. Bei rein vorübergehenden
-Netzfehlern bleiben Änderungen in der Warteschlange.
+Use the same account for **Renew sign-in**. Local entries and pending changes
+are kept this way; signing out or clearing app data is not needed. With purely
+temporary network errors, changes stay in the queue.
 
-### Die Anmeldung bleibt im Browser hängen
+### Sign-in gets stuck in the browser
 
-Für Authentik müssen der im APK festgelegte Callback-Host, der im Provider
-erlaubte Redirect und das App-Signing-Zertifikat zusammenpassen. Die eigene
-Serveradresse allein bestimmt den Android-Callback nicht.
-Der Betreiber prüft das anhand der [Deployment-Anleitung](../DEPLOYMENT.md).
-Keine Tokens oder Passwortfelder zur Fehlersuche fotografieren.
+For Authentik, the callback host built into the APK, the redirect allowed in
+the provider and the app-signing certificate must match. Your own server
+address alone does not determine the Android callback. The operator checks this
+using the [deployment guide](../DEPLOYMENT.md). Do not photograph tokens or
+password fields for troubleshooting.

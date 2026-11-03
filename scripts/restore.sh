@@ -3,14 +3,14 @@ set -Eeuo pipefail
 umask 077
 
 if [[ $# -ne 2 || "$1" != "--confirm-replace-lunara-database" ]]; then
-  echo "Verwendung: $0 --confirm-replace-lunara-database /absoluter/pfad/lunara-....tar.gz" >&2
-  echo "Achtung: Der aktuelle Inhalt der Lunara-Datenbank wird ersetzt." >&2
+  echo "Usage: $0 --confirm-replace-lunara-database /absoluter/pfad/lunara-....tar.gz" >&2
+  echo "Warning: the current contents of the Lunara database will be replaced." >&2
   exit 2
 fi
 
 archive="$2"
 if [[ "${archive}" != /* || ! -f "${archive}" ]]; then
-  echo "Das Backup muss als existierende absolute Datei angegeben werden." >&2
+  echo "The backup must be specified as an existing file with an absolute path." >&2
   exit 2
 fi
 
@@ -26,12 +26,12 @@ lunara_compose() {
 
 exec 9>"${lock_file}"
 if ! flock -n 9; then
-  echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
+  echo "Another Lunara backup, update, or restore operation is already running." >&2
   exit 1
 fi
 
 if [[ ! -f "${env_file}" ]]; then
-  echo "Fehlt: ${env_file}" >&2
+  echo "Missing: ${env_file}" >&2
   exit 1
 fi
 
@@ -84,7 +84,7 @@ for attempt in {1..20}; do
   sleep 3
 done
 if [[ "${api_stopped}" == "true" ]]; then
-  echo "Restore wurde eingespielt, aber die API ist nicht bereit; sie wird vorsichtshalber gestoppt gelassen." >&2
+  echo "The backup was restored, but the API is not ready; it will remain stopped as a precaution." >&2
   lunara_compose stop api
   exit 1
 fi
@@ -92,4 +92,4 @@ fi
 lunara_compose exec -T postgres sh -ceu \
   'pg_isready --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"'
 
-echo "Datenbank wiederhergestellt. API-Health und Entschlüsselung einer Testnotiz jetzt prüfen."
+echo "Database restored. Now check API health and the decryption of a test note."

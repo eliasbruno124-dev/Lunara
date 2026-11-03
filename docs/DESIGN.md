@@ -1,69 +1,69 @@
-# Lunara Journal · Gestaltung ab 1.2
+# Lunara Journal · Design from 1.2 onward
 
-## Richtung
+## Direction
 
-Eine ruhige, eigenständige Journal-Oberfläche statt einer Sammlung gleich
-gewichteter Dashboard-Karten. Warmes Elfenbein, tiefes Petrol, Salbei und ein
-zurückhaltender Korallakzent. Serifenschrift für Überschriften; klare
-serifenlose Schrift für Daten, Eingaben und Aktionen. Ausschließlich lokale
-Systemschriften, keine Font-CDNs oder heruntergeladenen Design-Assets.
+A calm, distinctive journal interface rather than a collection of equally
+weighted dashboard cards. Warm ivory, deep teal, sage, and a restrained
+coral accent. Serif headings and clear sans-serif type for data, inputs,
+and actions. Only local system fonts, with no font CDNs or downloaded
+design assets.
 
-Android-Tokens: `BrandTokens.kt` und `LunaraTheme.kt`. Web-Tokens stehen am
-Anfang von `apps/web/src/styles.css`. Hell und Dunkel haben eigene vollständige
-Farbrollen. Das Vektorzeichen besteht aus offenen Bögen und einem Akzentpunkt;
-es stellt weder Ovulation noch einen gemessenen Zyklusfortschritt dar.
+Android tokens are in `BrandTokens.kt` and `LunaraTheme.kt`. Web tokens are
+at the start of `apps/web/src/styles.css`. Light and dark themes each have
+complete color roles. The vector mark consists of open arcs and an accent dot.
+It represents neither ovulation nor measured progress through a cycle.
 
-## Informationshierarchie
+## Information hierarchy
 
-| Ansicht | Im Vordergrund | Dahinter / auf Anfrage |
+| View | Primary content | Secondary / on request |
 |---|---|---|
-| Heute · Tracker | Zeitraum, Periode beginnen/beenden, Tag erfassen | Erklärung der Unsicherheit, letzter Abgleich, letzte Einträge |
-| Heute · Partner | Verbindung, ausschließlich geteilter Ausblick und Phase | darunter Tipp, Check-in und letzter Abgleich |
-| Kalender | wischbare Monate und antippbare Zeiträume | Erfassungsanleitung, Legende und Sicherheitshinweise |
-| Verlauf | erfasste Längen, übersichtliche Kennzahlen | einzeln bearbeitbare Aufzeichnungen |
-| Einstellungen | benannte Kategorien | die tatsächlich zugehörigen Bedienelemente |
+| Today · Tracker | Date range, start/end period, log today | Explanation of uncertainty, last sync, recent entries |
+| Today · Partner | Connection, only the shared outlook and phase | Tip, check-in, and last sync below |
+| Calendar | Swipeable months and tappable date ranges | Recording guidance, legend, and safety notices |
+| History | Recorded lengths, clear summary statistics | Individually editable records |
+| Settings | Named categories | The controls that belong to each category |
 
-Die Vorhersage zeigt weiterhin einen geschätzten Beginn und keinen exakten
-Termin. Ihre Unsicherheit wird nicht durch ein präzise aussehendes Diagramm
-verdeckt. Erklärungen sind über „Einordnung“ zugänglich. Fertilitätshinweise
-bleiben direkt bei der optionalen Schätzung sichtbar.
+The prediction continues to show an estimated start rather than an exact
+date. Its uncertainty is not hidden by a chart that appears precise.
+Explanations are available under “Details.” Fertility notices remain
+visible directly beside the optional estimate.
 
-## Unterstützung
+## Support
 
-Ein Tipp ist keine Schlagzeile über den Zustand einer Person. Die Karte
-trennt Kontext und eine konkrete Handlung. „Warum dieser Tipp?“ erklärt die
-zulässige Auswahlgrundlage; „Eine Idee für heute“ bleibt ein Angebot und keine
-Anweisung. Quellenlinks für Hintergrundwissen öffnen nur auf Wunsch den
-Browser. Persönliche Wünsche bleiben wichtiger als der
-Katalog. Keine Generierung zur Laufzeit und keine angebliche fachliche oder
-klinische Validierung. Redaktion und Grenzen: [TIP_QUALITY.md](TIP_QUALITY.md).
+A tip is not a headline about a person's state. The card separates context
+from a concrete action. “Why this tip?” explains the permitted basis for
+selection. “An idea for today” remains an offer rather than an instruction.
+Source links for background information open the browser only on request.
+Personal wishes take priority over the catalog. There is no runtime
+generation or claim of professional or clinical validation. Editorial
+standards and limitations are in [TIP_QUALITY.md](TIP_QUALITY.md).
 
-## Bedienung und Grenzen
+## Interaction and boundaries
 
-- Unveränderte Konten, Signatur, Offline-Queue, Authentifizierung und Freigaben.
-- Android-Einstellungen haben einen expliziten Zurückweg; System-Zurück
-  führt aus einer Kategorie zur Übersicht.
-- Flexible Text-/Buttonhöhen; Kalenderhöhe berücksichtigt größere Schrift.
-- Kalenderstatus ist zusätzlich über Symbole und TalkBack beschrieben.
-- PWA-Einstellungen nutzen native aufklappbare Bereiche. Monatsbuttons
-  ergänzen Wischen und Tastaturbedienung.
-- Keine externen Bild-, Schrift-, Tracking- oder Animationsdienste.
+- Accounts, signing, the offline queue, authentication, and sharing are unchanged.
+- Android settings have an explicit way back. System Back returns from
+  a category to the overview.
+- Flexible text and button heights. Calendar height accommodates larger text.
+- Calendar status is also described through symbols and TalkBack.
+- PWA settings use native expandable sections. Month buttons complement
+  swiping and keyboard interaction.
+- No external image, font, tracking, or animation services.
 
-Visuelle Prüfungen benutzen ausschließlich synthetische Konten und Daten.
-Ein Emulator-/Browser-Test ersetzt keine Prüfung auf jedem Herstellergerät
-oder einen vollständigen unabhängigen Barrierefreiheitsaudit.
+Visual checks use synthetic accounts and data exclusively.
+An emulator/browser test does not replace testing on every manufacturer's
+device or a complete independent accessibility audit.
 
-## Tatsächliche Ansichten
+## Actual views
 
-Aus Compose-Instrumentierung beziehungsweise Browserprüfung, ausschließlich
-mit synthetischen Daten. Keine gerenderten Produkt-Mock-ups.
+From Compose instrumentation or browser checks, using synthetic data
+exclusively. These are not rendered product mockups.
 
-<img src="screenshots/android-tracker-light.png" width="260" alt="Android-Startseite mit geschätztem Beginn und Periodenaktion im hellen Journal-Design">
-<img src="screenshots/android-tracker-dark.png" width="260" alt="Dieselbe Android-Startseite im dunklen Design">
-<img src="screenshots/web-settings.png" width="260" alt="Gruppierte Einstellungen der mobilen Web-App">
+<img src="screenshots/android-tracker-light.png" width="260" alt="Android home screen with estimated start and period action in the light journal design">
+<img src="screenshots/android-tracker-dark.png" width="260" alt="The same Android home screen in the dark theme">
+<img src="screenshots/web-settings.png" width="260" alt="Grouped settings in the mobile web app">
 
-Partneransicht ab 1.2.1: zuerst der freigegebene Ausblick, darunter der Tipp.
-Die zweite Aufnahme zeigt den weiter nach unten gescrollten Bildschirm.
+Partner view from 1.2.1 onward shows the shared outlook first, followed by the tip.
+The second image shows the screen scrolled farther down.
 
-<img src="screenshots/android-partner-forecast-121.png" width="260" alt="Android-Partneransicht mit der freigegebenen Vorhersage vor dem Tipp">
-<img src="screenshots/android-partner-tip-121.png" width="260" alt="Darunterliegende Tippkarte mit kurzer Einordnung und einer Idee für heute">
+<img src="screenshots/android-partner-forecast-121.png" width="260" alt="Android partner view with the shared prediction before the tip">
+<img src="screenshots/android-partner-tip-121.png" width="260" alt="Tip card below, with brief context and an idea for today">

@@ -9,7 +9,7 @@ resolve_ip="${LUNARA_GATEWAY_RESOLVE_IP:-}"
 allow_untrusted_tls="${LUNARA_GATEWAY_ALLOW_UNTRUSTED_TLS:-false}"
 
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "Fehlendes Werkzeug: python3" >&2
+  echo "Missing tool: python3" >&2
   exit 1
 fi
 
@@ -17,10 +17,10 @@ case "${allow_untrusted_tls}" in
   false)
     ;;
   true)
-    echo "WARNUNG: TLS-Zertifikatsprüfung ist nur für diesen Gateway-Test deaktiviert." >&2
+    echo "WARNING: TLS certificate verification is disabled for this gateway test only." >&2
     ;;
   *)
-    echo "LUNARA_GATEWAY_ALLOW_UNTRUSTED_TLS akzeptiert nur true oder false." >&2
+    echo "LUNARA_GATEWAY_ALLOW_UNTRUSTED_TLS accepts only true or false." >&2
     exit 2
     ;;
 esac
@@ -44,9 +44,9 @@ class VerificationError(Exception):
 
 def safe_excepthook(exception_type, exception, traceback):
     if issubclass(exception_type, VerificationError):
-        print(f"Gateway-Prüfung: {exception}", file=sys.stderr)
+        print(f"Gateway verification: {exception}", file=sys.stderr)
     else:
-        print("Gateway-Prüfung: interner Prüfablauffehler.", file=sys.stderr)
+        print("Gateway verification: internal verification flow error.", file=sys.stderr)
 
 
 sys.excepthook = safe_excepthook
@@ -58,31 +58,31 @@ def fail(message):
 
 credential_path, expected_host, resolve_ip, allow_untrusted_tls = sys.argv[1:]
 if not os.path.isabs(credential_path):
-    fail("Die Gateway-Datei muss ein absoluter Pfad sein.")
+    fail("The gateway file path must be absolute.")
 try:
     file_stat = os.lstat(credential_path)
 except OSError:
-    fail("Die Gateway-Datei ist nicht lesbar.")
+    fail("The gateway file is not readable.")
 if (
     not stat.S_ISREG(file_stat.st_mode)
     or stat.S_ISLNK(file_stat.st_mode)
     or file_stat.st_uid != os.geteuid()
     or stat.S_IMODE(file_stat.st_mode) != 0o600
 ):
-    fail("Die Gateway-Datei muss eine eigene reguläre 0600-Datei sein.")
+    fail("The gateway file must be a regular file owned by the current user with mode 0600.")
 try:
     with open(credential_path, "r", encoding="ascii", newline="") as credential_stream:
         raw_url = credential_stream.read(2049)
 except (OSError, UnicodeError):
-    fail("Die Gateway-Datei konnte nicht sicher gelesen werden.")
+    fail("The gateway file could not be read safely.")
 if len(raw_url) > 2048 or "\r" in raw_url or raw_url.count("\n") != 1 or not raw_url.endswith("\n"):
-    fail("Die Gateway-Datei muss genau eine kurze ASCII-URL enthalten.")
+    fail("The gateway file must contain exactly one short ASCII URL.")
 gateway_url = raw_url[:-1]
 del raw_url
 try:
     parsed = urlsplit(gateway_url)
 except ValueError:
-    fail("Die Gateway-Datei enthält keine unterstützte URL.")
+    fail("The gateway file does not contain a supported URL.")
 del gateway_url
 if (
     parsed.scheme != "https"
@@ -94,7 +94,7 @@ if (
     or parsed.username is None
     or parsed.password is None
 ):
-    fail("Die Gateway-Datei enthält keine kanonische Lunara-HTTPS-URL.")
+    fail("The gateway file does not contain a canonical Lunara HTTPS URL.")
 username = unquote(parsed.username)
 password = unquote(parsed.password)
 if (
@@ -103,16 +103,16 @@ if (
     or not password.isascii()
     or not password.isalnum()
 ):
-    fail("Die Gateway-Datei enthält nicht den erwarteten technischen App-Zugang.")
+    fail("The gateway file does not contain the expected technical app credentials.")
 del parsed
 
 if resolve_ip:
     try:
         canonical_ip = str(ipaddress.ip_address(resolve_ip))
     except ValueError:
-        fail("LUNARA_GATEWAY_RESOLVE_IP ist keine kanonische IP-Adresse.")
+        fail("LUNARA_GATEWAY_RESOLVE_IP is not a canonical IP address.")
     if canonical_ip != resolve_ip or "%" in resolve_ip:
-        fail("LUNARA_GATEWAY_RESOLVE_IP ist keine kanonische IP-Adresse.")
+        fail("LUNARA_GATEWAY_RESOLVE_IP is not a canonical IP address.")
 
 tls_context = ssl.create_default_context()
 tls_context.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -148,10 +148,10 @@ def request(path, authenticated):
         response = connection.getresponse()
         body = response.read(2_097_153)
         if len(body) > 2_097_152:
-            fail("Eine Gateway-Antwort überschreitet die sichere Prüfgröße.")
+            fail("A gateway response exceeds the safe verification size limit.")
         return response.status, response.getheader("Location"), body
     except (OSError, ssl.SSLError, http.client.HTTPException):
-        fail("TLS-, DNS- oder Verbindungsfehler bei der Gateway-Prüfung.")
+        fail("TLS, DNS, or connection error during gateway verification.")
     finally:
         connection.close()
 
@@ -169,7 +169,7 @@ if (
     or not isinstance(meta.get("setupRequired"), bool)
     or not isinstance(meta.get("registrationEnabled"), bool)
 ):
-    fail("Header-Auth lieferte keine gültige Lunara-Metaantwort.")
+    fail("Header authentication did not return a valid Lunara metadata response.")
 del meta_body, meta
 
 # Native clients need one non-sensitive discovery endpoint before they know whether
@@ -185,7 +185,7 @@ if (
     or public_meta.get("apiVersion") != "v1"
     or not isinstance(public_meta.get("authenticationMethods"), list)
 ):
-    fail("Die absichtlich öffentliche Meta-Erkennung liefert keinen gültigen, nicht sensiblen Vertrag.")
+    fail("The intentionally public metadata discovery endpoint does not return a valid, non-sensitive contract.")
 del public_meta_body, public_meta
 
 docs_status, _, docs_body = request("/api-docs-json", authenticated=True)
@@ -200,7 +200,7 @@ if (
     or not isinstance(docs.get("info"), dict)
     or not isinstance(docs["info"].get("title"), str)
 ):
-    fail("Header-Auth lieferte keine gültige geschützte Lunara-OpenAPI-Antwort.")
+    fail("Header authentication did not return a valid protected Lunara OpenAPI response.")
 del docs_body, docs
 
 for protected_path in (
@@ -212,26 +212,26 @@ for protected_path in (
 ):
     status_code, redirect_location, body = request(protected_path, authenticated=False)
     if status_code not in (302, 303, 307, 308) or not redirect_location:
-        fail("Mindestens ein Lunara-Pfad ist ohne Authentik-Zugang erreichbar.")
+        fail("At least one Lunara path is accessible without Authentik credentials.")
     try:
         redirect = urlsplit(redirect_location)
     except ValueError:
-        fail("Authentik lieferte ein ungültiges Weiterleitungsziel.")
+        fail("Authentik returned an invalid redirect target.")
     if redirect.username is not None or redirect.password is not None:
-        fail("Authentik lieferte ein unsicheres Weiterleitungsziel.")
+        fail("Authentik returned an unsafe redirect target.")
     if redirect.scheme and redirect.scheme != "https":
-        fail("Authentik leitete nicht auf HTTPS weiter.")
+        fail("Authentik did not redirect to HTTPS.")
     del body, redirect
 
 # Discard credentials before emitting the non-sensitive result line.
 username = ""
 password = ""
 print(
-    "Gateway-Prüfung erfolgreich: technischer App-Zugang und öffentliche Meta-Erkennung "
-    "funktionieren; alle übrigen geprüften Lunara-Pfade verlangen Authentik."
+    "Gateway verification succeeded: technical app access and public metadata discovery "
+    "work; all other verified Lunara paths require Authentik."
 )
 PYTHON
 then
-  echo "Gateway-Prüfung fehlgeschlagen; Zugangsdaten werden nicht ausgegeben." >&2
+  echo "Gateway verification failed; credentials will not be printed." >&2
   exit 1
 fi

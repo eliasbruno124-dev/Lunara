@@ -4,7 +4,7 @@ set +x
 umask 077
 
 usage() {
-  echo "Verwendung: $0 [--check]" >&2
+  echo "Usage: $0 [--check]" >&2
 }
 
 check_only="${LUNARA_CHECK_ONLY:-false}"
@@ -20,7 +20,7 @@ if [[ $# -eq 1 ]]; then
   check_only=true
 fi
 if [[ "${check_only}" != "true" && "${check_only}" != "false" ]]; then
-  echo "LUNARA_CHECK_ONLY akzeptiert nur true oder false." >&2
+  echo "LUNARA_CHECK_ONLY accepts only true or false." >&2
   exit 2
 fi
 
@@ -49,7 +49,7 @@ expected_role_resources_schema="fbdc4cb2a85b3ec6a65f466d33e0d9ffffdc9a72b059ff23
 
 for command_name in docker sqlite3 sha256sum awk stat install mktemp date chmod; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
-    echo "Fehlendes Werkzeug: ${command_name}" >&2
+    echo "Missing tool: ${command_name}" >&2
     exit 1
   fi
 done
@@ -93,7 +93,7 @@ validate_host_labels() {
 }
 
 if [[ ! "${pangolin_container}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
-  echo "Ungültiger Pangolin-Containername." >&2
+  echo "Invalid Pangolin container name." >&2
   exit 2
 fi
 if ! validate_host_labels "${public_host}" true ||
@@ -104,7 +104,7 @@ if ! validate_host_labels "${public_host}" true ||
    [[ ! "${target_port}" =~ ^[1-9][0-9]{0,4}$ ]] ||
    (( 10#${site_id} > 2147483647 )) ||
    (( 10#${target_port} > 65535 )); then
-  echo "Ungültige Pangolin-Konfiguration." >&2
+  echo "Invalid Pangolin configuration." >&2
   exit 2
 fi
 if [[ "${pangolin_db}" != /* || ! "${pangolin_db}" =~ ^/[A-Za-z0-9_./-]+$ ]] ||
@@ -112,7 +112,7 @@ if [[ "${pangolin_db}" != /* || ! "${pangolin_db}" =~ ^/[A-Za-z0-9_./-]+$ ]] ||
       "${pangolin_db}" == */./* || "${pangolin_db}" == */. ]] ||
    path_has_symlink_component "${pangolin_db}" ||
    [[ ! -f "${pangolin_db}" || -L "${pangolin_db}" || ! -r "${pangolin_db}" ]]; then
-  echo "Pangolin-Datenbankpfad ist nicht sicher oder nicht lesbar: ${pangolin_db}" >&2
+  echo "The Pangolin database path is unsafe or unreadable: ${pangolin_db}" >&2
   exit 2
 fi
 
@@ -120,11 +120,11 @@ pangolin_version="$(docker inspect --type container --format '{{index .Config.La
 pangolin_revision="$(docker inspect --type container --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "${pangolin_container}")"
 if [[ "${pangolin_version}" != "${expected_pangolin_version}" ]] ||
    [[ "${pangolin_revision}" != "${expected_pangolin_revision}" ]]; then
-  echo "Ungeprüftes Pangolin-Image (Version '${pangolin_version:-unbekannt}', Revision '${pangolin_revision:-unbekannt}'); keine Änderung vorgenommen." >&2
+  echo "Unverified Pangolin image (version '${pangolin_version:-unbekannt}', revision '${pangolin_revision:-unbekannt}'); no changes made." >&2
   exit 1
 fi
 if [[ "$(docker inspect --type container --format '{{.State.Running}}' "${pangolin_container}")" != "true" ]]; then
-  echo "Pangolin-Container läuft nicht; keine Änderung vorgenommen." >&2
+  echo "The Pangolin container is not running; no changes made." >&2
   exit 1
 fi
 
@@ -147,15 +147,15 @@ verify_database_contract() {
   local actual
   local expected
   if [[ "$(sql_read "${database}" 'PRAGMA quick_check;')" != "ok" ]]; then
-    echo "SQLite quick_check ist für ${database} fehlgeschlagen." >&2
+    echo "SQLite quick_check failed for ${database}." >&2
     return 1
   fi
   if [[ -n "$(sql_read "${database}" 'PRAGMA foreign_key_check;')" ]]; then
-    echo "SQLite meldet Fremdschlüsselverletzungen in ${database}." >&2
+    echo "SQLite reports foreign key violations in ${database}." >&2
     return 1
   fi
   if [[ "$(sql_read "${database}" 'PRAGMA user_version;')" != "${expected_user_version}" ]]; then
-    echo "Ungeprüfte Pangolin user_version in ${database}." >&2
+    echo "Unverified Pangolin user_version in ${database}." >&2
     return 1
   fi
   for table in resources targets domains sites roles roleResources; do
@@ -169,7 +169,7 @@ verify_database_contract() {
     esac
     actual="$(schema_fingerprint "${database}" "${table}")"
     if [[ "${actual}" != "${expected}" ]]; then
-      echo "Ungeprüftes Pangolin-Schema für Tabelle ${table} (${actual:-leer}); keine Änderung vorgenommen." >&2
+      echo "Unverified Pangolin schema for table ${table} (${actual:-leer}); no changes made." >&2
       return 1
     fi
   done
@@ -179,14 +179,14 @@ verify_database_contract "${pangolin_db}"
 
 if [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM domains WHERE domainId='${domain_id}' AND verified=1;")" != "1" ]] ||
    [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM sites WHERE siteId=${site_id} AND orgId='${org_id}' AND online=1;")" != "1" ]]; then
-  echo "Die angegebene verifizierte Domain oder lokale Online-Site wurde nicht eindeutig gefunden." >&2
+  echo "The specified verified domain or local online site was not found unambiguously." >&2
   exit 1
 fi
 
 admin_role_id="$(sql_read "${pangolin_db}" "SELECT roleId FROM roles WHERE orgId='${org_id}' AND name='Admin' AND isAdmin=1;")"
 if [[ "$(sql_read "${pangolin_db}" "SELECT count(*) FROM roles WHERE orgId='${org_id}' AND name='Admin' AND isAdmin=1;")" != "1" ]] ||
    [[ ! "${admin_role_id}" =~ ^[1-9][0-9]*$ ]]; then
-  echo "Die eindeutige Pangolin-Adminrolle der Organisation wurde nicht gefunden." >&2
+  echo "The organization's unique Pangolin admin role was not found." >&2
   exit 1
 fi
 
@@ -257,28 +257,28 @@ determine_resource_state() {
     return 0
   fi
   if [[ "${collision_count}" != "1" ]]; then
-    echo "Mehrdeutige Pangolin-Ressourcen kollidieren mit Host, Eigentumsmarker oder Name." >&2
+    echo "Ambiguous Pangolin resources collide with the host, ownership marker or name." >&2
     return 1
   fi
   exact_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM resources WHERE ${resource_exact_where};")"
   if [[ "${exact_count}" != "1" ]]; then
-    echo "Eine kollidierende Pangolin-Ressource trägt nicht alle exakten Lunara-Sicherheitswerte; keine Übernahme." >&2
+    echo "A colliding Pangolin resource does not have all exact Lunara security values; refusing to adopt it." >&2
     return 1
   fi
   resource_id="$(sql_read "${pangolin_db}" "SELECT resourceId FROM resources WHERE ${resource_exact_where};")"
   if [[ ! "${resource_id}" =~ ^[1-9][0-9]*$ ]]; then
-    echo "Die vorhandene Lunara-Ressource hat keine eindeutige kanonische ID/GUID." >&2
+    echo "The existing Lunara resource does not have a unique canonical ID/GUID." >&2
     return 1
   fi
   resource_guid="$(sql_read "${pangolin_db}" "SELECT resourceGuid FROM resources WHERE resourceId=${resource_id};")"
   if [[ ! "${resource_guid}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
-    echo "Die vorhandene Lunara-Ressource hat keine eindeutige kanonische ID/GUID." >&2
+    echo "The existing Lunara resource does not have a unique canonical ID/GUID." >&2
     return 1
   fi
   target_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM targets WHERE resourceId=${resource_id};")"
   exact_target_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM targets WHERE resourceId=${resource_id} AND ${target_exact_where};")"
   if [[ "${target_count}" != "1" || "${exact_target_count}" != "1" ]]; then
-    echo "Die vorhandene Lunara-Ressource hat nicht genau das gepinnte Authentik-Ziel; keine Übernahme." >&2
+    echo "The existing Lunara resource does not have exactly the pinned Authentik target; refusing to adopt it." >&2
     return 1
   fi
   admin_link_count="$(sql_read "${pangolin_db}" "SELECT count(*) FROM roleResources WHERE resourceId=${resource_id} AND roleId=${admin_role_id};")"
@@ -287,7 +287,7 @@ determine_resource_state() {
     return 0
   fi
   if [[ "${admin_link_count}" != "1" ]]; then
-    echo "Die vorhandene Lunara-Ressource hat eine mehrdeutige Admin-Zuordnung; keine Änderung vorgenommen." >&2
+    echo "The existing Lunara resource has an ambiguous admin mapping; no changes made." >&2
     return 1
   fi
   printf 'existing:%s:%s\n' "${resource_id}" "${resource_guid}"
@@ -297,36 +297,36 @@ if ! resource_state="$(determine_resource_state)"; then
   exit 1
 fi
 if [[ "${resource_state}" != "create" && ! "${resource_state}" =~ ^(existing|repair):[1-9][0-9]*:[0-9a-f-]{36}$ ]]; then
-  echo "Pangolin-Preflight lieferte keinen eindeutigen Zustand; keine Änderung vorgenommen." >&2
+  echo "Pangolin preflight did not return an unambiguous state; no changes made." >&2
   exit 1
 fi
 
 if [[ "${check_only}" == "true" ]]; then
   if [[ "${resource_state}" == "create" ]]; then
-    echo "Pangolin-Prüfung erfolgreich: Host, Eigentumsmarker und Name sind frei; eine Neuanlage wäre zulässig."
+    echo "Pangolin check passed: the host, ownership marker and name are available; creation would be permitted."
   elif [[ "${resource_state}" == repair:* ]]; then
-    echo "Pangolin-Prüfung fehlgeschlagen: Die Ressource routet, ist aber ohne Admin-Zuordnung nicht in der Oberfläche verwaltbar. Ohne --check wird sie sicher repariert." >&2
+    echo "Pangolin check failed: the resource routes traffic but cannot be managed in the UI without an admin mapping. Running without --check repairs it safely." >&2
     exit 1
   else
-    echo "Pangolin-Prüfung erfolgreich: Eigentumsmarker, Ressource, Ziel und UI-Admin-Zuordnung stimmen exakt."
+    echo "Pangolin check passed: the ownership marker, resource, target and UI admin mapping match exactly."
   fi
   exit 0
 fi
 
 if [[ "${resource_state}" == existing:* ]]; then
-  echo "Vorhandene Pangolin-Lunara-Ressource stimmt exakt; keine Datenbankänderung war nötig."
+  echo "The existing Pangolin Lunara resource matches exactly; no database changes were needed."
   exit 0
 fi
 
 if [[ ! -w "${pangolin_db}" ]]; then
-  echo "Pangolin-Datenbank ist nicht schreibbar: ${pangolin_db}" >&2
+  echo "The Pangolin database is not writable: ${pangolin_db}" >&2
   exit 1
 fi
 if [[ "${backup_dir}" == "/" || "${backup_dir}" != /* || ! "${backup_dir}" =~ ^/[A-Za-z0-9_./-]+$ ]] ||
    [[ "${backup_dir}" == */../* || "${backup_dir}" == */.. ||
       "${backup_dir}" == */./* || "${backup_dir}" == */. ]] ||
    path_has_symlink_component "${backup_dir}"; then
-  echo "Unsicherer Backup-Pfad: ${backup_dir}" >&2
+  echo "Unsafe backup path: ${backup_dir}" >&2
   exit 2
 fi
 
@@ -335,7 +335,7 @@ timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_path="$(mktemp --tmpdir="${backup_dir}" "pangolin-before-lunara-${timestamp}.XXXXXX.sqlite")"
 if ! sqlite3 -batch -cmd '.timeout 5000' "${pangolin_db}" ".backup '${backup_path}'" ||
    [[ ! -s "${backup_path}" ]]; then
-  echo "Konsistentes Pangolin-Backup fehlgeschlagen; keine Änderung vorgenommen." >&2
+  echo "Consistent Pangolin backup failed; no changes made." >&2
   exit 1
 fi
 chmod 0600 -- "${backup_path}"
@@ -346,7 +346,7 @@ database_gid="$(stat -c '%g' -- "${pangolin_db}")"
 database_mode="$(stat -c '%a' -- "${pangolin_db}")"
 if [[ ! "${database_uid}" =~ ^[0-9]+$ || ! "${database_gid}" =~ ^[0-9]+$ ||
       ! "${database_mode}" =~ ^[0-7]{3,4}$ ]]; then
-  echo "Dateieigentümer oder Modus der Pangolin-Datenbank konnte nicht sicher ermittelt werden." >&2
+  echo "The Pangolin database file ownership or mode could not be determined safely." >&2
   exit 1
 fi
 
@@ -358,7 +358,7 @@ if [[ "${resource_state}" == repair:* ]]; then
 fi
 if [[ ! "${resource_guid}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] ||
    { [[ "${resource_state}" == repair:* ]] && [[ ! "${resource_id}" =~ ^[1-9][0-9]*$ ]]; }; then
-  echo "Es konnte keine kanonische zufällige Ressourcen-GUID erzeugt werden." >&2
+  echo "A canonical random resource GUID could not be generated." >&2
   exit 1
 fi
 
@@ -386,25 +386,25 @@ DROP TABLE lunara_admin_repair_guard;
 COMMIT;
 SQL
   then
-    echo "Atomare Pangolin-Admin-Reparatur fehlgeschlagen; die Transaktion wurde verworfen. Backup: ${backup_path}" >&2
+    echo "Atomic Pangolin admin repair failed; the transaction was discarded. Backup: ${backup_path}" >&2
     exit 1
   fi
   verify_database_contract "${pangolin_db}"
   if ! resource_state="$(determine_resource_state)" || [[ "${resource_state}" != "existing:${resource_id}:${resource_guid}" ]]; then
-    echo "Pangolin-Nachprüfung nach Admin-Reparatur fehlgeschlagen. Backup: ${backup_path}" >&2
+    echo "Pangolin verification after admin repair failed. Backup: ${backup_path}" >&2
     exit 1
   fi
-  echo "Pangolin-Ressource ${public_host} ist jetzt über die Adminrolle in der Oberfläche verwaltbar."
-  echo "Konsistentes Backup vor der Änderung: ${backup_path}"
+  echo "Pangolin resource ${public_host} can now be managed through the admin role in the UI."
+  echo "Consistent backup before the change: ${backup_path}"
   exit 0
 fi
 
 print_rollback_hints() {
   local output_fd="${1:-2}"
-  echo "Gezieltes Rollback (Pangolin muss dafür kontrolliert gestoppt sein):" >&"${output_fd}"
+  echo "Targeted rollback (Pangolin must be stopped in a controlled manner first):" >&"${output_fd}"
   printf 'sqlite3 %q %q\n' "${pangolin_db}" \
     "PRAGMA foreign_keys=ON; BEGIN IMMEDIATE; CREATE TEMP TABLE lunara_rollback_guard(ok INTEGER NOT NULL CHECK(ok=1)); INSERT INTO lunara_rollback_guard VALUES(CASE WHEN (SELECT count(*) FROM resources WHERE resourceGuid='${resource_guid}' AND niceId='${resource_owner_marker}' AND fullDomain='${public_host}')=1 THEN 1 ELSE 0 END); DELETE FROM resources WHERE resourceGuid='${resource_guid}' AND niceId='${resource_owner_marker}' AND fullDomain='${public_host}'; DROP TABLE lunara_rollback_guard; COMMIT;" >&"${output_fd}"
-  echo "Vollständige Wiederherstellung (verwirft spätere Pangolin-Änderungen; Pangolin vorher kontrolliert stoppen):" >&"${output_fd}"
+  echo "Full restore (discards later Pangolin changes; stop Pangolin in a controlled manner first):" >&"${output_fd}"
   printf 'sqlite3 %q %q && chown %q:%q %q && chmod %q %q\n' \
     "${pangolin_db}" ".restore '${backup_path}'" \
     "${database_uid}" "${database_gid}" "${pangolin_db}" \
@@ -415,7 +415,7 @@ mutation_committed=false
 on_error() {
   local status=$?
   if [[ "${mutation_committed}" == "true" ]]; then
-    echo "Fehler nach dem Pangolin-Commit. Backup: ${backup_path}" >&2
+    echo "Error after the Pangolin commit. Backup: ${backup_path}" >&2
     print_rollback_hints
   fi
   exit "${status}"
@@ -473,14 +473,14 @@ DROP TABLE lunara_preflight_guard;
 COMMIT;
 SQL
 then
-  echo "Atomare Pangolin-Konfiguration fehlgeschlagen; die Transaktion wurde verworfen. Backup: ${backup_path}" >&2
+  echo "Atomic Pangolin configuration failed; the transaction was discarded. Backup: ${backup_path}" >&2
   exit 1
 fi
 mutation_committed=true
 
 verify_database_contract "${pangolin_db}"
 if ! resource_state="$(determine_resource_state)" || [[ "${resource_state}" != "existing:"*":${resource_guid}" ]]; then
-  echo "Pangolin-Nachprüfung nach Commit fehlgeschlagen. Backup: ${backup_path}" >&2
+  echo "Pangolin verification after the commit failed. Backup: ${backup_path}" >&2
   print_rollback_hints
   mutation_committed=false
   exit 1
@@ -488,6 +488,6 @@ fi
 
 mutation_committed=false
 trap - ERR
-echo "Pangolin-Ressource ${public_host} -> ${target_host}:${target_port} wurde eigentumsmarkiert eingerichtet."
-echo "Konsistentes Backup vor der Änderung: ${backup_path}"
+echo "Pangolin resource ${public_host} -> ${target_host}:${target_port} was configured with an ownership marker."
+echo "Consistent backup before the change: ${backup_path}"
 print_rollback_hints 1

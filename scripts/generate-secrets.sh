@@ -3,17 +3,17 @@ set -Eeuo pipefail
 umask 077
 
 if [[ $# -ne 1 ]]; then
-  echo "Verwendung: $0 /absoluter/pfad/.env" >&2
+  echo "Usage: $0 /absoluter/pfad/.env" >&2
   exit 2
 fi
 
 target="$1"
 if [[ "${target}" != /* ]]; then
-  echo "Nur ein absoluter Zielpfad ist erlaubt." >&2
+  echo "Only an absolute destination path is allowed." >&2
   exit 2
 fi
 if [[ -e "${target}" ]]; then
-  echo "Zieldatei existiert bereits; sie wird nicht überschrieben: ${target}" >&2
+  echo "The destination file already exists; it will not be overwritten: ${target}" >&2
   exit 1
 fi
 
@@ -34,5 +34,5 @@ sed \
   "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)/.env.example" > "${target}"
 chmod 0600 -- "${target}"
 unset postgres_password master_key signing_key refresh_pepper bootstrap_token
-echo "Secret-Datei mit Modus 0600 erstellt: ${target}"
-echo "BOOTSTRAP_TOKEN und APP_MASTER_KEY nur lokal aus der Datei verwenden; niemals committen."
+echo "Secret file created with mode 0600: ${target}"
+echo "Use BOOTSTRAP_TOKEN and APP_MASTER_KEY only locally from the file; never commit them."

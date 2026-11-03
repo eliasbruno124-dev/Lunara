@@ -12,18 +12,18 @@ generator_memory="${OPENAPI_GENERATOR_MEMORY:-1g}"
 generator_memory_swap="${OPENAPI_GENERATOR_MEMORY_SWAP:-1536m}"
 
 if [[ ! -f "${spec}" ]]; then
-  echo "OpenAPI-Spezifikation fehlt: ${spec}. Zuerst npm run export ausführen." >&2
+  echo "OpenAPI specification missing: ${spec}. Run npm run export first." >&2
   exit 1
 fi
 if ! command -v docker >/dev/null 2>&1; then
-  echo "Docker wird für die gepinnte OpenAPI-Generator-Version 7.24.0 benötigt." >&2
+  echo "Docker is required for the pinned OpenAPI Generator version 7.24.0." >&2
   exit 1
 fi
 
 case "${output}" in
   "${package_dir}/generated/kotlin") ;;
   *)
-    echo "Unerwartetes Generator-Ziel; Abbruch: ${output}" >&2
+    echo "Unexpected generator destination; aborting: ${output}" >&2
     exit 1
     ;;
 esac
@@ -67,4 +67,4 @@ docker run --rm \
   --workdir /work \
   node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d \
   node scripts/write-generation-metadata.mjs
-echo "Kotlin-Client reproduzierbar mit OpenAPI Generator 7.24.0 erzeugt: ${output}"
+echo "Kotlin client generated reproducibly with OpenAPI Generator 7.24.0: ${output}"

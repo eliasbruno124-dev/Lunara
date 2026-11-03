@@ -1,215 +1,213 @@
-# Prognosealgorithmus
+# Prediction algorithm
 
-Algorithmuskennung: `lunara-robust-v2`
+Algorithm identifier: `lunara-robust-v2`
 
-Lunara berechnet eine vorsichtige, nachvollziehbare Zeitspanne. Das Ergebnis ist
-keine medizinische Prognose, kein Ovulationsnachweis und keine
-Verhütungsmethode.
+Lunara calculates a cautious, understandable date range. The result is
+not a medical prediction, evidence of ovulation, or a method of
+contraception.
 
-## Genauigkeitsprüfung vom 21. September 2026
+## Accuracy review of September 21, 2026
 
-### Darstellung ab 1.1.6
+### Presentation from 1.1.6 onward
 
-Der Zeitraum ist ausdrücklich als **erwarteter Periodenbeginn** beschriftet,
-nicht als Dauer der Blutung. Die Oberfläche nennt die inklusive Anzahl
-möglicher Starttage und vollständiger beobachteter Zyklen. Unter drei Zyklen
-steht die geringe Datenbasis unmittelbar an der Prognose. Beispiel:
-9.–16. umfasst acht mögliche Starttage. Ein tatsächlicher Beginn am letzten
-Tag ist ein Treffer innerhalb des Fensters, aber kein Beleg für hohe Präzision.
+The range is explicitly labeled as the **expected period start**,
+not the duration of bleeding. The interface states the inclusive number of
+possible start days and complete observed cycles. With fewer than three cycles,
+the limited data basis appears directly beside the prediction. For example,
+the 9th–16th includes eight possible start days. An actual start on the last
+day falls within the window, but does not demonstrate high precision.
 
-1.1.6 verändert die Formel nicht. Die Spanne wird weder an einen nachträglich
-bekannten Beginn angepasst noch rein optisch verengt. Fehlende Synchronisation
-kann zudem bedeuten, dass Server und Gerät unterschiedliche Eingaben besitzen;
-dies muss vor einer individuellen Genauigkeitsbewertung geklärt sein.
+1.1.6 does not change the formula. The range is neither adjusted to a start
+that becomes known afterward nor narrowed merely for presentation. Missing
+synchronization can also mean that the server and device have different inputs.
+This must be resolved before assessing an individual's prediction accuracy.
 
-Die Regressionstests prüfen die beschriebenen Rechenschritte, nicht eine
-klinische Treffergenauigkeit. Es gibt keine prospektive Validierung, gemessene
-persönliche Fehlerrate oder kalibrierte Abdeckungswahrscheinlichkeit des
-angezeigten Zeitfensters. `HIGH` ist eine interne Heuristik und bedeutet nicht
-„medizinisch sehr präzise“.
+The regression tests check the calculation steps described here, not clinical
+accuracy. There is no prospective validation, measured personal error rate,
+or calibrated coverage probability for the displayed window. `HIGH` is an
+internal heuristic and does not mean “medically very precise.”
 
-Beim unabhängigen Review wurden folgende Grenzen reproduziert:
+The independent review reproduced the following limitations:
 
-- Sechs 28-Tage-Zyklen und anschließend eine 365-Tage-Erfassungslücke können
-  weiterhin `HIGH` und eine Halbbreite von zwei Tagen ergeben: Der große
-  Abstand wird vor der Vertrauensberechnung aus dem Modell ausgeschlossen.
-  Fruchtbarkeit wird in diesem Fall korrekt nicht geschätzt.
-- Die Folge 15, 90, 15 Tage liefert zwar `LOW`, aber wegen MAD = 0 nur eine
-  Halbbreite von drei Tagen. Der robuste Bereich ist kein Intervall mit
-  zugesicherter Trefferwahrscheinlichkeit.
-- Die Endspanne berücksichtigt den Median der Blutungsdauer, nicht deren
-  eigene Streuung. Unterschiedlich lange Blutungen verbreitern sie daher nicht.
+- Six 28-day cycles followed by a 365-day gap in recording can
+  still produce `HIGH` and a half-width of two days. The large
+  interval is excluded from the model before confidence is calculated.
+  Fertility is correctly not estimated in this case.
+- The sequence 15, 90, 15 days produces `LOW`, but because MAD = 0, its
+  half-width is only three days. The robust range is not an interval with
+  a guaranteed probability of containing the actual start.
+- The end range accounts for the median bleeding duration, not its
+  own variability. Bleeding episodes of different lengths therefore do not widen it.
 
-Diese Einschränkungen sind in 1.1.5 nicht durch Änderungen der Formel behoben.
-Das Update betrifft die Anmeldung und Synchronisierung. Eine künftig besser
-kalibrierte Unsicherheitsdarstellung benötigt getrennte, übereinstimmende
-Änderungen an Server, Android-Soloalgorithmus und PWA sowie passende Testdaten.
+These limitations were not resolved through formula changes in 1.1.5.
+That update concerns sign-in and synchronization. A better-calibrated
+uncertainty display in the future requires separate, consistent changes to
+the server, Android solo algorithm, and PWA, together with suitable test data.
 
-## Eingaben
+## Inputs
 
-- nicht gelöschte Periodenstarts der Tracker-Person als lokale Kalenderdaten
-- optional die individuell angegebene typische Zykluslänge
-- abgeschlossene Periodendauern
-- Sondermodus, Pause- und Fruchtbarkeitseinstellungen
-- optionale Lutealphase, begrenzt auf einen plausiblen Konfigurationsbereich
-- das aktuelle lokale Kalenderdatum aus der im Zyklusprofil gespeicherten
-  Zeitzone
+- The tracker's non-deleted period starts as local calendar dates
+- The individually specified typical cycle length, if provided
+- Completed period durations
+- Special mode, pause settings, and fertility settings
+- Optional luteal phase, restricted to a plausible configuration range
+- The current local calendar date in the time zone stored in the cycle
+  profile
 
-Zeitzonen verschieben Periodentage nicht, weil Start und Ende als SQL-`date` und
-Android-`LocalDate` gespeichert werden.
+Time zones do not shift period days because starts and ends are stored as
+SQL `date` and Android `LocalDate` values.
 
-## Auswahl der Zyklen
+## Cycle selection
 
-Aus chronologisch aufeinanderfolgenden Periodenstarts entstehen beobachtete
-Zyklusintervalle. Das Statistikfenster enthält höchstens die letzten zwölf
-Intervalle; bei weniger als zwölf werden alle vorhandenen verwendet.
+Observed cycle intervals are calculated from chronologically consecutive
+period starts. The statistics window contains at most the last twelve
+intervals. If fewer than twelve exist, all available intervals are used.
 
-Alle positiven Abstände bleiben unverändert in den Rohstatistiken sichtbar.
-Intervalle unter 15 oder über 90 Tagen gelten jedoch nicht als belastbare
-Abbildung genau eines Zyklus: Sie können beispielsweise aus einer
-Fehleingabe oder aus nicht erfassten Perioden zwischen zwei Einträgen entstehen.
-Solche Werte werden deshalb transparent als ausgeschlossen gekennzeichnet und
-weder für die Modellmitte noch für eine Fruchtbarkeitsschätzung verwendet. Sie
-werden nicht gelöscht und bleiben in Durchschnitt, Roh-Median, Minimum,
-Maximum und der Liste beobachteter Intervalle nachvollziehbar.
+All positive intervals remain visible, unchanged, in the raw statistics.
+However, intervals below 15 or above 90 days are not considered reliable
+representations of exactly one cycle. They may, for example, result from an
+incorrect entry or periods that were not recorded between two entries.
+These values are therefore transparently marked as excluded and used
+neither for the model center nor for a fertility estimate. They are not
+deleted and remain traceable in the mean, raw median, minimum,
+maximum, and list of observed intervals.
 
-## Robuste Mitte und Gewichtung
+## Robust center and weighting
 
-1. Berechne Modell-Median und Median Absolute Deviation (MAD) der verwendbaren
-   Intervalle von 15 bis 90 Tagen.
-2. Statistische Ausreißer innerhalb dieses Bereichs bleiben im Modell. MAD
-   verhindert, dass ein einzelner Wert den Prognosebereich unverhältnismäßig
-   aufbläht; die Spannweite der verwendbaren Intervalle beeinflusst weiterhin
-   das Vertrauen. Ausgeschlossene Rohwerte bleiben separat sichtbar.
-3. Die älteste Länge erhält Gewicht 1,0. Das Gewicht steigt linear bis 2,0 für
-   die neueste Länge, sodass aktuelle Daten relevanter sind. Ab drei
-   verwendbaren Zyklen kann der neueste Wert das Ergebnis nicht allein
-   dominieren.
-4. Als typische Länge dient der gewichtete Median, auf volle Tage gerundet.
+1. Calculate the model median and median absolute deviation (MAD) of usable
+   intervals from 15 to 90 days.
+2. Statistical outliers within this range remain in the model. MAD
+   prevents a single value from disproportionately inflating the prediction
+   range. The spread between usable intervals still affects confidence.
+   Excluded raw values remain visible separately.
+3. The oldest length receives a weight of 1.0. The weight increases linearly
+   to 2.0 for the newest length, giving recent data more relevance. With at
+   least three usable cycles, the newest value cannot dominate the result
+   by itself.
+4. The typical length is the weighted median, rounded to whole days.
 
-Bei keinem verwendbaren vollständigen Zyklus kann ausschließlich die explizit
-angegebene typische Länge eine grobe Prognose ermöglichen. Ohne beides gibt es
-keine Prognose. Ausgeschlossene Rohintervalle bleiben auch bei diesem Ergebnis
-in der API-Statistik sichtbar. Bei ein oder zwei verwendbaren vollständigen
-Zyklen ist die Sicherheit immer „niedrig“ und der Bereich wird sichtbar
-verbreitert.
+If there are no usable complete cycles, only an explicitly specified typical
+length can enable a rough prediction. If neither is available, there is no
+prediction. Excluded raw intervals remain visible in the API statistics
+in this case as well. With one or two usable complete cycles, confidence is
+always “low” and the range is visibly widened.
 
-## Prognosezeitraum
+## Prediction range
 
-Der Mittelpunkt ist `letzter Periodenstart + typische Zykluslänge`. Die
-Halbbreite ist robust und verwendet `ceil(1,4826 × MAD) + 1`. Bei weniger als
-drei Zyklen kommt ein zusätzlicher Sicherheitstag hinzu. Sie beträgt mindestens:
+The center is `last period start + typical cycle length`. The
+half-width is robust and uses `ceil(1.4826 × MAD) + 1`. With fewer than
+three cycles, one additional safety day is added. Its minimum is:
 
-- 0 Zyklen plus manueller Wert: 4 Tage
-- 1–2 Zyklen: 4 Tage
-- 3–5 Zyklen: 3 Tage
-- 6 oder mehr Zyklen: 2 Tage
+- 0 cycles plus a manual value: 4 days
+- 1–2 cycles: 4 days
+- 3–5 cycles: 3 days
+- 6 or more cycles: 2 days
 
-Die größte dieser Größen wird verwendet. Hohe robuste Streuung verbreitert also
-den Zeitraum, erzeugt aber keine künstlich exakte Tagesaussage. Die Spannweite
-verwendbarer Intervalle beeinflusst die Vertrauensstufe, nicht die Bandbreite;
-dadurch kann ein einzelnes ungewöhnliches Intervall den sichtbaren Bereich nicht
-um Monate vergrößern. Der erwartete Beginn reicht von Mittelpunkt minus bis
-Mittelpunkt plus Halbbreite.
+The largest of these quantities is used. High robust variability therefore
+widens the range without producing an artificially exact prediction for a
+single day. The range of usable intervals affects the confidence level,
+not the width of the prediction window. This prevents a single unusual
+interval from expanding the visible window by months. The expected start
+runs from the center minus the half-width to the center plus the half-width.
 
-Liegt das gesamte berechnete Startfenster vor dem lokalen Referenzdatum, wird
-keine veraltete Prognose als „nächste Periode“ ausgegeben. Die API antwortet
-dann mit `STALE_HISTORY`. Lunara schreibt fehlende Perioden nicht automatisch
-fort, weil eine solche Annahme zusätzliche, nicht erfasste Zyklen erfinden und
-die Unsicherheit verschleiern würde.
+If the entire calculated start window is before the local reference date,
+an outdated prediction is not returned as the “next period.” The API then
+responds with `STALE_HISTORY`. Lunara does not automatically extrapolate
+missing periods because that assumption would invent additional,
+unrecorded cycles and obscure the uncertainty.
 
-Die typische Periodendauer ist der Median abgeschlossener positiver Dauern bis
-30 Tage aus den chronologisch letzten zwölf abgeschlossenen Perioden. Längere
-beobachtete Dauern bleiben als ausgeschlossene Rohwerte sichtbar, werden aber
-nicht stillschweigend als typische Periodendauer verwendet. Die Auswahl ist von
-der Reihenfolge der API-Eingabe unabhängig. Ohne verwendbare Historie kann eine
-explizite typische Dauer dienen.
-Fehlt auch diese, verwendet Version 2 aus Gründen der API-Kompatibilität einen
-vorsichtigen Fünf-Tage-Prior. Die Statistik kennzeichnet die Quelle zwingend als
-`observed-periods`, `profile-fallback` oder `default-prior`; ein Prior darf in
-der Oberfläche nicht als persönlich beobachtete typische Dauer bezeichnet
-werden. Startspanne plus Dauer ergibt die Endspanne.
+The typical period duration is the median of positive completed durations up
+to 30 days from the chronologically last twelve completed periods. Longer
+observed durations remain visible as excluded raw values, but are not silently
+used as the typical period duration. Selection is independent of the order
+of the API input. Without usable history, an explicit typical duration can
+be used.
+If that is also absent, version 2 uses a cautious five-day prior for API
+compatibility. The statistics must identify the source as
+`observed-periods`, `profile-fallback`, or `default-prior`. The interface must
+not describe a prior as a personally observed typical duration.
+The start range plus the duration gives the end range.
 
-## Vertrauen
+## Confidence
 
-- `LOW`: weniger als drei verwendbare Zyklen, robuste Streuung über fünf Tagen
-  oder der Spannweitenbeitrag über sechs Tagen
-- `MEDIUM`: mindestens drei Zyklen, robuste Streuung höchstens fünf Tage und der
-  Spannweitenbeitrag höchstens sechs Tage
-- `HIGH`: mindestens sechs Zyklen, robuste Streuung höchstens zwei Tage und der
-  Spannweitenbeitrag höchstens drei Tage
+- `LOW`: fewer than three usable cycles, robust variability above five days,
+  or a range contribution above six days
+- `MEDIUM`: at least three cycles, robust variability no greater than five days,
+  and a range contribution no greater than six days
+- `HIGH`: at least six cycles, robust variability no greater than two days,
+  and a range contribution no greater than three days
 
-Die API liefert Stufe, beobachtete und verwendete Anzahl, typische Länge,
-Roh-Median, Modell-Median, Minimum, Maximum, ausgeschlossene Intervalle,
-Periodendauer samt Datenquelle, Streuung und eine Textbegründung. Clients sollen
-ausgeschlossene Werte verständlich erklären und dürfen den Fünf-Tage-Prior
-nicht als persönliche Beobachtung darstellen.
+The API returns the level, observed and used counts, typical length,
+raw median, model median, minimum, maximum, excluded intervals,
+period duration with its data source, variability, and a text explanation.
+Clients should explain excluded values clearly and must not present the
+five-day prior as a personal observation.
 
-## Sondermodi
+## Special modes
 
-In `HORMONAL_CONTRACEPTION`, `PREGNANCY`, `POSTPARTUM`,
-`MENOPAUSE_TRANSITION` und `PAUSED` sowie bei `predictionPaused=true` wird keine
-normale Zyklusprognose ausgegeben. Historie bleibt sichtbar. Nach Rückkehr zu
-`NONE` wird aus den vorhandenen, ausdrücklich bestätigten Daten neu berechnet.
+No normal cycle prediction is returned in `HORMONAL_CONTRACEPTION`,
+`PREGNANCY`, `POSTPARTUM`, `MENOPAUSE_TRANSITION`, or `PAUSED`, or when
+`predictionPaused=true`. History remains visible. After returning to
+`NONE`, the prediction is recalculated from the available, explicitly confirmed data.
 
-## Geschätztes fruchtbares Fenster
+## Estimated fertile window
 
-Die Funktion ist standardmäßig deaktiviert. Sie wird nur nach ausdrücklicher
-Aktivierung, bei `NONE`, nicht pausierter Prognose und mindestens drei
-verwendbaren erfassten Zyklen angeboten. Zusätzlich müssen alle Intervalle im
-aktuellen Statistikfenster verwendbar, das Prognosevertrauen mindestens
-`MEDIUM` und die Halbbreite höchstens 14 Tage sein. Andernfalls bleibt die
-Schätzung mit dem Grund `UNRELIABLE_DATA` geschlossen. Ein möglicher
-Ovulationsmittelpunkt wird rein kalendarisch als erwarteter Periodenbeginn minus
-konfigurierte Lutealphase (Standard 14 Tage) geschätzt. Das sichtbare Fenster
-umfasst mindestens fünf Tage davor bis einen Tag danach und wird bei
-Prognoseunsicherheit um deren Halbbreite erweitert.
+The feature is disabled by default. It is offered only after explicit
+enabling, in `NONE`, with predictions not paused and at least three
+usable recorded cycles. In addition, every interval in the current
+statistics window must be usable, prediction confidence must be at least
+`MEDIUM`, and the half-width must be no greater than 14 days. Otherwise,
+the estimate remains unavailable with reason `UNRELIABLE_DATA`. A possible
+ovulation center is estimated purely from calendar dates as the expected
+period start minus the configured luteal phase (14 days by default).
+The visible window extends at least from five days before to one day after
+that center, and is widened by the prediction's half-width when uncertain.
 
-Jede Ansicht bezeichnet es als „geschätzt“ und zeigt: Es beweist keine Ovulation,
-ist bei unregelmäßigen Zyklen besonders unsicher und darf nicht als
-Verhütungsmethode verwendet werden.
+Every view labels it “estimated” and states that it does not confirm
+ovulation, is particularly uncertain with irregular cycles, and must not
+be used as a method of contraception.
 
-Die API liefert zusätzlich explizite Sicherheitsmetadaten (`enabled`,
-`available`, verwendete Datenanzahl, Grund sowie die Konstanten
-`notContraception` und `doesNotConfirmOvulation`). Clients zeigen den Zeitraum
-nur, wenn alle positiven Sicherheitsbedingungen erfüllt sind. Fehlende oder
-unbekannte Metadaten werden als „nicht verfügbar“ behandelt.
+The API also returns explicit safety metadata (`enabled`,
+`available`, the number of data points used, a reason, and the constants
+`notContraception` and `doesNotConfirmOvulation`). Clients display the range
+only when every positive safety condition is met. Missing or unknown
+metadata is treated as “unavailable.”
 
-## Portierbarer Referenzvertrag für Offline-Clients
+## Portable reference contract for offline clients
 
-Android, PWA und Server müssen dieselben Schritte und Konstanten verwenden:
+Android, PWA, and server must use the same steps and constants:
 
-1. ISO-Daten streng als gregorianische lokale Kalenderdaten validieren und in
-   ganze Epoch-Tage umrechnen. Keine Gerätezeitzone auf Periodendaten anwenden.
-2. Starts deduplizieren und aufsteigend sortieren; Differenzen bilden; nur die
-   letzten zwölf Rohintervalle behalten. Modellintervalle liegen inklusive
-   Grenzen bei 15 bis 90 Tagen.
-3. Modellintervalle behalten ihre chronologische Position. Das Gewicht ist bei
-   einem Wert `1`, sonst `1 + index/(anzahl-1)`. Für den gewichteten Median
-   Wertepaar samt Gewicht nach Wert sortieren und den ersten Wert wählen, bei
-   dem die kumulierte Summe mindestens die Hälfte des Gesamtgewichts erreicht.
-4. Modell-MAD ist der Median der absoluten Abstände zum Modell-Median;
-   `robustSpread = ceil(MAD × 1,4826)`. Die Halbbreite ist bei 0–2 Modellzyklen
-   `max(4, robustSpread+2)`, bei 3–5 `max(3, robustSpread+1)`, sonst
+1. Strictly validate ISO dates as Gregorian local calendar dates and convert
+   them to whole epoch days. Do not apply the device's time zone to period dates.
+2. Deduplicate starts and sort them in ascending order. Calculate differences
+   and keep only the last twelve raw intervals. Model intervals range from
+   15 to 90 days, inclusive.
+3. Model intervals retain their chronological positions. The weight is `1`
+   for a single value, otherwise `1 + index/(count-1)`. For the weighted
+   median, sort value/weight pairs by value and choose the first value whose
+   cumulative weight reaches at least half of the total weight.
+4. Model MAD is the median of absolute distances from the model median.
+   `robustSpread = ceil(MAD × 1.4826)`. The half-width for 0–2 model cycles is
+   `max(4, robustSpread+2)`, for 3–5 it is `max(3, robustSpread+1)`, and otherwise
    `max(2, robustSpread+1)`.
-5. Der Spannweitenbeitrag ist `ceil((modellMaximum-modellMinimum)/4)` und wird
-   nur für die Vertrauensregeln verwendet.
-6. Für Periodendauern die Einträge zuerst nach Start sortieren, dann die letzten
-   zwölf positiven abgeschlossenen Dauern auswählen. Werte über 30 bleiben
-   Rohstatistik, aber nicht Modellbasis. Der Median wird auf ganze Tage
-   gerundet; danach folgen Profilfallback und schließlich der gekennzeichnete
-   Fünf-Tage-Prior.
-7. Startmitte ist `letzterStart + gewichteterMedian`; Start- und Endgrenzen sind
-   inklusive. Ist `predictedStartTo < referenceDate`, lautet das Ergebnis
+5. The range contribution is `ceil((modelMaximum-modelMinimum)/4)` and is
+   used only for the confidence rules.
+6. For period durations, first sort entries by start, then select the last
+   twelve positive completed durations. Values above 30 remain in the raw
+   statistics but are not part of the model basis. The median is rounded to
+   whole days, followed by the profile fallback and finally the labeled
+   five-day prior.
+7. The start center is `lastStart + weightedMedian`. Start and end boundaries
+   are inclusive. If `predictedStartTo < referenceDate`, the result is
    `STALE_HISTORY`.
-8. Fruchtbarkeit ist nur verfügbar bei Aktivierung, mindestens drei
-   Modellzyklen, keinem ausgeschlossenen Rohintervall, Vertrauen nicht `LOW`
-   und Halbbreite höchstens 14. Standard-Lutealphase ist 14; Fenstergrenzen sind
-   `ovulationsMitte - 5 - halbbreite` und
-   `ovulationsMitte + 1 + halbbreite`.
+8. Fertility is available only when enabled, with at least three model cycles,
+   no excluded raw intervals, confidence other than `LOW`, and a half-width
+   no greater than 14. The default luteal phase is 14. Window boundaries are
+   `ovulationCenter - 5 - halfWidth` and
+   `ovulationCenter + 1 + halfWidth`.
 
-`calculatedAt` ist kein Bestandteil mathematischer Gleichheit. Kanonischer
-Testvektor (keine Periodenenden, daher gekennzeichneter Fünf-Tage-Prior):
+`calculatedAt` is not part of mathematical equality. Canonical
+test vector (no period ends, so the five-day prior is labeled):
 
 ```json
 {
@@ -235,20 +233,19 @@ Testvektor (keine Periodenenden, daher gekennzeichneter Fünf-Tage-Prior):
 }
 ```
 
-Fail-closed-Vektoren:
+Fail-closed vectors:
 
-- dieselben drei 28-Tage-Intervalle mit `referenceDate=2026-05-01` ergeben
-  `STALE_HISTORY`;
-- Rohintervalle `[1,1,1]` ohne Profilfallback ergeben `INSUFFICIENT_DATA`,
-  Modellintervalle `[]` und ausgeschlossene Intervalle `[1,1,1]`;
-- Rohintervalle `[28,28,365,28]` ergeben Modellintervalle `[28,28,28]`,
-  ausgeschlossene Intervalle `[365]`, Halbbreite 3 und bei aktivierter
-  Fruchtbarkeit `UNRELIABLE_DATA` statt eines Fensters.
+- The same three 28-day intervals with `referenceDate=2026-05-01` produce
+  `STALE_HISTORY`.
+- Raw intervals `[1,1,1]` without a profile fallback produce `INSUFFICIENT_DATA`,
+  model intervals `[]`, and excluded intervals `[1,1,1]`.
+- Raw intervals `[28,28,365,28]` produce model intervals `[28,28,28]`,
+  excluded intervals `[365]`, a half-width of 3, and, when fertility is enabled,
+  `UNRELIABLE_DATA` instead of a window.
 
-## Grenzen
+## Limitations
 
-Stress, Erkrankung, Medikamente, hormonelle Veränderungen, Schwangerschaft,
-Stillzeit und viele weitere Faktoren können reale Zyklen verändern. Lunara
-diagnostiziert nichts, leitet keine Emotion aus einem Zyklustag ab und gibt keine
-Medikamentenempfehlung. Bei ungewöhnlichen oder belastenden Beschwerden ist
-professionelle medizinische Beratung sinnvoll.
+Stress, illness, medication, hormonal changes, pregnancy,
+breastfeeding, and many other factors can affect actual cycles. Lunara
+does not diagnose, infer emotions from a cycle day, or recommend medication.
+For unusual or distressing symptoms, professional medical advice is appropriate.

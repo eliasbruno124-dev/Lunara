@@ -449,7 +449,7 @@ export class HouseholdService {
               username,
               displayName: dto.displayName.trim(),
               passwordHash,
-              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.DE,
+              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.EN,
             },
           });
           const membership = await tx.membership.create({

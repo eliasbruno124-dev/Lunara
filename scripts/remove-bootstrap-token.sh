@@ -7,12 +7,12 @@ project_dir="$(cd -- "${script_dir}/.." && pwd -P)"
 env_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
 
 if [[ ! -f "${env_file}" ]]; then
-  echo "Fehlt: ${env_file}" >&2
+  echo "Missing: ${env_file}" >&2
   exit 1
 fi
 
 if ! grep -q '^BOOTSTRAP_TOKEN=' "${env_file}"; then
-  echo "BOOTSTRAP_TOKEN ist bereits entfernt."
+  echo "BOOTSTRAP_TOKEN has already been removed."
   exit 0
 fi
 
@@ -28,4 +28,4 @@ chmod --reference="${env_file}" "${temp_file}"
 chown --reference="${env_file}" "${temp_file}"
 mv -- "${temp_file}" "${env_file}"
 
-echo "BOOTSTRAP_TOKEN entfernt; serverlokale Sicherung: ${backup_file}"
+echo "BOOTSTRAP_TOKEN removed; server-local backup: ${backup_file}"

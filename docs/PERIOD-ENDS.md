@@ -1,30 +1,29 @@
-# Automatisches Periodenende
+# Automatic period end
 
-Ohne selbst eingetragenes Enddatum nimmt Lunara fünf Kalendertage an. Der
-Starttag zählt als erster Tag: Ein Beginn am 1. November endet damit angenommen
-am 5. November; ab dem 6. November gilt die Periode nicht mehr als laufend.
-Das gilt auch für ältere Einträge und funktioniert ohne laufenden Hintergrundjob.
+Without an end date entered by you, Lunara assumes five calendar days. The
+start day counts as the first day: a period starting on 1 November is assumed
+to end on 5 November; from 6 November on it no longer counts as ongoing.
+This also applies to older entries and works without a background job.
 
-Ein selbst eingetragenes Ende hat Vorrang, auch wenn die Periode länger dauert.
-Das Ende kann nachträglich korrigiert werden. Tatsächlich überlappende Einträge
-werden weiterhin abgewiesen. App, Web, Server und die Datenbankprüfung verwenden
-dieselbe Grenze.
+An end you entered yourself always takes precedence, even if the period lasts
+longer. The end can be corrected later. Entries that genuinely overlap are
+still rejected. The app, the web app, the server and the database check all use
+the same limit.
 
-Ein angenommenes Ende ist keine bestätigte Beobachtung. Der ursprüngliche
-Eintrag bleibt erhalten; Export, Synchronisation und verschlüsselte Sicherungen
-bewahren ein nicht eingetragenes Ende als unbekannt. Die Auswertung lernt daraus
-keine vermeintlich gemessene Fünf-Tage-Dauer. Im Kalender werden keine zukünftigen
-angenommenen Tage als bereits erfasst dargestellt.
+An assumed end is not a confirmed observation. The original entry is kept;
+export, synchronization and encrypted backups keep an end that was not entered
+as unknown. The analysis does not learn a supposedly measured five-day length
+from it. The calendar never shows future assumed days as already recorded.
 
-## Fruchtbarkeit
+## Fertility
 
-Die vorhandene Berechnung berücksichtigt Unsicherheit. Ihre zulässigen Ergebnisse
-sind höchstens 19 Tage breit. Ältere, breitere gespeicherte Vorhersagen werden
-abgewiesen, nicht auf eine scheinbar präzise Dauer gekürzt. Die aktuelle Übersicht
-blendet eine Vorhersage nach ihrem eigenen Enddatum aus. Gültige historische
-Kalendermarkierungen bleiben von der heutigen Übersicht getrennt.
+The existing calculation takes uncertainty into account. Its permitted results
+are at most 19 days wide. Older, wider stored estimates are rejected rather
+than shortened to a seemingly precise length. The current overview hides an
+estimate after its own end date. Valid historical calendar markings stay
+separate from today's overview.
 
-Diese Grenze ist eine Konsistenzprüfung der Software, keine medizinische
-Validierung. Kalenderbasierte Schätzungen bestätigen keinen Eisprung und sind
-nicht zur Verhütung geeignet. Siehe auch die
-[Informationen des NHS](https://www.nhs.uk/contraception/methods-of-contraception/natural-family-planning/).
+This limit is a consistency check of the software, not a medical validation.
+Calendar-based estimates do not confirm ovulation and are not suitable for
+contraception. See also the
+[NHS information](https://www.nhs.uk/contraception/methods-of-contraception/natural-family-planning/).

@@ -1,107 +1,106 @@
 # Lunara
 
-**Private, selbst gehostete Zyklus-App für eine Person und ihren Partner.**
-Android-App, installierbare Web-App und eigener Server – ohne Werbung, Tracking,
-Telemetrie oder Google-Dienste.
+**A private, self-hosted cycle tracker for one person and their partner.**
+Android app, installable web app and your own server – no ads, no tracking,
+no telemetry and no Google services.
 
 [![Release](https://img.shields.io/github/v/release/eliasbruno124-dev/Lunara)](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
 [![Image](https://img.shields.io/badge/ghcr.io-eliasbruno124--dev%2Flunara-blue)](https://github.com/eliasbruno124-dev/Lunara/pkgs/container/lunara)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <p>
-  <img src="docs/screenshots/hd/03-tracker-heute.png" width="24%" alt="Heute-Ansicht mit erwartetem Periodenbeginn">
-  <img src="docs/screenshots/hd/04b-tracker-kalender-oktober.png" width="24%" alt="Kalender mit erfassten Periodentagen">
-  <img src="docs/screenshots/hd/04-tracker-kalender.png" width="24%" alt="Kalender mit geschätzter Periode">
-  <img src="docs/screenshots/hd/06-partner-heute.png" width="24%" alt="Partneransicht mit Ausblick und Tagesidee">
+  <img src="docs/screenshots/hd/03-tracker-today.png" width="24%" alt="Today view with the expected period start">
+  <img src="docs/screenshots/hd/05-tracker-calendar-recorded.png" width="24%" alt="Calendar with recorded period days">
+  <img src="docs/screenshots/hd/04-tracker-calendar-estimate.png" width="24%" alt="Calendar with an estimated period">
+  <img src="docs/screenshots/hd/07-partner-today.png" width="24%" alt="Partner view with outlook and today's suggestion">
 </p>
 
-> Lunara ist **kein Medizinprodukt**, diagnostiziert nichts, bestätigt keine
-> Ovulation und darf **nicht zur Verhütung** verwendet werden.
+> Lunara is **not a medical device**. It does not diagnose anything, does not
+> confirm ovulation and must **not be used for contraception**.
 
-## Schnellstart (eigener Server)
+## Quick start (your own server)
 
 ```bash
 mkdir lunara && cd lunara
 BASE=https://raw.githubusercontent.com/eliasbruno124-dev/Lunara/main/examples
 curl -fsSLO $BASE/docker-compose.yml && curl -fsSLO $BASE/Caddyfile
 curl -fsSL $BASE/.env.example -o .env && chmod 600 .env
-# .env ausfüllen: Domain + Geheimnisse (Befehle stehen in der Datei)
+# fill in .env: domain + secrets (the commands are in the file)
 docker compose --profile caddy up -d
 ```
 
-Danach `https://deine-domain` öffnen. Die **[Installationsanleitung mit Bildern](docs/INSTALL.md)**
-erklärt jeden Schritt: HTTPS, erstes Konto, Android-App, Partner einladen,
-Updates und Backup.
+Then open `https://your-domain`. The **[installation guide with screenshots](docs/INSTALL.md)**
+explains every step: HTTPS, first account, Android app, inviting a partner,
+updates and backups.
 
-**Nur allein auf Android?** Dafür brauchst du keinen Server. Lade
-`lunara-release.apk` aus dem [neuesten Release](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
-und wähle **Nur auf diesem Gerät** (Android 8+).
+**Only on your own Android phone?** You don't need a server. Download
+`lunara-release.apk` from the [latest release](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
+and choose **Only on this device** (Android 8+).
 
-## So kannst du Lunara nutzen
+Lunara starts in English. German is available as a second language.
 
-| Betriebsart | Speicherung | Gemeinsam nutzen |
+## Ways to use Lunara
+
+| Mode | Storage | Sharing |
 | --- | --- | --- |
-| Android, nur auf diesem Gerät | Mit SQLCipher und Android Keystore verschlüsselt | Nein, kein Serverkonto |
-| Web-App, nur auf diesem Gerät | Passphrasenverschlüsselter lokaler Tresor | Nein, kein Serverkonto |
-| Eigener Server | PostgreSQL; Android und Web-App synchronisieren mit derselben API | Getrennte Tracker-/Partnerkonten, nur ausdrücklich freigegebene Angaben |
-| Eigener Server mit Authentik | Derselbe Lunara-Server hinter dem Gateway | Persönliche OIDC-Anmeldung statt eines zusätzlichen Lunara-Passworts möglich |
+| Android, only on this device | Encrypted with SQLCipher and the Android Keystore | No, no server account |
+| Web app, only on this device | Passphrase-encrypted local vault | No, no server account |
+| Your own server | PostgreSQL; Android and the web app synchronize with the same API | Separate tracker/partner accounts, only explicitly shared details |
+| Your own server with Authentik | The same Lunara server behind the gateway | Personal OIDC sign-in instead of an additional Lunara password |
 
-Für den Android-Solomodus genügt die APK aus GitHub: **kein eigener Server,
-kein Docker, kein Authentik und kein Konto** sind erforderlich.
-Die Web-App muss zum ersten Laden
-erreichbar sein; lokale Daten werden dadurch nicht zum Server synchronisiert.
-Für die gemeinsame Nutzung braucht ihr eine eigene HTTPS-Instanz.
-Authentik ist optional und kein Bestandteil des Lunara-Compose-Stacks.
+For Android solo mode the APK from GitHub is all you need: **no server, no
+Docker, no Authentik and no account**. The web app has to be reachable for the
+first load; local data is not synchronized to the server because of that.
+Sharing requires your own HTTPS instance. Authentik is optional and not part
+of the Lunara Compose stack.
 
-## Was enthalten ist
+## Features
 
-- Perioden, Tagesprotokolle, Kalender und Verlauf auf Android; Periodeneinträge
-  und Kalender auch in der Web-App.
-- Offline-Erfassung mit wartenden Änderungen und automatischer Synchronisation.
-- Deutsch und Englisch, Hell-/Dunkelmodus und installierbare Web-App.
-- Getrennte Rollen: Die trackende Person verwaltet Daten und Freigaben, der
-  Partner sieht ausschließlich erlaubte Angaben.
-- Granulare Freigaben, Pausen und private Tage; freiwillige Unterstützungstipps.
-- Verschlüsselte Solo-Backups für den Gerätewechsel und serverseitige
-  Backup-/Restore-Werkzeuge.
-- Export eigener Perioden als CSV/JSON und Dateiimport mit Vorschau und
-  Bestätigung in Android und Web; keine garantierte Kompatibilität mit
-  beliebigen Drittanbieterformaten.
+- Periods, daily logs, calendar and history on Android; period entries and
+  calendar in the web app as well.
+- Offline recording with pending changes and automatic synchronization.
+- English and German, light/dark mode and an installable web app.
+- Separate roles: the tracking person manages data and sharing, the partner
+  only sees what is allowed.
+- Granular sharing, pauses and private days; optional supportive tips.
+- Encrypted solo backups for changing devices and server-side backup/restore
+  tools.
+- Export of your own periods as CSV/JSON and file import with preview and
+  confirmation on Android and the web; no guaranteed compatibility with
+  arbitrary third-party formats.
 
-Eine Partnerverbindung schaltet keine Datenfreigabe automatisch ein.
-„Nicht freigegeben“ bedeutet weder „keine Einträge vorhanden“ noch „Daten
-gelöscht“.
+A partner connection never turns on sharing automatically. "Not shared" means
+neither "no entries" nor "data deleted".
 
 ## Downloads
 
-| Was | Wo |
+| What | Where |
 | --- | --- |
-| Android-App (signiert) | `lunara-release.apk` im [Release](https://github.com/eliasbruno124-dev/Lunara/releases/latest), Prüfsummen in `SHA256SUMS` |
-| Server-Image (amd64 + arm64) | `ghcr.io/eliasbruno124-dev/lunara:<version>` bzw. `:latest` |
-| Beispielkonfiguration | [`examples/`](examples/) |
+| Android app (signed) | `lunara-release.apk` in the [release](https://github.com/eliasbruno124-dev/Lunara/releases/latest), checksums in `SHA256SUMS` |
+| Server image (amd64 + arm64) | `ghcr.io/eliasbruno124-dev/lunara:<version>` or `:latest` |
+| Example configuration | [`examples/`](examples/) |
 
-Jede laufende Instanz liefert die passende APK außerdem selbst aus:
-`https://deine-domain/api/v1/downloads/lunara.apk` (in der Web-App unter
-**Einstellungen → App & Verbindung**).
+Every running instance also serves the matching APK itself:
+`https://your-domain/api/v1/downloads/lunara.apk` (in the web app under
+**Settings → App & connection**).
 
-## Aktualisieren und Daten behalten
+## Updating and keeping your data
 
-Eine neue APK als Update **über die vorhandene Installation** installieren.
-Nicht zuerst deinstallieren und keine App-Daten löschen. Android akzeptiert
-ein Update nur mit kompatibler Paket-ID, höherer Versionsnummer und passender
-Signatur; ein selbst signierter Build ersetzt nicht die veröffentlichte APK.
+Install a new APK as an update **over the existing installation**. Do not
+uninstall first and do not clear the app data. Android only accepts an update
+with a compatible package ID, a higher version number and a matching
+signature; a self-signed build does not replace the published APK.
 
-Die Anmeldung wird automatisch erneuert, ist aber nicht unbegrenzt
-garantiert. Widerrufene oder tatsächlich abgelaufene Provider-Zugangsdaten,
-gelöschte Konten und verlorene Geräteschlüssel erfordern eine neue Anmeldung.
-Bei **Anmeldung erneuern** dasselbe Konto verwenden; wartende lokale Einträge
-bleiben dabei erhalten. Details: [Einrichtung und Hilfe](docs/SETUP.md).
+Sign-in is renewed automatically but not guaranteed forever. Revoked or
+genuinely expired provider credentials, deleted accounts and lost device keys
+require signing in again. Use the same account for **Renew sign-in**; pending
+local entries are kept. Details: [setup and help](docs/SETUP.md).
 
-## Entwicklung
+## Development
 
-Node.js 24+, npm 11+; für Android ein passendes JDK und Android SDK.
-Die App verwendet Compose/Kotlin, die Web-App TypeScript/Vite und die API
-NestJS/Prisma mit PostgreSQL.
+Node.js 24+, npm 11+; for Android a suitable JDK and the Android SDK.
+The app uses Compose/Kotlin, the web app TypeScript/Vite and the API
+NestJS/Prisma with PostgreSQL.
 
 ```bash
 npm ci
@@ -113,24 +112,24 @@ npm run build
 npm run openapi:check
 ```
 
-Android-Aufgaben und Geräteprüfungen stehen in [TESTING.md](TESTING.md).
-Vor Änderungen [CODE_GUIDE.md](docs/CODE_GUIDE.md) lesen; nach Änderungen den
-generierten Code-Map-Stand prüfen. Entwicklungs-, Debug- und unsignierte
-Artefakte sind keine gleichwertigen Nutzer-Updates.
+Android tasks and device checks are described in [TESTING.md](TESTING.md).
+Read [CODE_GUIDE.md](docs/CODE_GUIDE.md) before making changes and check the
+generated code map afterwards. Development, debug and unsigned artifacts are
+not equivalent user updates.
 
-## Dokumentation
+## Documentation
 
-- [Installation auf dem eigenen Server (mit Bildern)](docs/INSTALL.md)
-- [Einrichtung, Freigaben, Backup und Gerätewechsel in der App](docs/SETUP.md)
-- [Fortgeschrittenes Deployment: Traefik, Authentik/OIDC, Skripte](DEPLOYMENT.md)
-- [Sicherheit](SECURITY.md) und [Datenschutz](PRIVACY.md)
-- [Prognoseverfahren und Grenzen](ALGORITHM.md), [Periodenende](docs/PERIOD-ENDS.md)
-- [Partner-Tipps](docs/PARTNER_TIPS.md) und [Gestaltung](docs/DESIGN.md)
-- [Testverfahren](TESTING.md) und [Code-Navigation](docs/CODE_GUIDE.md)
-- [Android-Signierung und Play-Vorbereitung](docs/GOOGLE_PLAY_RELEASE.md)
-- [Änderungen](CHANGELOG.md)
+- [Installing on your own server (with screenshots)](docs/INSTALL.md)
+- [Setup, sharing, backup and changing devices in the app](docs/SETUP.md)
+- [Advanced deployment: Traefik, Authentik/OIDC, scripts](DEPLOYMENT.md)
+- [Security](SECURITY.md) and [privacy](PRIVACY.md)
+- [Prediction method and limits](ALGORITHM.md), [period end](docs/PERIOD-ENDS.md)
+- [Partner tips](docs/PARTNER_TIPS.md) and [design](docs/DESIGN.md)
+- [Testing](TESTING.md) and [code navigation](docs/CODE_GUIDE.md)
+- [Android signing and Google Play preparation](docs/GOOGLE_PLAY_RELEASE.md)
+- [Changelog](CHANGELOG.md)
 
-## Lizenz
+## License
 
-[MIT](LICENSE). Sicherheitslücken bitte nicht als öffentliches Issue, sondern
-wie in [SECURITY.md](SECURITY.md) beschrieben melden.
+[MIT](LICENSE). Please do not report security issues as public issues; follow
+[SECURITY.md](SECURITY.md) instead.

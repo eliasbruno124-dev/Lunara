@@ -51,7 +51,7 @@ export class RegisterDto extends CredentialsDto {
 
   @ApiPropertyOptional({
     enum: PreferredLanguage,
-    default: PreferredLanguage.DE,
+    default: PreferredLanguage.EN,
   })
   @IsOptional()
   @IsEnum(PreferredLanguage)
@@ -190,7 +190,7 @@ export class OidcLoginDto {
 
   @ApiPropertyOptional({
     enum: PreferredLanguage,
-    default: PreferredLanguage.DE,
+    default: PreferredLanguage.EN,
     description:
       'Used only when this exact external identity is provisioned for the first time',
   })

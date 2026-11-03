@@ -25,30 +25,30 @@ for upload_value in \
   [[ -n "${upload_value}" ]] && upload_value_count=$((upload_value_count + 1))
 done
 if (( upload_value_count != 0 && upload_value_count != 4 )); then
-  echo "Release-Signierung benötigt alle vier LUNARA_UPLOAD_*-Variablen." >&2
+  echo "Release signing requires all four LUNARA_UPLOAD_* variables." >&2
   exit 2
 fi
 if (( upload_value_count == 4 )); then
   if [[ "${upload_keystore}" != /* || ! -f "${upload_keystore}" || -L "${upload_keystore}" ]]; then
-    echo "LUNARA_UPLOAD_KEYSTORE muss eine sichere absolute Keystore-Datei sein." >&2
+    echo "LUNARA_UPLOAD_KEYSTORE must be a secure absolute keystore file path." >&2
     exit 2
   fi
 fi
 unset upload_value
 
 if [[ ! "${minimum_available_kib}" =~ ^[0-9]+$ ]]; then
-  echo "ANDROID_MIN_AVAILABLE_KIB muss eine nichtnegative Ganzzahl sein." >&2
+  echo "ANDROID_MIN_AVAILABLE_KIB must be a nonnegative integer." >&2
   exit 2
 fi
 
 available_kib="$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)"
 if [[ -z "${available_kib}" || ! "${available_kib}" =~ ^[0-9]+$ ]]; then
-  echo "Der verfügbare Hostspeicher konnte nicht bestimmt werden." >&2
+  echo "The available host memory could not be determined." >&2
   exit 1
 fi
 if (( available_kib < minimum_available_kib )); then
-  echo "Android-Build abgebrochen: nur ${available_kib} KiB Hostspeicher verfügbar; benötigt werden mindestens ${minimum_available_kib} KiB." >&2
-  echo "Grenze nur nach Prüfung aktiver produktiver Dienste über ANDROID_MIN_AVAILABLE_KIB anpassen." >&2
+  echo "Android build aborted: only ${available_kib} KiB of host memory available; at least ${minimum_available_kib} KiB required." >&2
+  echo "Adjust the limit using ANDROID_MIN_AVAILABLE_KIB only after checking active production services." >&2
   exit 1
 fi
 
@@ -78,14 +78,14 @@ docker run --rm \
 
 debug_keystore="${debug_keystore_dir}/debug.keystore"
 if [[ ! -s "${debug_keystore}" ]]; then
-  echo "Persistenter lokaler Debug-Schlüssel wurde nicht erzeugt: ${debug_keystore}" >&2
+  echo "Persistent local debug key was not generated: ${debug_keystore}" >&2
   exit 1
 fi
 chmod 0600 -- "${debug_keystore}"
 
 debug_apk="${android_dir}/app/build/outputs/apk/production/debug/app-production-debug.apk"
 if [[ ! -s "${debug_apk}" ]]; then
-  echo "HTTPS-only Production-Debug-APK fehlt trotz Build: ${debug_apk}" >&2
+  echo "HTTPS-only production debug APK is missing after the build: ${debug_apk}" >&2
   exit 1
 fi
 install -m 0644 -- "${debug_apk}" "${artifact_dir}/lunara-debug.apk"
@@ -95,8 +95,8 @@ install -m 0644 -- "${debug_apk}" "${artifact_dir}/lunara-debug.apk"
 )
 
 if [[ "${BUILD_ANDROID_RELEASE:-false}" != "true" ]]; then
-  echo "HTTPS-only Production-Debug-APK geprüft und nach ${artifact_dir} kopiert."
-  echo "Optionaler unsigned Release-Build: BUILD_ANDROID_RELEASE=true scripts/build-android.sh"
+  echo "HTTPS-only production debug APK verified and copied to ${artifact_dir}."
+  echo "Optional unsigned release build: BUILD_ANDROID_RELEASE=true scripts/build-android.sh"
   exit 0
 fi
 
@@ -121,7 +121,7 @@ release_apk="${android_dir}/app/build/outputs/apk/production/release/app-product
 release_bundle="${android_dir}/app/build/outputs/bundle/productionRelease/app-production-release.aab"
 
 if [[ ! -s "${release_apk}" || ! -s "${release_bundle}" ]]; then
-  echo "Debug-APK wurde gesichert, aber unsigned Release-APK oder AAB fehlt." >&2
+  echo "The debug APK was saved, but the unsigned release APK or AAB is missing." >&2
   exit 1
 fi
 
@@ -160,7 +160,7 @@ if (( upload_value_count == 4 )); then
   signed_apk="${android_dir}/app/build/outputs/apk/production/release/app-production-release.apk"
   signed_bundle="${android_dir}/app/build/outputs/bundle/productionRelease/app-production-release.aab"
   if [[ ! -s "${signed_apk}" || ! -s "${signed_bundle}" ]]; then
-    echo "Signierter Release-Build meldete Erfolg, aber APK oder AAB fehlt." >&2
+    echo "The signed release build reported success, but the APK or AAB is missing." >&2
     exit 1
   fi
   install -m 0644 -- "${signed_apk}" "${artifact_dir}/lunara-release.apk"
@@ -179,4 +179,4 @@ fi
   fi
   sha256sum "${checksum_files[@]}" > SHA256SUMS
 )
-echo "Android-Artefakte geprüft und nach ${artifact_dir} kopiert."
+echo "Android artifacts verified and copied to ${artifact_dir}."

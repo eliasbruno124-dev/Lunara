@@ -4,7 +4,7 @@ set +x
 umask 077
 
 usage() {
-  echo "Verwendung: $0 [--check]" >&2
+  echo "Usage: $0 [--check]" >&2
 }
 
 check_only="${LUNARA_CHECK_ONLY:-false}"
@@ -17,7 +17,7 @@ if [[ $# -eq 1 ]]; then
   check_only=true
 fi
 [[ "${check_only}" == "true" || "${check_only}" == "false" ]] || {
-  echo "LUNARA_CHECK_ONLY akzeptiert nur true oder false." >&2
+  echo "LUNARA_CHECK_ONLY accepts only true or false." >&2
   exit 2
 }
 
@@ -36,40 +36,40 @@ android_cert_fingerprints="${LUNARA_ANDROID_CERT_SHA256:-}"
 
 for command_name in docker install mktemp python3 sed tail; do
   command -v "${command_name}" >/dev/null 2>&1 || {
-    echo "Fehlendes Werkzeug: ${command_name}" >&2
+    echo "Missing tool: ${command_name}" >&2
     exit 1
   }
 done
 
 if [[ ! "${authentik_container}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] ||
    [[ ! "${authentik_db_container}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
-  echo "Ungültiger Authentik-Containername." >&2
+  echo "Invalid Authentik container name." >&2
   exit 2
 fi
 if [[ ! "${public_host}" =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ]] ||
    [[ "${public_host}" != *.* ]] || [[ "${public_host}" == *..* ]] ||
    (( ${#public_host} > 253 )); then
-  echo "Ungültiger öffentlicher Lunara-Hostname." >&2
+  echo "Invalid public Lunara hostname." >&2
   exit 2
 fi
 if [[ ! "${android_app_link_host}" =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ]] ||
    [[ "${android_app_link_host}" != *.* ]] || [[ "${android_app_link_host}" == *..* ]] ||
    (( ${#android_app_link_host} > 253 )); then
-  echo "Ungültiger Host für den Android-App-Link." >&2
+  echo "Invalid Android App Link host." >&2
   exit 2
 fi
 if [[ ! "${android_app_package}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
-  echo "Ungültige Android-Application-ID." >&2
+  echo "Invalid Android application ID." >&2
   exit 2
 fi
 if [[ -z "${access_group_name}" || "${access_group_name}" == *$'\n'* ||
       "${access_group_name}" == *$'\r'* ]] || (( ${#access_group_name} > 150 )); then
-  echo "LUNARA_AUTHENTIK_ACCESS_GROUP muss eine vorhandene, eindeutig benannte Authentik-Zugriffsgruppe sein." >&2
+  echo "LUNARA_AUTHENTIK_ACCESS_GROUP must be an existing Authentik access group with a unique name." >&2
   exit 2
 fi
 if [[ -z "${signing_key_name}" || "${signing_key_name}" == *$'\n'* ||
       "${signing_key_name}" == *$'\r'* ]] || (( ${#signing_key_name} > 255 )); then
-  echo "Ungültiger Name des Authentik-Signaturschlüssels." >&2
+  echo "Invalid Authentik signing key name." >&2
   exit 2
 fi
 
@@ -87,7 +87,7 @@ if (
     or url.fragment
     or url.path not in ("", "/")
 ):
-    raise SystemExit("AUTHENTIK_PUBLIC_URL muss eine credentialfreie HTTPS-Origin sein.")
+    raise SystemExit("AUTHENTIK_PUBLIC_URL must be an HTTPS origin without credentials.")
 PY
 authentik_public_url="${authentik_public_url%/}"
 
@@ -102,7 +102,7 @@ if not 1 <= len(values) <= 8 or len(values) != len(set(values)) or any(
     not pattern.fullmatch(value) for value in values
 ):
     raise SystemExit(
-        "LUNARA_ANDROID_CERT_SHA256 muss 1-8 eindeutige SHA-256-Zertifikat-Fingerprints enthalten."
+        "LUNARA_ANDROID_CERT_SHA256 must contain 1-8 unique SHA-256 certificate fingerprints."
     )
 PY
 fi
@@ -110,12 +110,12 @@ fi
 authentik_version="$(docker inspect --type container --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "${authentik_container}")"
 if [[ "${authentik_version}" != "${expected_authentik_version}" &&
       "${authentik_version}" != "refs/tags/version/${expected_authentik_version}" ]]; then
-  echo "Ungeprüfte Authentik-Version '${authentik_version:-unbekannt}'; erwartet ${expected_authentik_version}." >&2
+  echo "Unverified Authentik version '${authentik_version:-unbekannt}'; expected ${expected_authentik_version}." >&2
   exit 1
 fi
 if [[ "$(docker inspect --type container --format '{{.State.Running}}' "${authentik_container}")" != "true" ]] ||
    [[ "$(docker inspect --type container --format '{{.State.Running}}' "${authentik_db_container}")" != "true" ]]; then
-  echo "Authentik- oder Datenbankcontainer läuft nicht; keine Änderung vorgenommen." >&2
+  echo "The Authentik or database container is not running; no changes made." >&2
   exit 1
 fi
 
@@ -566,23 +566,23 @@ PYTHON
 }
 
 if ! preflight_output="$(run_model check none)"; then
-  echo "Authentik-OIDC-Preflight fehlgeschlagen; keine Änderung vorgenommen." >&2
+  echo "Authentik OIDC preflight failed; no changes made." >&2
   exit 1
 fi
 preflight_state="$(sed -n 's/^LUNARA_AUTHENTIK_OIDC_STATE=//p' <<< "${preflight_output}" | tail -n 1)"
 unset preflight_output
 [[ "${preflight_state}" == "base" || "${preflight_state}" == "legacy" ||
    "${preflight_state}" == "target" ]] || {
-  echo "Authentik-OIDC-Preflight lieferte keinen eindeutigen Zustand." >&2
+  echo "Authentik OIDC preflight did not return an unambiguous state." >&2
   exit 1
 }
 if [[ "${check_only}" == "true" ]]; then
   if [[ "${preflight_state}" == "base" ]]; then
-    echo "Authentik-Prüfung erfolgreich: der bestehende Lunara-Vollschutz kann sicher um optionales OIDC erweitert werden."
+    echo "Authentik check passed: the existing full Lunara protection can safely be extended with optional OIDC."
   elif [[ "${preflight_state}" == "legacy" ]]; then
-    echo "Authentik-Prüfung erfolgreich: der bekannte Altzustand kann sicher auf den aktuellen OIDC-Vertrag migriert werden."
+    echo "Authentik check passed: the known legacy state can safely be migrated to the current OIDC contract."
   else
-    echo "Authentik-Prüfung erfolgreich: OIDC, PKCE-Weiterleitungen, Gruppen, Federation und einzige Meta-Ausnahme entsprechen dem Sollzustand."
+    echo "Authentik check passed: OIDC, PKCE redirects, groups, federation and the sole metadata exception match the target state."
   fi
   exit 0
 fi
@@ -590,7 +590,7 @@ fi
 if [[ "${runtime_dir}" == "/" || "${backup_dir}" == "/" ||
       "${runtime_dir}" != /* || "${backup_dir}" != /* ||
       "${runtime_dir}" == *".."* || "${backup_dir}" == *".."* ]]; then
-  echo "Runtime- und Backup-Verzeichnis müssen enge absolute Pfade sein." >&2
+  echo "Runtime and backup directories must be narrowly scoped absolute paths." >&2
   exit 2
 fi
 install -d -m 0700 -- "${runtime_dir}" "${backup_dir}"
@@ -604,7 +604,7 @@ pending_oidc_environment_file="${runtime_dir}/.authentik-oidc.env.pending"
 for candidate in "${oidc_environment_file}" "${pending_oidc_environment_file}"; do
   if [[ -e "${candidate}" &&
         ( ! -f "${candidate}" || -L "${candidate}" || ! -O "${candidate}" ) ]]; then
-    echo "Unsicheres vorhandenes OIDC-Umgebungsziel: ${candidate}" >&2
+    echo "Unsafe existing OIDC environment destination: ${candidate}" >&2
     exit 1
   fi
 done
@@ -656,26 +656,26 @@ if [[ "${preflight_state}" != "target" ]]; then
   if ! docker exec "${authentik_db_container}" sh -ceu \
       'pg_dump --format=custom --no-owner --no-acl --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"' \
       > "${backup_path}" || [[ ! -s "${backup_path}" ]]; then
-    echo "Authentik-Backup fehlgeschlagen; keine Änderung vorgenommen. Datei: ${backup_path}" >&2
+    echo "Authentik backup failed; no changes made. File: ${backup_path}" >&2
     exit 1
   fi
   if ! docker exec -i "${authentik_db_container}" pg_restore --list < "${backup_path}" >/dev/null; then
-    echo "Authentik-Backup ist nicht lesbar; keine Änderung vorgenommen. Datei: ${backup_path}" >&2
+    echo "Authentik backup is not readable; no changes made. File: ${backup_path}" >&2
     exit 1
   fi
 fi
 
 if ! run_model apply "${preflight_state}" >/dev/null; then
-  echo "Authentik-OIDC-Konfiguration fehlgeschlagen." >&2
+  echo "Authentik OIDC configuration failed." >&2
   if [[ -n "${backup_path}" ]]; then
-    echo "Das validierte Vorab-Backup liegt unter: ${backup_path}" >&2
+    echo "The validated pre-change backup is available at: ${backup_path}" >&2
   fi
   exit 1
 fi
 if ! final_output="$(run_model check none)" ||
    [[ "$(sed -n 's/^LUNARA_AUTHENTIK_OIDC_STATE=//p' <<< "${final_output}" | tail -n 1)" != "target" ]]; then
-  echo "Authentik-OIDC-Nachprüfung fehlgeschlagen." >&2
-  [[ -n "${backup_path}" ]] && echo "Vorab-Backup: ${backup_path}" >&2
+  echo "Authentik OIDC verification failed." >&2
+  [[ -n "${backup_path}" ]] && echo "Pre-change backup: ${backup_path}" >&2
   exit 1
 fi
 unset final_output
@@ -693,8 +693,8 @@ finally:
     os.close(directory)
 PY
 
-echo "Authentik-OIDC ist sicher eingerichtet und nachgeprüft."
-echo "Nicht geheime Compose-Werte wurden als 0600-Datei geschrieben: ${oidc_environment_file}"
+echo "Authentik OIDC is securely configured and verified."
+echo "Non-secret Compose values were written to a 0600 file: ${oidc_environment_file}"
 if [[ -n "${backup_path}" ]]; then
-  echo "Konsistentes Authentik-Vorab-Backup: ${backup_path}"
+  echo "Consistent Authentik pre-change backup: ${backup_path}"
 fi

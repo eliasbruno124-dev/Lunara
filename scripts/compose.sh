@@ -8,7 +8,7 @@ environment_file="${LUNARA_ENV_FILE:-${project_dir}/.env}"
 oidc_environment_file="${LUNARA_OIDC_ENV_FILE:-${project_dir}/authentik-oidc.env}"
 
 if [[ ! -f "${environment_file}" || -L "${environment_file}" ]]; then
-  echo "Lunara-Umgebungsdatei fehlt oder ist unsicher: ${environment_file}" >&2
+  echo "The Lunara environment file is missing or unsafe: ${environment_file}" >&2
   exit 1
 fi
 
@@ -19,7 +19,7 @@ fi
 case "${gateway_mode}" in
   direct|authentik) ;;
   *)
-    echo "GATEWAY_MODE muss exakt direct oder authentik sein." >&2
+    echo "GATEWAY_MODE must be exactly direct or authentik." >&2
     exit 2
     ;;
 esac
@@ -35,7 +35,7 @@ if [[ "${gateway_mode}" == "direct" ]]; then
 else
   if [[ -e "${oidc_environment_file}" ]]; then
     if [[ ! -f "${oidc_environment_file}" || -L "${oidc_environment_file}" ]]; then
-      echo "Unsichere Authentik-OIDC-Umgebungsdatei: ${oidc_environment_file}" >&2
+      echo "Unsafe Authentik OIDC environment file: ${oidc_environment_file}" >&2
       exit 1
     fi
     compose_args+=(--env-file "${oidc_environment_file}")
@@ -43,8 +43,8 @@ else
 fi
 
 if [[ $# -eq 0 ]]; then
-  echo "Verwendung: $0 <docker-compose-befehl> [argumente...]" >&2
-  echo "Beispiel: $0 config --quiet" >&2
+  echo "Usage: $0 <docker-compose-command> [arguments...]" >&2
+  echo "Example: $0 config --quiet" >&2
   exit 2
 fi
 

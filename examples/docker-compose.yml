@@ -1,24 +1,24 @@
-# Lunara – Beispiel-Compose für den eigenen Server
+# Lunara – example Compose file for your own server
 #
-# Schnellstart:
-#   1. Diese Datei und .env.example in einen leeren Ordner kopieren
-#   2. cp .env.example .env  und die Werte darin ausfüllen (siehe Kommentare)
+# Quick start:
+#   1. Copy this file and .env.example into an empty folder
+#   2. cp .env.example .env  and fill in the values (see comments)
 #   3. docker compose up -d
-#   4. Mit HTTPS: docker compose --profile caddy up -d   (siehe Caddyfile)
+#   4. With HTTPS: docker compose --profile caddy up -d   (see Caddyfile)
 #
-# Ausführliche Anleitung: docs/INSTALL.md
+# Full guide: docs/INSTALL.md
 
 name: lunara
 
 services:
-  # Die Datenbank. Nur im internen Netz erreichbar, nie direkt ins Internet.
+  # The database. Only reachable on the internal network, never exposed.
   postgres:
     image: postgres:18.6-bookworm
     restart: unless-stopped
     environment:
       POSTGRES_DB: lunara
       POSTGRES_USER: lunara
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       TZ: ${TZ:-Europe/Berlin}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lunara -d lunara"]
@@ -31,10 +31,10 @@ services:
     networks:
       - internal
 
-  # Einmaliger Lauf bei jedem Start: bringt das Datenbankschema auf den
-  # Stand der Image-Version (Prisma-Migrationen) und beendet sich dann.
+  # One-off run on every start: brings the database schema up to the
+  # image's version (Prisma migrations) and then exits.
   migrate:
-    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.4}
+    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.5}
     restart: "no"
     command: ["./node_modules/.bin/prisma", "migrate", "deploy", "--config", "services/api/prisma/prisma.config.ts"]
     environment:
@@ -50,24 +50,24 @@ services:
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
 
-  # Lunara selbst: API + installierbare Web-App + APK-Download unter einer Adresse.
+  # Lunara itself: API + installable web app + APK download under one address.
   lunara:
-    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.4}
+    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.5}
     restart: unless-stopped
     init: true
     environment:
       NODE_ENV: production
       PORT: "3000"
-      APP_VERSION: ${LUNARA_VERSION:-1.3.4}
-      # Öffentliche HTTPS-Adresse, unter der Handy und Browser Lunara erreichen.
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL in .env setzen}
+      APP_VERSION: ${LUNARA_VERSION:-1.3.5}
+      # Public HTTPS address at which phones and browsers reach Lunara.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL in .env}
       DATABASE_URL: postgresql://lunara:${POSTGRES_PASSWORD}@postgres:5432/lunara?schema=public
-      APP_MASTER_KEY: ${APP_MASTER_KEY:?APP_MASTER_KEY in .env setzen}
-      AUTH_SIGNING_KEY: ${AUTH_SIGNING_KEY:?AUTH_SIGNING_KEY in .env setzen}
-      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER:?REFRESH_TOKEN_PEPPER in .env setzen}
-      # Nur für die allererste Einrichtung nötig, danach aus .env entfernen.
+      APP_MASTER_KEY: ${APP_MASTER_KEY:?set APP_MASTER_KEY in .env}
+      AUTH_SIGNING_KEY: ${AUTH_SIGNING_KEY:?set AUTH_SIGNING_KEY in .env}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER:?set REFRESH_TOKEN_PEPPER in .env}
+      # Only needed for the very first setup; remove it from .env afterwards.
       BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:-}
-      # true = jeder mit Zugriff auf die Adresse darf ein eigenes Konto anlegen.
+      # true = anyone who can reach the address may create their own account.
       REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
       TZ: ${TZ:-Europe/Berlin}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -77,8 +77,8 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      # Nur lokal veröffentlicht. Von außen kommt man über einen Reverse-Proxy
-      # mit HTTPS (Caddy unten, Traefik, nginx …), nie direkt über HTTP.
+      # Published on localhost only. From outside, use a reverse proxy with
+      # HTTPS (Caddy below, Traefik, nginx …), never plain HTTP.
       - "127.0.0.1:${LUNARA_PORT:-3000}:3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
@@ -94,8 +94,8 @@ services:
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
 
-  # Optional: automatisches HTTPS mit Let's Encrypt.
-  # Start mit: docker compose --profile caddy up -d
+  # Optional: automatic HTTPS with Let's Encrypt.
+  # Start with: docker compose --profile caddy up -d
   caddy:
     image: caddy:2
     profiles: ["caddy"]

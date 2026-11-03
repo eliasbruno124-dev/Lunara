@@ -161,7 +161,7 @@ export class AuthService {
               username,
               displayName: dto.displayName.trim(),
               passwordHash,
-              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.DE,
+              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.EN,
             },
           });
           const membership = await tx.membership.create({
@@ -258,7 +258,7 @@ export class AuthService {
               username,
               displayName: dto.displayName.trim(),
               passwordHash,
-              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.DE,
+              preferredLanguage: dto.preferredLanguage ?? PreferredLanguage.EN,
             },
           });
           const membership = await tx.membership.create({

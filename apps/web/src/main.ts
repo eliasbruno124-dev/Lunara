@@ -114,7 +114,8 @@ class LunaraWebApp {
   private screen: Screen = 'today';
   private selectedDate: string | null = null;
   private calendarMonth = monthKey();
-  private language: Language = localStorage.getItem('lunara-language') === 'en' ? 'en' : 'de';
+  // New browsers start in English; an explicit choice is kept in localStorage.
+  private language: Language = localStorage.getItem('lunara-language') === 'de' ? 'de' : 'en';
   private theme: ThemePreference = this.loadTheme();
   private readonly expandedSettings = new Set(['preferences']);
   private syncState: SyncState = { pending: 0, failed: 0, lastSuccessfulAt: null };
@@ -180,6 +181,7 @@ class LunaraWebApp {
   async start(): Promise<void> {
     this.renderLoading();
     this.localMode = (await settingsStore.get<boolean>('local-mode')) ?? false;
+    await this.keepLegacyLanguage();
     const captured = captureInvitationHash(window.location.hash, sessionStorage);
     if (captured !== 'absent') history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
     if (captured === 'invalid') this.invitationError = 'invalid';
@@ -251,7 +253,10 @@ class LunaraWebApp {
         user,
         clearServerHealthData,
       );
-      this.language = user.preferredLanguage === 'EN' ? 'en' : this.language;
+      // An explicit choice in this browser wins; otherwise follow the account.
+      if (localStorage.getItem('lunara-language') === null) {
+        this.language = user.preferredLanguage === 'EN' ? 'en' : user.preferredLanguage === 'DE' ? 'de' : this.language;
+      }
       document.documentElement.lang = this.language;
       await Promise.all([
         settingsStore.put('user', user),
@@ -1920,6 +1925,27 @@ class LunaraWebApp {
     toast.setAttribute('role', 'status');
     document.body.append(toast);
     window.setTimeout(() => toast.remove(), 3_000);
+  }
+
+  /**
+   * Before 1.3.5 the web app defaulted to German. Browsers that already held
+   * Lunara data at their first 1.3.5 start but never stored an explicit choice
+   * keep German. The decision is recorded once, so data created later in a new
+   * English installation is never mistaken for an old setup.
+   */
+  private async keepLegacyLanguage(): Promise<void> {
+    if (localStorage.getItem('lunara-language') !== null) return;
+    const decided = localStorage.getItem('lunara-language-default');
+    if (decided === null) {
+      const existing = this.localMode
+        || (await settingsStore.get<UserIdentity>('user')) != null
+        || Boolean(await getLocalVaultEnvelope<LocalVaultEnvelope>());
+      localStorage.setItem('lunara-language-default', existing ? 'legacy-de' : 'en');
+    }
+    if (localStorage.getItem('lunara-language-default') === 'legacy-de') {
+      this.language = 'de';
+      document.documentElement.lang = 'de';
+    }
   }
 
   private setLanguage(language: Language): void {

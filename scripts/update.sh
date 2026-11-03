@@ -12,12 +12,12 @@ lunara_compose() {
 
 exec 9>"${lock_file}"
 if ! flock -n 9; then
-  echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
+  echo "Another Lunara backup, update, or restore operation is already running." >&2
   exit 1
 fi
 
 if [[ ! -f "${env_file}" ]]; then
-  echo "Fehlt: ${env_file}" >&2
+  echo "Missing: ${env_file}" >&2
   exit 1
 fi
 
@@ -31,11 +31,11 @@ lunara_compose up -d --no-deps api
 for attempt in {1..20}; do
   if lunara_compose exec -T api \
     node -e "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
-    echo "Lunara wurde aktualisiert und ist bereit."
+    echo "Lunara has been updated and is ready."
     exit 0
   fi
   sleep 3
 done
 
-echo "Update abgeschlossen, Readiness blieb jedoch fehlerhaft. Logs prüfen; Backup liegt bereit." >&2
+echo "Update completed, but readiness checks still failed. Check the logs; a backup is available." >&2
 exit 1

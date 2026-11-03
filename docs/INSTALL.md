@@ -1,77 +1,77 @@
-# Lunara auf dem eigenen Server installieren
+# Installing Lunara on your own server
 
-Diese Anleitung führt in etwa 15 Minuten von einem leeren Linux-Server zu einer
-laufenden Lunara-Instanz mit HTTPS, Web-App, Android-App und Partnerzugang.
-Sie gilt für **Lunara 1.3.4**.
+This guide takes you from an empty Linux server to a running Lunara instance
+with HTTPS, web app, Android app and partner access in about 15 minutes.
+It applies to **Lunara 1.3.5**.
 
-Alle Bilder stammen aus der echten Oberfläche einer Demo-Instanz mit
-erfundenen Konten („Mia“ und „Jonas“) und erfundenen Daten.
+All screenshots show the real interface of a demo instance with made-up
+accounts ("Mia" and "Jonas") and made-up data.
 
-> Du willst Lunara nur allein auf deinem Android-Handy nutzen? Dann brauchst
-> du **keinen Server**: Lade `lunara-release.apk` aus den
-> [Releases](https://github.com/eliasbruno124-dev/Lunara/releases/latest),
-> installiere sie und wähle **Nur auf diesem Gerät**. Weiter mit
+> Only want to use Lunara on your own Android phone? Then you do **not need a
+> server**: download `lunara-release.apk` from the
+> [releases](https://github.com/eliasbruno124-dev/Lunara/releases/latest),
+> install it and choose **Only on this device**. Continue with
 > [SETUP.md](SETUP.md).
 
 ---
 
-## Inhalt
+## Contents
 
-1. [So funktioniert Lunara](#1-so-funktioniert-lunara)
-2. [Voraussetzungen](#2-voraussetzungen)
-3. [Installation mit Docker Compose](#3-installation-mit-docker-compose)
-4. [HTTPS einrichten](#4-https-einrichten)
-5. [Erstes Konto anlegen](#5-erstes-konto-anlegen)
-6. [Web-App und Android-App verwenden](#6-web-app-und-android-app-verwenden)
-7. [Partner einladen und Freigaben wählen](#7-partner-einladen-und-freigaben-wählen)
-8. [Updates, Backup und Wiederherstellung](#8-updates-backup-und-wiederherstellung)
-9. [Alle Einstellungen](#9-alle-einstellungen)
-10. [Fehlersuche](#10-fehlersuche)
+1. [How Lunara works](#1-how-lunara-works)
+2. [Requirements](#2-requirements)
+3. [Installation with Docker Compose](#3-installation-with-docker-compose)
+4. [Setting up HTTPS](#4-setting-up-https)
+5. [Creating the first account](#5-creating-the-first-account)
+6. [Using the web app and the Android app](#6-using-the-web-app-and-the-android-app)
+7. [Inviting a partner and choosing what to share](#7-inviting-a-partner-and-choosing-what-to-share)
+8. [Updates, backup and restore](#8-updates-backup-and-restore)
+9. [All settings](#9-all-settings)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
-## 1. So funktioniert Lunara
+## 1. How Lunara works
 
 ```text
-  Handy (Android-App)  ─┐
-  Browser (Web-App/PWA) ┼──HTTPS──►  Reverse-Proxy  ──►  lunara  ──►  postgres
-  Partner-Handy        ─┘            (Caddy/Traefik)     :3000        (intern)
+  Phone (Android app)  ─┐
+  Browser (web app/PWA) ┼──HTTPS──►  reverse proxy  ──►  lunara  ──►  postgres
+  Partner's phone      ─┘            (Caddy/Traefik)     :3000        (internal)
 ```
 
-- **Ein Container für alles:** Das Image `ghcr.io/eliasbruno124-dev/lunara`
-  enthält die API, die installierbare Web-App und die signierte Android-APK.
-  Unter derselben Adresse findest du also Login, App und APK-Download.
-- **PostgreSQL** speichert Konten und Einträge. Die Datenbank liegt in einem
-  internen Docker-Netz ohne Internetzugang und ohne offenen Port.
-- **`migrate`** ist ein kurzer Einmal-Container. Er bringt bei jedem Start das
-  Datenbankschema auf den Stand der Image-Version und beendet sich dann.
-  Ohne ihn startet `lunara` nicht. So kann ein Update kein halb
-  migriertes Schema hinterlassen.
-- **Zwei Rollen pro Haushalt:** Die `TRACKER`-Person erfasst ihren Zyklus.
-  Die `PARTNER`-Person sieht nur, was die Tracker-Person ausdrücklich
-  freigibt, und bekommt dazu kleine Ideen für den Alltag.
-- **Vorhersagen** berechnet der Server deterministisch aus den bisherigen
-  Zyklen (Verfahren `lunara-robust-v2`, siehe [ALGORITHM.md](../ALGORITHM.md)).
-  Sie werden immer als Zeitraum mit einer Schätzsicherheit angezeigt, nie als
-  festes Datum.
-- **Sicherheit:** Passwörter werden mit Argon2id gehasht. Die Access-Tokens
-  laufen kurz, die Refresh-Tokens rotieren. Sensible Felder werden mit dem
-  `APP_MASTER_KEY` verschlüsselt. Es gibt keine Telemetrie, keine Werbung und
-  keine Google-Dienste.
+- **One container for everything:** the image `ghcr.io/eliasbruno124-dev/lunara`
+  contains the API, the installable web app and the signed Android APK. Sign-in,
+  app and APK download all live under the same address.
+- **PostgreSQL** stores accounts and entries. The database sits in an internal
+  Docker network without internet access and without an open port.
+- **`migrate`** is a short one-off container. On every start it brings the
+  database schema up to the image's version and then exits. `lunara` only
+  starts after it succeeded, so an update can never leave a half-migrated
+  schema behind.
+- **Two roles per household:** the `TRACKER` records their cycle. The
+  `PARTNER` only sees what the tracker explicitly shares, plus small everyday
+  ideas.
+- **Estimates** are calculated deterministically on the server from the
+  previous cycles (method `lunara-robust-v2`, see [ALGORITHM.md](../ALGORITHM.md)).
+  They are always shown as a range with a confidence level, never as a fixed
+  date.
+- **Security:** passwords are hashed with Argon2id. Access tokens are
+  short-lived and refresh tokens rotate. Sensitive fields are encrypted with
+  the `APP_MASTER_KEY`. There is no telemetry, no advertising and no Google
+  services.
 
-> Lunara ist **kein Medizinprodukt** und **keine Verhütungsmethode**.
-> Vorhersagen sind Schätzungen.
+> Lunara is **not a medical device** and **not a contraceptive method**.
+> Estimates are estimates.
 
-## 2. Voraussetzungen
+## 2. Requirements
 
-| Was | Warum |
+| What | Why |
 | --- | --- |
-| Linux-Server mit Docker Engine 24+ und Compose-Plugin | Lunara läuft als Container (amd64 oder arm64, z. B. Raspberry Pi 4/5) |
-| ca. 300 MB RAM, 1 GB Speicher | Lunara und PostgreSQL zusammen |
-| eine (Sub-)Domain, z. B. `lunara.example.com` | Die Apps verlangen **HTTPS**. Ohne gültiges Zertifikat lehnt der Server den Start ab |
-| Ports 80 und 443 erreichbar (nur beim mitgelieferten Caddy) | für das automatische Let's-Encrypt-Zertifikat |
+| Linux server with Docker Engine 24+ and the Compose plugin | Lunara runs as containers (amd64 or arm64, e.g. Raspberry Pi 4/5) |
+| about 300 MB RAM, 1 GB disk | Lunara and PostgreSQL together |
+| a (sub)domain, e.g. `lunara.example.com` | the apps require **HTTPS**; without a `https://` address the server refuses to start |
+| ports 80 and 443 reachable (only for the bundled Caddy) | for the automatic Let's Encrypt certificate |
 
-## 3. Installation mit Docker Compose
+## 3. Installation with Docker Compose
 
 ```bash
 mkdir lunara && cd lunara
@@ -82,7 +82,7 @@ curl -fsSL  $BASE/.env.example -o .env
 chmod 600 .env
 ```
 
-Erzeuge jetzt die Geheimnisse. Jeder Wert muss **einzeln** und zufällig sein:
+Now generate the secrets. Every value must be random and **unique**:
 
 ```bash
 sed -i \
@@ -94,48 +94,48 @@ sed -i \
   .env
 ```
 
-Öffne danach `.env` und trage deine Domain ein:
+Then open `.env` and enter your domain:
 
 ```ini
-PUBLIC_BASE_URL=https://lunara.deine-domain.de
-LUNARA_DOMAIN=lunara.deine-domain.de
+PUBLIC_BASE_URL=https://lunara.your-domain.com
+LUNARA_DOMAIN=lunara.your-domain.com
 ```
 
-Was die Werte bedeuten:
+What the values mean:
 
-| Variable | Bedeutung |
+| Variable | Meaning |
 | --- | --- |
-| `POSTGRES_PASSWORD` | Datenbankpasswort, wird nur intern verwendet |
-| `APP_MASTER_KEY` | verschlüsselt sensible Felder in der Datenbank. **Geht er verloren, sind diese Daten nicht mehr lesbar.** Zusammen mit dem Backup sicher aufbewahren |
-| `AUTH_SIGNING_KEY` | signiert die Anmelde-Tokens. Wird er geändert, müssen sich alle neu anmelden |
-| `REFRESH_TOKEN_PEPPER` | zusätzlicher Schutz der gespeicherten Refresh-Tokens |
-| `BOOTSTRAP_TOKEN` | Einmal-Code zum Anlegen des allerersten Kontos, danach löschen |
+| `POSTGRES_PASSWORD` | database password, only used internally |
+| `APP_MASTER_KEY` | encrypts sensitive fields in the database. **If it is lost, that data can no longer be read.** Keep it safe together with your backups |
+| `AUTH_SIGNING_KEY` | signs sign-in tokens. Changing it signs everybody out |
+| `REFRESH_TOKEN_PEPPER` | additional protection for stored refresh tokens |
+| `BOOTSTRAP_TOKEN` | one-time code for creating the very first account; remove it afterwards |
 
-Die vollständige, kommentierte Datei liegt unter
+The complete, commented file is
 [`examples/docker-compose.yml`](../examples/docker-compose.yml).
 
-## 4. HTTPS einrichten
+## 4. Setting up HTTPS
 
-**Variante A – mitgelieferter Caddy (am einfachsten).** Die Domain muss per
-DNS auf den Server zeigen. Dann:
+**Option A – bundled Caddy (easiest).** Your domain must point to the server
+via DNS. Then:
 
 ```bash
 docker compose --profile caddy up -d
 docker compose ps
 ```
 
-Caddy holt das Zertifikat automatisch. Nach etwa 30 Sekunden sollte
-`https://lunara.deine-domain.de/health` die Antwort `{"status":"ok"}` liefern.
+Caddy obtains the certificate automatically. After about 30 seconds
+`https://lunara.your-domain.com/health` should return `{"status":"ok"}`.
 
-**Variante B – vorhandener Reverse-Proxy** (Traefik, nginx, Nginx Proxy
-Manager, Pangolin …): Starte nur Lunara:
+**Option B – existing reverse proxy** (Traefik, nginx, Nginx Proxy Manager,
+Pangolin …): start Lunara only:
 
 ```bash
 docker compose up -d
 ```
 
-Lunara lauscht dann auf `127.0.0.1:3000` (über `LUNARA_PORT` änderbar).
-Leite deine Domain per HTTPS dorthin weiter. Ein nginx-Beispiel:
+Lunara then listens on `127.0.0.1:3000` (configurable via `LUNARA_PORT`).
+Forward your domain there over HTTPS. An nginx example:
 
 ```nginx
 location / {
@@ -143,158 +143,161 @@ location / {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto https;
-    proxy_buffering off;   # für die Live-Synchronisation (Server-Sent Events)
+    proxy_buffering off;   # for live synchronization (server-sent events)
 }
 ```
 
-Lunara vertraut genau **einem** Proxy vor sich (`trust proxy 1`). Mehrere
-hintereinander geschaltete Proxys verfälschen die Client-IP für die
-Login-Bremse.
+Lunara trusts exactly **one** proxy in front of it (`trust proxy 1`). Several
+proxies in a row distort the client IP used by the sign-in rate limit.
 
-## 5. Erstes Konto anlegen
+## 5. Creating the first account
 
-Eine frische Instanz ist leer. Das erste Konto wird die **Tracker-Person**
-und braucht einmalig den `BOOTSTRAP_TOKEN` aus der `.env`.
+A fresh instance is empty. The first account becomes the **tracker** and needs
+the `BOOTSTRAP_TOKEN` from `.env` once.
 
-**Mit der Android-App:** Wähle **Eigener Server**, gib die Adresse ein und
-dann **Verbindung testen** → **Lunara erstmals einrichten**. Füge dort den
-Token ein.
+**With the Android app:** choose **Connect a server or partner**, enter the
+address, tap **Test connection** and then **Set up Lunara for the first time**.
+Paste the token there.
 
-**Ohne Android, direkt am Server** (braucht `jq`, z. B. `apt install jq`).
-Benutzername und Passwort werden abgefragt und erscheinen weder auf dem
-Bildschirm noch in der Shell-History:
+**Without Android, directly on the server** (requires `jq`, e.g.
+`apt install jq`). Username and password are prompted for and appear neither
+on screen nor in the shell history:
 
 ```bash
-IFS= read -rp  'Benutzername: ' LUNARA_USER
-IFS= read -rsp 'Passwort (mind. 8 Zeichen): ' LUNARA_PASSWORD; echo
+IFS= read -rp  'Username: ' LUNARA_USER
+IFS= read -rsp 'Password (min. 8 characters): ' LUNARA_PASSWORD; echo
 TOKEN=$(grep ^BOOTSTRAP_TOKEN= .env | cut -d= -f2-)
 jq -n --arg u "$LUNARA_USER" --arg p "$LUNARA_PASSWORD" --arg t "$TOKEN" \
-  '{username:$u, password:$p, displayName:$u, deviceName:"Einrichtung",
-    preferredLanguage:"DE", bootstrapToken:$t}' \
-  | curl -fsS https://lunara.deine-domain.de/api/v1/setup \
+  '{username:$u, password:$p, displayName:$u, deviceName:"Setup",
+    preferredLanguage:"EN", bootstrapToken:$t}' \
+  | curl -fsS https://lunara.your-domain.com/api/v1/setup \
       -H 'Content-Type: application/json' --data-binary @- > /dev/null \
-  && echo "Konto angelegt" \
-  || echo "FEHLER: Konto wurde NICHT angelegt – Token noch nicht entfernen"
+  && echo "Account created" \
+  || echo "ERROR: account NOT created – do not remove the token yet"
 unset LUNARA_PASSWORD TOKEN
 ```
 
-**Erst wenn das Konto angelegt ist** (Meldung „Konto angelegt“ bzw. Anmeldung
-in der App klappt), den Token entfernen. Er wird nie wieder gebraucht:
+**Only once the account exists** ("Account created", or signing in works in
+the app), remove the token. It is never needed again:
 
 ```bash
 sed -i 's/^BOOTSTRAP_TOKEN=.*/BOOTSTRAP_TOKEN=/' .env
 docker compose up -d
 ```
 
-Benutzernamen haben 3–64 Zeichen (Buchstaben, Ziffern, `.`, `_`, `-`).
-Passwörter brauchen mindestens 8 Zeichen.
+Usernames have 3–64 characters (letters, digits, `.`, `_`, `-`).
+Passwords need at least 8 characters.
 
-## 6. Web-App und Android-App verwenden
+## 6. Using the web app and the Android app
 
-Öffne `https://lunara.deine-domain.de` im Browser.
-
-<table>
-<tr>
-<td width="33%"><img src="screenshots/hd/01-start-modus-waehlen.png" alt="Startbildschirm: Nur auf diesem Gerät oder Eigener Server"></td>
-<td width="33%"><img src="screenshots/hd/02-anmelden.png" alt="Anmeldung mit Benutzername und Passwort"></td>
-<td width="33%"><img src="screenshots/hd/03-tracker-heute.png" alt="Heute-Ansicht der Tracker-Person mit erwartetem Periodenbeginn"></td>
-</tr>
-<tr>
-<td><b>1. Modus wählen.</b> „Nur auf diesem Gerät“ speichert passphrasenverschlüsselt im Browser, ganz ohne Server. „Eigener Server“ synchronisiert über deine Instanz.</td>
-<td><b>2. Anmelden</b> mit dem eben angelegten Konto. Die Web-App kommt vom Server selbst, eine Adresse musst du deshalb nicht eingeben.</td>
-<td><b>3. Heute.</b> Oben steht der erwartete Beginn als Zeitraum, darunter die Zahl der erfassten Zyklen und die Schätzsicherheit. Mit <i>Periodenbeginn eintragen</i> erfasst du den heutigen Tag.</td>
-</tr>
-</table>
-
-### Der Kalender
+Open `https://lunara.your-domain.com` in your browser. Lunara starts in
+English; **Deutsch** is available on the start screen and under
+**Settings → Language**.
 
 <table>
 <tr>
-<td width="50%"><img src="screenshots/hd/04b-tracker-kalender-oktober.png" alt="Kalender Oktober mit erfassten Periodentagen"></td>
-<td width="50%"><img src="screenshots/hd/04-tracker-kalender.png" alt="Kalender November mit geschätzter Periode"></td>
+<td width="33%"><img src="screenshots/hd/01-start-choose-mode.png" alt="Start screen: Only on this device or My own server"></td>
+<td width="33%"><img src="screenshots/hd/02-sign-in.png" alt="Sign-in with username and password"></td>
+<td width="33%"><img src="screenshots/hd/03-tracker-today.png" alt="Tracker's Today view with the expected period start"></td>
 </tr>
 <tr>
-<td><b>Erfasste Tage</b> sind rosa und mit <b>P</b> markiert. Tippe einen Tag an, um Beginn oder Ende einer Periode einzutragen oder zu ändern.</td>
-<td><b>Geschätzte Tage</b> sind gelb, gestrichelt umrandet und mit <b>≈</b> markiert. Mit Wischen oder den Pfeilen blätterst du bis zu fünf Jahre voraus.</td>
+<td><b>1. Choose a mode.</b> "Only on this device" stores everything passphrase-encrypted in the browser, without any server. "My own server" synchronizes through your instance.</td>
+<td><b>2. Sign in</b> with the account you just created. The web app is served by the server itself, so you don't have to enter an address.</td>
+<td><b>3. Today.</b> At the top you see the expected start as a range, below it the number of recorded cycles and the estimate confidence. <i>Record period start</i> records today.</td>
 </tr>
 </table>
 
-Trägst du nur den Beginn ein, nimmt Lunara nach **fünf Tagen** automatisch
-ein Ende an. Das Enddatum kannst du jederzeit unter *Verlauf* korrigieren
-(Details: [PERIOD-ENDS.md](PERIOD-ENDS.md)).
+### The calendar
 
-### Auf dem Desktop
+<table>
+<tr>
+<td width="50%"><img src="screenshots/hd/05-tracker-calendar-recorded.png" alt="October calendar with recorded period days"></td>
+<td width="50%"><img src="screenshots/hd/04-tracker-calendar-estimate.png" alt="November calendar with an estimated period"></td>
+</tr>
+<tr>
+<td><b>Recorded days</b> are pink and marked <b>P</b>. Tap a day to record or change the start or end of a period.</td>
+<td><b>Estimated days</b> are yellow, have a dashed border and are marked <b>≈</b>. Swipe or use the arrows to look up to five years ahead.</td>
+</tr>
+</table>
 
-![Desktop-Ansicht: Heute mit Verlauf in der rechten Spalte](screenshots/hd/08-desktop-heute.png)
+If you only record the start, Lunara assumes an end after **five days**. You
+can correct the end date at any time under *History*
+(details: [PERIOD-ENDS.md](PERIOD-ENDS.md)).
 
-### Als App installieren
+### On the desktop
 
-<img src="screenshots/hd/05b-app-und-verbindung.png" width="330" align="right" alt="Einstellungen, App und Verbindung: Server, Version, APK-Download">
+![Desktop view: Today with history in the right-hand column](screenshots/hd/09-desktop-today.png)
 
-Unter **Einstellungen → App & Verbindung** findest du:
+### Installing as an app
 
-- **Android-App herunterladen (.apk):** Die native App wird direkt von deinem
-  Server geladen (`/api/v1/downloads/lunara.apk`). Sie ist dieselbe signierte
-  APK wie im GitHub-Release. Updates installierst du einfach über die
-  vorhandene App, ohne vorher zu deinstallieren.
-- **iPhone:** In Safari *Teilen → Zum Home-Bildschirm*. Die Web-App läuft
-  dann wie eine App im Vollbild.
-- **Desktop (Chrome/Edge):** über das Installieren-Symbol in der Adresszeile.
+<img src="screenshots/hd/06-app-and-connection.png" width="330" align="right" alt="Settings, App & connection: server, version, APK download">
 
-In der Android-App wählst du beim Start **Eigener Server**, gibst
-`https://lunara.deine-domain.de` ein und meldest dich an.
+Under **Settings → App & connection** you will find:
+
+- **Download Android app (.apk):** the native app is downloaded directly
+  from your server (`/api/v1/downloads/lunara.apk`). It is the same signed APK
+  as in the GitHub release. Install updates over the existing app; do not
+  uninstall first.
+- **iPhone:** in Safari, *Share → Add to Home Screen*. The web app then runs
+  full-screen like an app.
+- **Desktop (Chrome/Edge):** via the install icon in the address bar.
+
+In the Android app, choose **Connect a server or partner** on first start, enter
+`https://lunara.your-domain.com` and sign in. New installations of the app
+start in English; German can be selected on the first screen (and on
+Android 13+ also in the system's per-app language settings).
 
 <br clear="right">
 
-## 7. Partner einladen und Freigaben wählen
+## 7. Inviting a partner and choosing what to share
 
-1. Die Tracker-Person öffnet **Einstellungen → Gemeinsam nutzen → Partner
-   einladen**. Lunara erzeugt einen einmalig nutzbaren Code bzw. Link.
-2. Die Partner-Person wählt in der App **Eigener Server → Ich habe eine
-   Einladung**, gibt den Code ein und legt ihr eigenes Konto an.
-3. Die Tracker-Person legt fest, **was** geteilt wird: Vorhersage,
-   Periodendaten, fruchtbares Zeitfenster und weitere Angaben, jede einzeln.
-   Eine neue Verbindung teilt zunächst nur das Nötigste.
+1. The tracker opens **Settings → Using Lunara together → Invite partner**.
+   Lunara creates a single-use code or link.
+2. The partner chooses **Connect a server or partner** in the Android app
+   (or **My own server** in the browser), then **I have an invitation**,
+   enters the code and creates their own account.
+3. The tracker decides **what** is shared – estimate, period dates, fertile
+   window and further details, each one individually. A new connection only
+   shares the minimum at first.
 
 <table>
 <tr>
-<td width="50%"><img src="screenshots/hd/06-partner-heute.png" alt="Partneransicht: Ausblick und heutiger Vorschlag"></td>
-<td width="50%"><img src="screenshots/hd/07-partner-kalender.png" alt="Partner-Kalender mit geteilter Schätzung"></td>
+<td width="50%"><img src="screenshots/hd/07-partner-today.png" alt="Partner view: shared outlook and today's suggestion"></td>
+<td width="50%"><img src="screenshots/hd/08-partner-calendar.png" alt="Partner calendar with the shared estimate"></td>
 </tr>
 <tr>
-<td><b>Partneransicht.</b> Jonas sieht den geteilten Ausblick und einen <i>heutigen Vorschlag</i>, eine kleine Idee für den Alltag aus über 70 Tipps.</td>
-<td>Im <b>Partner-Kalender</b> erscheint nur, was freigegeben ist. „Nicht freigegeben“ heißt weder „keine Einträge“ noch „gelöscht“.</td>
+<td><b>Partner view.</b> Jonas sees the shared outlook and <i>today's suggestion</i>, a small idea for everyday life from more than 70 tips.</td>
+<td>The <b>partner calendar</b> only shows what is shared. "Not shared" means neither "no entries" nor "deleted".</td>
 </tr>
 </table>
 
-Mehr dazu: [SETUP.md](SETUP.md) (Freigaben, Backups, Gerätewechsel) und
+More: [SETUP.md](SETUP.md) (sharing, backups, changing devices) and
 [PRIVACY.md](../PRIVACY.md).
 
-## 8. Updates, Backup und Wiederherstellung
+## 8. Updates, backup and restore
 
-**Update:** Setze in `.env` die neue `LUNARA_VERSION` (siehe
-[Releases](https://github.com/eliasbruno124-dev/Lunara/releases)) und führe
-dann aus:
+**Update:** set the new `LUNARA_VERSION` in `.env` (see
+[releases](https://github.com/eliasbruno124-dev/Lunara/releases)) and run:
 
 ```bash
 docker compose pull
-docker compose up -d        # bzw. mit --profile caddy
+docker compose up -d        # or with --profile caddy
 ```
 
-`migrate` aktualisiert das Schema automatisch. Lies vorher die Release-Notes.
-Ein Downgrade auf eine ältere Version wird nicht unterstützt, deshalb immer
-**vorher ein Backup** anlegen.
+`migrate` updates the schema automatically. Read the release notes first.
+Downgrading to an older version is not supported, so always **take a backup
+first**.
 
-**Backup** (Datenbank im laufenden Betrieb, Dateien nur für dich lesbar):
+**Backup** (database while running, files readable only by you):
 
 ```bash
 umask 077
 docker compose exec -T postgres pg_dump -U lunara -Fc lunara > lunara-$(date +%F).dump
-cp .env lunara-env-$(date +%F).bak   # enthält APP_MASTER_KEY, sicher aufbewahren!
+cp .env lunara-env-$(date +%F).bak   # contains APP_MASTER_KEY, keep it safe!
 ```
 
-**Wiederherstellen** mit **derselben** `.env`. Lunara wird erst wieder
-gestartet, wenn die Wiederherstellung fehlerfrei durchgelaufen ist:
+**Restore** with the **same** `.env`. Lunara is only started again once the
+restore has completed without errors:
 
 ```bash
 docker compose stop lunara
@@ -304,43 +307,42 @@ docker compose exec -T postgres pg_restore -U lunara -d lunara \
   && docker compose up -d
 ```
 
-Ohne den passenden `APP_MASTER_KEY` ist ein Backup nur teilweise lesbar.
+Without the matching `APP_MASTER_KEY` a backup is only partially readable.
 
-## 9. Alle Einstellungen
+## 9. All settings
 
-Das Beispiel enthält die wichtigsten Variablen. Alle weiteren kannst du im
-Abschnitt `environment:` des `lunara`-Dienstes ergänzen:
+The example contains the most important variables. You can add any of the
+following to the `environment:` section of the `lunara` service:
 
-| Variable | Standard | Zweck |
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `REGISTRATION_ENABLED` | `false` | `true` erlaubt fremden Personen, eigene Tracker-Konten anzulegen. Partner kommen immer über Einladungen |
-| `ACCESS_TOKEN_TTL_SECONDS` | `900` | Laufzeit eines Access-Tokens |
-| `REFRESH_TOKEN_TTL_DAYS` | `30` | wie lange ein Gerät ohne Nutzung angemeldet bleibt |
-| `INVITATION_TTL_MINUTES` | `30` | Gültigkeit befristeter Einladungen |
+| `REGISTRATION_ENABLED` | `false` | `true` lets other people create their own tracker accounts. Partners always join via invitations |
+| `ACCESS_TOKEN_TTL_SECONDS` | `900` | lifetime of an access token |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | how long an unused device stays signed in |
+| `INVITATION_TTL_MINUTES` | `30` | validity of time-limited invitations |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
-| `TZ` | `Europe/Berlin` | Zeitzone des Servers |
-| `OIDC_ENABLED` … | `false` | optionaler Login über Authentik/OIDC, siehe [DEPLOYMENT.md](../DEPLOYMENT.md) |
-| `OPENAPI_ENABLED` | `false` | API-Dokumentation unter `/api-docs`, nur mit Passwortschutz |
+| `TZ` | `Europe/Berlin` | server time zone |
+| `OIDC_ENABLED` … | `false` | optional sign-in via Authentik/OIDC, see [DEPLOYMENT.md](../DEPLOYMENT.md) |
+| `OPENAPI_ENABLED` | `false` | API documentation under `/api-docs`, only with password protection |
 
-**Hinweis zu OIDC und der offiziellen APK:** Die veröffentlichte Android-App
-nutzt für den OIDC-Login einen fest eingebauten, verifizierten
-App-Link-Callback. Benutzername und Passwort funktionieren mit jeder
-Instanz. Für einen OIDC-Login in der Android-App auf deiner eigenen Domain
-baust du die APK mit `LUNARA_APP_LINK_HOST=deine-domain` selbst, siehe
-[DEPLOYMENT.md](../DEPLOYMENT.md#android-api-domain-ist-nicht-der-callback-host).
-Im Browser funktioniert OIDC ohne eigenen Build.
+**OIDC and the official APK:** the published Android app uses a built-in,
+verified app-link callback for OIDC sign-in. Username and password work with
+every instance. For OIDC sign-in in the Android app on your own domain, build
+the APK yourself with `LUNARA_APP_LINK_HOST=your-domain`, see
+[DEPLOYMENT.md](../DEPLOYMENT.md#android-the-api-domain-is-not-the-callback-host).
+OIDC in the browser works without your own build.
 
-## 10. Fehlersuche
+## 10. Troubleshooting
 
-| Symptom | Ursache und Lösung |
+| Symptom | Cause and fix |
 | --- | --- |
-| `lunara` startet nicht, Log: `PUBLIC_BASE_URL must use HTTPS` | `PUBLIC_BASE_URL` muss mit `https://` beginnen |
-| Log: `APP_MASTER_KEY must be exactly 32 random bytes` | mit `openssl rand -base64 32` neu erzeugen (nicht `-hex`) |
-| `migrate` beendet sich mit Fehler | `docker compose logs migrate`. Meist ist die Datenbank nicht erreichbar oder das Passwort wurde nach der ersten Installation geändert |
-| App: „Verbindung fehlgeschlagen“ | `https://…/health` im Handy-Browser öffnen. Zertifikat und DNS prüfen |
-| Login: „Too Many Requests“ | Login-Bremse (3 Versuche pro Minute). Eine Minute warten |
-| Android-Update lässt sich nicht installieren | Die APK muss mit demselben Schlüssel signiert sein. Selbst gebaute APKs ersetzen die offizielle nicht |
+| `lunara` does not start, log: `PUBLIC_BASE_URL must use HTTPS` | `PUBLIC_BASE_URL` must start with `https://` |
+| log: `APP_MASTER_KEY must be exactly 32 random bytes` | regenerate with `openssl rand -base64 32` (not `-hex`) |
+| `migrate` exits with an error | `docker compose logs migrate`. Usually the database is unreachable or the password was changed after the first installation |
+| app: connection failed | open `https://…/health` in the phone's browser; check certificate and DNS |
+| sign-in: "Too Many Requests" | sign-in rate limit (3 attempts per minute). Wait a minute |
+| an Android update cannot be installed | the APK must be signed with the same key. Self-built APKs do not replace the official one |
 
-Logs ansehen: `docker compose logs -f lunara`.
-Fehler melden: [GitHub Issues](https://github.com/eliasbruno124-dev/Lunara/issues),
-Sicherheitslücken bitte vertraulich, siehe [SECURITY.md](../SECURITY.md).
+View logs: `docker compose logs -f lunara`.
+Report bugs: [GitHub issues](https://github.com/eliasbruno124-dev/Lunara/issues).
+Report security issues privately, see [SECURITY.md](../SECURITY.md).

@@ -17,7 +17,7 @@ result=0
 node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation.log || result=$?
 if (( result == 0 )); then
   adb shell cmd locale set-app-locales de.lunara.app.debug --user 0 --locales en-US
-  adb shell am instrument -w -r -e class de.lunara.app.ui.RedesignComposeTest de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation-en.log 2>&1
+  adb shell am instrument -w -r -e class de.lunara.app.ui.RedesignComposeTest,de.lunara.app.ui.SetupScreenshotsTest de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation-en.log 2>&1
   node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation-en.log || result=$?
 fi
 adb pull /sdcard/Android/data/de.lunara.app.debug/files artifacts/device-validation/screenshots || result=1

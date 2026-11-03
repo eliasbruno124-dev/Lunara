@@ -1,5 +1,6 @@
 package de.lunara.app
 
+import android.content.Context
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -9,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
+import de.lunara.app.core.locale.AppLanguage
 import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.sync.SyncScheduler
@@ -28,6 +30,10 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var preferences: AppPreferences
     @Inject lateinit var syncScheduler: SyncScheduler
     @Inject lateinit var notificationScheduler: NotificationScheduler
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguage.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()

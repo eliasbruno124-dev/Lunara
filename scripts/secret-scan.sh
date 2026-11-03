@@ -9,7 +9,7 @@ cd -- "${project_dir}"
 if git ls-files -co --exclude-standard -z \
   | grep -zE '(^|/)(\.env($|\.)|.*\.(pem|key|p12|jks|keystore)$)' \
   | grep -zvE '(^|/)\.env\.example$' >/dev/null; then
-  echo "Abbruch: Eine Secret-/Key-Datei wäre Teil des Commits." >&2
+  echo "Aborted: A secret/key file would be included in the commit." >&2
   exit 1
 fi
 
@@ -35,9 +35,9 @@ pattern_report="$(git ls-files -co --exclude-standard -z \
 
 if [[ -n "${pattern_report}" ]]; then
   match_count="$(printf '%s\n' "${pattern_report}" | wc -l)"
-  echo "Abbruch: ${match_count} mögliche Zugangsschlüssel oder unredigierte Secrets gefunden (Werte werden nicht ausgegeben)." >&2
+  echo "Aborted: Found ${match_count} possible access keys or unredacted secrets (values are not displayed)." >&2
   printf '%s\n' "${pattern_report}" | cut -d: -f1-2 | sort -u \
-    | sed 's/^/Sichere Fundstelle: /' >&2
+    | sed 's/^/Safe finding location: /' >&2
   exit 1
 fi
 unset pattern_report
@@ -77,9 +77,9 @@ entropy_report="$(git ls-files -co --exclude-standard -z \
 
 if [[ -n "${entropy_report}" ]]; then
   candidate_count="$(printf '%s\n' "${entropy_report}" | wc -l)"
-  echo "Abbruch: ${candidate_count} nicht freigegebene High-Entropy-Kandidaten gefunden (Werte werden nicht ausgegeben)." >&2
+  echo "Aborted: Found ${candidate_count} unapproved high-entropy candidates (values are not displayed)." >&2
   printf '%s\n' "${entropy_report}" | cut -d: -f1-2 | sort -u \
-    | sed 's/^/Sichere Fundstelle: /' >&2
+    | sed 's/^/Safe finding location: /' >&2
   exit 1
 fi
 unset entropy_report
@@ -87,7 +87,7 @@ unset entropy_report
 if command -v gitleaks >/dev/null; then
   gitleaks git --redact --no-banner --exit-code 1 .
 else
-  echo "Hinweis: gitleaks ist lokal nicht installiert; CI führt den redigierten History-Scan aus." >&2
+  echo "Note: gitleaks is not installed locally. CI runs the redacted history scan." >&2
 fi
 
-echo "Gezielter und High-Entropy-Secret-Scan ohne Treffer abgeschlossen."
+echo "Targeted and high-entropy secret scans completed with no findings."

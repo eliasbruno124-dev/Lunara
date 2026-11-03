@@ -1,28 +1,27 @@
-# Android-Release signieren
+# Signing an Android release
 
-Das Repository enthält absichtlich keinen privaten Signierschlüssel. Der
-Standardlauf `scripts/build-android.sh` erzeugt die installierbare,
-HTTPS-erzwingende Production-Debug-APK. Ein unsigned Release-Build wird nur mit
-dem expliziten Schalter versucht:
+The repository deliberately contains no private signing key. The default
+`scripts/build-android.sh` run produces the installable production debug APK,
+which enforces HTTPS. An unsigned release build is only attempted with the
+explicit switch:
 
 ```bash
 BUILD_ANDROID_RELEASE=true ./scripts/build-android.sh
 ```
 
-Für wiederholbare lokale Test-Updates legt das Skript seinen Debug-Key unter
-`.android-builder/debug.keystore` an. Das Verzeichnis ist Git-ignoriert und auf
-dem Buildhost nur für den Besitzer zugänglich. Der Key muss wie ein Secret
-gesichert werden; geht er verloren, kann eine damit installierte Debug-App nur
-nach einer Deinstallation mit einem neuen Schlüssel installiert werden. Mit
-`ANDROID_DEBUG_KEYSTORE_DIR="/sicherer/lokaler/pfad"` lässt sich der Speicherort
-außerhalb des Arbeitsbaums festlegen. Dieser Debug-Key ersetzt keinen privaten
-Release-Key.
+For repeatable local test updates, the script creates its debug key at
+`.android-builder/debug.keystore`. The directory is ignored by Git and
+accessible only to its owner on the build host. Back up this key as a secret;
+if it is lost, a debug app installed with it must be uninstalled before it can
+be installed with a new key. Use
+`ANDROID_DEBUG_KEYSTORE_DIR="/sicherer/lokaler/pfad"` to set a location outside
+the working tree. This debug key does not replace a private release key.
 
-Wenn `artifacts/lunara-release-unsigned.apk` danach nicht existiert, wurde auf
-diesem Host kein erfolgreicher Release-Build erzeugt. Niemals die Debug-APK als
-Release-Artefakt umbenennen.
+If `artifacts/lunara-release-unsigned.apk` does not exist afterwards, no
+successful release build was produced on this host. Never rename the debug APK
+as a release artifact.
 
-Erzeuge den Release-Key offline und außerhalb des Repositorys:
+Generate the release key offline and outside the repository:
 
 ```bash
 keytool -genkeypair -v \
@@ -31,7 +30,7 @@ keytool -genkeypair -v \
   -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-Signiere mit dem `apksigner` des Android-SDK und prüfe anschließend:
+Sign using `apksigner` from the Android SDK, then verify:
 
 ```bash
 apksigner sign \
@@ -41,7 +40,6 @@ apksigner sign \
 apksigner verify --verbose --print-certs artifacts/lunara-release.apk
 ```
 
-Keystore, Passwörter und Signing-Properties niemals in Git, CI-Logs oder
-OneDrive ablegen. Sichere den Schlüssel doppelt verschlüsselt; ohne denselben
-Schlüssel sind spätere Updates einer bereits installierten Release-App nicht
-möglich.
+Never store the keystore, passwords or signing properties in Git, CI logs or
+OneDrive. Back up the key with two layers of encryption; without the same key, an
+already installed release app cannot receive subsequent updates.

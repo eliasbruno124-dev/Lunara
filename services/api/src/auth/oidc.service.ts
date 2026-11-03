@@ -176,7 +176,7 @@ export class OidcService {
       );
     }
 
-    const preferredLanguage = dto.preferredLanguage ?? PreferredLanguage.DE;
+    const preferredLanguage = dto.preferredLanguage ?? PreferredLanguage.EN;
     const identityAttributes = await this.provisionedIdentityAttributes(
       tx,
       verified,
@@ -310,7 +310,7 @@ export class OidcService {
       data: { revokedAt: new Date() },
     });
 
-    const preferredLanguage = dto.preferredLanguage ?? PreferredLanguage.DE;
+    const preferredLanguage = dto.preferredLanguage ?? PreferredLanguage.EN;
     const identityAttributes = await this.provisionedIdentityAttributes(
       tx,
       verified,

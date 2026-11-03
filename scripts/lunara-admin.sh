@@ -13,7 +13,7 @@ lunara_compose() {
 
 usage() {
   cat >&2 <<'USAGE'
-Verwendung:
+Usage:
   ./scripts/lunara-admin.sh users list
   ./scripts/lunara-admin.sh bootstrap status
   ./scripts/lunara-admin.sh invitations list
@@ -23,12 +23,12 @@ Verwendung:
   ./scripts/lunara-admin.sh backup
   ./scripts/lunara-admin.sh migrate --confirm MIGRATE
 
-LUNARA_ENV_FILE kann auf eine eng benannte alternative Env-Datei zeigen.
+LUNARA_ENV_FILE can point to a specifically named alternative environment file.
 USAGE
 }
 
 if [[ ! -f "${env_file}" ]]; then
-  echo "Konfigurationsdatei fehlt: ${env_file}" >&2
+  echo "Configuration file missing: ${env_file}" >&2
   exit 1
 fi
 if [[ $# -lt 1 ]]; then
@@ -43,12 +43,12 @@ case "$1" in
     ;;
   migrate)
     if [[ $# -ne 3 || "$2" != "--confirm" || "$3" != "MIGRATE" ]]; then
-      echo "Migration abgelehnt: --confirm MIGRATE fehlt." >&2
+      echo "Migration rejected: --confirm MIGRATE is missing." >&2
       exit 2
     fi
     exec 9>"${lock_file}"
     if ! flock -n 9; then
-      echo "Eine andere Lunara-Backup-/Update-/Restore-Operation läuft bereits." >&2
+      echo "Another Lunara backup, update, or restore operation is already running." >&2
       exit 1
     fi
     # Keep the maintenance lock for backup plus migration. The backup gets a

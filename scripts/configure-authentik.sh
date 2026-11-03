@@ -4,7 +4,7 @@ set +x
 umask 077
 
 usage() {
-  echo "Verwendung: $0 [--check]" >&2
+  echo "Usage: $0 [--check]" >&2
 }
 
 check_only="${LUNARA_CHECK_ONLY:-false}"
@@ -20,7 +20,7 @@ if [[ $# -eq 1 ]]; then
   check_only=true
 fi
 if [[ "${check_only}" != "true" && "${check_only}" != "false" ]]; then
-  echo "LUNARA_CHECK_ONLY akzeptiert nur true oder false." >&2
+  echo "LUNARA_CHECK_ONLY accepts only true or false." >&2
   exit 2
 fi
 
@@ -35,44 +35,44 @@ credential_pipe_container="/media/.lunara-authentik-credentials.pipe"
 
 for command_name in docker sed tail; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
-    echo "Fehlendes Werkzeug: ${command_name}" >&2
+    echo "Missing tool: ${command_name}" >&2
     exit 1
   fi
 done
 
 if [[ ! "${authentik_container}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] ||
    [[ ! "${authentik_db_container}" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
-  echo "Ungültiger Authentik-Containername." >&2
+  echo "Invalid Authentik container name." >&2
   exit 2
 fi
 if [[ ! "${public_host}" =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ]] ||
    [[ "${public_host}" != *.* ]] || [[ "${public_host}" == *..* ]] ||
    (( ${#public_host} > 253 )); then
-  echo "Ungültiger kanonischer öffentlicher Hostname." >&2
+  echo "Invalid canonical public hostname." >&2
   exit 2
 fi
 IFS='.' read -r -a host_labels <<< "${public_host}"
 for host_label in "${host_labels[@]}"; do
   if (( ${#host_label} > 63 )) || [[ "${host_label}" == -* ]] || [[ "${host_label}" == *- ]]; then
-    echo "Ungültiger kanonischer öffentlicher Hostname." >&2
+    echo "Invalid canonical public hostname." >&2
     exit 2
   fi
 done
 unset host_labels host_label
 if [[ "${internal_host}" != "http://lunara-api:3000" ]]; then
-  echo "Aus Sicherheitsgründen ist nur der geprüfte interne Lunara-Endpunkt erlaubt." >&2
+  echo "For security reasons, only the verified internal Lunara endpoint is allowed." >&2
   exit 2
 fi
 
 authentik_version="$(docker inspect --type container --format '{{index .Config.Labels "org.opencontainers.image.version"}}' "${authentik_container}")"
 if [[ "${authentik_version}" != "${expected_authentik_version}" &&
       "${authentik_version}" != "refs/tags/version/${expected_authentik_version}" ]]; then
-  echo "Ungeprüfte Authentik-Version '${authentik_version:-unbekannt}'; erwartet ${expected_authentik_version}. Keine Änderung vorgenommen." >&2
+  echo "Unverified Authentik version '${authentik_version:-unbekannt}'; expected ${expected_authentik_version}. No changes made." >&2
   exit 1
 fi
 if [[ "$(docker inspect --type container --format '{{.State.Running}}' "${authentik_container}")" != "true" ]] ||
    [[ "$(docker inspect --type container --format '{{.State.Running}}' "${authentik_db_container}")" != "true" ]]; then
-  echo "Authentik- oder Datenbankcontainer läuft nicht; keine Änderung vorgenommen." >&2
+  echo "The Authentik or database container is not running; no changes made." >&2
   exit 1
 fi
 
@@ -633,7 +633,7 @@ PYTHON
 }
 
 if ! preflight_output="$(run_authentik_model check none)"; then
-  echo "Authentik-Preflight fehlgeschlagen; keine Änderung vorgenommen." >&2
+  echo "Authentik preflight failed; no changes made." >&2
   exit 1
 fi
 preflight_state="$(sed -n 's/^LUNARA_AUTHENTIK_PREFLIGHT=//p' <<< "${preflight_output}" | tail -n 1)"
@@ -642,23 +642,23 @@ case "${preflight_state}" in
   create|target|legacy_v102|legacy_v103)
     ;;
   *)
-    echo "Authentik-Preflight lieferte keinen eindeutigen Zustand; keine Änderung vorgenommen." >&2
+    echo "Authentik preflight did not return an unambiguous state; no changes made." >&2
     exit 1
     ;;
 esac
 if [[ "${check_only}" == "true" ]]; then
   case "${preflight_state}" in
     create)
-      echo "Authentik-Prüfung erfolgreich: alle Lunara-Namen sind frei; die geschützte Einzel-App-Konfiguration könnte angelegt werden."
+      echo "Authentik check passed: all Lunara names are available; the protected single-app configuration could be created."
       ;;
     legacy_v102)
-      echo "Authentik-Prüfung erfolgreich: exakter alter A/B+Dune/Elias-Stand mit Vollschutz erkannt; Migration auf einen App-Zugang ausstehend (keine Änderung vorgenommen)."
+      echo "Authentik check passed: the exact legacy A/B+Dune/Elias state with full protection was detected; migration to a single app credential is pending (no changes made)."
       ;;
     legacy_v103)
-      echo "Authentik-Prüfung erfolgreich: exakter A/B+Dune/Elias-Stand mit API-Ausnahme erkannt; Migration auf einen vollständig geschützten App-Zugang ausstehend (keine Änderung vorgenommen)."
+      echo "Authentik check passed: the exact A/B+Dune/Elias state with an API exception was detected; migration to a fully protected single app credential is pending (no changes made)."
       ;;
     target)
-      echo "Authentik-Prüfung erfolgreich: genau ein technischer App-Zugang schützt sämtliche Lunara-Pfade; keine menschlichen Gruppenmitglieder und keine API-Ausnahme."
+      echo "Authentik check passed: exactly one technical app credential protects all Lunara paths; no human group members and no API exception."
       ;;
   esac
   exit 0
@@ -666,7 +666,7 @@ fi
 
 for command_name in basename chown flock install jq mkfifo mktemp mv python3 stat; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
-    echo "Fehlendes Werkzeug: ${command_name}" >&2
+    echo "Missing tool: ${command_name}" >&2
     exit 1
   fi
 done
@@ -692,7 +692,7 @@ for directory in "${runtime_dir}" "${backup_dir}"; do
      [[ "${directory}" == */../* || "${directory}" == */.. ||
         "${directory}" == */./* || "${directory}" == */. ]] ||
      path_has_symlink_component "${directory}"; then
-    echo "Runtime- und Backup-Verzeichnis müssen sichere absolute Pfade ohne symbolische Komponenten sein." >&2
+    echo "Runtime and backup directories must be safe absolute paths without symbolic-link components." >&2
     exit 2
   fi
 done
@@ -702,13 +702,13 @@ configuration_lock_file="${runtime_dir}/.configure-authentik.lock"
 if [[ -e "${configuration_lock_file}" &&
       ( ! -f "${configuration_lock_file}" || -L "${configuration_lock_file}" ||
         ! -O "${configuration_lock_file}" ) ]]; then
-  echo "Unsichere Authentik-Konfigurationssperre." >&2
+  echo "Unsafe Authentik configuration lock." >&2
   exit 1
 fi
 exec {configuration_lock_fd}> "${configuration_lock_file}"
 chmod 0600 -- "${configuration_lock_file}"
 if ! flock -n "${configuration_lock_fd}"; then
-  echo "Eine andere Lunara-Authentik-Konfiguration läuft bereits." >&2
+  echo "Another Lunara Authentik configuration is already running." >&2
   exit 1
 fi
 
@@ -716,7 +716,7 @@ credentials_file="${runtime_dir}/authentik-gateway-credentials.json"
 gateway_file="${runtime_dir}/lunara-app-headerauth.url"
 for output_file in "${credentials_file}" "${gateway_file}"; do
   if [[ -e "${output_file}" && ( ! -f "${output_file}" || -L "${output_file}" || ! -O "${output_file}" ) ]]; then
-    echo "Unsicheres vorhandenes Ausgabeziel: ${output_file}" >&2
+    echo "Unsafe existing output destination: ${output_file}" >&2
     exit 1
   fi
 done
@@ -752,11 +752,11 @@ if [[ "${preflight_state}" != "target" ]]; then
   if ! docker exec "${authentik_db_container}" sh -ceu \
       'pg_dump --format=custom --no-owner --no-acl --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"' \
       > "${backup_path}" || [[ ! -s "${backup_path}" ]]; then
-    echo "Authentik-Backup fehlgeschlagen; keine Änderung vorgenommen. Die unvollständige Datei bleibt geschützt unter ${backup_path}." >&2
+    echo "Authentik backup failed; no changes made. The incomplete file remains protected at ${backup_path}." >&2
     exit 1
   fi
   if ! docker exec -i "${authentik_db_container}" pg_restore --list < "${backup_path}" >/dev/null; then
-    echo "Authentik-Backup ist nicht als PostgreSQL-Custom-Dump lesbar; keine Änderung vorgenommen. Die Datei bleibt geschützt unter ${backup_path}." >&2
+    echo "Authentik backup is not readable as a PostgreSQL custom-format dump; no changes made. The file remains protected at ${backup_path}." >&2
     exit 1
   fi
 fi
@@ -779,12 +779,12 @@ if [[ "${preflight_state}" == "legacy_v102" || "${preflight_state}" == "legacy_v
       continue
     fi
     if [[ ! -f "${legacy_path}" || -L "${legacy_path}" || ! -O "${legacy_path}" ]]; then
-      echo "Unsichere Altdatei; keine Authentik-Änderung vorgenommen: ${legacy_path}" >&2
+      echo "Unsafe legacy file; no Authentik changes made: ${legacy_path}" >&2
       exit 1
     fi
     legacy_mode="$(stat -c '%a' -- "${legacy_path}")"
     if (( (8#${legacy_mode} & 077) != 0 )); then
-      echo "Altdatei besitzt Gruppen- oder Weltrechte; keine Authentik-Änderung vorgenommen: ${legacy_path}" >&2
+      echo "Legacy file grants group or other permissions; no Authentik changes made: ${legacy_path}" >&2
       exit 1
     fi
   done
@@ -796,13 +796,13 @@ if [[ "${preflight_state}" == "legacy_v102" || "${preflight_state}" == "legacy_v
         if ! chmod 0600 -- "${legacy_files_archive}/${legacy_name}"; then
           set +e
           restore_archived_legacy_files
-          echo "Altdateirechte konnten nicht gesichert werden; keine Authentik-Änderung vorgenommen." >&2
+          echo "Legacy file permissions could not be backed up; no Authentik changes made." >&2
           exit 1
         fi
       else
         set +e
         restore_archived_legacy_files
-        echo "Altdateien konnten nicht vollständig gesichert werden; keine Authentik-Änderung vorgenommen." >&2
+        echo "Legacy files could not be fully backed up; no Authentik changes made." >&2
         exit 1
       fi
     fi
@@ -813,8 +813,8 @@ fi
 print_authentik_rollback() {
   local output_fd="${1:-2}"
   if [[ -n "${backup_path}" ]]; then
-    echo "Vollständiger Datenbank-Rollback; er verwirft alle Authentik-Änderungen seit dem Backup." >&"${output_fd}"
-    printf 'Rollback nach kontrolliertem Stop von Authentik: docker exec -i %q sh -ceu '\''pg_restore --clean --if-exists --no-owner --no-acl --single-transaction --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"'\'' < %q\n' \
+    echo "Full database rollback; this discards all Authentik changes since the backup." >&"${output_fd}"
+    printf 'Rollback after a controlled Authentik stop: docker exec -i %q sh -ceu '\''pg_restore --clean --if-exists --no-owner --no-acl --single-transaction --username="$POSTGRES_USER" --dbname="$POSTGRES_DB"'\'' < %q\n' \
       "${authentik_db_container}" "${backup_path}" >&"${output_fd}"
   fi
 }
@@ -827,7 +827,7 @@ on_postapply_error() {
   if [[ "${configuration_may_have_committed}" == "false" ]]; then
     restore_archived_legacy_files
   else
-    echo "Fehler während oder nach dem Authentik-Commit; die Datenbank zuerst mit --check prüfen." >&2
+    echo "Error during or after the Authentik commit; check the database with --check first." >&2
     print_authentik_rollback 2
   fi
   exit "${status}"
@@ -843,33 +843,33 @@ mapfile -t authentik_media_mounts < <(
     "${authentik_container}" | sed -n '/./p'
 )
 if [[ ${#authentik_media_mounts[@]} -ne 1 ]]; then
-  echo "Der eindeutige Authentik-/media-Mount wurde nicht gefunden." >&2
+  echo "The unique Authentik /media mount was not found." >&2
   exit 1
 fi
 IFS=$'\t' read -r authentik_media_type authentik_media_rw authentik_media_source authentik_media_extra \
   <<< "${authentik_media_mounts[0]}"
 if [[ "${authentik_media_type}" != "bind" || "${authentik_media_rw}" != "true" ||
       -n "${authentik_media_extra}" ]]; then
-  echo "Authentik-/media ist nicht der erwartete schreibbare Bind-Mount." >&2
+  echo "Authentik /media is not the expected writable bind mount." >&2
   exit 1
 fi
 if [[ "${authentik_media_source}" == "/" || "${authentik_media_source}" != /* ||
       "${authentik_media_source}" == *$'\n'* || "${authentik_media_source}" == *$'\r'* ||
       "${authentik_media_source}" == *$'\t'* ]] ||
    path_has_symlink_component "${authentik_media_source}"; then
-  echo "Der Authentik-/media-Bind-Mount ist kein sicherer absoluter Pfad." >&2
+  echo "The Authentik /media bind mount is not a safe absolute path." >&2
   exit 1
 fi
 credential_pipe_host="${authentik_media_source}/.lunara-authentik-credentials.pipe"
 authentik_uid="$(docker exec "${authentik_container}" id -u)"
 authentik_gid="$(docker exec "${authentik_container}" id -g)"
 if [[ ! "${authentik_uid}" =~ ^[0-9]+$ || ! "${authentik_gid}" =~ ^[0-9]+$ ]]; then
-  echo "Die numerische Authentik-Benutzeridentität konnte nicht bestimmt werden." >&2
+  echo "The numeric Authentik user identity could not be determined." >&2
   exit 1
 fi
 if [[ -e "${credential_pipe_host}" || -L "${credential_pipe_host}" ]]; then
   if [[ ! -p "${credential_pipe_host}" || -L "${credential_pipe_host}" ]]; then
-    echo "Der feste Authentik-Zugangsdatenkanal ist kein sicherer FIFO." >&2
+    echo "The fixed Authentik credential channel is not a safe FIFO." >&2
     exit 1
   fi
 else
@@ -878,7 +878,7 @@ else
 fi
 credential_pipe_signature="$(stat -c '%u:%g:%a' -- "${credential_pipe_host}")"
 if [[ "${credential_pipe_signature}" != "${authentik_uid}:${authentik_gid}:600" ]]; then
-  echo "Der Authentik-Zugangsdatenkanal hat unerwartete Eigentümer oder Rechte." >&2
+  echo "The Authentik credential channel has unexpected ownership or permissions." >&2
   exit 1
 fi
 
@@ -909,12 +909,12 @@ credential_reader_pid=$!
 if ! run_authentik_model apply "${preflight_state}"; then
   kill "${credential_reader_pid}" >/dev/null 2>&1 || true
   wait "${credential_reader_pid}" 2>/dev/null || true
-  echo "Authentik-Konfiguration oder sichere Zugangsdatenausgabe fehlgeschlagen." >&2
+  echo "Authentik configuration or secure credential output failed." >&2
   exit 1
 fi
 configuration_may_have_committed=true
 if ! wait "${credential_reader_pid}"; then
-  echo "Die Zugangsdaten konnten nicht sicher in die 0600-Zieldatei geschrieben werden." >&2
+  echo "The credentials could not be written securely to the 0600 destination file." >&2
   exit 1
 fi
 if ! jq -e -s '
@@ -923,7 +923,7 @@ if ! jq -e -s '
   (.[0].appPassword | type == "string" and length >= 20 and length <= 255 and test("^[A-Za-z0-9]+$")) and
   (.[0] | keys | sort) == ["appPassword", "username"]
 ' "${credentials_file}" >/dev/null; then
-  echo "Authentik lieferte nach interner Validierung keine gültigen Einzel-Zugangsdaten." >&2
+  echo "Authentik did not return valid single-app credentials after internal validation." >&2
   print_authentik_rollback 2
   exit 1
 fi
@@ -957,13 +957,13 @@ finally:
     os.close(descriptor)
 PYTHON
 then
-  echo "Die geschützte Header-Auth-URL konnte nicht geschrieben werden." >&2
+  echo "The protected header-auth URL could not be written." >&2
   print_authentik_rollback 2
   exit 1
 fi
 if [[ "$(stat -c '%a' -- "${credentials_file}")" != "600" ||
       "$(stat -c '%a' -- "${gateway_file}")" != "600" ]]; then
-  echo "Die Zugangsdaten-Dateirechte sind nicht exakt 0600." >&2
+  echo "The credential file permissions are not exactly 0600." >&2
   print_authentik_rollback 2
   exit 1
 fi
@@ -973,21 +973,21 @@ trap - EXIT
 
 case "${preflight_state}" in
   create)
-    echo "Authentik-Lunara wurde mit genau einem technischen App-Zugang und Vollschutz neu eingerichtet."
+    echo "Authentik Lunara was newly configured with exactly one technical app credential and full protection."
     ;;
   legacy_v102|legacy_v103)
-    echo "Der exakt validierte Altstand wurde transaktional auf genau einen technischen App-Zugang und Vollschutz migriert."
-    echo "Menschliche Authentik-Konten blieben unangetastet; sie sind nicht mehr Mitglied der Lunara-Gateway-Gruppe."
-    echo "Die alten 0600-Zugangsdateien wurden in das datierte 0700-Archiv verschoben: ${legacy_files_archive}"
-    echo "Die früheren A/B-Zugangsdaten sind serverseitig ungültig."
+    echo "The exactly validated legacy state was transactionally migrated to exactly one technical app credential and full protection."
+    echo "Human Authentik accounts were left untouched; they are no longer members of the Lunara gateway group."
+    echo "The legacy 0600 credential files were moved to the dated 0700 archive: ${legacy_files_archive}"
+    echo "The previous A/B credentials are invalid on the server."
     ;;
   target)
-    echo "Die vorhandene Einzel-App-Konfiguration stimmt exakt; keine Authentik-Datenbankänderung war nötig."
+    echo "The existing single-app configuration matches exactly; no Authentik database changes were needed."
     ;;
 esac
 if [[ -n "${backup_path}" ]]; then
-  echo "Konsistentes Backup vor der Änderung: ${backup_path}"
+  echo "Consistent backup before the change: ${backup_path}"
   print_authentik_rollback 1
 fi
-echo "Einzige aktive Header-Auth-URL (0600, nicht in Git): ${gateway_file}"
-echo "Zugangsdaten-JSON (0600, nicht in Git): ${credentials_file}"
+echo "Only active header-auth URL (0600, outside Git): ${gateway_file}"
+echo "Credential JSON (0600, outside Git): ${credentials_file}"
