@@ -333,4 +333,5 @@ wiederhergestellt werden.
 
 Keine Live-Konfigurationen, Gesundheitsdaten, Token, Keystores oder Exploit-
 Secrets in öffentliche Issues schreiben. Sicherheitsmeldungen mit redigierten
-reproduzierbaren Schritten über einen privaten Kanal des Eigentümers senden.
+reproduzierbaren Schritten über GitHub **Security → Report a vulnerability**
+(Private Vulnerability Reporting) dieses Repositorys senden.

@@ -1,18 +1,41 @@
 # Lunara
 
-Private Zyklus- und Periodenbegleitung für Android und den Browser.
-Lunara 1.3.3 funktioniert allein auf dem Gerät oder auf einem eigenen Server
-mit getrennten Konten für die trackende Person und ihren Partner.
+**Private, selbst gehostete Zyklus-App für eine Person und ihren Partner.**
+Android-App, installierbare Web-App und eigener Server – ohne Werbung, Tracking,
+Telemetrie oder Google-Dienste.
 
-Keine Werbung, Telemetrie oder Pflicht zu Google Play Services.
-Periodenprognosen und das optionale fruchtbare Zeitfenster sind unsichere
-Kalenderschätzungen: **kein Medizinprodukt, kein Nachweis eines Eisprungs
-und keine Verhütungsmethode.**
+[![Release](https://img.shields.io/github/v/release/eliasbruno124-dev/Lunara)](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
+[![Image](https://img.shields.io/badge/ghcr.io-eliasbruno124--dev%2Flunara-blue)](https://github.com/eliasbruno124-dev/Lunara/pkgs/container/lunara)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[Einrichtung mit Bildern](docs/SETUP.md) ·
-[Server installieren](DEPLOYMENT.md) ·
-[Releases und APK](https://github.com/eliasbruno124-dev/Lunara/releases) ·
-[Änderungen](CHANGELOG.md)
+<p>
+  <img src="docs/screenshots/hd/03-tracker-heute.png" width="24%" alt="Heute-Ansicht mit erwartetem Periodenbeginn">
+  <img src="docs/screenshots/hd/04b-tracker-kalender-oktober.png" width="24%" alt="Kalender mit erfassten Periodentagen">
+  <img src="docs/screenshots/hd/04-tracker-kalender.png" width="24%" alt="Kalender mit geschätzter Periode">
+  <img src="docs/screenshots/hd/06-partner-heute.png" width="24%" alt="Partneransicht mit Ausblick und Tagesidee">
+</p>
+
+> Lunara ist **kein Medizinprodukt**, diagnostiziert nichts, bestätigt keine
+> Ovulation und darf **nicht zur Verhütung** verwendet werden.
+
+## Schnellstart (eigener Server)
+
+```bash
+mkdir lunara && cd lunara
+BASE=https://raw.githubusercontent.com/eliasbruno124-dev/Lunara/main/examples
+curl -fsSLO $BASE/docker-compose.yml && curl -fsSLO $BASE/Caddyfile
+curl -fsSL $BASE/.env.example -o .env && chmod 600 .env
+# .env ausfüllen: Domain + Geheimnisse (Befehle stehen in der Datei)
+docker compose --profile caddy up -d
+```
+
+Danach `https://deine-domain` öffnen. Die **[Installationsanleitung mit Bildern](docs/INSTALL.md)**
+erklärt jeden Schritt: HTTPS, erstes Konto, Android-App, Partner einladen,
+Updates und Backup.
+
+**Nur allein auf Android?** Dafür brauchst du keinen Server. Lade
+`lunara-release.apk` aus dem [neuesten Release](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
+und wähle **Nur auf diesem Gerät** (Android 8+).
 
 ## So kannst du Lunara nutzen
 
@@ -45,70 +68,21 @@ Authentik ist optional und kein Bestandteil des Lunara-Compose-Stacks.
   Bestätigung in Android und Web; keine garantierte Kompatibilität mit
   beliebigen Drittanbieterformaten.
 
-Neu in 1.3.3: Eine gemeinsame Kalenderkategorie „Geschätzte Periode“ ersetzt
-getrennte Angaben für möglichen Beginn und weitere Tage. Offline-Schätzungen
-verwenden dieselben Dauergrenzen wie der Server; überholte Zusammenfassungen
-werden nicht mehr als nächste Periode angezeigt. Die Genauigkeit bleibt
-von den erfassten Daten abhängig und ist nicht klinisch validiert.
-
-Der Partnerkalender unterscheidet fehlende Freigaben von nicht
-verfügbaren Daten. Die Partner-Einstellungen zeigen den zuletzt bekannten
-Freigabestatus für Periodendaten und das fruchtbare Zeitfenster.
-Unter **Web-Einstellungen → App & Verbindung** bleibt ein nativer
-Android-APK-Download erreichbar – auch in einer bereits installierten PWA.
-
 Eine Partnerverbindung schaltet keine Datenfreigabe automatisch ein.
 „Nicht freigegeben“ bedeutet weder „keine Einträge vorhanden“ noch „Daten
 gelöscht“.
 
-## Einrichten
+## Downloads
 
-1. Android: die signierte `lunara-release.apk` aus den
-   [GitHub-Releases](https://github.com/eliasbruno124-dev/Lunara/releases)
-   installieren; Android 8 oder neuer ist erforderlich.
-   Alternativ die HTTPS-Adresse eures Lunara-Servers im Browser öffnen.
-2. **Nur auf diesem Gerät** für Solo wählen oder **Server oder Partner
-   verbinden** für Self-hosting.
-3. Auf dem Server anmelden beziehungsweise zuerst das Trackerkonto einrichten.
-   Den Partner mit einer persönlichen Einladung verbinden.
-4. Die trackende Person wählt ihre Datenschutzfreigaben selbst.
-   Partner können diese nur ansehen.
+| Was | Wo |
+| --- | --- |
+| Android-App (signiert) | `lunara-release.apk` im [Release](https://github.com/eliasbruno124-dev/Lunara/releases/latest), Prüfsummen in `SHA256SUMS` |
+| Server-Image (amd64 + arm64) | `ghcr.io/eliasbruno124-dev/lunara:<version>` bzw. `:latest` |
+| Beispielkonfiguration | [`examples/`](examples/) |
 
-Die [bebilderte Anleitung](docs/SETUP.md) führt durch diese Schritte,
-Backups und häufige Stolperstellen.
-
-<p>
-  <img src="docs/screenshots/setup/01-mode-selection.png" width="270" alt="Lunara-Einrichtung: Solo oder eigenen Server wählen">
-  <img src="docs/screenshots/setup/04-partner-sharing-status.png" width="270" alt="Partner-Einstellungen: lesbare Freigabestatus für Periodendaten und fruchtbares Zeitfenster">
-</p>
-
-Die Setup-Abbildungen stammen aus der tatsächlichen Oberfläche mit
-synthetischen Testkonten, nicht aus privaten Konten.
-
-## Eigenen Server betreiben
-
-Voraussetzungen: Linux mit Docker Engine und Compose Plugin, eine eigene
-HTTPS-Domain, ein vorhandener Reverse Proxy und sein externes Docker-Netz.
-Die dokumentierte Referenz verwendet Debian 12 und Traefik 3.
-
-Der Quellcode baut das Image lokal als `lunara-api:1.3.3`.
-Ein öffentlich bereitgestelltes GHCR-Image wird hier nicht vorausgesetzt.
-Die API liefert die Web-App und die gebündelte APK aus; PostgreSQL bleibt im
-internen Docker-Netz. Es wird kein separater APK-Bind-Mount benötigt.
-
-[DEPLOYMENT.md](DEPLOYMENT.md) beschreibt Konfiguration, Secrets,
-Direct-/Authentik-Modus, erste Einrichtung und Updates. Bei einem
-Portainer-verwalteten Stack müssen Änderungen über dessen Verwaltungsweg
-erfolgen; keine zweite Compose-Installation über denselben Stack starten.
-
-Der Download auf einer eigenen Instanz lautet:
-
-```text
-https://lunara.example.com/api/v1/downloads/lunara.apk
-```
-
-Im Authentik-Modus bleibt der Download durch das Gateway geschützt. Er gehört
-nicht in dessen Liste öffentlicher Ausnahmen.
+Jede laufende Instanz liefert die passende APK außerdem selbst aus:
+`https://deine-domain/api/v1/downloads/lunara.apk` (in der Web-App unter
+**Einstellungen → App & Verbindung**).
 
 ## Aktualisieren und Daten behalten
 
@@ -146,16 +120,17 @@ Artefakte sind keine gleichwertigen Nutzer-Updates.
 
 ## Dokumentation
 
-- [Einrichtung mit Bildern](docs/SETUP.md)
-- [Deployment, Backup und Updates](DEPLOYMENT.md)
+- [Installation auf dem eigenen Server (mit Bildern)](docs/INSTALL.md)
+- [Einrichtung, Freigaben, Backup und Gerätewechsel in der App](docs/SETUP.md)
+- [Fortgeschrittenes Deployment: Traefik, Authentik/OIDC, Skripte](DEPLOYMENT.md)
 - [Sicherheit](SECURITY.md) und [Datenschutz](PRIVACY.md)
-- [Prognoseverfahren und Grenzen](ALGORITHM.md)
+- [Prognoseverfahren und Grenzen](ALGORITHM.md), [Periodenende](docs/PERIOD-ENDS.md)
 - [Partner-Tipps](docs/PARTNER_TIPS.md) und [Gestaltung](docs/DESIGN.md)
 - [Testverfahren](TESTING.md) und [Code-Navigation](docs/CODE_GUIDE.md)
 - [Android-Signierung und Play-Vorbereitung](docs/GOOGLE_PLAY_RELEASE.md)
+- [Änderungen](CHANGELOG.md)
 
-## Lizenzstatus
+## Lizenz
 
-Im Repository ist derzeit keine Weitergabelizenz festgelegt.
-Eine Veröffentlichung des Quellcodes ersetzt keine Lizenzentscheidung;
-das Projekt wird hier nicht als Open Source bezeichnet.
+[MIT](LICENSE). Sicherheitslücken bitte nicht als öffentliches Issue, sondern
+wie in [SECURITY.md](SECURITY.md) beschrieben melden.

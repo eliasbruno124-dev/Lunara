@@ -1,6 +1,6 @@
 # Lunara einrichten
 
-Diese Anleitung beschreibt Lunara 1.3.3. Die Bilder zeigen die tatsächliche
+Diese Anleitung beschreibt Lunara 1.3.4. Die Bilder zeigen die tatsächliche
 Oberfläche mit synthetischen Testkonten und Beispieldaten; keine privaten
 Konten, Passwörter oder Gesundheitsdaten.
 

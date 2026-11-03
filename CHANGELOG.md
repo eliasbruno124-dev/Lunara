@@ -2,6 +2,9 @@
 
 ## 1.3.4
 
+- Erste öffentliche Veröffentlichung unter der MIT-Lizenz.
+- Fertiges Server-Image `ghcr.io/eliasbruno124-dev/lunara` für amd64 und arm64, automatisch gebaut für jeden Versions-Tag.
+- Neue Installationsanleitung mit HD-Bildern (`docs/INSTALL.md`) und Beispielkonfiguration mit optionalem automatischem HTTPS (`examples/`).
 - Perioden ohne eingetragenes Ende gelten nach fünf Kalendertagen als automatisch beendet, auch rückwirkend. Bestätigte Enddaten bleiben erhalten.
 - Kalender, neue Einträge, Import und Wiederherstellung verwenden dieselbe Fünf-Tage-Regel. Automatische Annahmen ersetzen keine bestätigten Gesundheitsdaten.
 - Zu breite alte Fruchtbarkeitsfenster werden nicht mehr angezeigt; abgelaufene Schätzungen verschwinden aus der aktuellen Übersicht.

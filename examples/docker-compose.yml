@@ -1,0 +1,123 @@
+# Lunara – Beispiel-Compose für den eigenen Server
+#
+# Schnellstart:
+#   1. Diese Datei und .env.example in einen leeren Ordner kopieren
+#   2. cp .env.example .env  und die Werte darin ausfüllen (siehe Kommentare)
+#   3. docker compose up -d
+#   4. Mit HTTPS: docker compose --profile caddy up -d   (siehe Caddyfile)
+#
+# Ausführliche Anleitung: docs/INSTALL.md
+
+name: lunara
+
+services:
+  # Die Datenbank. Nur im internen Netz erreichbar, nie direkt ins Internet.
+  postgres:
+    image: postgres:18.6-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lunara
+      POSTGRES_USER: lunara
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lunara -d lunara"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - internal
+
+  # Einmaliger Lauf bei jedem Start: bringt das Datenbankschema auf den
+  # Stand der Image-Version (Prisma-Migrationen) und beendet sich dann.
+  migrate:
+    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.4}
+    restart: "no"
+    command: ["./node_modules/.bin/prisma", "migrate", "deploy", "--config", "services/api/prisma/prisma.config.ts"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://lunara:${POSTGRES_PASSWORD}@postgres:5432/lunara?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  # Lunara selbst: API + installierbare Web-App + APK-Download unter einer Adresse.
+  lunara:
+    image: ghcr.io/eliasbruno124-dev/lunara:${LUNARA_VERSION:-1.3.4}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      APP_VERSION: ${LUNARA_VERSION:-1.3.4}
+      # Öffentliche HTTPS-Adresse, unter der Handy und Browser Lunara erreichen.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL in .env setzen}
+      DATABASE_URL: postgresql://lunara:${POSTGRES_PASSWORD}@postgres:5432/lunara?schema=public
+      APP_MASTER_KEY: ${APP_MASTER_KEY:?APP_MASTER_KEY in .env setzen}
+      AUTH_SIGNING_KEY: ${AUTH_SIGNING_KEY:?AUTH_SIGNING_KEY in .env setzen}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER:?REFRESH_TOKEN_PEPPER in .env setzen}
+      # Nur für die allererste Einrichtung nötig, danach aus .env entfernen.
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN:-}
+      # true = jeder mit Zugriff auf die Adresse darf ein eigenes Konto anlegen.
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
+      TZ: ${TZ:-Europe/Berlin}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      # Nur lokal veröffentlicht. Von außen kommt man über einen Reverse-Proxy
+      # mit HTTPS (Caddy unten, Traefik, nginx …), nie direkt über HTTP.
+      - "127.0.0.1:${LUNARA_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+      - web
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  # Optional: automatisches HTTPS mit Let's Encrypt.
+  # Start mit: docker compose --profile caddy up -d
+  caddy:
+    image: caddy:2
+    profiles: ["caddy"]
+    restart: unless-stopped
+    environment:
+      LUNARA_DOMAIN: ${LUNARA_DOMAIN:-lunara.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - lunara
+    networks:
+      - web
+
+volumes:
+  postgres_data:
+  caddy_data:
+
+networks:
+  internal:
+    internal: true
+  web:

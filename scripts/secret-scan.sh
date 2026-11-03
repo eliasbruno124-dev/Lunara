@@ -21,6 +21,7 @@ pattern_report="$(git ls-files -co --exclude-standard -z \
   | grep -vE '^README\.md:[0-9]+:https://\{BENUTZERNAME\}:\{AUTHENTIK-APP-PASSWORT\}@lunara\.3li361\.de$' \
   | grep -vE '^FINAL_REPORT\.md:[0-9]+:https://lunara-native-app:APP-PASSWORT@lunara\.3li361\.de$' \
   | grep -vE '^DEPLOYMENT\.md:[0-9]+:.*https://gateway-user:gateway-pass@lunara\.3li361\.de.*$' \
+  | grep -vE '^docs/INSTALL\.md:[0-9]+:([[:space:]]*-e "s\|\^[A-Z_]+=\.\*\|[A-Z_]+=\$\(openssl rand -(hex|base64) [0-9]+( \| tr -d '"'"'\\n'"'"')?\)\|" \\|TOKEN=\$\(grep \^BOOTSTRAP_TOKEN= \.env \| cut -d= -f2-\)|sed -i '"'"'s/\^BOOTSTRAP_TOKEN=\.\*/BOOTSTRAP_TOKEN=/'"'"' \.env)$' \
   | grep -vE '^apps/android/app/src/test/java/de/lunara/app/data/repository/SessionRecoveryPolicyTest\.kt:[0-9]+:[[:space:]]*listOf\("https://user:password@lunara\.example/", "https://lunara\.example/\?key=value",$' \
   | grep -vE '^apps/android/app/src/main/res/values/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.de</string>$' \
   | grep -vE '^apps/android/app/src/main/res/values-en/strings\.xml:[0-9]+:    <string name="server_url_example">https://user:pass@lunara\.example\.com</string>$' \
@@ -49,7 +50,7 @@ entropy_report="$(git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
   | sed '/^docs\/code-map-flows\.json:/ s@"path": "apps/android/app/src/main/java/de/lunara/app/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
   | sed '/^docs\/code-map-flows\.json:/ s@"path": "services/api/src/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
-  | sed 's@docs/screenshots/setup/[[:alnum:]-]*\.png@SCREENSHOT-ASSET@g' \
+  | sed 's@docs/screenshots/\(setup\|hd\)/[[:alnum:]-]*\.png@SCREENSHOT-ASSET@g; s@https://img\.shields\.io/[^)]*@BADGE@g; s@https://github\.com/eliasbruno124-dev/Lunara/[[:alnum:]/._-]*@PROJECT-LINK@g' \
   | sed 's@https://www\.nhs\.uk/conditions/periods/fertility-in-the-menstrual-cycle/@PUBLIC-MEDICAL-REFERENCE@g; s@https://www\.nhs\.uk/contraception/methods-of-contraception/natural-family-planning/@PUBLIC-MEDICAL-REFERENCE@g; s@https://help\.flo\.health/hc/en-us/articles/360061400591-What-are-Flo-stories@PUBLIC-PRODUCT-REFERENCE@g' \
   | grep -E '^[^:]+:[0-9]+:.*[A-Za-z0-9+/=_-]{48,}' \
   | grep -Ev '^docs/(CODE_MAP\.md|code-map\.json):' \
