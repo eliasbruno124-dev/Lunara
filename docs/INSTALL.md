@@ -160,15 +160,21 @@ und braucht einmalig den `BOOTSTRAP_TOKEN` aus der `.env`.
 dann **Verbindung testen** → **Lunara erstmals einrichten**. Füge dort den
 Token ein.
 
-**Ohne Android, direkt am Server:**
+**Ohne Android, direkt am Server** (braucht `jq`, z. B. `apt install jq`).
+Benutzername und Passwort werden abgefragt und erscheinen weder auf dem
+Bildschirm noch in der Shell-History:
 
 ```bash
+read -rp  'Benutzername: ' LUNARA_USER
+read -rsp 'Passwort (mind. 8 Zeichen): ' LUNARA_PASSWORD; echo
 TOKEN=$(grep ^BOOTSTRAP_TOKEN= .env | cut -d= -f2-)
-curl -fsS https://lunara.deine-domain.de/api/v1/setup \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"mia","password":"ein-langes-passwort","displayName":"Mia",
-       "deviceName":"Einrichtung","preferredLanguage":"DE",
-       "bootstrapToken":"'"$TOKEN"'"}' > /dev/null && echo "Konto angelegt"
+jq -n --arg u "$LUNARA_USER" --arg p "$LUNARA_PASSWORD" --arg t "$TOKEN" \
+  '{username:$u, password:$p, displayName:$u, deviceName:"Einrichtung",
+    preferredLanguage:"DE", bootstrapToken:$t}' \
+  | curl -fsS https://lunara.deine-domain.de/api/v1/setup \
+      -H 'Content-Type: application/json' --data-binary @- > /dev/null \
+  && echo "Konto angelegt"
+unset LUNARA_PASSWORD TOKEN
 ```
 
 Danach den Token entfernen, denn er wird nie wieder gebraucht:
@@ -277,19 +283,23 @@ docker compose up -d        # bzw. mit --profile caddy
 Ein Downgrade auf eine ältere Version wird nicht unterstützt, deshalb immer
 **vorher ein Backup** anlegen.
 
-**Backup** (Datenbank im laufenden Betrieb):
+**Backup** (Datenbank im laufenden Betrieb, Dateien nur für dich lesbar):
 
 ```bash
+umask 077
 docker compose exec -T postgres pg_dump -U lunara -Fc lunara > lunara-$(date +%F).dump
 cp .env lunara-env-$(date +%F).bak   # enthält APP_MASTER_KEY, sicher aufbewahren!
 ```
 
-**Wiederherstellen** in eine leere Instanz mit **derselben** `.env`:
+**Wiederherstellen** mit **derselben** `.env`. Lunara wird erst wieder
+gestartet, wenn die Wiederherstellung fehlerfrei durchgelaufen ist:
 
 ```bash
-docker compose up -d postgres
-docker compose exec -T postgres pg_restore -U lunara -d lunara --clean --if-exists < lunara-2026-11-03.dump
-docker compose up -d
+docker compose stop lunara
+docker compose up -d --wait postgres
+docker compose exec -T postgres pg_restore -U lunara -d lunara \
+    --clean --if-exists --single-transaction --exit-on-error < lunara-2026-11-03.dump \
+  && docker compose up -d
 ```
 
 Ohne den passenden `APP_MASTER_KEY` ist ein Backup nur teilweise lesbar.

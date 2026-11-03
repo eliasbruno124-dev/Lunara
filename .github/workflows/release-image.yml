@@ -2,7 +2,9 @@ name: Release container image
 
 # Publishes ghcr.io/<owner>/lunara for every version tag (v1.2.3).
 # The image bundles the signed APK from artifacts/, so the tag must point at a
-# commit whose APK already carries the same versionName.
+# commit whose APK already carries the same version and the release signer.
+# Images are first pushed under a candidate tag, tested on both
+# architectures and only then promoted to <version> (and latest).
 
 on:
   push:
@@ -18,20 +20,26 @@ permissions:
   contents: read
   packages: write
 
+# One release at a time, so concurrent tags cannot race for `latest`.
 concurrency:
-  group: release-image-${{ github.ref }}
+  group: release-image
   cancel-in-progress: false
+
+env:
+  # SHA-256 of the "CN=Lunara Upload" release signing certificate.
+  RELEASE_SIGNER_SHA256: 5a75f197b2da32642669f62b47e8a5ae681a02e4fa2fa907a2f380cd199a3617
 
 jobs:
   image:
-    name: Build and push multi-arch image
+    name: Build, test and promote multi-arch image
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Check out tag
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Derive version
         id: version
@@ -42,13 +50,30 @@ jobs:
             echo "Tag ${tag} is not a release version" >&2
             exit 1
           fi
-          grep -q "versionName = \"${version}\"" apps/android/app/build.gradle.kts || {
-            echo "Android versionName does not match ${version}" >&2
+          revision="$(git rev-parse HEAD)"
+          newest="$(git tag --list 'v*.*.*' --sort=-v:refname | head -n 1)"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "revision=${revision}" >> "${GITHUB_OUTPUT}"
+          echo "latest=$([[ "${newest}" == "${tag}" ]] && echo true || echo false)" >> "${GITHUB_OUTPUT}"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lunara" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify bundled APK
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          apk=artifacts/lunara-release.apk
+          (cd artifacts && grep ' lunara-release.apk$' SHA256SUMS | sha256sum --check --strict)
+          build_tools="$(ls -d "${ANDROID_HOME}"/build-tools/* | sort -V | tail -n 1)"
+          badging="$("${build_tools}/aapt2" dump badging "${apk}" | head -n 1)"
+          echo "${badging}"
+          [[ "${badging}" == *"name='de.lunara.app'"* && "${badging}" == *"versionName='${version}'"* ]] || {
+            echo "APK package/version does not match ${version}" >&2
             exit 1
           }
-          (cd artifacts && grep ' lunara-release.apk$' SHA256SUMS | sha256sum --check --strict)
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lunara" >> "${GITHUB_OUTPUT}"
+          signer="$("${build_tools}/apksigner" verify --print-certs "${apk}" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          [[ "${signer}" == "${RELEASE_SIGNER_SHA256}" ]] || {
+            echo "APK is not signed with the release certificate" >&2
+            exit 1
+          }
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,7 +88,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push candidate
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -73,21 +98,31 @@ jobs:
           provenance: true
           sbom: true
           build-args: |
-            VCS_REF=${{ github.sha }}
-          tags: |
-            ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}
-            ${{ steps.version.outputs.image }}:latest
+            VCS_REF=${{ steps.version.outputs.revision }}
+          tags: ${{ steps.version.outputs.image }}:candidate-${{ steps.version.outputs.revision }}
           labels: |
             org.opencontainers.image.title=Lunara
             org.opencontainers.image.description=Private self-hosted cycle tracking for two roles
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.version.outputs.revision }}
 
-      - name: Smoke test both architectures
+      - name: Test candidate on both architectures
         run: |
-          image="${{ steps.version.outputs.image }}:${{ steps.version.outputs.version }}"
+          candidate="${{ steps.version.outputs.image }}:candidate-${{ steps.version.outputs.revision }}"
           for platform in linux/amd64 linux/arm64; do
-            docker run --rm --platform "${platform}" "${image}" \
+            docker run --rm --platform "${platform}" "${candidate}" \
               node -e "require('argon2'); require('@prisma/client'); require('fs').accessSync('/app/apps/web/dist/downloads/lunara.apk'); console.log(process.arch, 'ok')"
           done
+
+      - name: Promote candidate
+        run: |
+          image="${{ steps.version.outputs.image }}"
+          candidate="${image}:candidate-${{ steps.version.outputs.revision }}"
+          tags=(--tag "${image}:${{ steps.version.outputs.version }}")
+          if [[ "${{ steps.version.outputs.latest }}" == "true" ]]; then
+            tags+=(--tag "${image}:latest")
+          fi
+          docker buildx imagetools create "${tags[@]}" "${candidate}"
+          docker buildx imagetools inspect "${image}:${{ steps.version.outputs.version }}"

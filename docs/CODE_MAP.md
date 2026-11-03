@@ -4,7 +4,7 @@ Generated from source. Run `npm run code-map:check` before relying on line links
 
 All non-ignored repository files, excluding generated maps and APK artifacts. Kotlin PSI and TypeScript syntax inventory; not a resolved call graph. Generated API client files are hashed but declarations are omitted.
 
-Files: 607. Parsed declarations: 15323. Full hashes and symbols: [code-map.json](code-map.json).
+Files: 624. Parsed declarations: 15323. Full hashes and symbols: [code-map.json](code-map.json).
 
 ## App entry and presentation
 
@@ -105,6 +105,7 @@ The server reports effective sharing permissions without disclosing whether priv
 | [.github/workflows/code-map.yml](../.github/workflows/code-map.yml) | CI | 0 |
 | [.github/workflows/container-security.yml](../.github/workflows/container-security.yml) | CI | 0 |
 | [.github/workflows/dependency-review.yml](../.github/workflows/dependency-review.yml) | CI | 0 |
+| [.github/workflows/release-image.yml](../.github/workflows/release-image.yml) | CI | 0 |
 | [.gitignore](../.gitignore) | Documentation or project configuration | 0 |
 | [.gitleaksignore](../.gitleaksignore) | Documentation or project configuration | 0 |
 | [AGENTS.md](../AGENTS.md) | Documentation or project configuration | 0 |
@@ -112,6 +113,7 @@ The server reports effective sharing permissions without disclosing whether priv
 | [CHANGELOG.md](../CHANGELOG.md) | Documentation or project configuration | 0 |
 | [DEPLOYMENT.md](../DEPLOYMENT.md) | Documentation or project configuration | 0 |
 | [FINAL_REPORT.md](../FINAL_REPORT.md) | Documentation or project configuration | 0 |
+| [LICENSE](../LICENSE) | Documentation or project configuration | 0 |
 | [PRIVACY.md](../PRIVACY.md) | Documentation or project configuration | 0 |
 | [README.md](../README.md) | Documentation or project configuration | 0 |
 | [SECURITY.md](../SECURITY.md) | Documentation or project configuration | 0 |
@@ -393,6 +395,7 @@ The server reports effective sharing permissions without disclosing whether priv
 | [docs/COMMERCIAL_READINESS.md](../docs/COMMERCIAL_READINESS.md) | Documentation or project configuration | 0 |
 | [docs/DESIGN.md](../docs/DESIGN.md) | Documentation or project configuration | 0 |
 | [docs/GOOGLE_PLAY_RELEASE.md](../docs/GOOGLE_PLAY_RELEASE.md) | Documentation or project configuration | 0 |
+| [docs/INSTALL.md](../docs/INSTALL.md) | Documentation or project configuration | 0 |
 | [docs/PARTNER_TIPS.md](../docs/PARTNER_TIPS.md) | Documentation or project configuration | 0 |
 | [docs/PERIOD-ENDS.md](../docs/PERIOD-ENDS.md) | Documentation or project configuration | 0 |
 | [docs/SETUP.md](../docs/SETUP.md) | Documentation or project configuration | 0 |
@@ -405,6 +408,17 @@ The server reports effective sharing permissions without disclosing whether priv
 | [docs/screenshots/android-partner-tip-121.png](../docs/screenshots/android-partner-tip-121.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/android-tracker-dark.png](../docs/screenshots/android-tracker-dark.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/android-tracker-light.png](../docs/screenshots/android-tracker-light.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/01-start-modus-waehlen.png](../docs/screenshots/hd/01-start-modus-waehlen.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/02-anmelden.png](../docs/screenshots/hd/02-anmelden.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/03-tracker-heute.png](../docs/screenshots/hd/03-tracker-heute.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/04-tracker-kalender.png](../docs/screenshots/hd/04-tracker-kalender.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/04b-tracker-kalender-oktober.png](../docs/screenshots/hd/04b-tracker-kalender-oktober.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/05-einstellungen.png](../docs/screenshots/hd/05-einstellungen.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/05b-app-und-verbindung.png](../docs/screenshots/hd/05b-app-und-verbindung.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/06-partner-heute.png](../docs/screenshots/hd/06-partner-heute.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/07-partner-kalender.png](../docs/screenshots/hd/07-partner-kalender.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/08-desktop-heute.png](../docs/screenshots/hd/08-desktop-heute.png) | Documentation or project configuration | 0 |
+| [docs/screenshots/hd/09-desktop-kalender.png](../docs/screenshots/hd/09-desktop-kalender.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/setup/01-mode-selection.png](../docs/screenshots/setup/01-mode-selection.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/setup/02-server-connection.png](../docs/screenshots/setup/02-server-connection.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/setup/03-tracker-sharing.png](../docs/screenshots/setup/03-tracker-sharing.png) | Documentation or project configuration | 0 |
@@ -416,6 +430,9 @@ The server reports effective sharing permissions without disclosing whether priv
 | [docs/screenshots/setup/08-calendar-colors.png](../docs/screenshots/setup/08-calendar-colors.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/web-settings.png](../docs/screenshots/web-settings.png) | Documentation or project configuration | 0 |
 | [eslint.config.mjs](../eslint.config.mjs) | Documentation or project configuration | 0 |
+| [examples/.env.example](../examples/.env.example) | Documentation or project configuration | 0 |
+| [examples/Caddyfile](../examples/Caddyfile) | Documentation or project configuration | 0 |
+| [examples/docker-compose.yml](../examples/docker-compose.yml) | Documentation or project configuration | 0 |
 | [infra/docker/api.Dockerfile](../infra/docker/api.Dockerfile) | Deployment | 0 |
 | [infra/docker/docker-compose.dev.yml](../infra/docker/docker-compose.dev.yml) | Deployment | 0 |
 | [infra/docker/docker-compose.direct.yml](../infra/docker/docker-compose.direct.yml) | Deployment | 0 |

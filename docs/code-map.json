@@ -64,6 +64,14 @@
       "symbols": []
     },
     {
+      "path": ".github/workflows/release-image.yml",
+      "role": "CI",
+      "bytes": 5157,
+      "sha256": "aae4d504163616465d459078a7c7d4bd281dba870c45eb2be467de376238859e",
+      "lines": 129,
+      "symbols": []
+    },
+    {
       "path": ".gitignore",
       "role": "Documentation or project configuration",
       "bytes": 800,
@@ -96,9 +104,9 @@
     {
       "path": "CHANGELOG.md",
       "role": "Documentation or project configuration",
-      "bytes": 29873,
-      "sha256": "1b32426a9c738ed8a34a7b5136150d5ebbc11317aed340c7fb4c5b48b4f02dce",
-      "lines": 478,
+      "bytes": 30200,
+      "sha256": "f984288feb31edd43f902e260335ae87bdc5ce4e05c07966337b31c7d61dee5e",
+      "lines": 481,
       "symbols": []
     },
     {
@@ -118,6 +126,13 @@
       "symbols": []
     },
     {
+      "path": "LICENSE",
+      "role": "Documentation or project configuration",
+      "bytes": 1062,
+      "sha256": "6d319625622ca13726f524fe219330ebee5e073a212285200a1a9c6fda230b50",
+      "symbols": []
+    },
+    {
       "path": "PRIVACY.md",
       "role": "Documentation or project configuration",
       "bytes": 9811,
@@ -128,17 +143,17 @@
     {
       "path": "README.md",
       "role": "Documentation or project configuration",
-      "bytes": 7571,
-      "sha256": "708778fd4aa37591d51e7c755a3629f3a26660007069c023d7986ac31f8f86ed",
-      "lines": 162,
+      "bytes": 6622,
+      "sha256": "9fb8351804edec8f3e424493c67a49d918b4b3dee80901361cc516807a6900c0",
+      "lines": 137,
       "symbols": []
     },
     {
       "path": "SECURITY.md",
       "role": "Documentation or project configuration",
-      "bytes": 17904,
-      "sha256": "73f6ef18b49d3c95eb4b3b3a42fd67f26795dfc3a31f7057b44628a2b920e473",
-      "lines": 337,
+      "bytes": 17966,
+      "sha256": "31a93453e8c505af0121e55d1699d8e45303843042035e35e4612787ddd872d9",
+      "lines": 338,
       "symbols": []
     },
     {
@@ -57323,9 +57338,9 @@
     {
       "path": "apps/web/package.json",
       "role": "Web application",
-      "bytes": 478,
-      "sha256": "36373d93c02641282543fbb33c379c4fbeffe7800608ff640f7cb9962788895a",
-      "lines": 22,
+      "bytes": 498,
+      "sha256": "64d46a6abff2274265e4947c87ca9da39daaea3631f80762026b5258be8d6abe",
+      "lines": 23,
       "symbols": []
     },
     {
@@ -71235,6 +71250,14 @@
       "symbols": []
     },
     {
+      "path": "docs/INSTALL.md",
+      "role": "Documentation or project configuration",
+      "bytes": 15294,
+      "sha256": "44fea274220da1421da2f2ad1f57c78873136cf9275132b5b8c8d8965c740980",
+      "lines": 345,
+      "symbols": []
+    },
+    {
       "path": "docs/PARTNER_TIPS.md",
       "role": "Documentation or project configuration",
       "bytes": 11814,
@@ -71254,7 +71277,7 @@
       "path": "docs/SETUP.md",
       "role": "Documentation or project configuration",
       "bytes": 18294,
-      "sha256": "b42a646a90b48c7c9b970f37d12e05b9e3fdf1ff564844bbb6b886b5943e2376",
+      "sha256": "5dae48ec8e2570c0291e8123ab18fa1eccc26bfaf1f378feda403a60b522a0cf",
       "lines": 371,
       "symbols": []
     },
@@ -71324,6 +71347,83 @@
       "role": "Documentation or project configuration",
       "bytes": 161006,
       "sha256": "38d5150cd12d00ca7fda36d23dba360ad2b3cd947edf35d84654b3f5eed9f9fc",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/01-start-modus-waehlen.png",
+      "role": "Documentation or project configuration",
+      "bytes": 235171,
+      "sha256": "1ec0ea730c7f28998e639b59c1996474532fc5abdb2198deb6e516db62766891",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/02-anmelden.png",
+      "role": "Documentation or project configuration",
+      "bytes": 104863,
+      "sha256": "daf3da7b3a97c0dd9cde361290c7002751a85f453b3760449d802a1012053218",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/03-tracker-heute.png",
+      "role": "Documentation or project configuration",
+      "bytes": 226728,
+      "sha256": "a75ffaedee443020c42466387a50b2901e7afa8318a9c66d23027414515338a9",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/04-tracker-kalender.png",
+      "role": "Documentation or project configuration",
+      "bytes": 210847,
+      "sha256": "570c3b375e4d35f93511c2e65239b94d63044670823e17537554fc331917fe3f",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/04b-tracker-kalender-oktober.png",
+      "role": "Documentation or project configuration",
+      "bytes": 201042,
+      "sha256": "82da53b1e06650b09723f002f3433e37a3226169713c5a4e1fa586ff07276676",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/05-einstellungen.png",
+      "role": "Documentation or project configuration",
+      "bytes": 194382,
+      "sha256": "1c830eb76fe2d93a17c3bc66adb2a7f9b816843847c87af81338a32904419b1d",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/05b-app-und-verbindung.png",
+      "role": "Documentation or project configuration",
+      "bytes": 200579,
+      "sha256": "6bf15dea2f54159585dd913372706559b783a0ebfa3c87bdecb473b6f475bc39",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/06-partner-heute.png",
+      "role": "Documentation or project configuration",
+      "bytes": 272292,
+      "sha256": "152e596b3e973c86c8bcf56c81b5f4bd079f90dfd91fbd8dd6b4c3a8e1ddfcf5",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/07-partner-kalender.png",
+      "role": "Documentation or project configuration",
+      "bytes": 202220,
+      "sha256": "228c994bc2db9d5e464148d90d232e33aa5c3330d6d222030b6c541ea1530be9",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/08-desktop-heute.png",
+      "role": "Documentation or project configuration",
+      "bytes": 219160,
+      "sha256": "219df4b97d530d10f9d38478892bb62e7934cc12c60e2ea0aecb2296caac4b79",
+      "symbols": []
+    },
+    {
+      "path": "docs/screenshots/hd/09-desktop-kalender.png",
+      "role": "Documentation or project configuration",
+      "bytes": 150249,
+      "sha256": "1f8960e149df2b5dd2cccca491d3b35197ba39b1cc2f0af46742ce54a997ab3d",
       "symbols": []
     },
     {
@@ -71405,6 +71505,28 @@
       "symbols": []
     },
     {
+      "path": "examples/.env.example",
+      "role": "Documentation or project configuration",
+      "bytes": 923,
+      "sha256": "7ffdfe87e1d341f86017dea1d3b7a82bea50f9006d4cbf41ba9d206935d5d2f6",
+      "symbols": []
+    },
+    {
+      "path": "examples/Caddyfile",
+      "role": "Documentation or project configuration",
+      "bytes": 223,
+      "sha256": "feea8bebb652c13ee2e746371980cd2f57943a8d5a3043923baefc626946fe3d",
+      "symbols": []
+    },
+    {
+      "path": "examples/docker-compose.yml",
+      "role": "Documentation or project configuration",
+      "bytes": 4106,
+      "sha256": "642a0e3d6a97c6dfc8f97c703dc7732ce783353f499e31092038d88102a180cb",
+      "lines": 124,
+      "symbols": []
+    },
+    {
       "path": "infra/docker/api.Dockerfile",
       "role": "Deployment",
       "bytes": 2622,
@@ -71454,17 +71576,17 @@
     {
       "path": "package-lock.json",
       "role": "Documentation or project configuration",
-      "bytes": 629015,
-      "sha256": "0ebcad2a15a1e92d46ab56ab9e60887cdeaf7e5bf74205e709db4aec12a93eea",
-      "lines": 17588,
+      "bytes": 629049,
+      "sha256": "be51bab0f1eea09b233dfdcd4447ebd4814dea73615f964ca3fe9b56a2c46d6b",
+      "lines": 17590,
       "symbols": []
     },
     {
       "path": "package.json",
       "role": "Documentation or project configuration",
-      "bytes": 1910,
-      "sha256": "e8df229816cf14092772b9df0f95eab82b3db3717327ff1fc0cb79d7d6a24bef",
-      "lines": 56,
+      "bytes": 1930,
+      "sha256": "5b72ba622457ff160e16d86ad8845b431f373a3074a0946ebd22c1037a35caea",
+      "lines": 57,
       "symbols": []
     },
     {
@@ -72270,8 +72392,8 @@
     {
       "path": "packages/openapi-client/package.json",
       "role": "Documentation or project configuration",
-      "bytes": 384,
-      "sha256": "3711c5d9c536b4f32b3576fd11bd73fedb8bdf21ecd10338f233adecb9423c3a",
+      "bytes": 377,
+      "sha256": "0e63649f4157a649806933897f177990ff74fe1f7a9d95413b8324fb6ec478a3",
       "lines": 13,
       "symbols": []
     },
@@ -73396,9 +73518,9 @@
     {
       "path": "scripts/secret-scan.sh",
       "role": "Build and maintenance",
-      "bytes": 10041,
-      "sha256": "27ef2de5d5cef6384512744e2859eaaf77fb1059aec585fbe8ace670725a3b38",
-      "lines": 93,
+      "bytes": 10570,
+      "sha256": "99a1f4b4709474b00cc94fdeea9b91ffe2614b13c346b60a26dc9e90a70fa4e7",
+      "lines": 94,
       "symbols": []
     },
     {
@@ -73493,8 +73615,8 @@
     {
       "path": "services/api/package.json",
       "role": "Documentation or project configuration",
-      "bytes": 2063,
-      "sha256": "fb36bfac147501d69189f93d1bc8a83b0a5adbdd354cc53e50fe418b35d78e9a",
+      "bytes": 2056,
+      "sha256": "8914acc34d4ce40602a2d2dd9ac340824b131eea5436072556a24766280d0dec",
       "lines": 67,
       "symbols": []
     },
