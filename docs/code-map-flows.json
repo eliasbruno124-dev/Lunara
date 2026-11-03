@@ -70,13 +70,27 @@
     ]
   },
   {
+    "title": "Unconfirmed five-day period bounds",
+    "description": "A missing end means five inclusive calendar days, retrospectively as well as for new records. The bound is derived, never saved as an observed end. Manual dates win; all overlap validators and the database constraint use the same bound. After day five, history/calendar editors still allow a manual correction. Raw-null exports, backups, sync and model statistics remain unchanged.",
+    "anchors": [
+      { "path": "apps/android/app/src/main/java/de/lunara/app/core/model/PeriodEndPolicy.kt", "symbol": "PeriodEndPolicy", "purpose": "Native date-only inferred bounds, active state and calendar display" },
+      { "path": "apps/web/src/period-end.ts", "symbol": "periodEndState", "purpose": "Browser active/assumed-complete state without writes" },
+      { "path": "apps/web/src/period-end.ts", "symbol": "periodRangesOverlap", "purpose": "Symmetric bounded browser import and backup validation" },
+      { "path": "services/api/src/periods/period-policy.ts", "symbol": "effectivePeriodEndDate", "purpose": "Canonical five-day bound for date-only database values" },
+      { "path": "services/api/src/periods/periods.service.ts", "symbol": "assertNoOverlap", "owner": "PeriodsService", "purpose": "Owner-scoped overlap query bounding both operands" }
+    ]
+  },
+  {
     "title": "Partner calendar consent and availability",
     "description": "The server reports effective sharing permissions without disclosing whether private health records exist. Clients distinguish denied or unknown access, unavailable estimates and empty results. Forecasts remain estimates, not a contraception or ovulation confirmation.",
     "anchors": [
       { "path": "services/api/src/partner/partner-projection.ts", "symbol": "projectPartnerDashboard", "purpose": "Privacy-filtered response and effective calendar access flags" },
       { "path": "apps/android/app/src/main/java/de/lunara/app/ui/main/CalendarStatusPolicy.kt", "symbol": "CalendarStatusPolicy", "purpose": "Native calendar notices and read-only sharing status" },
       { "path": "apps/web/src/partner-calendar.ts", "symbol": "visiblePartnerCalendar", "purpose": "Consent-aware browser calendar projection" },
-      { "path": "apps/web/src/fertility-presentation.ts", "symbol": "hasFertileEstimate", "purpose": "Validate estimate availability independently of other prediction permissions" },
+      { "path": "apps/web/src/fertility-presentation.ts", "symbol": "hasFertileEstimate", "purpose": "Bound historical fertility envelopes independently of other prediction permissions" },
+      { "path": "apps/web/src/fertility-presentation.ts", "symbol": "hasCurrentFertileEstimate", "purpose": "Expire current fertility summaries at their own end and during pending edits" },
+      { "path": "apps/android/app/src/main/java/de/lunara/app/data/prediction/FertilityWindowPolicy.kt", "symbol": "FertilityWindowPolicy", "purpose": "Shared native calendar, current-summary and notification safety" },
+      { "path": "services/api/src/prediction/fertility-policy.ts", "symbol": "isSupportedFertileWindow", "purpose": "Reject invalid or wider-than-current-model legacy envelopes, never clip them" },
       { "path": "apps/web/src/apk-download.ts", "symbol": "createApkDownloadCard", "purpose": "Same-origin stable APK download in settings" }
     ]
   }

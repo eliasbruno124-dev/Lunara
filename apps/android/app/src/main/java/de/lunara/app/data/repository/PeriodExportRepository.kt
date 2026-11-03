@@ -8,6 +8,7 @@ import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.sync.ProcessSyncGate
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +30,13 @@ class PeriodExportRepository @Inject constructor(
     private val preferences: AppPreferences,
     private val credentialGate: SessionCredentialGate,
 ) {
-    suspend fun exportTo(uri: Uri, format: PeriodFileFormat, identity: PeriodTransferIdentity): Int = withContext(Dispatchers.IO) {
+    suspend fun exportTo(uri: Uri, format: PeriodFileFormat, identity: PeriodTransferIdentity, today: LocalDate = LocalDate.now()): Int = withContext(Dispatchers.IO) {
         val snapshot = ProcessSyncGate.serialized {
             var payload: Pair<ByteArray, Int>? = null
             val committed = credentialGate.commitIfCurrent(identity.generation) {
                 requireIdentity(identity)
                 val ranges = PeriodExportFormat.ownedRanges(database.periodDao().activeForUser(identity.userId), identity)
-                val bytes = PeriodExportFormat.encode(ranges, format)
+                val bytes = PeriodExportFormat.encode(ranges, format, today)
                 requireIdentity(identity)
                 payload = bytes to ranges.size
                 true
@@ -64,16 +65,16 @@ class PeriodExportRepository @Inject constructor(
         snapshot.second
     }
 
-    suspend fun preview(uri: Uri, identity: PeriodTransferIdentity): PeriodImportDraft = withContext(Dispatchers.IO) {
+    suspend fun preview(uri: Uri, identity: PeriodTransferIdentity, today: LocalDate = LocalDate.now()): PeriodImportDraft = withContext(Dispatchers.IO) {
         requireIdentity(identity)
         val bytes = context.contentResolver.openInputStream(uri)?.use(::readBoundedPeriodFile)
             ?: error("Document unavailable")
-        val ranges = PeriodExportFormat.decode(bytes)
+        val ranges = PeriodExportFormat.decode(bytes, today)
         currentCoroutineContext().ensureActive()
         ProcessSyncGate.serialized {
             requireIdentity(identity)
             val existing = PeriodExportFormat.ownedRanges(database.periodDao().activeForUser(identity.userId), identity)
-            val plan = PeriodExportFormat.plan(ranges, existing)
+            val plan = PeriodExportFormat.plan(ranges, existing, today)
             requireIdentity(identity)
             PeriodImportDraft(identity, ranges, plan)
         }

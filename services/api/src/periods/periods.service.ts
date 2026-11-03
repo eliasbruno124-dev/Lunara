@@ -17,6 +17,11 @@ import {
   PERIOD_OVERLAP_MESSAGE,
 } from './period-constraints.js';
 import { CreatePeriodDto, UpdatePeriodDto } from './periods.dto.js';
+import {
+  addCalendarDays,
+  ASSUMED_PERIOD_DURATION_DAYS,
+  effectivePeriodEndDate,
+} from './period-policy.js';
 
 @Injectable()
 export class PeriodsService {
@@ -325,15 +330,21 @@ export class PeriodsService {
     endDate: string | null,
     excludingId?: string,
   ): Promise<void> {
+    const start = this.parseDate(startDate);
+    const end = effectivePeriodEndDate(start, endDate ? this.parseDate(endDate) : null);
     const overlap = await database.periodEvent.findFirst({
       where: {
         userId,
         deletedAt: null,
         ...(excludingId ? { id: { not: excludingId } } : {}),
-        ...(endDate ? { startDate: { lte: this.parseDate(endDate) } } : {}),
+        startDate: { lte: end },
         OR: [
-          { endDate: null },
-          { endDate: { gte: this.parseDate(startDate) } },
+          {
+            endDate: null,
+            // Existing start + 4 >= incoming start, without a computed SQL field.
+            startDate: { gte: addCalendarDays(start, 1 - ASSUMED_PERIOD_DURATION_DAYS) },
+          },
+          { endDate: { gte: start } },
         ],
       },
       select: { startDate: true },

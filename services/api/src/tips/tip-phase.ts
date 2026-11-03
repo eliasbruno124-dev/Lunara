@@ -1,5 +1,7 @@
 import { CyclePhase } from '@prisma/client';
 import { estimatedOvulationDay, PredictionResult } from '../prediction/prediction.algorithm.js';
+import { effectivePeriodEndLocalDate } from '../periods/period-policy.js';
+import { isSupportedFertileWindow } from '../prediction/fertility-policy.js';
 
 const DAY_MS = 86_400_000;
 
@@ -31,11 +33,13 @@ export function applicableTipPhases(
   const phases = new Set<CyclePhase>();
   const todayDay = epochDay(today);
   const periodStart = latestPeriod ? epochDay(latestPeriod.startDate) : null;
-  const periodEnd = latestPeriod?.endDate ? epochDay(latestPeriod.endDate) : null;
+  const periodEnd = latestPeriod
+    ? epochDay(effectivePeriodEndLocalDate(latestPeriod.startDate, latestPeriod.endDate))
+    : null;
   const periodIsCurrent =
     periodStart !== null &&
     periodStart <= todayDay &&
-    (periodEnd !== null ? todayDay <= periodEnd : todayDay - periodStart < 14);
+    periodEnd !== null && todayDay <= periodEnd;
 
   if (periodIsCurrent && (sharing.sharePeriodDates || sharing.sharePhase)) {
     phases.add(CyclePhase.MENSTRUATION);
@@ -61,6 +65,7 @@ export function applicableTipPhases(
     prediction.fertilityEstimate.available &&
     prediction.fertileWindowFrom !== null &&
     prediction.fertileWindowTo !== null &&
+    isSupportedFertileWindow(prediction.fertileWindowFrom, prediction.fertileWindowTo) &&
     todayDay >= epochDay(prediction.fertileWindowFrom) &&
     todayDay <= epochDay(prediction.fertileWindowTo);
   if (inSharedFertileWindow) phases.add(CyclePhase.OVULATION_ESTIMATE);

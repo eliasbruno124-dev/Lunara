@@ -203,6 +203,10 @@ label { display: grid; gap: 8px; font-size: 0.9rem; font-weight: 650; }
 .period-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; padding: 16px; border: 1px solid var(--outline); border-radius: 18px; background: var(--surface-raised); font-size: 0.875rem; }
 .period-list small { margin-left: auto; color: var(--muted); }
 .period-list-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--coral); }
+.period-end-editor { display: grid; gap: 12px; margin-top: 16px; }
+.period-end-editor label { display: grid; gap: 8px; }
+.period-end-editor p { margin: 0; }
+.current-fertility { border-top: 1px solid var(--outline); margin-top: 20px; padding-top: 16px; }
 .tip-card { padding: 20px; border-radius: 24px; background: var(--surface-raised); }
 .tip-card h2 { margin: 16px 0; font-size: 1.875rem; line-height: 1.2; }
 .tip-card > p:not(.eyebrow) { max-width: 58ch; color: var(--muted); line-height: 1.56; }

@@ -13,6 +13,15 @@ class CalendarStatusPolicyTest {
     private fun status(dashboard: PartnerDashboardDto?, unavailable: Boolean = false, refreshing: Boolean = false) =
         CalendarStatusPolicy.partner(dashboard, unavailable, refreshing)
 
+    @Test fun wideCachedFertilityIsUnavailableButSafeIndependentHistoricRangeRemains() {
+        val base = sharedDashboard()
+        val safe = requireNotNull(base.prediction).copy(available = false, fertileWindowFrom = "2026-01-01", fertileWindowTo = "2026-01-19")
+        assertNull(status(base.copy(prediction = safe), unavailable = true).fertilityNotice)
+        for (to in listOf("2026-01-20", "2026-02-02")) {
+            assertEquals(CalendarFertilityNotice.UNAVAILABLE, status(base.copy(prediction = safe.copy(fertileWindowTo = to)), unavailable = true).fertilityNotice)
+        }
+    }
+
     @Test fun initialRefreshTakesPrecedenceOverDefaultUnavailable() {
         val actual = status(null, unavailable = true, refreshing = true)
         assertEquals(CalendarLoadStatus.LOADING, actual.load)

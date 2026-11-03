@@ -15,8 +15,8 @@ dist/
 coverage/
 *.tsbuildinfo
 .eslintcache
-core
-core.*
+/core
+/core.*
 
 # Android / Gradle
 .gradle/

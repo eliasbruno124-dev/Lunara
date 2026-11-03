@@ -55,6 +55,15 @@ const sharing: TipPhaseSharing = {
 };
 
 describe('applicableTipPhases', () => {
+  it.each([['2026-09-19', true], ['2026-09-20', false], ['2026-10-03', false]])(
+    'bounds cached fertility tip selection ending %s and expires it at its own end', (end, accepted) => {
+      const cached = { ...prediction, predictedStartFrom: '2026-10-15', predictedStartTo: '2026-10-18', fertileWindowFrom: '2026-09-01', fertileWindowTo: end };
+      const fertilityOnly = { sharePrediction: false, sharePeriodDates: false, sharePhase: false, shareFertileWindow: true };
+      expect(applicableTipPhases('2026-09-05', null, cached, fertilityOnly)).toEqual(accepted ? [CyclePhase.OVULATION_ESTIMATE] : []);
+      expect(applicableTipPhases('2026-10-04', null, cached, fertilityOnly)).toEqual([]);
+    },
+  );
+
   it.each([
     [undefined, '2026-04-07', CyclePhase.FOLLICULAR_ESTIMATE],
     [undefined, '2026-04-09', CyclePhase.LUTEAL_ESTIMATE],

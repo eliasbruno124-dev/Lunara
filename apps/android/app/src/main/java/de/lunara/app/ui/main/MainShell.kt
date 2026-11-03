@@ -1,5 +1,7 @@
 package de.lunara.app.ui.main
 
+import de.lunara.app.core.model.PeriodEndPolicy
+
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Intent
@@ -367,6 +369,7 @@ fun MainShell(
                     },
                     onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
                     periodFailureRevision = state.periodFailureRevision,
+                    today = state.predictionReferenceDate,
                 )
             }
             composable(MainDestination.HISTORY.route) {
@@ -378,6 +381,7 @@ fun MainShell(
                     },
                     onPeriodDeleted = { id -> viewModel.deletePeriod(session.userId, id) },
                     periodFailureRevision = state.periodFailureRevision,
+                    today = state.predictionReferenceDate,
                 )
             }
             composable(MainDestination.SUPPORT.route) {
@@ -584,7 +588,7 @@ fun TrackerDashboard(
     val haptics = LocalHapticFeedback.current
     var showTodayLog by remember { mutableStateOf(false) }
     var showDiscardConflicts by remember { mutableStateOf(false) }
-    val today = LocalDate.now().toString()
+    val today = predictionReferenceDate.toString()
     val todayLog = dailyLogs.firstOrNull { it.localDate == today }
     val periodAction = remember(periods, today) {
         PeriodPrimaryActionPolicy.resolve(periods, LocalDate.parse(today))
@@ -596,7 +600,7 @@ fun TrackerDashboard(
     ) {
         item {
             LunaraHeader(
-                eyebrow = LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(LocalLocale.current.platformLocale)),
+                eyebrow = predictionReferenceDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(LocalLocale.current.platformLocale)),
                 title = stringResource(R.string.tracker_greeting, displayName),
                 modifier = Modifier.padding(top = 12.dp),
             )
@@ -676,7 +680,9 @@ fun TrackerDashboard(
         dailyLogs.firstOrNull()?.let { latest ->
             item { DailyLogRow(latest) }
         }
-        PredictionPresentationPolicy.fertileWindow(prediction)?.let { fertileWindow ->
+        PredictionPresentationPolicy.currentFertileWindow(
+            prediction, predictionReferenceDate, pendingChanges = showSync && pendingMutations + conflictMutations > 0,
+        )?.let { fertileWindow ->
             item { FertilityEstimateCard(fertileWindow) }
         }
         if (showSync) {
@@ -700,6 +706,7 @@ fun TrackerDashboard(
                     onUpdate = onPeriodUpdated,
                     onDelete = onPeriodDeleted,
                     periodFailureRevision = periodFailureRevision,
+                    today = predictionReferenceDate,
                 )
             }
         }
@@ -983,7 +990,10 @@ fun PartnerDashboard(
                 SettingText(Icons.Rounded.Info, localizedPhase(phase), stringResource(R.string.current_estimated_phase))
             }
         }
-        PredictionPresentationPolicy.fertileWindow(dashboard?.prediction)?.let { fertileWindow ->
+        PredictionPresentationPolicy.currentFertileWindow(
+            dashboard?.prediction.takeUnless { dashboard?.sharingPaused == true || dashboard?.calendarAccess?.fertileWindow == false },
+            predictionReferenceDate,
+        )?.let { fertileWindow ->
             item { FertilityEstimateCard(fertileWindow) }
         }
         if (!awaitingDashboard) item {
@@ -1150,8 +1160,8 @@ internal fun CalendarScreen(
     periodFailureRevision: Long = 0L,
     partnerStatus: PartnerCalendarStatus? = null,
     onPartnerRefresh: () -> Unit = {},
+    today: LocalDate = LocalDate.now(),
 ) {
-    val today = LocalDate.now()
     val currentMonth = YearMonth.from(today)
     val lastCalendarMonth = remember(currentMonth) {
         CalendarMonthPagingPolicy.mainCalendarLastMonth(currentMonth)
@@ -1391,8 +1401,9 @@ internal fun CalendarScreen(
 
     selectedNewStart?.let { rawStart ->
         PeriodCreateDialog(
-            initialStartDate = runCatching { LocalDate.parse(rawStart) }.getOrDefault(LocalDate.now()),
+            initialStartDate = runCatching { LocalDate.parse(rawStart) }.getOrDefault(today),
             allPeriods = periods,
+            today = today,
             submitting = createSubmitting,
             onCreate = { start, end ->
                 if (pendingNewStartDate == null) {
@@ -1415,6 +1426,7 @@ internal fun CalendarScreen(
             period = period,
             allPeriods = periods,
             submitting = editorSubmitting,
+            today = today,
             onUpdate = { start, end ->
                 if (pendingUpdatedStartDate == null && pendingDeletePeriodId == null) {
                     pendingUpdatedStartDate = start.toString()
@@ -1584,15 +1596,13 @@ internal fun periodForDate(
     .asSequence()
     .mapNotNull { period ->
         if (period.deletedAt != null) return@mapNotNull null
-        val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: return@mapNotNull null
-        val end = period.endDate
-            ?.let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
-            ?: maxOf(start, today)
+        val start = PeriodEndPolicy.parse(period.startDate) ?: return@mapNotNull null
+        val end = PeriodEndPolicy.displayEnd(period.startDate, period.endDate, today) ?: return@mapNotNull null
         period.takeIf { !date.isBefore(start) && !date.isAfter(end) }
     }
     .maxByOrNull { it.startDate }
 
-/** Constant-memory calendar range check, including deliberately open period records. */
+/** Constant-memory calendar range check; only actual ranges use assumed period bounds. */
 internal fun calendarRangeContains(
     date: LocalDate,
     startDate: String?,
@@ -1600,9 +1610,9 @@ internal fun calendarRangeContains(
     today: LocalDate = LocalDate.now(),
     extendOpenRange: Boolean = true,
 ): Boolean {
-    val start = startDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return false
-    val end = endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        ?: if (extendOpenRange) maxOf(start, today) else return false
+    val start = PeriodEndPolicy.parse(startDate) ?: return false
+    val end = if (extendOpenRange) PeriodEndPolicy.displayEnd(startDate, endDate, today) ?: return false
+        else PeriodEndPolicy.parse(endDate) ?: return false
     if (end.isBefore(start)) return false
     return !date.isBefore(start) && !date.isAfter(end)
 }
@@ -1614,6 +1624,7 @@ internal fun HistoryScreen(
     onPeriodUpdated: (String, LocalDate, LocalDate?) -> Unit,
     onPeriodDeleted: (String) -> Unit,
     periodFailureRevision: Long = 0L,
+    today: LocalDate = LocalDate.now(),
 ) {
     val starts = periods.mapNotNull { runCatching { LocalDate.parse(it.startDate) }.getOrNull() }.distinct().sorted()
     val lengths = starts.zipWithNext { first, second -> java.time.temporal.ChronoUnit.DAYS.between(first, second).toInt() }
@@ -1658,6 +1669,7 @@ internal fun HistoryScreen(
                 onUpdate = onPeriodUpdated,
                 onDelete = onPeriodDeleted,
                 periodFailureRevision = periodFailureRevision,
+                today = today,
             )
         }
     }
@@ -1715,6 +1727,7 @@ private fun EditablePeriodRow(
     onUpdate: (String, LocalDate, LocalDate?) -> Unit,
     onDelete: (String) -> Unit,
     periodFailureRevision: Long = 0L,
+    today: LocalDate = LocalDate.now(),
 ) {
     var showEditor by rememberSaveable(period.id) { mutableStateOf(false) }
     var pendingUpdatedStartDate by rememberSaveable(period.id) { mutableStateOf<String?>(null) }
@@ -1760,7 +1773,13 @@ private fun EditablePeriodRow(
                             formatDate(period.startDate),
                             formatDate(end),
                         )
-                    } ?: stringResource(R.string.period_date_open, formatDate(period.startDate)),
+                    } ?: if (PeriodEndPolicy.isAssumedComplete(period.startDate, period.endDate, today)) {
+                        stringResource(
+                            R.string.period_date_assumed,
+                            formatDate(period.startDate),
+                            formatDate(PeriodEndPolicy.displayEnd(period.startDate, null, today).toString()),
+                        )
+                    } else stringResource(R.string.period_date_open, formatDate(period.startDate)),
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
@@ -1782,6 +1801,7 @@ private fun EditablePeriodRow(
             period = period,
             allPeriods = allPeriods,
             submitting = submitting,
+            today = today,
             onUpdate = { start, end ->
                 if (pendingUpdatedStartDate == null && !pendingDelete) {
                     pendingUpdatedStartDate = start.toString()
@@ -1816,6 +1836,7 @@ internal fun PeriodEditorDialog(
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
     submitting: Boolean = false,
+    today: LocalDate = LocalDate.now(),
 ) {
     var savedStartDate by rememberSaveable(period.id) { mutableStateOf<String?>(period.startDate) }
     var savedEndDate by rememberSaveable(period.id) { mutableStateOf<String?>(period.endDate) }
@@ -1823,11 +1844,11 @@ internal fun PeriodEditorDialog(
     val selection = remember(savedStartDate, savedEndDate) {
         PeriodRangeSelectionPolicy.restore(savedStartDate, savedEndDate)
     }
-    val initialPickerMonth = remember(period.startDate) {
-        runCatching { YearMonth.from(LocalDate.parse(period.startDate)) }.getOrDefault(YearMonth.now())
+    val initialPickerMonth = remember(period.startDate, today) {
+        runCatching { YearMonth.from(LocalDate.parse(period.startDate)) }.getOrDefault(YearMonth.from(today))
     }
-    val overlap = remember(selection, allPeriods, period.id) {
-        periodRangeOverlapsExisting(selection, allPeriods, excludedPeriodId = period.id)
+    val overlap = remember(selection, allPeriods, period.id, today) {
+        periodRangeOverlapsExisting(selection, allPeriods, today, excludedPeriodId = period.id)
     }
     val changed = selection.startDate?.let {
         it.toString() != period.startDate || selection.endDate?.toString() != period.endDate
@@ -1867,10 +1888,14 @@ internal fun PeriodEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(stringResource(R.string.period_picker_edit_notice), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (PeriodEndPolicy.isAssumedComplete(period.startDate, period.endDate, today)) {
+                    Text(stringResource(R.string.period_assumed_correction), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 PeriodRangePicker(
                     selection = selection,
                     initialMonth = initialPickerMonth,
                     enabled = !submitting,
+                    today = today,
                     onSelectionChanged = { updated ->
                         savedStartDate = updated.savedStartDate
                         savedEndDate = updated.savedEndDate
@@ -1934,6 +1959,7 @@ internal fun PeriodCreateDialog(
     onCreate: (LocalDate, LocalDate?) -> Unit,
     onDismiss: () -> Unit,
     submitting: Boolean = false,
+    today: LocalDate = LocalDate.now(),
 ) {
     var savedStartDate by rememberSaveable(initialStartDate.toString()) {
         mutableStateOf<String?>(initialStartDate.toString())
@@ -1944,8 +1970,8 @@ internal fun PeriodCreateDialog(
     val selection = remember(savedStartDate, savedEndDate) {
         PeriodRangeSelectionPolicy.restore(savedStartDate, savedEndDate)
     }
-    val overlap = remember(selection, allPeriods) {
-        periodRangeOverlapsExisting(selection, allPeriods)
+    val overlap = remember(selection, allPeriods, today) {
+        periodRangeOverlapsExisting(selection, allPeriods, today)
     }
 
     AlertDialog(
@@ -1964,6 +1990,7 @@ internal fun PeriodCreateDialog(
                     selection = selection,
                     initialMonth = YearMonth.from(initialStartDate),
                     enabled = !submitting,
+                    today = today,
                     onSelectionChanged = { updated ->
                         savedStartDate = updated.savedStartDate
                         savedEndDate = updated.savedEndDate
@@ -2025,16 +2052,16 @@ internal fun periodRangeOverlapsExisting(
     excludedPeriodId: String? = null,
 ): Boolean {
     val selectedStart = selection.startDate ?: return false
-    val selectedEnd = selection.endDate ?: maxOf(selectedStart, today)
+    val selectedEnd = PeriodEndPolicy.overlapEnd(selectedStart, selection.endDate)
     if (selectedEnd.isBefore(selectedStart)) return true
 
     return periods.any { period ->
         if (period.id == excludedPeriodId || period.deletedAt != null) return@any false
-        val existingStart = runCatching { LocalDate.parse(period.startDate) }.getOrNull()
+        val existingStart = PeriodEndPolicy.parse(period.startDate)
             ?: return@any false
-        val existingEnd = period.endDate
-            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-            ?: maxOf(existingStart, today)
+        val explicitEnd = if (period.endDate == null) null else PeriodEndPolicy.parse(period.endDate)
+            ?: return@any false
+        val existingEnd = PeriodEndPolicy.overlapEnd(existingStart, explicitEnd)
         !selectedEnd.isBefore(existingStart) && !existingEnd.isBefore(selectedStart)
     }
 }
@@ -2045,8 +2072,8 @@ private fun PeriodRangePicker(
     initialMonth: YearMonth,
     enabled: Boolean,
     onSelectionChanged: (PeriodRangeSelection) -> Unit,
+    today: LocalDate = LocalDate.now(),
 ) {
-    val today = LocalDate.now()
     val currentMonth = YearMonth.from(today)
     val initialPage = remember(initialMonth, currentMonth) {
         CalendarMonthPagingPolicy.pageForMonth(initialMonth, currentMonth)

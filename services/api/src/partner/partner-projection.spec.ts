@@ -17,6 +17,41 @@ const allPrivate = {
 };
 
 describe('projectPartnerDashboard', () => {
+  it.each([
+    ['2026-09-19', true],
+    ['2026-09-20', false],
+    ['2026-10-03', false],
+    ['2026-08-31', false],
+    ['2026-09-31', false],
+  ])('accepts at most nineteen inclusive fertility days (%s) independently of period sharing', (to, supported) => {
+    for (const metadata of [true, { enabled: true, available: true, estimated: true, notContraception: true, doesNotConfirmOvulation: true }]) {
+      const input = {
+        settings: { ...allPrivate, sharePrediction: false, shareFertileWindow: true },
+        prediction: { predictedStartFrom: '2026-10-10', fertileWindowFrom: '2026-09-01', fertileWindowTo: to, fertilityEstimate: metadata },
+        phase: null, periodDates: [], todayLog: null, today: '2026-09-05',
+      };
+      const result = projectPartnerDashboard(input);
+      expect(result.prediction?.fertileWindowFrom).toBe(supported ? '2026-09-01' : null);
+      expect(result.prediction?.fertileWindowTo).toBe(supported ? to : null);
+      expect(result.prediction?.fertilityEstimate).toEqual(supported ? metadata :
+        metadata === true ? false : { ...metadata, available: false, reason: 'UNRELIABLE_DATA' });
+      expect(result.prediction).not.toHaveProperty('predictedStartFrom');
+      expect(result.calendarAccess).toEqual({ periodDates: false, fertileWindow: true });
+      expect(projectPartnerDashboard({ ...input, settings: { ...input.settings, shareFertileWindow: false } }).prediction).toBeNull();
+      expect(projectPartnerDashboard({ ...input, settings: { ...input.settings, sharingPaused: true } }).prediction).toBeNull();
+      expect(projectPartnerDashboard({ ...input, settings: { ...input.settings, privateDate: new Date('2026-09-05T00:00:00Z') } }).prediction).toBeNull();
+    }
+  });
+
+  it('keeps bounded historical calendar fertility while current-day consumers can expire it separately', () => {
+    const result = projectPartnerDashboard({
+      settings: { ...allPrivate, sharePrediction: false, shareFertileWindow: true },
+      prediction: { fertileWindowFrom: '2026-09-01', fertileWindowTo: '2026-09-07', fertilityEstimate: true },
+      phase: null, periodDates: [], todayLog: null, today: '2026-09-08',
+    });
+    expect(result.prediction?.fertileWindowTo).toBe('2026-09-07');
+  });
+
   it('returns only prediction by default and strips fertility fields', () => {
     const result = projectPartnerDashboard({
       settings: allPrivate,

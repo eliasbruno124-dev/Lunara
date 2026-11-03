@@ -21,6 +21,20 @@ const periods: PeriodEvent[] = [
 ];
 
 describe('portable encrypted backup', () => {
+  it('round trips and merges adjacent unknown ends while retaining null and rejecting day5 overlaps', async () => {
+    const first = { ...periods[0]!, startDate: '2026-07-01', endDate: null };
+    const next = { ...first, id: '223e4567-e89b-42d3-a456-426614174000', startDate: '2026-07-06' };
+    const envelope = await encryptPortableBackup([first, next], 'synthetic test backup');
+    const restored = await decryptPortableBackup(JSON.stringify(envelope), 'synthetic test backup');
+    expect(restored.periods).toMatchObject([first, next]);
+    expect(restored.periods.map((item) => item.endDate)).toEqual([null, null]);
+    expect(mergePeriods([first], [next])).toEqual([next, first]);
+    expect(mergePeriods([next], [first])).toEqual([next, first]);
+    const conflict = { ...next, startDate: '2026-07-05' };
+    expect(() => validatePortablePlaintext({ ...restored, periods: [first, conflict] })).toThrow(/overlap/i);
+    expect(() => mergePeriods([first], [conflict])).toThrow(/overlap/i);
+    expect(() => mergePeriods([first], [{ ...next, startDate: '2026-06-27' }])).toThrow(/overlap/i);
+  });
   it('round-trips the Android-compatible envelope parameters', async () => {
     const envelope = await encryptPortableBackup(periods, 'correct horse battery');
     expect(envelope).toMatchObject({

@@ -232,6 +232,7 @@ class RoleDashboardComposeTest {
                     ),
                     unavailable = false,
                     onRefresh = {},
+                    predictionReferenceDate = LocalDate.parse("2026-09-16"),
                 )
             }
         }

@@ -400,7 +400,10 @@ class MainViewModel @Inject constructor(
     fun startPeriod(userId: String) {
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
-            runSessionOperation { periodRepository.startPeriod(userId) }
+            runSessionOperation {
+                val today = state.value.predictionReferenceDate
+                periodRepository.startPeriod(userId, today, today)
+            }
                 .onSuccess {
                     ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodSaved) }
                     refreshPredictionAfterLocalPeriodChange(userId)
@@ -416,7 +419,7 @@ class MainViewModel @Inject constructor(
     ) {
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
-            runSessionOperation { periodRepository.createPeriod(userId, startDate, endDate) }
+            runSessionOperation { periodRepository.createPeriod(userId, startDate, endDate, state.value.predictionReferenceDate) }
                 .onSuccess {
                     ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodAdded) }
                     refreshPredictionAfterLocalPeriodChange(userId)
@@ -428,7 +431,10 @@ class MainViewModel @Inject constructor(
     fun endPeriod(userId: String, periodId: String) {
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
-            runSessionOperation { periodRepository.endPeriod(userId, periodId) }
+            runSessionOperation {
+                val today = state.value.predictionReferenceDate
+                periodRepository.endPeriod(userId, periodId, today, today)
+            }
                 .onSuccess { changed ->
                     if (changed) {
                         ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodEnded) }
@@ -447,7 +453,7 @@ class MainViewModel @Inject constructor(
     ) {
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
-            runSessionOperation { periodRepository.updatePeriodDates(userId, periodId, startDate, endDate) }
+            runSessionOperation { periodRepository.updatePeriodDates(userId, periodId, startDate, endDate, state.value.predictionReferenceDate) }
                 .onSuccess {
                     ifCurrentSession(userId) { _events.tryEmit(MainEvent.PeriodUpdated) }
                     refreshPredictionAfterLocalPeriodChange(userId)
@@ -487,7 +493,7 @@ class MainViewModel @Inject constructor(
         if (!canManagePeriod(userId)) return
         launchForSession(userId) {
             runSessionOperation {
-                periodRepository.logToday(userId, flowLevel, painLevel, mood, energy, sleepQuality, symptoms)
+                periodRepository.logToday(userId, flowLevel, painLevel, mood, energy, sleepQuality, symptoms, state.value.predictionReferenceDate)
             }
                 .onSuccess { ifCurrentSession(userId) { _events.tryEmit(MainEvent.DailyLogSaved) } }
                 .onFailure { ifCurrentSession(userId) { _events.tryEmit(MainEvent.DailyLogFailed) } }
@@ -988,7 +994,7 @@ class MainViewModel @Inject constructor(
         activePeriodTransfer = identity
         periodTransfer.value = PeriodTransferUiState(status = PeriodTransferStatus.BUSY)
         launchForSession(identity.userId) {
-            val result = runSessionOperation { periodExportRepository.exportTo(uri, format, identity) }
+            val result = runSessionOperation { periodExportRepository.exportTo(uri, format, identity, state.value.predictionReferenceDate) }
             finishPeriodTransfer(identity) {
                 periodTransfer.value = result.fold(
                     onSuccess = { PeriodTransferUiState(PeriodTransferStatus.EXPORTED, completedCount = it) },
@@ -1004,7 +1010,7 @@ class MainViewModel @Inject constructor(
         activePeriodTransfer = identity
         periodTransfer.value = PeriodTransferUiState(status = PeriodTransferStatus.BUSY)
         launchForSession(identity.userId) {
-            val result = runSessionOperation { periodExportRepository.preview(uri, identity) }
+            val result = runSessionOperation { periodExportRepository.preview(uri, identity, state.value.predictionReferenceDate) }
             finishPeriodTransfer(identity) {
                 pendingPeriodImport = result.getOrNull()
                 periodTransfer.value = result.fold(
@@ -1028,7 +1034,7 @@ class MainViewModel @Inject constructor(
         activePeriodTransfer = draft.identity
         periodTransfer.value = periodTransfer.value.copy(status = PeriodTransferStatus.BUSY)
         launchForSession(draft.identity.userId) {
-            val result = runSessionOperation { periodRepository.importPeriodRanges(draft) }
+            val result = runSessionOperation { periodRepository.importPeriodRanges(draft, state.value.predictionReferenceDate) }
             finishPeriodTransfer(draft.identity) {
                 pendingPeriodImport = null
                 periodTransfer.value = result.fold(

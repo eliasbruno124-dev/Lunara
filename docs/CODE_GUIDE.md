@@ -12,6 +12,7 @@ Start with [CODE_MAP.md](CODE_MAP.md). It contains every non-ignored repository 
 | Home screen and settings | `MainShell.kt`, `JournalComponents.kt`, `LunaraComponents.kt` | Both roles, light/dark, narrow display, large text, offline/empty/loading states |
 | Branding | `BrandTokens.kt`, `LunaraTheme.kt`, Android resources | Contrast and touch targets; no remote assets required |
 | Calendar and local edits | `PeriodRepository`, `LunaraDao`, `MainViewModel` | Preserve queued edits, date validation and account ownership |
+| Automatic period end | Android `PeriodEndPolicy`, web `period-end.ts`, API `period-policy.ts`; [period-end contract](PERIOD-ENDS.md) | Five inclusive days for missing ends, both overlap operands, manual correction after day five, raw-null transfer/statistics and matching database exclusion |
 | Calendar appearance | Android `CalendarColors`, `CalendarDayKind`, `CalendarLegend`; web `calendar-presentation.ts`, `calendar.ts`, `styles.css` | Same rose/amber/teal colors and three legend entries; one estimated-period category; actual entries win overlaps; complete prediction boundaries, narrow screens and large text |
 | Shared app design | Android `LunaraTheme` and `JournalComponents`; web `styles.css`, `ui-icons.ts`, `main.ts` | Android is the visual reference; keep responsive desktop, all seven calendar columns and unbroken navigation labels |
 | Period import/export | `PeriodExportFormat`, `PeriodExportRepository`, web `period-transfer.ts`, API `data-management/` | CSV/JSON roundtrip, preview, duplicates, overlaps, atomic writes and account changes during file selection |
@@ -22,6 +23,7 @@ Start with [CODE_MAP.md](CODE_MAP.md). It contains every non-ignored repository 
 | Partner access | `HouseholdRepository`, `SharingRepository`, API `household/`, `partner/`, `sharing/` | Only explicitly shared fields; no data from previous account |
 | Forecast and tips | Android `LocalPredictionEngine`, web `local-prediction.ts`, API `prediction/` and `tips/` | Compare recent duration selection, model fallbacks, uncertainty half-width and consent; share the existing model center for phase estimates; no medical certainty |
 | Forecast freshness | Android `PredictionFreshnessPolicy` and `MainViewModel`, web `prediction-freshness.ts` and `main.ts` | Inclusive end of the predicted start interval; pending server edits; foreground midnight and resume; keep historical calendar data and account isolation |
+| Fertility presentation | Android `FertilityWindowPolicy`, web `fertility-presentation.ts`, API `fertility-policy.ts` | Reject malformed or wider-than-19-day legacy envelopes; current summaries expire at their own end; preserve independent sharing and valid calendar history |
 | Account lifecycle | API `data-management/` | Existing production lifecycle overlay, identity unlinking and revocation |
 | API contract | `services/api/src/`, `packages/openapi-client/` | Generate/check the client; preserve installed Android clients |
 | APK | `apps/android/app/build.gradle.kts`, `scripts/build-android.sh` | Higher versionCode, same application ID and signing certificate |

@@ -1,3 +1,5 @@
+import { isSupportedFertileWindow } from '../prediction/fertility-policy.js';
+
 export interface PartnerSharingSettings {
   sharePrediction: boolean;
   sharePeriodDates: boolean;
@@ -46,6 +48,11 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
     };
   }
 
+  // Consent remains independent of period-forecast sharing. Invalid cached
+  // ranges lose only their fertility envelope, not unrelated shared fields.
+  const supportedFertility = input.prediction && isSupportedFertileWindow(
+    input.prediction.fertileWindowFrom, input.prediction.fertileWindowTo,
+  );
   const projectedPrediction = input.prediction
     ? compact({
         available: settings.sharePrediction ? input.prediction.available : undefined,
@@ -68,13 +75,14 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
         variationDays: settings.sharePrediction ? input.prediction.variationDays : undefined,
         reason: settings.sharePrediction ? input.prediction.reason : undefined,
         fertileWindowFrom: settings.shareFertileWindow && !privateToday
-          ? input.prediction.fertileWindowFrom
+          ? supportedFertility ? input.prediction.fertileWindowFrom : null
           : undefined,
         fertileWindowTo: settings.shareFertileWindow && !privateToday
-          ? input.prediction.fertileWindowTo
+          ? supportedFertility ? input.prediction.fertileWindowTo : null
           : undefined,
         fertilityEstimate: settings.shareFertileWindow && !privateToday
-          ? input.prediction.fertilityEstimate
+          ? supportedFertility ? input.prediction.fertilityEstimate
+            : unavailableFertilityEstimate(input.prediction.fertilityEstimate)
           : undefined,
       })
     : {};
@@ -115,4 +123,12 @@ export function projectPartnerDashboard(input: PartnerProjectionInput) {
 
 function compact<T extends Record<string, unknown>>(value: T): Partial<T> {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Partial<T>;
+}
+
+function unavailableFertilityEstimate(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value === true ? false : value;
+  const estimate = value as Record<string, unknown>;
+  return estimate.available === true
+    ? { ...estimate, available: false, reason: 'UNRELIABLE_DATA' }
+    : value;
 }

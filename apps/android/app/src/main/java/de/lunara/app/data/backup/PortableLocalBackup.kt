@@ -1,5 +1,7 @@
 package de.lunara.app.data.backup
 
+import de.lunara.app.core.model.PeriodEndPolicy
+
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
@@ -306,7 +308,7 @@ internal object PortableBackupValidator {
             val end = period.endDate?.let(::strictDate)
             require(!start.isAfter(today) && end?.isAfter(today) != true)
             require(end?.isBefore(start) != true)
-            Triple(start, end ?: today, period.id)
+            Triple(start, PeriodEndPolicy.overlapEnd(start, end), period.id)
         }.sortedBy { it.first }
         periodRanges.zipWithNext().forEach { (left, right) ->
             require(left.second.isBefore(right.first)) { "Overlapping period ranges" }

@@ -5,6 +5,20 @@ describe('PredictionService', () => {
     jest.useRealTimers();
   });
 
+  it('keeps unconfirmed server rows out of observed duration statistics after day five', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-03-31T12:00:00Z'));
+    const periods = ['2026-01-01', '2026-01-29', '2026-02-26', '2026-03-26']
+      .map(start => ({ startDate: new Date(`${start}T00:00:00Z`), endDate: null }));
+    const prisma = {
+      cycleProfile: { findUnique: jest.fn().mockResolvedValue({ timezone: 'Europe/Berlin', fertilityPredictionEnabled: true, predictionPaused: false, specialMode: 'NONE' }) },
+      periodEvent: { findMany: jest.fn().mockResolvedValue(periods), updateMany: jest.fn() },
+    };
+    const result = await new PredictionService(prisma as never).calculateForUser('tracker-id');
+    expect(result.statistics).toMatchObject({ completedPeriodDurationCount: 0, periodDurationDataBasis: 'default-prior' });
+    expect(periods.every(period => period.endDate === null)).toBe(true);
+    expect(prisma.periodEvent.updateMany).not.toHaveBeenCalled();
+  });
+
   it('derives the prediction reference date in the cycle profile time zone', async () => {
     // Berlin has already reached 25 August while UTC is still on 24 August.
     // The possible start interval ends on 24 August, so the Berlin profile must

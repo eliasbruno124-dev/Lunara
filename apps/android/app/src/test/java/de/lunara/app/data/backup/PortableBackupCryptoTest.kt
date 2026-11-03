@@ -9,6 +9,29 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class PortableBackupCryptoTest {
+    @Test fun sequentialUnconfirmedBackupRoundTripKeepsRawNullAndRejectsDayFiveOverlap() {
+        val first = PortablePeriod(id = "00000000-0000-4000-8000-000000000001", startDate = "2026-11-01", endDate = null,
+            createdAt = "2026-11-01T12:00:00Z", updatedAt = "2026-11-01T12:00:00Z")
+        val next = first.copy(id = "00000000-0000-4000-8000-000000000002", startDate = "2026-11-06")
+        val payload = PortableBackupPayload(schemaVersion = 1, product = "Lunara", exportedAt = "2026-11-20T12:00:00Z",
+            settings = PortableLocalSettings(displayName = "Synthetic"), periods = listOf(first, next))
+        val today = LocalDate.parse("2026-11-20")
+        PortableBackupValidator.validate(payload, today)
+        val gson = com.google.gson.GsonBuilder().serializeNulls().create()
+        val encrypted = PortableBackupCrypto.encrypt(gson.toJson(payload).encodeToByteArray(), "synthetic backup secret".toCharArray())
+        val restored = gson.fromJson(PortableBackupCrypto.decrypt(encrypted, "synthetic backup secret".toCharArray()).decodeToString(), PortableBackupPayload::class.java)
+        PortableBackupValidator.validate(restored, today)
+        assertEquals(payload, restored)
+        assertTrue(restored.periods.all { it.endDate == null })
+        try {
+            PortableBackupValidator.validate(payload.copy(periods = listOf(first, next.copy(startDate = "2026-11-05"))), today)
+            fail("Shared fifth day must overlap")
+        } catch (_: IllegalArgumentException) { }
+        try {
+            PortableBackupValidator.validate(payload.copy(periods = listOf(first.copy(endDate = "2026-11-08"), next)), today)
+            fail("Explicit longer duration must overlap")
+        } catch (_: IllegalArgumentException) { }
+    }
     @Test
     fun passphraseLengthCountsUnicodeCodePoints() {
         assertFalse(PortableBackupPassphrasePolicy.isValid("🔒".repeat(11)))

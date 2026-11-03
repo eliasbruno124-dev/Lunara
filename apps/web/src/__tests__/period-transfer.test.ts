@@ -85,13 +85,23 @@ describe('portable recorded periods', () => {
   it('skips exact duplicates from file and existing history', () => {
     expect(periodImportPlan([ranges[0]!], [ranges[0]!, ranges[1]!, ranges[1]!])).toEqual({ added: [ranges[1]], duplicates: 2, conflicts: 0 });
   });
-  it('detects partial overlap, shared boundary, open periods and incoming conflicts without mutation', () => {
+  it('detects partial overlap, shared boundary and incoming conflicts without extending unknown ends forever', () => {
     const existing = structuredClone(ranges);
     const plan = periodImportPlan(existing, [
       { startDate: '2026-09-05', endDate: '2026-09-10' },
       { startDate: '2026-10-20', endDate: '2026-10-22' },
     ]);
-    expect(plan.conflicts).toBe(2); expect(existing).toEqual(ranges);
+    expect(plan.conflicts).toBe(1); expect(existing).toEqual(ranges);
+    expect(plan.added).toEqual([{ startDate: '2026-10-20', endDate: '2026-10-22' }]);
     expect(periodImportPlan([], [ranges[0]!, { startDate: '2026-09-03', endDate: '2026-09-06' }]).conflicts).toBe(1);
+  });
+  it.each(['csv', 'json'] as const)('round trips adjacent unknown ends in %s without inferring stored observations', (format) => {
+    const values = ['2026-10-01', '2026-10-06', '2026-10-11'].map((startDate, index) => ({ id: String(index), startDate, endDate: null }));
+    const parsed = parsePeriodFile(serializePeriods(values, format, today), today);
+    expect(periodImportPlan([], parsed)).toEqual({ added: parsed, duplicates: 0, conflicts: 0 });
+    expect(parsed.every((item) => item.endDate === null)).toBe(true);
+    expect(periodImportPlan(parsed.slice(1), [parsed[0]!]).conflicts).toBe(0);
+    expect(periodImportPlan([parsed[0]!], [{ startDate: '2026-10-05', endDate: null }]).conflicts).toBe(1);
+    expect(periodImportPlan([{ startDate: '2026-10-05', endDate: null }], [parsed[0]!]).conflicts).toBe(1);
   });
 });

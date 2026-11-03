@@ -1,5 +1,6 @@
 import { parseIsoDate, todayIso } from './date';
 import type { PeriodEvent } from './types';
+import { periodRangesOverlap } from './period-end';
 
 const FORMAT = 'lunara-portable-backup';
 const VERSION = 1;
@@ -387,7 +388,7 @@ export function validatePortablePlaintext(value: unknown): PortablePlaintext {
       (period.endDate !== null && period.endDate > todayIso())
     ) throw new Error('Future periods are not portable');
     const previous = periods[index - 1];
-    if (previous && (!previous.endDate || period.startDate <= previous.endDate)) {
+    if (previous && periodRangesOverlap(previous, period)) {
       throw new Error('Overlapping periods are not portable');
     }
   }
@@ -420,10 +421,10 @@ export function mergePeriods(existing: PeriodEvent[], imported: PeriodEvent[]): 
     if (!current || compareFreshness(current, period) < 0) merged.set(period.id, period);
   }
   const result = [...merged.values()].sort((left, right) => right.startDate.localeCompare(left.startDate));
-  const chronological = [...result].sort((left, right) => left.startDate.localeCompare(right.startDate));
+  const chronological = result.filter((period) => !period.deletedAt).sort((left, right) => left.startDate.localeCompare(right.startDate));
   for (const [index, period] of chronological.entries()) {
     const previous = chronological[index - 1];
-    if (previous && period.startDate <= (previous.endDate ?? todayIso())) {
+    if (previous && periodRangesOverlap(previous, period)) {
       throw new Error('Merged period histories overlap');
     }
   }

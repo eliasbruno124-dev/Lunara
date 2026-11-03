@@ -39,6 +39,13 @@ describe('local solo prediction', () => {
     expect(duration(prediction)).toBe(16);
     expect(prediction.predictedEndTo).toBe('2026-05-11');
   });
+  it('never treats an assumed five-day end as an observed duration sample', () => {
+    const records = history([28, 28, 28], [8]);
+    const result = calculateLocalPrediction(records, '2026-04-10', { ...profile, typicalPeriodLength: 3 });
+    expect(duration(result)).toBe(8);
+    expect(records.slice(1).map((item) => item.endDate)).toEqual([null, null, null]);
+    expect(result.basedOnCycleCount).toBe(3);
+  });
 
   it('uses the most recent 12 completed observations regardless of input order', () => {
     const periods = history(Array(24).fill(28), [...Array(13).fill(2), ...Array(12).fill(8)]);

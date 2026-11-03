@@ -14,7 +14,8 @@ import {
 import { createCalendarLegend, SwipeCalendar } from './calendar';
 import { createBrandMark, createIcon, type IconName } from './ui-icons';
 import { createApkDownloadCard } from './apk-download';
-import { hasFertileEstimate } from './fertility-presentation';
+import { hasCurrentFertileEstimate, hasFertileEstimate } from './fertility-presentation';
+import { periodEndState, periodForDate, periodRangesOverlap } from './period-end';
 import { parsePeriodFile, periodImportPlan, serializePeriods, PeriodTransferError, PERIOD_FILE_LIMIT, type PeriodRange, type PeriodTransferFormat } from './period-transfer';
 import {
   createPartnerCalendarAccessCard,
@@ -23,7 +24,7 @@ import {
   visiblePartnerCalendar,
 } from './partner-calendar';
 import { tipSourcePublisher } from './tip-source';
-import { formatDate, monthKey, todayIso } from './date';
+import { formatDate, monthKey, parseIsoDate, todayIso } from './date';
 import {
   clearLocalPrivateData,
   clearServerHealthData,
@@ -438,6 +439,14 @@ class LunaraWebApp {
   }
 
   private render(): void {
+    // Keep only a same-record, same-identity manual draft across clock/sync redraws.
+    // It never enters a cache and disappears on navigation or account lock.
+    const previousEditor = this.root.querySelector<HTMLFormElement>('.period-end-editor');
+    const previousInput = previousEditor?.querySelector<HTMLInputElement>('input');
+    const draft = previousInput ? {
+      owner: previousEditor!.dataset.owner, periodId: previousEditor!.dataset.periodId,
+      value: previousInput.value, focused: document.activeElement === previousInput,
+    } : null;
     this.schedulePredictionDayRefresh();
     document.documentElement.lang = this.language;
     this.root.replaceChildren();
@@ -458,6 +467,15 @@ class LunaraWebApp {
     if (this.screen === 'settings') main.append(this.settingsView());
     frame.append(main, this.bottomNavigation());
     this.root.append(frame);
+    const editor = this.root.querySelector<HTMLFormElement>('.period-end-editor');
+    if (draft && editor && editor.dataset.owner === draft.owner && editor.dataset.periodId === draft.periodId) {
+      const input = editor.querySelector<HTMLInputElement>('input');
+      if (input) {
+        input.value = draft.value;
+        input.dispatchEvent(new Event('input'));
+        if (draft.focused) input.focus({ preventScroll: true });
+      }
+    }
   }
 
   private clearPredictionDayTimer(): void {
@@ -474,8 +492,8 @@ class LunaraWebApp {
   private refreshPredictionDate(): void {
     if (!this.user || document.visibilityState !== 'visible') return;
     // Reclassify cached summaries even offline; do not erase their historical calendar bands.
-    // An offline rollover must not replace an unfinished calendar/settings form.
-    if (this.screen === 'today') this.render();
+    // Calendar month, selection and identity-bound end drafts survive this redraw.
+    if (this.screen === 'today' || this.screen === 'calendar') this.render();
     else this.schedulePredictionDayRefresh();
     if (!this.localMode && navigator.onLine) {
       if (this.user.role === 'TRACKER') void this.performSync(false);
@@ -1083,8 +1101,9 @@ class LunaraWebApp {
   private predictionCard(): HTMLElement {
     const card = element('section', 'prediction-summary');
     card.append(element('h2', 'prediction-label', this.t('nextPeriod')));
-    const summary = predictionSummary(this.prediction, predictionReferenceDate(),
-      !this.localMode && this.user?.role === 'TRACKER' && this.syncState.pending + this.syncState.failed > 0);
+    const referenceDate = predictionReferenceDate();
+    const pendingChanges = !this.localMode && this.user?.role === 'TRACKER' && this.syncState.pending + this.syncState.failed > 0;
+    const summary = predictionSummary(this.prediction, referenceDate, pendingChanges);
     if (summary.kind === 'current' && this.prediction) {
       card.append(
         element(
@@ -1114,6 +1133,15 @@ class LunaraWebApp {
     } else {
       card.append(element('p', 'prediction-range', this.t(this.user?.role === 'PARTNER' ? 'predictionUnavailable' : 'predictionEmpty')));
       card.append(element('p', 'subtle', this.t(this.user?.role === 'PARTNER' ? 'noPartnerPrediction' : 'noPrediction')));
+    }
+    if (hasCurrentFertileEstimate(this.prediction, referenceDate, pendingChanges)) {
+      const fertility = element('section', 'current-fertility');
+      fertility.append(
+        element('h3', '', this.t('fertileEstimate')),
+        element('p', '', `${formatDate(this.prediction!.fertileWindowFrom!, this.language)} – ${formatDate(this.prediction!.fertileWindowTo!, this.language)}`),
+        element('p', 'subtle', this.t('fertilityDisclaimer')),
+      );
+      card.append(fertility);
     }
     return card;
   }
@@ -1146,12 +1174,21 @@ class LunaraWebApp {
     const card = element('section', 'history-summary');
     card.append(element('h2', '', this.t('history')));
     const list = element('ul', 'period-list');
-    for (const period of this.periods.slice(0, 4)) {
+    for (const period of this.periods.filter((item) => periodEndState(item, todayIso())).slice(0, 4)) {
+      const state = periodEndState(period, todayIso())!;
       const range = period.endDate
         ? `${formatDate(period.startDate, this.language)} – ${formatDate(period.endDate, this.language)}`
         : formatDate(period.startDate, this.language);
       const item = element('li');
       item.append(element('span', 'period-list-dot'), element('span', '', range));
+      if (state.assumedComplete) item.append(element('small', '', this.t('periodAssumedEnd', { date: formatDate(state.endDate, this.language) })));
+      else if (state.ongoing) item.append(element('small', '', this.t('periodActiveSince', { date: formatDate(period.startDate, this.language) })));
+      item.append(button('text-button', this.t('periodEditEnd'), () => {
+        this.calendarMonth = period.startDate.slice(0, 7);
+        this.selectedDate = period.startDate;
+        this.screen = 'calendar';
+        this.render();
+      }));
       if (period.pending) item.append(element('small', '', this.t('syncing')));
       list.append(item);
     }
@@ -1173,14 +1210,12 @@ class LunaraWebApp {
       const notice = createPartnerCalendarNotice(this.partnerCalendar.current, this.language);
       if (notice) view.append(notice);
     }
-    const calendarPeriods = this.periods.map((period) => ({
-      ...period,
-      endDate: period.endDate ?? (period.startDate <= todayIso() ? todayIso() : period.startDate),
-    }));
+    const referenceDate = todayIso();
     const calendar = new SwipeCalendar({
       language: this.language,
       role: this.user?.role ?? 'PARTNER',
-      periods: calendarPeriods,
+      periods: this.periods,
+      referenceDate,
       prediction: this.prediction,
       initialMonth: this.calendarMonth,
       selectedDate: this.selectedDate,
@@ -1200,14 +1235,17 @@ class LunaraWebApp {
         date: formatDate(this.selectedDate, this.language),
       })));
       const actions = element('div', 'button-row');
-      const active = this.activePeriod();
-      if (!active) {
+      const selectedPeriod = periodForDate(this.periods, this.selectedDate, referenceDate);
+      const active = this.activePeriod(referenceDate);
+      if (selectedPeriod) {
+        selected.append(this.periodEndEditor(selectedPeriod, referenceDate));
+      } else if (!active) {
         const start = button('primary-button', this.t('startOnDate'), () => this.startPeriod(this.selectedDate!));
         start.disabled =
           this.syncing ||
           this.localVaultCoordinator.busy ||
           this.selectedDate > todayIso() ||
-          this.overlapsExisting(this.selectedDate, this.selectedDate);
+          this.overlapsExisting(this.selectedDate, null);
         actions.append(start);
       } else {
         const end = button('primary-button', this.t('endOnDate'), () => this.endPeriod(active, this.selectedDate!));
@@ -1228,6 +1266,43 @@ class LunaraWebApp {
 
   private calendarLegend(): HTMLElement {
     return createCalendarLegend(this.language, hasFertileEstimate(this.prediction));
+  }
+
+  private periodEndEditor(period: PeriodEvent, referenceDate: string): HTMLFormElement {
+    const form = element('form', 'period-end-editor');
+    form.dataset.periodId = period.id;
+    form.dataset.owner = this.localMode ? 'local-vault' : serverIdentityKey(window.location.origin, this.user!);
+    const state = periodEndState(period, referenceDate)!;
+    form.append(element('p', '', this.t('periodStartedOn', { date: formatDate(period.startDate, this.language) })));
+    if (state.assumedComplete) form.append(element('p', 'notice', this.t('periodAssumedEnd', { date: formatDate(state.endDate, this.language) })));
+    form.append(element('p', 'subtle', this.t('periodEndHelp')));
+    const label = element('label', '', this.t('periodConfirmedEnd'));
+    const input = element('input');
+    input.type = 'date'; input.name = 'periodEnd'; input.required = true;
+    input.min = period.startDate; input.max = referenceDate;
+    input.value = period.endDate ?? '';
+    label.append(input);
+    const error = element('p', 'form-error');
+    error.setAttribute('role', 'status');
+    const save = element('button', 'primary-button', this.t('periodSaveEnd'));
+    save.type = 'submit';
+    const validate = () => {
+      const invalid = !input.value || input.value < period.startDate || input.value > todayIso() ||
+        this.overlapsExisting(period.startDate, input.value, period.id);
+      save.disabled = invalid || this.syncing || this.localVaultCoordinator.busy;
+      error.textContent = input.value && invalid ? this.t('periodEndInvalid') : '';
+    };
+    input.addEventListener('input', validate);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault(); validate();
+      if (save.disabled) return;
+      const owner = this.localMode ? 'local-vault' : this.user && serverIdentityKey(window.location.origin, this.user);
+      const current = this.periods.find((item) => item.id === period.id && !item.deletedAt);
+      if (owner === form.dataset.owner && this.user?.role === 'TRACKER' && current) void this.endPeriod(current, input.value);
+    });
+    validate();
+    form.append(label, error, save);
+    return form;
   }
 
   private settingsView(): HTMLElement {
@@ -1738,27 +1813,28 @@ class LunaraWebApp {
     return navigation;
   }
 
-  private activePeriod(): PeriodEvent | null {
+  private activePeriod(referenceDate = todayIso()): PeriodEvent | null {
     return this.periods
-      .filter((period) => !period.endDate && !period.deletedAt)
+      .filter((period) => periodEndState(period, referenceDate)?.ongoing)
       .sort((left, right) => right.startDate.localeCompare(left.startDate))[0] ?? null;
   }
 
-  private overlapsExisting(startDate: string, endDate: string, excludedId?: string): boolean {
+  private overlapsExisting(startDate: string, endDate: string | null, excludedId?: string): boolean {
     return this.periods.some((period) => {
       if (period.id === excludedId || period.deletedAt) return false;
-      const existingEnd = period.endDate ?? todayIso();
-      return startDate <= existingEnd && endDate >= period.startDate;
+      return periodRangesOverlap({ startDate, endDate }, period);
     });
   }
 
   private async startPeriod(date: string): Promise<void> {
+    try { parseIsoDate(date); } catch { return; }
     if (
+      this.user?.role !== 'TRACKER' ||
       this.syncing ||
       this.localVaultCoordinator.busy ||
       date > todayIso() ||
       this.activePeriod() ||
-      this.overlapsExisting(date, date)
+      this.overlapsExisting(date, null)
     ) return;
     const period = this.localMode
       ? {
@@ -1796,7 +1872,10 @@ class LunaraWebApp {
   }
 
   private async endPeriod(period: PeriodEvent, date: string): Promise<void> {
+    try { parseIsoDate(date); } catch { return; }
     if (
+      this.user?.role !== 'TRACKER' ||
+      !this.periods.some((item) => item.id === period.id && !item.deletedAt) ||
       this.syncing ||
       this.localVaultCoordinator.busy ||
       date < period.startDate ||

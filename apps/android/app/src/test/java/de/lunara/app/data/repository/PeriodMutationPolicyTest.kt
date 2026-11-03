@@ -5,6 +5,7 @@ import com.google.gson.JsonParser
 import de.lunara.app.data.local.MutationEntity
 import de.lunara.app.data.local.PeriodEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -238,9 +239,20 @@ class PeriodMutationPolicyTest {
     }
 
     @Test
-    fun `open periods overlap through today and block a second open range`() {
+    fun `unconfirmed periods overlap for five days and allow a subsequent period`() {
         val existing = period("open", "2026-08-10", null)
         val today = LocalDate.parse("2026-08-16")
+
+        assertFalse(PeriodOverlapPolicy.hasOverlap(listOf(existing), LocalDate.parse("2026-08-15"), null, today))
+        assertTrue(PeriodOverlapPolicy.hasOverlap(listOf(existing), LocalDate.parse("2026-08-14"), null, today))
+        assertFalse(PeriodOverlapPolicy.hasOverlap(listOf(existing), LocalDate.parse("2026-08-05"), null, today))
+        assertTrue(PeriodOverlapPolicy.hasOverlap(listOf(existing), LocalDate.parse("2026-08-06"), null, today))
+
+        // The assumption never removes the late manual correction capability.
+        assertTrue(PeriodMutationPolicy.canEnd(existing))
+        assertFalse(PeriodOverlapPolicy.hasOverlap(listOf(existing), LocalDate.parse("2026-08-10"), LocalDate.parse("2026-08-16"), today, "open"))
+        val next = period("next", "2026-08-15", null)
+        assertTrue(PeriodOverlapPolicy.hasOverlap(listOf(existing, next), LocalDate.parse("2026-08-10"), LocalDate.parse("2026-08-16"), today, "open"))
 
         assertTrue(
             PeriodOverlapPolicy.hasOverlap(

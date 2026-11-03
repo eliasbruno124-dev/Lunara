@@ -8,6 +8,7 @@ import com.google.gson.Strictness
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import de.lunara.app.core.model.UserRole
+import de.lunara.app.core.model.PeriodEndPolicy
 import de.lunara.app.data.local.PeriodEntity
 import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.preferences.AppPreferencesState
@@ -96,8 +97,11 @@ object PeriodExportFormat {
         val additions = incoming.map { validate(it, today) }.filter { if (!seen.add(it)) { duplicates++; false } else true }
             .sortedBy { it.startDate }
         data class Interval(val start: LocalDate, val end: LocalDate, val candidate: Int?)
-        val all = known.map { Interval(LocalDate.parse(it.startDate), it.endDate?.let(LocalDate::parse) ?: today, null) } +
-            additions.mapIndexed { index, it -> Interval(LocalDate.parse(it.startDate), it.endDate?.let(LocalDate::parse) ?: today, index) }
+        fun interval(range: PeriodDateRange, candidate: Int?): Interval {
+            val start = LocalDate.parse(range.startDate)
+            return Interval(start, PeriodEndPolicy.overlapEnd(start, range.endDate?.let(LocalDate::parse)), candidate)
+        }
+        val all = known.map { interval(it, null) } + additions.mapIndexed { index, range -> interval(range, index) }
         val ordered = all.sortedWith(compareBy<Interval> { it.start }.thenBy { it.end })
         val conflicts = mutableSetOf<Int>()
         var furthestEnd: LocalDate? = null

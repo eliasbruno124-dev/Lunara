@@ -15,6 +15,22 @@ import org.junit.Test
 import kotlinx.coroutines.CancellationException
 
 class PeriodExportFormatTest {
+    @Test fun sequentialUnconfirmedHistoriesKeepNullAndUseBothFiveDayBoundsForImport() {
+        val reference = LocalDate.parse("2026-11-20")
+        val first = PeriodDateRange("2026-11-01", null)
+        val next = PeriodDateRange("2026-11-06", null)
+        for (format in PeriodFileFormat.entries) {
+            val restored = PeriodExportFormat.decode(PeriodExportFormat.encode(listOf(first, next), format, reference), reference)
+            assertEquals(listOf(first, next), restored)
+            assertEquals(PeriodImportSummary(2, 0, 0), PeriodExportFormat.plan(restored, emptyList(), reference).summary)
+        }
+        assertTrue(PeriodExportFormat.plan(listOf(next), listOf(first), reference).summary.canImport)
+        assertTrue(PeriodExportFormat.plan(listOf(first), listOf(next), reference).summary.canImport)
+        val overlapping = next.copy(startDate = "2026-11-05")
+        assertEquals(1, PeriodExportFormat.plan(listOf(overlapping), listOf(first), reference).summary.conflictCount)
+        assertEquals(1, PeriodExportFormat.plan(listOf(first), listOf(overlapping), reference).summary.conflictCount)
+        assertEquals(PeriodImportSummary(0, 1, 0), PeriodExportFormat.plan(listOf(first), listOf(first), reference).summary)
+    }
     private val today = LocalDate.of(2026, 10, 28)
     private val closed = PeriodDateRange("2026-09-01", "2026-09-05")
     private val open = PeriodDateRange("2026-10-27", null)

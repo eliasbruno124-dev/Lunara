@@ -3,6 +3,7 @@ package de.lunara.app.data.repository
 import androidx.room.withTransaction
 import com.google.gson.Gson
 import de.lunara.app.core.model.UserRole
+import de.lunara.app.core.model.PeriodEndPolicy
 import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.data.local.MutationEntity
 import de.lunara.app.data.local.PeriodEntity
@@ -86,7 +87,8 @@ class PeriodRepository @Inject constructor(
     suspend fun startPeriod(
         userId: String,
         date: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
-    ): String = createPeriod(userId, date, null)
+        today: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
+    ): String = createPeriod(userId, date, null, today)
 
     /**
      * Creates one complete optimistic period record and exactly one offline mutation. Historical
@@ -96,10 +98,10 @@ class PeriodRepository @Inject constructor(
         userId: String,
         startDate: LocalDate,
         endDate: LocalDate? = null,
+        today: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
     ): String = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
         val localMode = preferences.state.first().appMode == AppMode.LOCAL
-        val today = LocalDate.now(Clock.systemDefaultZone())
         PeriodDatePolicy.requireValid(
             startDate,
             endDate,
@@ -160,17 +162,18 @@ class PeriodRepository @Inject constructor(
         periodId: String,
         startDate: LocalDate,
         endDate: LocalDate?,
+        today: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
     ): String = ProcessSyncGate.serialized {
-        updatePeriodDatesLocked(userId, periodId, startDate, endDate)
+        updatePeriodDatesLocked(userId, periodId, startDate, endDate, today)
     }
 
     /** Revalidates the confirmed preview and atomically adds dates; never replaces existing rows. */
-    suspend fun importPeriodRanges(draft: PeriodImportDraft): Int = ProcessSyncGate.serialized {
+    suspend fun importPeriodRanges(draft: PeriodImportDraft, today: LocalDate = LocalDate.now()): Int = ProcessSyncGate.serialized {
         val identity = draft.identity
         var inserted = 0
         val committed = credentialGate.commitIfCurrent(identity.generation) {
             val localMode = identity.mode == AppMode.LOCAL
-            inserted = commitPeriodImport(database, gson, draft, now = ::nextMutationTime) {
+            inserted = commitPeriodImport(database, gson, draft, now = ::nextMutationTime, today = today) {
                 if (!identity.matches(preferences.state.first(), credentialGate.snapshot())) throw PeriodFileException(PeriodFileProblem.ACCOUNT_CHANGED)
             }
             if (inserted > 0 && !localMode) scheduleCommittedPeriodImport(syncScheduler::requestAfterMutation)
@@ -185,11 +188,12 @@ class PeriodRepository @Inject constructor(
         userId: String,
         periodId: String,
         endDate: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
+        today: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
     ): Boolean = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
         val current = requireOwnedActivePeriod(userId, periodId)
         if (!PeriodMutationPolicy.canEnd(current)) return@serialized false
-        updatePeriodDatesLocked(userId, periodId, LocalDate.parse(current.startDate), endDate)
+        updatePeriodDatesLocked(userId, periodId, LocalDate.parse(current.startDate), endDate, today)
         true
     }
 
@@ -198,10 +202,10 @@ class PeriodRepository @Inject constructor(
         periodId: String,
         startDate: LocalDate,
         endDate: LocalDate?,
+        today: LocalDate,
     ): String {
         ensureCurrentTracker(userId)
         val localMode = preferences.state.first().appMode == AppMode.LOCAL
-        val today = LocalDate.now(Clock.systemDefaultZone())
         PeriodDatePolicy.requireValid(startDate, endDate, today)
         val now = nextMutationTime()
         val entityTimestamp = now.toString()
@@ -380,10 +384,11 @@ class PeriodRepository @Inject constructor(
         energy: Int?,
         sleepQuality: Int?,
         symptoms: List<String>,
+        today: LocalDate = LocalDate.now(Clock.systemDefaultZone()),
     ): String = ProcessSyncGate.serialized {
         ensureCurrentTracker(userId)
         val localMode = preferences.state.first().appMode == AppMode.LOCAL
-        val localDate = LocalDate.now(Clock.systemDefaultZone()).toString()
+        val localDate = today.toString()
         val existing = database.dailyLogDao().findByDate(userId, localDate)
         val id = existing?.id ?: UUID.randomUUID().toString()
         val now = nextMutationTime()
@@ -570,12 +575,13 @@ internal suspend fun commitPeriodImport(
     draft: PeriodImportDraft,
     now: () -> Instant = Instant::now,
     newId: () -> String = { UUID.randomUUID().toString() },
+    today: LocalDate = LocalDate.now(),
     ensureIdentity: suspend () -> Unit,
 ): Int = database.withTransaction {
     ensureIdentity()
     val identity = draft.identity
     val current = PeriodExportFormat.ownedRanges(database.periodDao().activeForUser(identity.userId), identity)
-    val plan = PeriodExportFormat.plan(draft.ranges, current)
+    val plan = PeriodExportFormat.plan(draft.ranges, current, today)
     if (plan != draft.plan || plan.summary.conflictCount > 0) throw PeriodFileException(PeriodFileProblem.CHANGED)
     for (range in plan.additions) {
         ensureIdentity()
@@ -661,7 +667,7 @@ internal object PeriodDatePolicy {
 }
 
 internal object PeriodOverlapPolicy {
-    /** Open periods extend through today until an explicit local end date is recorded. */
+    /** Unconfirmed ends use five inclusive calendar days without changing persisted observations. */
     fun hasOverlap(
         periods: List<PeriodEntity>,
         startDate: LocalDate,
@@ -669,15 +675,15 @@ internal object PeriodOverlapPolicy {
         today: LocalDate,
         excludingId: String? = null,
     ): Boolean {
-        val candidateEnd = endDate ?: today
+        val candidateEnd = PeriodEndPolicy.overlapEnd(startDate, endDate)
         return periods.asSequence()
             .filter { it.id != excludingId && it.deletedAt == null }
             .mapNotNull { period ->
-                val existingStart = runCatching { LocalDate.parse(period.startDate) }.getOrNull()
+                val existingStart = PeriodEndPolicy.parse(period.startDate)
                     ?: return@mapNotNull null
-                val existingEnd = period.endDate
-                    ?.let { raw -> runCatching { LocalDate.parse(raw) }.getOrNull() }
-                    ?: today
+                val explicitEnd = if (period.endDate == null) null else PeriodEndPolicy.parse(period.endDate)
+                    ?: return@mapNotNull null
+                val existingEnd = PeriodEndPolicy.overlapEnd(existingStart, explicitEnd)
                 existingStart to existingEnd
             }
             .any { (existingStart, existingEnd) ->

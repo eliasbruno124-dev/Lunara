@@ -7,11 +7,35 @@ import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocalPredictionEngineTest {
     private val clock = Clock.fixed(Instant.parse("2026-03-26T12:00:00Z"), ZoneOffset.UTC)
+
+    @Test fun unconfirmedHistoricalEndsDoNotBecomeObservedFiveDaySamples() {
+        val periods = periodsForIntervals(listOf(28, 28, 28))
+        val input = LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true)
+        val raw = LocalPredictionEngine.calculate(input, clock)
+        assertEquals(0, raw.statistics?.get("completedPeriodDurationCount"))
+        assertEquals(emptyList<Int>(), raw.statistics?.get("allObservedPeriodDurations"))
+        assertEquals("default-prior", raw.statistics?.get("periodDurationDataBasis"))
+        val manual = periods.first().copy(endDate = LocalDate.parse(periods.first().startDate).plusDays(7).toString())
+        val corrected = LocalPredictionEngine.calculate(input.copy(periods = listOf(manual) + periods.drop(1)), clock)
+        assertEquals(1, corrected.statistics?.get("completedPeriodDurationCount"))
+        assertEquals(listOf(8), corrected.statistics?.get("allObservedPeriodDurations"))
+        assertEquals(8, corrected.typicalPeriodLength)
+        assertNotNull(FertilityWindowPolicy.validated(raw))
+    }
+
+    @Test fun legacyWideCycleFixtureRemainsSuppressedByUnchangedV2Formula() {
+        val periods = periodsForIntervals(listOf(20, 28, 36))
+        val result = LocalPredictionEngine.calculate(LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true), clock)
+        assertFalse(requireNotNull(result.fertilityEstimate).available)
+        assertNull(result.fertileWindowFrom)
+        assertNull(FertilityWindowPolicy.validated(result))
+    }
 
     @Test
     fun canonicalVectorMatchesServerContract() {

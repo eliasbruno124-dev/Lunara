@@ -2,6 +2,8 @@ package de.lunara.app.ui.main
 
 import de.lunara.app.data.local.PeriodEntity
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -10,6 +12,23 @@ import org.junit.Test
 
 class PeriodPrimaryActionPolicyTest {
     private val today = LocalDate.parse("2026-08-16")
+
+    @Test fun `day five offers end and day six offers start without mutating raw end`() {
+        val raw = period("unconfirmed", "2026-11-01")
+        assertEquals(PeriodPrimaryActionType.END, PeriodPrimaryActionPolicy.resolve(listOf(raw), LocalDate.parse("2026-11-05")).type)
+        assertEquals(PeriodPrimaryActionType.START, PeriodPrimaryActionPolicy.resolve(listOf(raw), LocalDate.parse("2026-11-06")).type)
+        assertNull(raw.endDate)
+    }
+
+    @Test fun `profile calendar day controls the fifth day boundary instead of device midnight`() {
+        val instant = Instant.parse("2026-11-05T23:30:00Z")
+        val device = ZoneId.of("America/Los_Angeles")
+        val row = period("profile", "2026-11-01")
+        val profileDay = PredictionFreshnessPolicy.referenceDate(instant, "Europe/Berlin", device)
+        val deviceDay = PredictionFreshnessPolicy.referenceDate(instant, null, device)
+        assertEquals(PeriodPrimaryActionType.START, PeriodPrimaryActionPolicy.resolve(listOf(row), profileDay).type)
+        assertEquals(PeriodPrimaryActionType.END, PeriodPrimaryActionPolicy.resolve(listOf(row), deviceDay).type)
+    }
 
     @Test
     fun `offers start when no ongoing or today-completed period exists`() {

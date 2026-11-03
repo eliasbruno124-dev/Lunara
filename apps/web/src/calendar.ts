@@ -12,6 +12,7 @@ import { translate, type MessageKey } from './i18n';
 import { hasFertileEstimate } from './fertility-presentation';
 import { calendarPredictionBand, calendarPredictionContains, type CalendarPredictionBand } from './calendar-presentation';
 import type { Language, PeriodEvent, Prediction, Role } from './types';
+import { periodEndState } from './period-end';
 
 export interface SwipePoint {
   x: number;
@@ -32,6 +33,7 @@ export interface CalendarOptions {
   prediction: Prediction | null;
   initialMonth?: string;
   selectedDate?: string | null;
+  referenceDate?: string;
   onSelect?: (date: string) => void;
   onMonthChange?: (month: string) => void;
 }
@@ -165,6 +167,12 @@ export class SwipeCalendar {
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', formatMonth(this.month, this.options.language));
     const predictionBand = calendarPredictionBand(this.options.prediction);
+    const referenceDate = this.options.referenceDate ?? todayIso();
+    // Validate and project once per render, not once per day for every record.
+    const actualRanges = this.options.periods.flatMap((period) => {
+      const state = periodEndState(period, referenceDate);
+      return state ? [{ from: period.startDate, to: state.displayEndDate }] : [];
+    });
     for (const cell of calendarCells(this.month)) {
       if (!cell.isoDate || cell.day === null) {
         const placeholder = document.createElement('span');
@@ -173,15 +181,13 @@ export class SwipeCalendar {
         grid.append(placeholder);
         continue;
       }
-      grid.append(this.dayButton(cell.isoDate, cell.day, predictionBand));
+      grid.append(this.dayButton(cell.isoDate, cell.day, predictionBand, actualRanges, referenceDate));
     }
     this.element.append(header, weekdays, grid, hint);
   }
 
-  private dayButton(date: string, day: number, predictionBand: CalendarPredictionBand | null): HTMLButtonElement {
-    const actual = this.options.periods.some((period) =>
-      isWithin(date, period.startDate, period.endDate ?? period.startDate),
-    );
+  private dayButton(date: string, day: number, predictionBand: CalendarPredictionBand | null, actualRanges: Array<{ from: string; to: string }>, referenceDate: string): HTMLButtonElement {
+    const actual = actualRanges.some((range) => isWithin(date, range.from, range.to));
     const predicted = calendarPredictionContains(date, predictionBand);
     const fertile = Boolean(
       hasFertileEstimate(this.options.prediction) && this.options.prediction &&
@@ -196,8 +202,8 @@ export class SwipeCalendar {
     button.className = 'calendar-day';
     const state = actual ? 'actual' : predicted ? 'predicted' : fertile ? 'fertile' : null;
     if (state) button.classList.add(state);
-    if (date === todayIso()) button.classList.add('is-today');
-    if (date === todayIso()) button.setAttribute('aria-current', 'date');
+    if (date === referenceDate) button.classList.add('is-today');
+    if (date === referenceDate) button.setAttribute('aria-current', 'date');
     if (date === this.selected) button.classList.add('selected');
     button.setAttribute('aria-pressed', String(date === this.selected));
     button.dataset.date = date;

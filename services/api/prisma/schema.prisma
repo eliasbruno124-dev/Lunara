@@ -250,8 +250,9 @@ model PeriodEvent {
   @@unique([userId, id])
   // A partial unique index in migration 20260813160000 ensures one active
   // event per user/startDate while allowing the date after a soft delete.
-  // Migration 20260816120000 additionally enforces non-overlapping active
-  // inclusive date ranges; a null endDate is an open-ended active range.
+  // Migration 20261101210000 enforces non-overlapping active inclusive ranges:
+  // a raw null endDate stays unconfirmed, with an assumed bound of startDate + 4.
+  // Derived bounds are never persisted as observed durations.
   @@index([userId, startDate])
   @@index([userId, updatedAt])
 }

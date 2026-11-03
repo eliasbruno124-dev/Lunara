@@ -24,6 +24,25 @@ const periodId = '64237264-8026-4f1e-8b0e-f426974037e0';
 const mutationId = '4ddc0c67-eb3c-4496-8710-df0270e11443';
 
 describe('SyncService atomic mutation receipts', () => {
+  it('pulls an old unconfirmed period as raw null without changing version, timestamp or owner scope', async () => {
+    const period = { ...storedPeriod(1, null), endDate: null };
+    const prisma = {
+      syncChange: { findMany: jest.fn().mockResolvedValue([{
+        cursor: 1n, entityType: 'PeriodEvent', entityId: period.id,
+        operation: 'UPSERT', entityVersion: 1, occurredAt: period.updatedAt,
+      }]) },
+      periodEvent: { findFirst: jest.fn().mockResolvedValue(period), updateMany: jest.fn() },
+    };
+    const result = await syncService(prisma).pull(tracker, '0');
+    expect(result.changes).toMatchObject([{ entity: { startDate: '2026-07-01', endDate: null, version: 1, updatedAt: period.updatedAt } }]);
+    expect(prisma.periodEvent.findFirst).toHaveBeenCalledWith({ where: { id: period.id, userId: tracker.userId } });
+    expect(prisma.syncChange.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { householdId: tracker.householdId, ownerUserId: tracker.userId, cursor: { gt: 0n } },
+    }));
+    expect(prisma.periodEvent.updateMany).not.toHaveBeenCalled();
+    expect(period.endDate).toBeNull();
+  });
+
   it('writes a new period and its idempotency result through the same transaction client', async () => {
     const tx = {
       idempotencyKey: {

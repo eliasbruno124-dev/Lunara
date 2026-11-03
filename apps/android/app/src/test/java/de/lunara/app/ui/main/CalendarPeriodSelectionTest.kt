@@ -7,6 +7,25 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class CalendarPeriodSelectionTest {
+    @Test fun `calendar and editor share five day bounds and preserve manual extension`() {
+        val today = LocalDate.parse("2026-11-20")
+        val raw = period("first", "2026-11-01", null)
+        assertEquals(raw, periodForDate(listOf(raw), LocalDate.parse("2026-11-05"), today))
+        assertNull(periodForDate(listOf(raw), LocalDate.parse("2026-11-06"), today))
+        assertEquals(true, calendarRangeContains(LocalDate.parse("2026-11-05"), raw.startDate, raw.endDate, today))
+        assertEquals(false, calendarRangeContains(LocalDate.parse("2026-11-06"), raw.startDate, raw.endDate, today))
+        assertEquals(false, periodRangeOverlapsExisting(PeriodRangeSelection(LocalDate.parse("2026-11-06")), listOf(raw), today))
+        assertEquals(true, periodRangeOverlapsExisting(PeriodRangeSelection(LocalDate.parse("2026-11-05")), listOf(raw), today))
+        val next = period("next", "2026-11-06", null)
+        assertEquals(false, periodRangeOverlapsExisting(PeriodRangeSelection(LocalDate.parse("2026-11-01")), listOf(next), today))
+        val manual = raw.copy(endDate = "2026-11-08")
+        assertEquals(manual, periodForDate(listOf(manual), LocalDate.parse("2026-11-08"), today))
+        assertEquals(false, periodRangeOverlapsExisting(PeriodRangeSelection(LocalDate.parse(raw.startDate), LocalDate.parse("2026-11-08")), listOf(raw), today, raw.id))
+        assertEquals(true, periodRangeOverlapsExisting(PeriodRangeSelection(LocalDate.parse(raw.startDate), LocalDate.parse("2026-11-08")), listOf(raw, next), today, raw.id))
+        assertNull(periodForDate(listOf(raw.copy(endDate = "bad")), LocalDate.parse("2026-11-01"), today))
+        assertNull(periodForDate(listOf(raw.copy(startDate = "2026-11-21")), LocalDate.parse("2026-11-21"), today))
+        assertEquals(false, calendarRangeContains(LocalDate.parse("2026-11-01"), raw.startDate, "bad", today))
+    }
     @Test
     fun `selects every day inside a completed period`() {
         val period = period("closed", "2026-07-10", "2026-07-14")
@@ -18,12 +37,13 @@ class CalendarPeriodSelectionTest {
     }
 
     @Test
-    fun `an open period remains selectable through today but not in the future`() {
+    fun `an unconfirmed period remains selectable only through its fifth day`() {
         val period = period("open", "2026-08-10", null)
         val today = LocalDate.parse("2026-08-16")
 
         assertEquals(period, periodForDate(listOf(period), LocalDate.parse("2026-08-10"), today))
-        assertEquals(period, periodForDate(listOf(period), LocalDate.parse("2026-08-15"), today))
+        assertEquals(period, periodForDate(listOf(period), LocalDate.parse("2026-08-14"), today))
+        assertNull(periodForDate(listOf(period), LocalDate.parse("2026-08-15"), today))
         assertNull(periodForDate(listOf(period), LocalDate.parse("2026-08-17"), today))
     }
 
@@ -44,7 +64,7 @@ class CalendarPeriodSelectionTest {
         val today = LocalDate.parse("2026-08-16")
 
         assertEquals(
-            true,
+            false,
             calendarRangeContains(
                 date = LocalDate.parse("2026-08-01"),
                 startDate = "0001-01-01",

@@ -6,9 +6,23 @@ import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.remote.dto.FertilityEstimateDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
+import java.time.LocalDate
 import org.junit.Test
 
 class PredictionPresentationPolicyTest {
+    @Test fun `current fertility expires separately from historical calendar and pending edits hide it`() {
+        val prediction = PredictionDto(confidence = "UNKNOWN", available = false,
+            fertileWindowFrom = "2026-11-01", fertileWindowTo = "2026-11-19",
+            fertilityEstimate = FertilityEstimateDto(enabled = true, available = true, estimated = true,
+                reason = "AVAILABLE", notContraception = true, doesNotConfirmOvulation = true))
+        assertNotNull(PredictionPresentationPolicy.currentFertileWindow(prediction, LocalDate.parse("2026-11-19")))
+        assertNull(PredictionPresentationPolicy.currentFertileWindow(prediction, LocalDate.parse("2026-11-20")))
+        assertNull(PredictionPresentationPolicy.currentFertileWindow(prediction, LocalDate.parse("2026-11-01"), true))
+        assertNotNull(PredictionPresentationPolicy.fertileWindow(prediction))
+        assertNull(PredictionPresentationPolicy.fertileWindow(prediction.copy(fertileWindowTo = "2026-11-20")))
+        assertNull(PredictionPresentationPolicy.fertileWindow(prediction.copy(fertileWindowTo = "2026-12-03")))
+    }
     @Test
     fun `fertile window is shown only when the server provides a complete valid range`() {
         val shared = PredictionDto(

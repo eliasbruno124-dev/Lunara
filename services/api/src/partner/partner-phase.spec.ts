@@ -48,6 +48,18 @@ const prediction: PredictionResult = {
 };
 
 describe('partner phase estimate', () => {
+  it.each([['2026-09-19', true], ['2026-09-20', false], ['2026-10-03', false]])(
+    'does not infer current ovulation from an unsupported cached range ending %s', (end, accepted) => {
+      const cached = {
+        ...prediction, predictedStartFrom: '2026-10-15', predictedStartTo: '2026-10-18',
+        fertileWindowFrom: '2026-09-01', fertileWindowTo: end,
+        fertilityEstimate: { ...prediction.fertilityEstimate, enabled: true, available: true },
+      };
+      expect(estimatePartnerPhase('2026-09-05', null, cached, true)).toBe(accepted ? CyclePhase.OVULATION_ESTIMATE : null);
+      expect(estimatePartnerPhase('2026-10-04', null, cached, true)).toBeNull();
+    },
+  );
+
   it.each([
     [undefined, '2026-04-07', CyclePhase.FOLLICULAR_ESTIMATE],
     [undefined, '2026-04-09', CyclePhase.LUTEAL_ESTIMATE],

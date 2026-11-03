@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4
+
+- Perioden ohne eingetragenes Ende gelten nach fünf Kalendertagen als automatisch beendet, auch rückwirkend. Bestätigte Enddaten bleiben erhalten.
+- Kalender, neue Einträge, Import und Wiederherstellung verwenden dieselbe Fünf-Tage-Regel. Automatische Annahmen ersetzen keine bestätigten Gesundheitsdaten.
+- Zu breite alte Fruchtbarkeitsfenster werden nicht mehr angezeigt; abgelaufene Schätzungen verschwinden aus der aktuellen Übersicht.
+
 ## 1.3.3
 
 - Eine gemeinsame Kalenderkategorie für die geschätzte Periode, in App und Web.

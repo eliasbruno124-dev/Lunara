@@ -9,6 +9,7 @@ import dagger.assisted.AssistedInject
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.local.LunaraDatabase
 import de.lunara.app.data.preferences.AppPreferences
+import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.repository.DashboardRepository
@@ -121,6 +122,11 @@ class NotificationWorker @AssistedInject constructor(
             } else {
                 false
             }
+            val pendingTrackerChanges = role == UserRole.TRACKER && currentState.appMode == AppMode.SERVER && (
+                database.mutationDao().observeCount().first() > 0 ||
+                    database.periodDao().observeResolvingCount().first() > 0 ||
+                    database.dailyLogDao().observeResolvingCount().first() > 0
+                )
             val candidates = NotificationPolicy.candidates(
                 role = role,
                 today = today,
@@ -128,6 +134,7 @@ class NotificationWorker @AssistedInject constructor(
                 prediction = effectivePrediction,
                 partnerDashboard = partnerDashboard,
                 hasDailyLogToday = hasDailyLog,
+                pendingTrackerChanges = pendingTrackerChanges,
             )
             var publicationFailed = false
             candidates.forEach { candidate ->

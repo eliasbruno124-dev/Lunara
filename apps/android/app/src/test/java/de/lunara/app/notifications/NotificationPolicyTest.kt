@@ -3,6 +3,7 @@ package de.lunara.app.notifications
 import de.lunara.app.core.model.UserRole
 import de.lunara.app.data.remote.dto.FertilityEstimateDto
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
+import de.lunara.app.data.remote.dto.PartnerCalendarAccessDto
 import de.lunara.app.data.remote.dto.PartnerTipDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import java.time.LocalDate
@@ -16,6 +17,24 @@ import org.junit.Test
 
 class NotificationPolicyTest {
     private val today = LocalDate.of(2026, 8, 14)
+
+    @Test fun `fertility notifications reject legacy widths and preserve independently shared safe window`() {
+        val start = today.plusDays(1)
+        val settings = NotificationPreferences(master = true, periodTomorrow = false, fertileTomorrow = true)
+        val bounded = completePrediction(start).copy(fertileWindowTo = start.plusDays(18).toString())
+        assertEquals(1, NotificationPolicy.candidates(UserRole.TRACKER, today, settings, prediction = bounded).size)
+        for (width in listOf(20L, 33L)) {
+            val legacy = bounded.copy(fertileWindowTo = start.plusDays(width - 1).toString())
+            assertTrue(NotificationPolicy.candidates(UserRole.TRACKER, today, settings, prediction = legacy).isEmpty())
+            assertTrue(NotificationPolicy.candidates(UserRole.PARTNER, today, settings, partnerDashboard = PartnerDashboardDto(prediction = legacy)).isEmpty())
+        }
+        assertTrue(NotificationPolicy.candidates(UserRole.TRACKER, today, settings, prediction = bounded, pendingTrackerChanges = true).isEmpty())
+        val independent = PartnerDashboardDto(prediction = bounded.copy(available = false, reason = "NOT_SHARED"), calendarAccess = PartnerCalendarAccessDto(false, true))
+        assertEquals(1, NotificationPolicy.candidates(UserRole.PARTNER, today, settings, partnerDashboard = independent, pendingTrackerChanges = true).size)
+        assertTrue(NotificationPolicy.candidates(UserRole.PARTNER, today, settings, partnerDashboard = independent.copy(sharingPaused = true)).isEmpty())
+        assertTrue(NotificationPolicy.candidates(UserRole.PARTNER, today, settings, partnerDashboard = independent.copy(calendarAccess = PartnerCalendarAccessDto(false, false))).isEmpty())
+        assertTrue(NotificationPolicy.candidates(UserRole.TRACKER, today, settings, prediction = bounded.copy(fertilityEstimate = bounded.fertilityEstimate?.copy(reason = "UNRELIABLE_DATA"))).isEmpty())
+    }
 
     @Test
     fun `defaults require explicit opt in and avoid intrusive categories`() {

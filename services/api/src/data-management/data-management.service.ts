@@ -23,6 +23,7 @@ import {
   PERIOD_OVERLAP_MESSAGE,
 } from '../periods/period-constraints.js';
 import { PredictionService } from '../prediction/prediction.service.js';
+import { effectivePeriodEndLocalDate } from '../periods/period-policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeleteAccountDto, ExportDto, ExportFormatDto, ImportDto } from './data-management.dto.js';
 import { OidcTokenVerifier } from '../auth/oidc-token-verifier.js';
@@ -461,12 +462,8 @@ export class DataManagementService {
     right: { startDate: string; endDate?: string | null },
   ): boolean {
     return (
-      (left.endDate === null ||
-        left.endDate === undefined ||
-        right.startDate <= left.endDate) &&
-      (right.endDate === null ||
-        right.endDate === undefined ||
-        left.startDate <= right.endDate)
+      right.startDate <= effectivePeriodEndLocalDate(left.startDate, left.endDate) &&
+      left.startDate <= effectivePeriodEndLocalDate(right.startDate, right.endDate)
     );
   }
 

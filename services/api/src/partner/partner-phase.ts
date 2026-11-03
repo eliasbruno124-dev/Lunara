@@ -1,5 +1,7 @@
 import { CyclePhase } from '@prisma/client';
 import { estimatedOvulationDay, PredictionResult } from '../prediction/prediction.algorithm.js';
+import { effectivePeriodEndDate } from '../periods/period-policy.js';
+import { isSupportedFertileWindow } from '../prediction/fertility-policy.js';
 
 const DAY_MS = 86_400_000;
 
@@ -26,9 +28,8 @@ export function estimatePartnerPhase(
   const todayDay = epochDay(today);
   if (latestPeriod) {
     const start = epochDay(latestPeriod.startDate.toISOString().slice(0, 10));
-    const end = latestPeriod.endDate
-      ? epochDay(latestPeriod.endDate.toISOString().slice(0, 10))
-      : start + 13;
+    const end = epochDay(effectivePeriodEndDate(latestPeriod.startDate, latestPeriod.endDate)
+      .toISOString().slice(0, 10));
     if (todayDay >= start && todayDay <= end) return CyclePhase.MENSTRUATION;
   }
   if (!prediction || prediction.basedOnCycleCount < 3) return null;
@@ -44,6 +45,7 @@ export function estimatePartnerPhase(
     prediction.fertilityEstimate.available &&
     prediction.fertileWindowFrom &&
     prediction.fertileWindowTo &&
+    isSupportedFertileWindow(prediction.fertileWindowFrom, prediction.fertileWindowTo) &&
     todayDay >= epochDay(prediction.fertileWindowFrom) &&
     todayDay <= epochDay(prediction.fertileWindowTo)
   ) {

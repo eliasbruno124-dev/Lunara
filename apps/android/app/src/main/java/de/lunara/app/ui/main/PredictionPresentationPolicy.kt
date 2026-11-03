@@ -2,6 +2,7 @@ package de.lunara.app.ui.main
 
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PredictionDto
+import de.lunara.app.data.prediction.FertilityWindowPolicy
 import java.time.LocalDate
 
 internal data class PredictionDateRange(val from: String, val to: String)
@@ -20,20 +21,12 @@ internal object PredictionPresentationPolicy {
         "PREMENSTRUAL_ESTIMATE",
     )
 
-    fun fertileWindow(prediction: PredictionDto?): PredictionDateRange? {
-        val safety = prediction?.fertilityEstimate ?: return null
-        if (
-            !safety.enabled || !safety.available || !safety.estimated ||
-            !safety.notContraception || !safety.doesNotConfirmOvulation ||
-            safety.reason != "AVAILABLE"
-        ) return null
-        val from = prediction.fertileWindowFrom ?: return null
-        val to = prediction.fertileWindowTo ?: return null
-        val fromDate = runCatching { LocalDate.parse(from) }.getOrNull() ?: return null
-        val toDate = runCatching { LocalDate.parse(to) }.getOrNull() ?: return null
-        if (toDate.isBefore(fromDate)) return null
-        return PredictionDateRange(from, to)
-    }
+    fun fertileWindow(prediction: PredictionDto?): PredictionDateRange? =
+        FertilityWindowPolicy.validated(prediction)?.let { PredictionDateRange(it.from.toString(), it.to.toString()) }
+
+    fun currentFertileWindow(prediction: PredictionDto?, today: LocalDate, pendingChanges: Boolean = false): PredictionDateRange? =
+        FertilityWindowPolicy.current(prediction, today, pendingChanges)
+            ?.let { PredictionDateRange(it.from.toString(), it.to.toString()) }
 
     fun disclosedPartnerPhase(dashboard: PartnerDashboardDto?): String? =
         dashboard?.phase?.uppercase()?.takeIf(disclosedPhases::contains)

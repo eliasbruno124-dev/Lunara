@@ -14,6 +14,18 @@ function fixture(options: Partial<ConstructorParameters<typeof SwipeCalendar>[0]
 }
 
 describe('accessible calendar presentation', () => {
+  it('refreshes five-day paint and today at midnight while retaining selection and raw unknown end', () => {
+    const period = Object.freeze({ id: 'raw-open', startDate: '2026-09-01', endDate: null });
+    const { calendar, root } = fixture({ periods: [period], referenceDate: '2026-09-04', selectedDate: '2026-09-03' });
+    expect(root.querySelectorAll('.actual')).toHaveLength(4);
+    calendar.update({ referenceDate: '2026-09-05' });
+    expect(root.querySelectorAll('.actual')).toHaveLength(5);
+    calendar.update({ referenceDate: '2026-09-06' });
+    expect(root.querySelectorAll('.actual')).toHaveLength(5);
+    expect(root.querySelectorAll('.is-today')[0]?.dataset.date).toBe('2026-09-06');
+    expect(calendar.selectedDate()).toBe('2026-09-03');
+    expect(period.endDate).toBeNull();
+  });
   beforeEach(() => {
     vi.stubGlobal('document', { createElement: (tag: string) => new CalendarElement(tag) });
   });

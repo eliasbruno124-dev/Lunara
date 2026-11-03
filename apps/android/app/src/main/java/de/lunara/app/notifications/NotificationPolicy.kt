@@ -1,6 +1,7 @@
 package de.lunara.app.notifications
 
 import de.lunara.app.core.model.UserRole
+import de.lunara.app.data.prediction.FertilityWindowPolicy
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import java.time.LocalDate
@@ -72,6 +73,7 @@ object NotificationPolicy {
         prediction: PredictionDto? = null,
         partnerDashboard: PartnerDashboardDto? = null,
         hasDailyLogToday: Boolean = false,
+        pendingTrackerChanges: Boolean = false,
     ): List<NotificationCandidate> {
         if (!preferences.master) return emptyList()
 
@@ -101,13 +103,8 @@ object NotificationPolicy {
 
         if (
             preferences.fertileTomorrow &&
-            hasCompleteFertilityEstimate(visiblePrediction) &&
-            validRangeStartsOn(
-                visiblePrediction,
-                visiblePrediction?.fertileWindowFrom,
-                visiblePrediction?.fertileWindowTo,
-                tomorrow,
-            )
+            (role != UserRole.PARTNER || dashboard?.calendarAccess?.fertileWindow != false) &&
+            FertilityWindowPolicy.current(visiblePrediction, today, role == UserRole.TRACKER && pendingTrackerChanges)?.from == tomorrow
         ) {
             result += candidate(
                 NotificationType.FERTILE_WINDOW_STARTS_TOMORROW,
@@ -186,15 +183,6 @@ object NotificationPolicy {
         val from = rawFrom?.let(::parseDate) ?: return false
         val to = rawTo?.let(::parseDate) ?: return false
         return from == expectedStart && !to.isBefore(from)
-    }
-
-    private fun hasCompleteFertilityEstimate(prediction: PredictionDto?): Boolean {
-        val estimate = prediction?.fertilityEstimate ?: return false
-        return estimate.enabled &&
-            estimate.available &&
-            estimate.estimated &&
-            estimate.notContraception &&
-            estimate.doesNotConfirmOvulation
     }
 
     private fun parseDate(raw: String): LocalDate? = runCatching { LocalDate.parse(raw) }.getOrNull()

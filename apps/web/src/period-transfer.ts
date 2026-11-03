@@ -1,5 +1,6 @@
 import { parseIsoDate, todayIso } from './date';
 import type { PeriodEvent } from './types';
+import { periodRangesOverlap } from './period-end';
 
 export const PERIOD_FILE_LIMIT = 2 * 1024 * 1024;
 export const PERIOD_COUNT_LIMIT = 5_000;
@@ -173,8 +174,8 @@ export function periodImportPlan(existing: ReadonlyArray<PeriodRange>, incoming:
   let duplicates = 0, conflicts = 0;
   for (const item of incoming) {
     if (known.some((other) => other.startDate === item.startDate && other.endDate === item.endDate)) { duplicates++; continue; }
-    // Open periods remain open until explicitly ended; never infer an end to resolve a conflict.
-    if (known.some((other) => item.startDate <= (other.endDate ?? '9999-12-31') && other.startDate <= (item.endDate ?? '9999-12-31'))) conflicts++;
+    // Project both unknown ends for conflict checks only; retain the raw null.
+    if (known.some((other) => periodRangesOverlap(item, other))) conflicts++;
     else added.push({ ...item });
     known.push(item);
   }
