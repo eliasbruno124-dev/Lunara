@@ -15,11 +15,13 @@ adb shell cmd locale set-app-locales de.lunara.app.debug --user 0 --locales de-D
 adb shell am instrument -w -r de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation.log 2>&1
 result=0
 node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation.log || result=$?
-if (( result == 0 )); then
-  adb shell cmd locale set-app-locales de.lunara.app.debug --user 0 --locales en-US
-  adb shell am instrument -w -r -e class de.lunara.app.ui.RedesignComposeTest,de.lunara.app.ui.SetupScreenshotsTest de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation-en.log 2>&1
-  node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation-en.log || result=$?
-fi
+# The English pass always runs, so English documentation screenshots exist even
+# when the German pass failed; the overall result still reports any failure.
+adb shell cmd locale set-app-locales de.lunara.app.debug --user 0 --locales en-US
+adb shell am instrument -w -r -e class de.lunara.app.ui.RedesignComposeTest,de.lunara.app.ui.SetupScreenshotsTest de.lunara.app.debug.test/androidx.test.runner.AndroidJUnitRunner > artifacts/device-validation/instrumentation-en.log 2>&1
+en_result=0
+node scripts/verify-android-instrumentation.mjs artifacts/device-validation/instrumentation-en.log || en_result=$?
+(( result == 0 )) && result=$en_result
 adb pull /sdcard/Android/data/de.lunara.app.debug/files artifacts/device-validation/screenshots || result=1
 if (( result == 0 )); then
   for language in de en; do
