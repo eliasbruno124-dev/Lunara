@@ -69,7 +69,12 @@ jobs:
             echo "APK package/version does not match ${version}" >&2
             exit 1
           }
-          certs="$("${build_tools}/apksigner" verify --print-certs "${apk}")"
+          echo "Using ${build_tools}"
+          certs="$("${build_tools}/apksigner" verify --print-certs "${apk}" 2>&1)" || {
+            printf '%s\n' "${certs}" >&2
+            exit 1
+          }
+          printf '%s\n' "${certs}" | grep -E '^(Signer|WARNING|ERROR|DOES)' || true
           digests="$(printf '%s\n' "${certs}" | sed -n 's/^Signer.*certificate SHA-256 digest: *//p' | sort -u)"
           echo "Signer digests: ${digests}"
           [[ "${digests}" == "${RELEASE_SIGNER_SHA256}" ]] || {
