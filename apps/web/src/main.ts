@@ -1175,9 +1175,10 @@ class LunaraWebApp {
       card.append(basis);
     } else if (this.prediction?.reason === 'UNRELIABLE_RANGE') {
       card.append(element('p', 'prediction-range', this.t('predictionUnavailable')));
-      card.append(element('p', 'subtle', this.language === 'de'
-        ? 'Deine Zyklen schwanken noch zu stark für eine hilfreiche Schätzung.'
-        : 'Your cycles vary too much for a useful estimate yet'));
+      card.append(element('p', 'subtle', this.t('predictionUnreliable')));
+    } else if (this.prediction?.reason === 'SPECIAL_MODE' || this.prediction?.reason === 'PREDICTION_PAUSED') {
+      card.append(element('p', 'prediction-range', this.t('predictionOff')));
+      card.append(element('p', 'subtle', this.t(this.prediction.reason === 'SPECIAL_MODE' ? 'predictionOffLifePhase' : 'predictionOffPaused')));
     } else if (summary.kind === 'stale' || summary.kind === 'pending') {
       card.append(element('p', 'prediction-range', this.t('predictionNotCurrent')));
       card.append(element('p', 'subtle', this.t(summary.kind === 'stale' ? 'predictionStale' : 'predictionPending')));

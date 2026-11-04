@@ -2,6 +2,9 @@
 
 ## 1.6.0
 
+- **Choose what your partner sees in the browser too:** the web app now has the sharing switches (pause, expected range, period dates, phase, fertile window, tips) – important for couples without Android.
+- **Life phase and cycle settings:** regular cycle, hormonal contraception, pregnancy, after birth, menopause transition or pause, plus typical cycle and period length and a prediction pause – in the Android app and the web app.
+- **Delete a period in the browser:** a wrongly entered period can be removed (with a confirmation step); it syncs like every other change.
 - Predictions use `lunara-robust-v3` on the server, Android and web: wider MAD-based ranges for variable cycles, a clear unavailable state for unusably broad ranges, and confidence capped at medium after a recent long gap in recording. These changes do not establish a calibrated coverage probability.
 
 ## 1.5.1

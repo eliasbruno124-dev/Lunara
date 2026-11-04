@@ -41,8 +41,8 @@ function predictionCard(prediction: Prediction, language: 'de' | 'en'): MinimalE
 
 describe('unreliable prediction presentation', () => {
   it.each([
-    { language: 'en' as const, message: 'Your cycles vary too much for a useful estimate yet' },
-    { language: 'de' as const, message: 'Deine Zyklen schwanken noch zu stark für eine hilfreiche Schätzung.' },
+    { language: 'en' as const, message: 'Your cycles still vary too much for a useful estimate. It becomes more precise with further entries.' },
+    { language: 'de' as const, message: 'Deine Zyklen schwanken noch zu stark für eine hilfreiche Schätzung. Mit weiteren Einträgen wird sie genauer.' },
   ])('explains the unavailable range in $language without rendering a date or fertile estimate', ({ language, message }) => {
     const card = predictionCard({ available: false, confidence: 'NONE', reason: 'UNRELIABLE_RANGE', basedOnCycleCount: 2 }, language);
     expect(card.querySelectorAll('.subtle').map(node => node.textContent)).toContain(message);
@@ -54,5 +54,17 @@ describe('unreliable prediction presentation', () => {
   it('keeps missing-history guidance separate from an unreliable range', () => {
     const card = predictionCard({ available: false, confidence: 'NONE', reason: 'INSUFFICIENT_DATA' }, 'en');
     expect(card.querySelectorAll('.subtle').map(node => node.textContent)).toContain(translate('en', 'noPrediction'));
+  });
+});
+
+describe('switched-off predictions', () => {
+  it('explains life phase and pause instead of asking for more entries', () => {
+    for (const [reason, text] of [['SPECIAL_MODE', 'current life phase'], ['PREDICTION_PAUSED', 'paused predictions']] as const) {
+      const card = predictionCard({ available: false, confidence: 'NONE', reason, basedOnCycleCount: 5 }, 'en');
+      expect(card.querySelectorAll('.prediction-range').map(node => node.textContent)).toEqual(['Predictions are off']);
+      const hints = card.querySelectorAll('.subtle').map(node => node.textContent).join(' ');
+      expect(hints).toContain(text);
+      expect(hints).not.toContain('More entries are needed');
+    }
   });
 });
