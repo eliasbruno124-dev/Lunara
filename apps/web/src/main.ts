@@ -2003,7 +2003,10 @@ class LunaraWebApp {
         submit.disabled = true;
         try {
           const pending = this.pendingOidcLink;
-          if (!pending || pending.userId !== this.user?.id) throw new Error('Connection belongs to another account');
+          if (!pending || pending.userId !== this.user?.id || Date.now() - pending.receivedAt > 5 * 60_000) {
+            this.pendingOidcLink = null;
+            throw new Error('Connection expired or belongs to another account');
+          }
           await this.api.linkOidc(pending.token, password.value);
           this.pendingOidcLink = null;
           this.oidcStatus = { linked: true };
