@@ -111,7 +111,16 @@ class DashboardRepository @Inject constructor(
             }
         }
 
+    /** Bumped by every cycle-settings change; older prediction requests are then outdated. */
+    private val cycleSettingsGeneration = java.util.concurrent.atomic.AtomicLong(0)
+
+    /** True if a prediction requested at [generation] may still be shown and cached. */
+    fun isCurrentPredictionGeneration(generation: Long): Boolean = cycleSettingsGeneration.get() == generation
+
+    fun predictionGeneration(): Long = cycleSettingsGeneration.get()
+
     suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {
+        val generation = cycleSettingsGeneration.get()
         val preferenceState = preferences.state.first()
         if (preferenceState.appMode == AppMode.LOCAL) {
             if (preferenceState.session?.userId != expectedUserId) throw SessionChangedException()
@@ -125,7 +134,7 @@ class DashboardRepository @Inject constructor(
                 if (current.session?.userId != expectedUserId || current.appMode != AppMode.LOCAL) {
                     throw SessionChangedException()
                 }
-                notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
+                if (generation == cycleSettingsGeneration.get()) notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
             }
             return prediction
         }
@@ -139,7 +148,8 @@ class DashboardRepository @Inject constructor(
         val prediction = response.requireBody()
         ProcessSyncGate.serialized {
             if (preferences.state.first().session?.userId != expectedUserId) throw SessionChangedException()
-            notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
+            // A request that started before a settings change must not cache a stale estimate.
+            if (generation == cycleSettingsGeneration.get()) notificationDataCache.saveTrackerPrediction(expectedUserId, prediction)
         }
         return prediction
     }
@@ -190,6 +200,7 @@ class DashboardRepository @Inject constructor(
     }
 
     suspend fun updateCycleSettings(settings: CycleSettings): CycleProfileDto {
+        cycleSettingsGeneration.incrementAndGet()
         val state = preferences.state.first()
         if (state.appMode == AppMode.LOCAL) {
             val session = state.session ?: throw SessionChangedException()
@@ -219,6 +230,7 @@ class DashboardRepository @Inject constructor(
                 .updateCycleSettings(endpoint(base, "api/v1/cycle/profile"), body())
         }
         val saved = response.requireBody()
+        cycleSettingsGeneration.incrementAndGet()
         // Reminders must not keep using an estimate that was just switched off.
         if (CycleSettings.of(saved).switchesPredictionsOff()) notificationDataCache.clear()
         return saved

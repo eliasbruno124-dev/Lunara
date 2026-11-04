@@ -633,8 +633,14 @@ class MainViewModel @Inject constructor(
 
     private suspend fun refreshTrackerPredictionNow(ownerId: String) {
         try {
+            val generation = dashboardRepository.predictionGeneration()
             runSessionOperation { dashboardRepository.trackerPrediction(ownerId) }
-                .onSuccess { prediction -> ifCurrentSession(ownerId) { trackerPrediction.value = prediction } }
+                .onSuccess { prediction ->
+                    ifCurrentSession(ownerId) {
+                        // Ignore answers to requests made before the latest cycle-settings change.
+                        if (dashboardRepository.isCurrentPredictionGeneration(generation)) trackerPrediction.value = prediction
+                    }
+                }
         } finally {
             ifCurrentSession(ownerId) {
                 // A failed offline refresh must still advance the current-summary cutoff.

@@ -2131,6 +2131,8 @@ class LunaraWebApp {
               confidence: 'NONE',
               reason: saved.predictionPaused ? 'PREDICTION_PAUSED' : 'SPECIAL_MODE',
             } as Prediction;
+            // Also replace the stored copy, so an offline reload cannot bring the old estimate back.
+            await settingsStore.put('prediction', this.prediction);
           }
           this.settingsMessage = { area: 'profile', text: this.t('settingsSaved'), error: false };
           await this.refreshData();

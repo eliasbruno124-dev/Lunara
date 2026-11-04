@@ -148,6 +148,8 @@ export interface SyncMutation {
   nextAttemptAt: number;
   state: 'PENDING' | 'FAILED';
   lastError?: string;
+  /** Set before the first transmission and never reset: the server may already have it. */
+  sent?: boolean;
 }
 
 export interface SyncResponse {

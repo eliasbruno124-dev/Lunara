@@ -14,6 +14,8 @@ export function failedMutation(mutation: SyncMutation, now: number, error: strin
   const attemptCount = mutation.attemptCount + 1;
   return {
     ...mutation,
+    // The request may have reached the server even though no answer arrived.
+    sent: true,
     attemptCount,
     nextAttemptAt: now + retryDelayMs(attemptCount),
     state: attemptCount >= MAX_AUTOMATIC_ATTEMPTS ? 'FAILED' : 'PENDING',
@@ -105,7 +107,7 @@ export async function queuePeriodDelete(
   );
   // A creation that was already sent may exist on the server even if its answer got
   // lost. Only a never-sent creation can be dropped; otherwise sync first.
-  if (unsyncedCreate && unsyncedCreate.attemptCount > 0) {
+  if (unsyncedCreate && (unsyncedCreate.sent || unsyncedCreate.attemptCount > 0)) {
     throw new Error('The period must sync before it can be deleted');
   }
   for (const mutation of related) await storage.deleteMutation(mutation.clientMutationId);

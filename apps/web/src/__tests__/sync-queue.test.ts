@@ -179,6 +179,18 @@ describe('deleting a period', () => {
     expect(await storage.getMutations()).toHaveLength(1);
   });
 
+  it('keeps a sent creation even after a later end-date edit reset its retry counter', async () => {
+    const storage = new MemoryQueue();
+    const period = await queuePeriodStart('2026-10-01', storage);
+    const [queued] = await storage.getMutations();
+    if (!queued) throw new Error('creation was not queued');
+    await storage.putMutation({ ...queued, sent: true, attemptCount: 1 });
+    const ended = await queuePeriodEnd(period, '2026-10-04', storage);
+    expect((await storage.getMutations())[0]?.attemptCount).toBe(0);
+    await expect(queuePeriodDelete(ended, storage)).rejects.toThrow();
+    expect(await storage.getMutations()).toHaveLength(1);
+  });
+
   it('refuses to delete a server period without a known version', async () => {
     const storage = new MemoryQueue();
     const unknown = { id: crypto.randomUUID(), startDate: '2026-10-01', endDate: null, source: 'MANUAL' as const };
