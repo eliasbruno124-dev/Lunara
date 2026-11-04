@@ -20,7 +20,7 @@
       "path": ".env.example",
       "role": "Documentation or project configuration",
       "bytes": 2457,
-      "sha256": "6f8219ffcd629a9f7d4b611fa532ec1c96bc69ca189cd8c0c8385d2eb24994ee",
+      "sha256": "348be2d62184c9e52bd31bb454bddf1adbec47a4c78edf5e2cefaa88b93b6d5d",
       "symbols": []
     },
     {
@@ -104,9 +104,9 @@
     {
       "path": "CHANGELOG.md",
       "role": "Documentation or project configuration",
-      "bytes": 30410,
-      "sha256": "94fda4d796b627672307905c7a0929b946a4a9c566299530badc072985a5e4a5",
-      "lines": 483,
+      "bytes": 30658,
+      "sha256": "c5dc403980a953c63924d15c683d81544830b8a593c80101c5945a5a9bc32451",
+      "lines": 488,
       "symbols": []
     },
     {
@@ -135,9 +135,9 @@
     {
       "path": "README.md",
       "role": "Documentation or project configuration",
-      "bytes": 8059,
-      "sha256": "18c37d1823197b12fe65d6deb46c608af5da40ce40001e2791f00119005ec104",
-      "lines": 199,
+      "bytes": 8394,
+      "sha256": "008018bf14844e99a6a6bdc0c00e7df07bc5cf331e13967cc00b3fe54cfd28e8",
+      "lines": 206,
       "symbols": []
     },
     {
@@ -167,7 +167,7 @@
       "path": "apps/android/app/build.gradle.kts",
       "role": "Android application and build",
       "bytes": 7612,
-      "sha256": "cafe5cc96ec7e25636473558823abb990550939d5a15c9daf4ebe28863e1cf5f",
+      "sha256": "32b471cf27ed556f86b164795636374c9a9871689e4edf75eda5e2d5ecb4c9e5",
       "lines": 182,
       "symbols": []
     },
@@ -2164,7 +2164,7 @@
       "path": "apps/android/app/src/androidTest/java/de/lunara/app/ui/ConnectionQualityComposeTest.kt",
       "role": "Android device regression",
       "bytes": 6792,
-      "sha256": "4d36b6de8c94bac840e6a1d507d3fdc210b022d1fb7bcd660f1de17c8ecd0387",
+      "sha256": "72b9688959050cc3326d127b3e098dd4fc04ef1ebcf0912096d1fa5f212d5fa0",
       "lines": 118,
       "symbols": [
         {
@@ -48915,7 +48915,7 @@
       "path": "apps/android/app/src/main/res/values/brand.xml",
       "role": "Android resource",
       "bytes": 579,
-      "sha256": "8296951a8c940988c97ee65cb39f981a5d67b66b8e2e89c78b0c3f7fbc0d4a4f",
+      "sha256": "3c3fd4cd6a2052c2916d9ad54b776751c46c8f7b8bccd97379688d162d654c4e",
       "lines": 12,
       "symbols": []
     },
@@ -55666,7 +55666,7 @@
       "path": "apps/android/app/src/test/java/de/lunara/app/ui/main/ConnectionPresentationTest.kt",
       "role": "Automated regression",
       "bytes": 2260,
-      "sha256": "b4e96a5802c7cdfd725a704d26c1033a53eb460b738adabd9600fa6245911e65",
+      "sha256": "486d352ca522989a8cf265ba7f14821cbf4bedf124f5e1861ca3d7d3f32c4ae8",
       "lines": 37,
       "symbols": [
         {
@@ -57661,7 +57661,7 @@
       "path": "apps/web/package.json",
       "role": "Web application",
       "bytes": 498,
-      "sha256": "e53e9f93d014adc4bd38f9cc48bf8d3e1be9df1b1dfe5a65a7298cf14501a4fa",
+      "sha256": "c5669ae2606aa1f82aedddddccd043df21a7ecc04c9f8cbe6a2e50fccc2a1f72",
       "lines": 23,
       "symbols": []
     },
@@ -72013,16 +72013,16 @@
       "path": "docker-compose.yml",
       "role": "Documentation or project configuration",
       "bytes": 5515,
-      "sha256": "2b02bdacaba9a50063443401295f36711afb5ebd3346a54ce173de6edce052fc",
+      "sha256": "93c36783514c6ee8858bac4bfa18ffbfb5405dae8505d564ff706ab5222dda3a",
       "lines": 184,
       "symbols": []
     },
     {
       "path": "docs/AUTHENTIK.md",
       "role": "Documentation or project configuration",
-      "bytes": 6045,
-      "sha256": "1fe6e484418b285690f48b70ee0732943b138df3daacb212ded2741b6b0a08b2",
-      "lines": 128,
+      "bytes": 7353,
+      "sha256": "04c80d8f128eb3dae053ded129314e34dd26f1c32dae95f012ad687807ac8daa",
+      "lines": 147,
       "symbols": []
     },
     {
@@ -72045,7 +72045,7 @@
       "path": "docs/INSTALL.md",
       "role": "Documentation or project configuration",
       "bytes": 14454,
-      "sha256": "2a2ad228f7efd9ef166489db2e607a6cf86e2190d4b9c6609aba7de51fbdb018",
+      "sha256": "96d4a6d92b2814f36906620d918266a0cc3a3fabc93853be3b1852b84007c748",
       "lines": 342,
       "symbols": []
     },
@@ -72069,7 +72069,7 @@
       "path": "docs/SETUP.md",
       "role": "Documentation or project configuration",
       "bytes": 16615,
-      "sha256": "3253d85297a3ecd94e55e771a0b3420c228504a4371a8458d704cde7c019f890",
+      "sha256": "3bc6612cdf6c1120344b8df1aa9cb9babc284f9f4960b173fa1cbfb9ec611438",
       "lines": 354,
       "symbols": []
     },
@@ -72308,6 +72308,13 @@
       "symbols": []
     },
     {
+      "path": "docs/social-preview.jpg",
+      "role": "Documentation or project configuration",
+      "bytes": 243344,
+      "sha256": "d5dff6cde2d0f6ef26f6656274c7db8a3729e9a5f02250a4ff10210f0d26cbc8",
+      "symbols": []
+    },
+    {
       "path": "eslint.config.mjs",
       "role": "Documentation or project configuration",
       "bytes": 755,
@@ -72335,7 +72342,7 @@
       "path": "infra/docker/api.Dockerfile",
       "role": "Deployment",
       "bytes": 2827,
-      "sha256": "a7a3ebc1b4ea8a96b999f3b44af11b5476306000e6a31b3664b422ce40390ffa",
+      "sha256": "80e7bc063743e0331404fb70da20df32392155f722851aeb36f16d22db5967d7",
       "symbols": []
     },
     {
@@ -72390,7 +72397,7 @@
       "path": "package-lock.json",
       "role": "Documentation or project configuration",
       "bytes": 629049,
-      "sha256": "c15ef3af44a20ebea36ce01457e9e8f030b6e467d573226875bdf684dae014be",
+      "sha256": "87f94d8c0f3441543a7b06ef7705fcbecda7567fa7ab24ee5ca403cbabf41cbc",
       "lines": 17590,
       "symbols": []
     },
@@ -72398,7 +72405,7 @@
       "path": "package.json",
       "role": "Documentation or project configuration",
       "bytes": 1930,
-      "sha256": "7746334ea5d4c28b44cd1c4a894b24a9cc60be67c60e42562a53d4b81d2f14b0",
+      "sha256": "5f2ea01039db55fe0118a55bfd3ab0c62d2806b1f77e6895685490ce76418b6f",
       "lines": 57,
       "symbols": []
     },
@@ -73206,7 +73213,7 @@
       "path": "packages/openapi-client/package.json",
       "role": "Documentation or project configuration",
       "bytes": 377,
-      "sha256": "77082f2ebc85203a30813df0fc03e3068f506ec8c596742835bd402be168165d",
+      "sha256": "ec391d15db4b8de575263ca1b68a9c476953b3b7a93f03bd89c827e29348fac8",
       "lines": 13,
       "symbols": []
     },
@@ -74429,7 +74436,7 @@
       "path": "services/api/package.json",
       "role": "Documentation or project configuration",
       "bytes": 2056,
-      "sha256": "95dda7fcaee8d9fa618911a7a1c0b771ae5b39ee4f468a66455a3170ebf80351",
+      "sha256": "a9c514a753cf364729bdd253a8eb869f5198f578eec249ce08d9660a5ef703c8",
       "lines": 67,
       "symbols": []
     },

@@ -108,6 +108,13 @@ their own account with the code.
 
 </details>
 
+## Optional: sign in with Authentik
+
+Already run [Authentik](https://goauthentik.io)? Create one application in
+Authentik, add two lines to `.env`, and both of you can sign in with your
+Authentik accounts – in the browser, on iPhone and in the Android app.
+Step by step with screenshots: **[docs/AUTHENTIK.md](docs/AUTHENTIK.md)**.
+
 ## Get the app on your phones
 
 - **Android:** in Lunara open *Settings → App & connection → Download Android app*,

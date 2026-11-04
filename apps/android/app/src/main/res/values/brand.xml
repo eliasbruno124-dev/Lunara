@@ -7,5 +7,5 @@
     <color name="brand_teal">#41685D</color>
     <color name="brand_cream">#F7F4ED</color>
     <!-- Empty hides the voluntary support button in a rebranded self-build. -->
-    <string name="donation_url" translatable="false">https://paypal.me/eliasbruno124</string>
+    <string name="donation_url" translatable="false">https://paypal.me/eliasbruno123</string>
 </resources>

@@ -23,7 +23,7 @@ class ConnectionPresentationTest {
     }
 
     @Test fun `PayPal link has one recipient without payment amount tracking or credentials`() {
-        assertEquals("https://paypal.me/eliasbruno124", DonationLinkPolicy.safeUrl("https://paypal.me/eliasbruno124"))
+        assertEquals("https://paypal.me/eliasbruno123", DonationLinkPolicy.safeUrl("https://paypal.me/eliasbruno123"))
         listOf("", "http://paypal.me/name", "https://paypal.me.evil.example/name", "https://name@paypal.me/name", "https://paypal.me/name/100", "https://paypal.me/name?email=private", "https://paypal.me/name#data", "javascript:alert(1)").forEach {
             assertNull(it, DonationLinkPolicy.safeUrl(it))
         }

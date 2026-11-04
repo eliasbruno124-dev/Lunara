@@ -1,8 +1,9 @@
 # Sign in with Authentik (optional)
 
 Already use [Authentik](https://goauthentik.io) for your other apps? Then you
-and your partner can sign in to Lunara with your Authentik account too. This is
-**optional** – Lunara works perfectly with its own username and password.
+and your partner can sign in to Lunara with your Authentik account too – in the
+browser, on iPhone and in the Android app. This is **optional** – Lunara works
+perfectly with its own username and password.
 
 It takes about 5 minutes: create one application in Authentik, add two lines to
 Lunara's `.env`, then press one button in Lunara.
@@ -31,7 +32,7 @@ automatically and must be `lunara`. Click **Next**.
 | *Client Type* | **Public** |
 | *Client ID* | leave as it is – **copy it**, you need it in section 2 |
 | *Grant Types* | **Authorization Code** and **Refresh token** must be ticked (they are by default) |
-| *Redirect URIs/Origins* | click **Add entry**, keep *Strict*, enter `https://lunara.example.com/auth/callback` (your Lunara address + `/auth/callback`) |
+| *Redirect URIs/Origins* | click **Add entry** twice, keep *Strict* for both:<br>1. `https://lunara.example.com/auth/callback` – your Lunara address + `/auth/callback` (browser, iPhone)<br>2. `https://lunara.3li361.de/auth/android-callback` – exactly like this, for the Android app (see below) |
 | *Signing Key* | `authentik Self-signed Certificate` (already selected) |
 
 <img src="screenshots/authentik/3-provider.png" width="720" alt="Authentik wizard step 3: implicit consent flow, client type Public, client ID">
@@ -102,16 +103,33 @@ Each person does this once, while signed in to Lunara in the browser:
 From now on the sign-in page also shows **Sign in with Authentik**. Your
 Lunara password keeps working as well.
 
+### In the Android app
+
+The Android app has the same functions built in:
+
+- **Connect an existing account:** *Settings → Account and security →
+  Connect Authentik*, confirm your Lunara password, sign in at Authentik in the
+  browser – the app opens again by itself.
+- **Sign in:** on the sign-in screen choose **Sign in with Authentik**.
+- **Partner:** can redeem the invitation with Authentik in the app as well.
+
+This needs the second redirect address from section 1
+(`https://lunara.3li361.de/auth/android-callback`). It is the fixed return
+address built into the official app: after signing in, Android hands the
+result directly to the Lunara app on your phone. It does **not** go to your
+server or to anyone else's – the address only serves as the app's verified
+"doorbell" (Android checks it once against the app's signing certificate).
+
 Your partner first creates their account with the invitation code (see
 [INSTALL.md](INSTALL.md#4-invite-your-partner)) and then connects Authentik the
 same way.
 
 ## Good to know
 
-- **Android app:** the official APK signs in with username and password.
-  Authentik sign-in inside the Android app needs a self-built APK for your
-  domain ([details](../DEPLOYMENT.md#android-the-api-domain-is-not-the-callback-host)).
-  In the browser and on iPhone (home-screen app) Authentik works as described.
+- **Want to avoid the shared Android return address?** Build the APK yourself
+  with your own domain (`LUNARA_APP_LINK_HOST`), see
+  [DEPLOYMENT.md](../DEPLOYMENT.md#android-the-api-domain-is-not-the-callback-host).
+  The browser and iPhone never use it.
 - **Different slug:** if your Authentik application's slug is not `lunara`,
   also add `AUTHENTIK_SLUG=your-slug` to `.env`.
 - **Other OIDC providers** (Keycloak, Zitadel, Pocket ID …) work too; set the
@@ -122,6 +140,7 @@ same way.
 | Message or problem | Fix |
 | --- | --- |
 | No "Connect Authentik" in the settings | The two lines are missing in `.env`, or Lunara was not restarted (`docker compose up -d`) |
-| Authentik shows "redirect URI … not allowed" / "malformed" | The redirect URI in Authentik must be exactly `https://your-lunara-address/auth/callback` |
+| Authentik shows "redirect URI … not allowed" / "malformed" | Browser: the redirect URI must be exactly `https://your-lunara-address/auth/callback`. Android app: `https://lunara.3li361.de/auth/android-callback` must be entered as well |
+| Android: after signing in, the browser stays open instead of returning to the app | Update the app to the latest version and open the link again; Android verifies the app's return address once after installation (internet needed) |
 | "Sign-in with Authentik could not be completed" | In Authentik, add the scope `offline_access` (section 1, step 3) and check that *Refresh token* is ticked under *Grant Types* |
 | "That did not work. Check your password." | Use your Lunara password (not the Authentik one). An Authentik account can be connected to only one Lunara account |

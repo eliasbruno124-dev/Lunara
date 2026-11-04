@@ -71,7 +71,7 @@ class ConnectionQualityComposeTest {
         compose.setContent { LunaraTheme { Surface { DonationButton() } } }
         compose.onNodeWithText("PayPal öffnen").assertDoesNotExist()
         compose.onNodeWithText("Lunara über PayPal unterstützen").performClick()
-        compose.onNodeWithText("https://paypal.me/eliasbruno124", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("https://paypal.me/eliasbruno123", substring = true).assertIsDisplayed()
         compose.onNodeWithText("PayPal öffnen").assertIsDisplayed()
         compose.onNodeWithText("Abbrechen").performClick()
         compose.onNodeWithText("PayPal öffnen").assertDoesNotExist()

@@ -4,7 +4,7 @@ Generated from source. Run `npm run code-map:check` before relying on line links
 
 All non-ignored repository files, excluding generated maps and APK artifacts. Kotlin PSI and TypeScript syntax inventory; not a resolved call graph. Generated API client files are hashed but declarations are omitted.
 
-Files: 628. Parsed declarations: 15456. Full hashes and symbols: [code-map.json](code-map.json).
+Files: 629. Parsed declarations: 15456. Full hashes and symbols: [code-map.json](code-map.json).
 
 ## App entry and presentation
 
@@ -431,6 +431,7 @@ The server reports effective sharing permissions without disclosing whether priv
 | [docs/screenshots/setup/03b-tracker-fertility.png](../docs/screenshots/setup/03b-tracker-fertility.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/setup/04-partner-sharing-status.png](../docs/screenshots/setup/04-partner-sharing-status.png) | Documentation or project configuration | 0 |
 | [docs/screenshots/web-settings.png](../docs/screenshots/web-settings.png) | Documentation or project configuration | 0 |
+| [docs/social-preview.jpg](../docs/social-preview.jpg) | Documentation or project configuration | 0 |
 | [eslint.config.mjs](../eslint.config.mjs) | Documentation or project configuration | 0 |
 | [examples/docker-compose.proxy.yml](../examples/docker-compose.proxy.yml) | Documentation or project configuration | 0 |
 | [examples/docker-compose.yml](../examples/docker-compose.yml) | Documentation or project configuration | 0 |

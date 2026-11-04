@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+- The Android app's donation button now opens the correct PayPal address (`paypal.me/eliasbruno123`).
+- Authentik guide: sign-in with Authentik in the Android app (second redirect address), and a visible Authentik section in the README.
+
 ## 1.5.0
 
 - **Sign in with Authentik made easy:** two lines in `.env` (`AUTHENTIK_URL`, `AUTHENTIK_CLIENT_ID`) are enough; the image derives the OIDC settings. New step-by-step guide with screenshots: `docs/AUTHENTIK.md`, tested against Authentik 2026.8.
