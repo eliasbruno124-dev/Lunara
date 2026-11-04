@@ -5,6 +5,7 @@ export type PreferredLanguage = 'DE' | 'EN';
 export type OidcEnrollmentIntent =
   | { kind: 'login'; preferredLanguage?: PreferredLanguage }
   | { kind: 'new-tracker'; preferredLanguage: PreferredLanguage }
+  | { kind: 'link'; preferredLanguage?: PreferredLanguage }
   | {
       kind: 'partner';
       invitationCode: string;

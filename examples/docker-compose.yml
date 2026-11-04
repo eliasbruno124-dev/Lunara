@@ -92,6 +92,10 @@ services:
     environment:
       PUBLIC_BASE_URL: https://${LUNARA_DOMAIN:?Set LUNARA_DOMAIN to your domain, e.g. lunara.example.com}
       TZ: ${TZ:-Europe/Berlin}
+      # Optional: sign in with Authentik (see docs/AUTHENTIK.md).
+      AUTHENTIK_URL: ${AUTHENTIK_URL:-}
+      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
+      AUTHENTIK_SLUG: ${AUTHENTIK_SLUG:-}
     volumes:
       - secrets:/secrets:ro
     ports:

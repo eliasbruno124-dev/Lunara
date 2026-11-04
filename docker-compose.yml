@@ -5,14 +5,14 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
-    image: lunara-api:1.4.0
+    image: lunara-api:1.5.0
     restart: unless-stopped
     init: true
     environment:
       NODE_ENV: production
       PORT: "3000"
       APP_NAME: ${APP_NAME:-Lunara}
-      APP_VERSION: ${APP_VERSION:-1.4.0}
+      APP_VERSION: ${APP_VERSION:-1.5.0}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL}
       DATABASE_URL: postgresql://${POSTGRES_USER:-lunara}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-lunara}?schema=public
       APP_MASTER_KEY: ${APP_MASTER_KEY:?Set APP_MASTER_KEY}
@@ -97,7 +97,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
-    image: lunara-api:1.4.0
+    image: lunara-api:1.5.0
     restart: "no"
     environment:
       NODE_ENV: production

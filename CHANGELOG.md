@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- **Sign in with Authentik made easy:** two lines in `.env` (`AUTHENTIK_URL`, `AUTHENTIK_CLIENT_ID`) are enough; the image derives the OIDC settings. New step-by-step guide with screenshots: `docs/AUTHENTIK.md`, tested against Authentik 2026.8.
+- **Connect Authentik in the web app:** Settings → App & connection → Connect Authentik, confirmed with the Lunara password. Afterwards "Sign in with Authentik" works for that account; the password keeps working.
+- After a reload the web app knows the server's sign-in options again, so the settings always show the right choices.
+- Installation guide: help with domains and router ports, step-by-step Nginx Proxy Manager, Traefik and Portainer.
+- Removed Google Play, store-listing and internal report documents; the repository now focuses on the app and its guides.
+
 ## 1.4.0
 
 - **One-file installation:** `examples/docker-compose.yml` only needs your domain. Passwords and keys are created automatically on the first start and kept in the `lunara_secrets` volume; HTTPS comes from the built-in Caddy. `docker-compose.proxy.yml` covers existing reverse proxies. Explicit environment variables still take precedence, so existing installations are unaffected.

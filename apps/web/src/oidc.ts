@@ -77,7 +77,7 @@ export function canStartOidc(
       scopes.includes('openid') &&
       scopes.includes('offline_access'),
   );
-  if (!configured || intent === 'login') return configured;
+  if (!configured || intent === 'login' || intent === 'link') return configured;
   if (!supportsOidcEnrollment(meta)) return false;
   if (intent === 'new-tracker') {
     return meta.registrationEnabled && meta.oidc?.enrollment?.registration === true;
@@ -172,7 +172,7 @@ function pendingAuthorization(raw: string): PendingAuthorization {
     typeof value.clientId !== 'string' ||
     typeof value.redirectUri !== 'string' ||
     typeof value.createdAt !== 'number' ||
-    !['login', 'new-tracker', 'partner'].includes(String(intent)) ||
+    !['login', 'new-tracker', 'partner', 'link'].includes(String(intent)) ||
     !['DE', 'EN'].includes(String(language))
   ) {
     throw new Error('OIDC callback state is invalid');
@@ -204,7 +204,7 @@ function pendingAuthorization(raw: string): PendingAuthorization {
     clientId: value.clientId,
     redirectUri: value.redirectUri,
     createdAt: value.createdAt,
-    intent: intent as 'login' | 'new-tracker',
+    intent: intent as 'login' | 'new-tracker' | 'link',
     preferredLanguage: language as PreferredLanguage,
   };
 }
@@ -213,6 +213,8 @@ function enrollmentIntent(pending: PendingAuthorization): OidcEnrollmentIntent {
   switch (pending.intent) {
     case 'login':
       return { kind: 'login' };
+    case 'link':
+      return { kind: 'link' };
     case 'new-tracker':
       return {
         kind: 'new-tracker',
@@ -228,7 +230,12 @@ function enrollmentIntent(pending: PendingAuthorization): OidcEnrollmentIntent {
   }
 }
 
-export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse | null> {
+/** Result of returning from the provider to connect it to the signed-in account. */
+export interface OidcLinkCallback {
+  linkAccessToken: string;
+}
+
+export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse | OidcLinkCallback | null> {
   const current = new URL(window.location.href);
   if (current.pathname !== CALLBACK_PATH) return null;
   const code = current.searchParams.get('code');
@@ -272,6 +279,8 @@ export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse |
   if (!tokenBody.access_token || !tokenBody.refresh_token) {
     throw new Error('OIDC provider returned no renewable session');
   }
+  // Connecting needs the signed-in Lunara session plus the password, not a new login.
+  if (pending.intent === 'link') return { linkAccessToken: tokenBody.access_token };
   const refreshSession: OidcRefreshSession = {
     accessToken: tokenBody.access_token,
     refreshToken: tokenBody.refresh_token,

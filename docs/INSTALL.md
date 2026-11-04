@@ -2,7 +2,7 @@
 
 This guide takes you from an empty server to Lunara running for you and your
 partner – in about 10 minutes, without creating any passwords or keys by hand.
-It applies to **Lunara 1.4.0**.
+It applies to **Lunara 1.5.0**.
 
 All screenshots show the real interface with made-up accounts ("Mia" and
 "Jonas").
@@ -246,6 +246,12 @@ server, add `LUNARA_PORT=3100` (any free port) to `.env`.
 5. **Containers → lunara-lunara-1 → Logs** shows the setup code. Continue with
    [step 3](#3-create-your-account).
 </details>
+
+**Sign in with Authentik?** Follow the step-by-step guide in
+[AUTHENTIK.md](AUTHENTIK.md) – two lines in `.env` and one button in Lunara.
+
+Want to manage the secrets yourself, use another OIDC provider or build the
+image from source? See [DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ## 8. Updates, backup and restore
 

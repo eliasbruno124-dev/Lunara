@@ -176,6 +176,7 @@ level – never as a fixed date. It is not suitable for contraception.
 
 - [Installation guide with screenshots](docs/INSTALL.md) – every step explained
 - [Using the app: sharing, backups, new phone](docs/SETUP.md)
+- [Sign in with Authentik (optional)](docs/AUTHENTIK.md)
 - [Advanced setups: Traefik, Authentik/OIDC, scripts](DEPLOYMENT.md)
 - [Changelog](CHANGELOG.md) · [Developing Lunara](docs/CODE_GUIDE.md) · [Testing](TESTING.md)
 

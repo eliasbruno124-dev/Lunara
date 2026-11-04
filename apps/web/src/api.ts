@@ -104,6 +104,18 @@ export class LunaraApi {
     return response;
   }
 
+  async oidcStatus(): Promise<{ enabled: boolean; providerName?: string; linked: boolean }> {
+    return this.request('/api/v1/auth/oidc/status');
+  }
+
+  /** Connects the signed-in account to the provider identity; needs the current password. */
+  async linkOidc(accessToken: string, currentPassword: string): Promise<{ linked: boolean }> {
+    return this.request('/api/v1/auth/oidc/link', {
+      method: 'POST',
+      body: { accessToken, currentPassword },
+    });
+  }
+
   async oidcLogin(
     accessToken: string,
     oidcRefresh: OidcRefreshSession,
@@ -138,6 +150,7 @@ export class LunaraApi {
   } {
     switch (intent.kind) {
       case 'login':
+      case 'link':
         return {};
       case 'new-tracker':
         return {

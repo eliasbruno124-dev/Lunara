@@ -95,6 +95,18 @@ if [ -z "${DATABASE_URL+x}" ] && [ -n "${POSTGRES_PASSWORD:-}" ]; then
   export DATABASE_URL="postgresql://${POSTGRES_USER:-lunara}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-lunara}?schema=public"
 fi
 
+# Optional Authentik shortcut: AUTHENTIK_URL + AUTHENTIK_CLIENT_ID are enough.
+# Explicit OIDC_* variables still take precedence.
+if [ -n "${AUTHENTIK_URL:-}" ] && [ -n "${AUTHENTIK_CLIENT_ID:-}" ] && [ -z "${OIDC_ENABLED+x}" ]; then
+  authentik_base="${AUTHENTIK_URL%/}/application/o/${AUTHENTIK_SLUG:-lunara}"
+  export OIDC_ENABLED=true
+  export OIDC_PROVIDER_NAME="${OIDC_PROVIDER_NAME:-Authentik}"
+  export OIDC_ISSUER="$authentik_base/"
+  export OIDC_JWKS_URL="$authentik_base/jwks/"
+  export OIDC_CLIENT_ID="$AUTHENTIK_CLIENT_ID"
+  export OIDC_AUDIENCE="$AUTHENTIK_CLIENT_ID"
+fi
+
 # Print the one-time setup code only while the server still needs its first
 # account, and only for codes that live in the secrets volume.
 if [ "${1:-}" = "node" ] && [ -s "$SECRETS_DIR/bootstrap_token" ] \

@@ -123,6 +123,11 @@ class LunaraWebApp {
   private syncing = false;
   private initError: string | null = null;
   private joinExpanded = false;
+  // Provider token held only in memory until the password confirms the connection.
+  private pendingOidcLink: string | null = null;
+  private oidcStatus: { linked: boolean } | null = null;
+  private oidcStatusRequested = false;
+  private oidcLinkMessage: { text: string; error: boolean } | null = null;
   private localMode = false;
   private localVaultAvailable = false;
   private readonly localVault = new LocalVaultSession();
@@ -203,8 +208,15 @@ class LunaraWebApp {
     }
 
     try {
-      const oidcSession = await finishOidcCallback(this.api);
-      if (oidcSession) await this.rememberUser(oidcSession.user);
+      const oidcResult = await finishOidcCallback(this.api);
+      if (oidcResult && 'linkAccessToken' in oidcResult) {
+        this.pendingOidcLink = oidcResult.linkAccessToken;
+        // Show the waiting password confirmation right away.
+        this.screen = 'settings';
+        this.expandedSettings.add('app');
+      } else if (oidcResult) {
+        await this.rememberUser(oidcResult.user);
+      }
     } catch {
       this.initError = this.t('oidcLoginFailed');
     }
@@ -220,6 +232,8 @@ class LunaraWebApp {
       if (restoredUser) await this.rememberUser(restoredUser);
     }
     if (this.user) {
+      // Settings need the server's capabilities (e.g. Authentik) after a reload too.
+      if (!this.meta) this.meta = (await this.fetchMeta()) ?? (await settingsStore.get<MetaResponse>('meta')) ?? null;
       await this.loadCachedData();
       if (navigator.onLine) await this.refreshData();
       if (this.user.role === 'TRACKER' && navigator.onLine) void this.performSync(false);
@@ -1393,6 +1407,8 @@ class LunaraWebApp {
       view.append(this.settingsGroup('data', 'dataGroup', 'dataHint', this.periodTransferCard()));
     }
     const appItems = [server, createApkDownloadCard(this.language), ...(install ? [install] : [])];
+    const oidcCard = this.oidcLinkCard();
+    if (oidcCard) appItems.splice(1, 0, oidcCard);
     view.append(this.settingsGroup('app', 'appGroup', 'appHint', ...appItems));
     const accountActions = element('div', 'account-actions');
     accountActions.append(logout);
@@ -1936,6 +1952,71 @@ class LunaraWebApp {
     toast.setAttribute('role', 'status');
     document.body.append(toast);
     window.setTimeout(() => toast.remove(), 3_000);
+  }
+
+  /** Lets a signed-in account also sign in with the configured provider (e.g. Authentik). */
+  private oidcLinkCard(): HTMLElement | null {
+    if (this.localMode || !this.user || !this.meta || !canStartOidc(this.meta, 'link')) return null;
+    const provider = this.meta.oidc?.providerName ?? 'Authentik';
+    const card = element('section', 'info-card setting-card oidc-link-card');
+    card.append(element('h2', '', this.t('oidcLinkTitle', { provider })));
+    if (!this.oidcStatusRequested) {
+      this.oidcStatusRequested = true;
+      void this.api.oidcStatus()
+        .then((status) => { this.oidcStatus = status; this.render(); })
+        .catch(() => undefined);
+    }
+    if (this.oidcLinkMessage) {
+      const message = element('p', this.oidcLinkMessage.error ? 'form-error' : 'notice', this.oidcLinkMessage.text);
+      if (this.oidcLinkMessage.error) message.setAttribute('role', 'alert');
+      card.append(message);
+    }
+    if (this.pendingOidcLink) {
+      const form = element('form', 'login-form');
+      const label = element('label', '', this.t('oidcLinkPassword'));
+      const password = element('input') as HTMLInputElement;
+      password.type = 'password';
+      password.autocomplete = 'current-password';
+      password.required = true;
+      password.maxLength = 256;
+      label.append(password);
+      const submit = element('button', 'primary-button', this.t('oidcLinkConfirm'));
+      submit.type = 'submit';
+      form.append(element('p', 'subtle', this.t('oidcLinkPasswordHint', { provider })), label, submit);
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        submit.disabled = true;
+        try {
+          await this.api.linkOidc(this.pendingOidcLink ?? '', password.value);
+          this.pendingOidcLink = null;
+          this.oidcStatus = { linked: true };
+          this.oidcLinkMessage = { text: this.t('oidcLinked', { provider }), error: false };
+        } catch {
+          this.oidcLinkMessage = { text: this.t('oidcLinkFailed', { provider }), error: true };
+        } finally {
+          password.value = '';
+          submit.disabled = false;
+          this.render();
+        }
+      });
+      card.append(form);
+      return card;
+    }
+    if (this.oidcStatus?.linked) {
+      if (!this.oidcLinkMessage) card.append(element('p', 'notice', this.t('oidcLinked', { provider })));
+      return card;
+    }
+    card.append(
+      element('p', 'subtle', this.t('oidcLinkIntro', { provider })),
+      button('secondary-button', this.t('oidcLinkButton', { provider }), () => {
+        this.oidcLinkMessage = null;
+        void startOidc(this.meta!, { kind: 'link' }).catch(() => {
+          this.oidcLinkMessage = { text: this.t('oidcUnavailable'), error: true };
+          this.render();
+        });
+      }),
+    );
+    return card;
   }
 
   /** Partner sign-up with an invitation, so couples can use Lunara entirely in the browser. */
