@@ -103,6 +103,11 @@ export async function queuePeriodDelete(
   const unsyncedCreate = related.find(
     (mutation) => mutation.operation === 'UPSERT' && !('version' in mutation.payload),
   );
+  // A creation that was already sent may exist on the server even if its answer got
+  // lost. Only a never-sent creation can be dropped; otherwise sync first.
+  if (unsyncedCreate && unsyncedCreate.attemptCount > 0) {
+    throw new Error('The period must sync before it can be deleted');
+  }
   for (const mutation of related) await storage.deleteMutation(mutation.clientMutationId);
   if (!unsyncedCreate) {
     if (!period.version) throw new Error('The period must sync before it can be deleted');

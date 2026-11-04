@@ -129,8 +129,8 @@ class LunaraWebApp {
   // Period whose deletion waits for the second, confirming tap.
   private confirmDeletePeriodId: string | null = null;
   // Sharing switches and cycle profile of the signed-in tracker, loaded on first view.
-  private sharingState: { userId: string; settings: SharingSettings | null; failed: boolean } | null = null;
-  private profileState: { userId: string; profile: CycleProfile | null; failed: boolean } | null = null;
+  private sharingState: { userId: string; settings: SharingSettings | null; failed: boolean; saving: boolean; at: number } | null = null;
+  private profileState: { userId: string; profile: CycleProfile | null; failed: boolean; at: number } | null = null;
   private settingsMessage: { area: 'sharing' | 'profile'; text: string; error: boolean } | null = null;
   // Provider token held only in memory until the password confirms the connection.
   private pendingOidcLink: { token: string; userId: string; receivedAt: number } | null = null;
@@ -1973,14 +1973,17 @@ class LunaraWebApp {
   private ensureTrackerSettingsLoaded(): void {
     const userId = this.user?.id;
     if (!userId || this.localMode) return;
-    if (this.sharingState?.userId !== userId) {
-      this.sharingState = { userId, settings: null, failed: false };
+    // Retry a failed first load once the browser is back online.
+    const retry = (state: { failed: boolean; at: number } | null): boolean =>
+      Boolean(state?.failed && navigator.onLine && Date.now() - state.at > 5_000);
+    if (this.sharingState?.userId !== userId || retry(this.sharingState)) {
+      this.sharingState = { userId, settings: null, failed: false, saving: false, at: Date.now() };
       void this.api.sharingSettings()
         .then((settings) => { if (this.sharingState?.userId === userId) { this.sharingState.settings = settings; this.render(); } })
         .catch(() => { if (this.sharingState?.userId === userId) { this.sharingState.failed = true; this.render(); } });
     }
-    if (this.profileState?.userId !== userId) {
-      this.profileState = { userId, profile: null, failed: false };
+    if (this.profileState?.userId !== userId || retry(this.profileState)) {
+      this.profileState = { userId, profile: null, failed: false, at: Date.now() };
       void this.api.cycleProfile()
         .then((profile) => { if (this.profileState?.userId === userId) { this.profileState.profile = profile; this.render(); } })
         .catch(() => { if (this.profileState?.userId === userId) { this.profileState.failed = true; this.render(); } });
@@ -2019,11 +2022,13 @@ class LunaraWebApp {
       return card;
     }
     const settings = state.settings;
-    const offline = !navigator.onLine;
+    // One change at a time: parallel requests could let an older "share" win over a newer "stop".
+    const offline = !navigator.onLine || state.saving;
     const fertilityOn = this.profileState?.profile?.fertilityPredictionEnabled === true;
     const save = (patch: Partial<SharingSettings>): void => {
       const before = { ...settings };
       Object.assign(settings, patch);
+      state.saving = true;
       this.settingsMessage = null;
       this.render();
       void this.api.updateSharingSettings(patch)
@@ -2035,7 +2040,7 @@ class LunaraWebApp {
           if (this.sharingState?.userId === state.userId) this.sharingState.settings = before;
           this.settingsMessage = { area: 'sharing', text: this.t('settingsSaveFailed'), error: true };
         })
-        .finally(() => this.render());
+        .finally(() => { state.saving = false; this.render(); });
     };
     card.append(
       this.toggleRow(this.t('sharingPause'), settings.sharingPaused, offline, (value) => save({ sharingPaused: value }), this.t('sharingPauseHint')),
@@ -2119,6 +2124,14 @@ class LunaraWebApp {
           if (this.profileState?.userId === state.userId) this.profileState.profile = saved;
           // Turning the estimate off also revokes its sharing on the server.
           if (!saved.fertilityPredictionEnabled && this.sharingState?.settings) this.sharingState.settings.shareFertileWindow = false;
+          // Never keep showing an old estimate once predictions are switched off, even if reloading fails.
+          if (saved.predictionPaused || saved.specialMode !== 'NONE') {
+            this.prediction = {
+              available: false,
+              confidence: 'NONE',
+              reason: saved.predictionPaused ? 'PREDICTION_PAUSED' : 'SPECIAL_MODE',
+            } as Prediction;
+          }
           this.settingsMessage = { area: 'profile', text: this.t('settingsSaved'), error: false };
           await this.refreshData();
         })

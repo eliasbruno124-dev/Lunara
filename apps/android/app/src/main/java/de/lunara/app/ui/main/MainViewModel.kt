@@ -675,6 +675,10 @@ class MainViewModel @Inject constructor(
                 .onSuccess { profile ->
                     ifCurrentSession(ownerId) {
                         cycleProfile.value = profile
+                        // Hide the old estimate at once; the reload below may fail offline.
+                        if (de.lunara.app.data.repository.CycleSettings.of(profile).switchesPredictionsOff()) {
+                            trackerPrediction.value = null
+                        }
                         settingsError.value = false
                         refreshTrackerPredictionNow(ownerId)
                     }

@@ -169,6 +169,16 @@ describe('deleting a period', () => {
     expect(mutations[0]).toMatchObject({ entityId: synced.id, operation: 'DELETE', payload: { id: synced.id, version: 3 } });
   });
 
+  it('keeps a creation that was already sent until it has synced', async () => {
+    const storage = new MemoryQueue();
+    const period = await queuePeriodStart('2026-10-01', storage);
+    const [sent] = await storage.getMutations();
+    if (!sent) throw new Error('creation was not queued');
+    await storage.putMutation({ ...sent, attemptCount: 1 });
+    await expect(queuePeriodDelete(period, storage)).rejects.toThrow();
+    expect(await storage.getMutations()).toHaveLength(1);
+  });
+
   it('refuses to delete a server period without a known version', async () => {
     const storage = new MemoryQueue();
     const unknown = { id: crypto.randomUUID(), startDate: '2026-10-01', endDate: null, source: 'MANUAL' as const };

@@ -22,4 +22,11 @@ class CycleSettingsTest {
         assertEquals(30, settings.typicalCycleLength)
         assertTrue(settings.predictionPaused)
     }
+
+    @Test fun lifePhasesAndPauseSwitchPredictionsOff() {
+        val regular = CycleSettings("NONE", null, null, false)
+        assertFalse(regular.switchesPredictionsOff())
+        assertTrue(regular.copy(predictionPaused = true).switchesPredictionsOff())
+        assertTrue(regular.copy(specialMode = "PREGNANCY").switchesPredictionsOff())
+    }
 }

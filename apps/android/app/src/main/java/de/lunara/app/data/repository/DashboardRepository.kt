@@ -201,6 +201,7 @@ class DashboardRepository @Inject constructor(
                 settings.typicalPeriodLength,
                 settings.predictionPaused,
             )
+            if (settings.switchesPredictionsOff()) notificationDataCache.clear()
             return cycleProfile()
         }
         val base = state.baseUrl ?: throw ApiException(400)
@@ -217,7 +218,10 @@ class DashboardRepository @Inject constructor(
             response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
                 .updateCycleSettings(endpoint(base, "api/v1/cycle/profile"), body())
         }
-        return response.requireBody()
+        val saved = response.requireBody()
+        // Reminders must not keep using an estimate that was just switched off.
+        if (CycleSettings.of(saved).switchesPredictionsOff()) notificationDataCache.clear()
+        return saved
     }
 
     suspend fun sendCheckIn(prompt: String): de.lunara.app.data.remote.dto.CheckInDto {
@@ -240,6 +244,9 @@ data class CycleSettings(
     val typicalPeriodLength: Int?,
     val predictionPaused: Boolean,
 ) {
+    /** Pregnancy, the pill, a pause … all mean: show no regular period estimate. */
+    fun switchesPredictionsOff(): Boolean = predictionPaused || specialMode != "NONE"
+
     companion object {
         val MODES = listOf("NONE", "HORMONAL_CONTRACEPTION", "PREGNANCY", "POSTPARTUM", "MENOPAUSE_TRANSITION", "PAUSED")
 
