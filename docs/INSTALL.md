@@ -45,8 +45,9 @@ accounts ("Mia" and "Jonas") and made-up data.
   Docker network without internet access and without an open port.
 - **`migrate`** is a short one-off container. On every start it brings the
   database schema up to the image's version and then exits. `lunara` only
-  starts after it succeeded, so an update can never leave a half-migrated
-  schema behind.
+  starts after it succeeded, so a new version never runs against an
+  unfinished migration. Migrations that were already applied are not rolled
+  back automatically – that is what the backup before an update is for.
 - **Two roles per household:** the `TRACKER` records their cycle. The
   `PARTNER` only sees what the tracker explicitly shares, plus small everyday
   ideas.
@@ -107,7 +108,7 @@ What the values mean:
 | --- | --- |
 | `POSTGRES_PASSWORD` | database password, only used internally |
 | `APP_MASTER_KEY` | encrypts sensitive fields in the database. **If it is lost, that data can no longer be read.** Keep it safe together with your backups |
-| `AUTH_SIGNING_KEY` | signs sign-in tokens. Changing it signs everybody out |
+| `AUTH_SIGNING_KEY` | signs the short-lived access tokens. Changing it invalidates current access tokens; signed-in devices renew them automatically |
 | `REFRESH_TOKEN_PEPPER` | additional protection for stored refresh tokens |
 | `BOOTSTRAP_TOKEN` | one-time code for creating the very first account; remove it afterwards |
 
@@ -253,9 +254,14 @@ Android 13+ also in the system's per-app language settings).
 
 1. The tracker opens **Settings → Using Lunara together → Invite partner**.
    Lunara creates a single-use code or link.
-2. The partner chooses **Connect a server or partner** in the Android app
-   (or **My own server** in the browser), then **I have an invitation**,
-   enters the code and creates their own account.
+2. The partner joins:
+   - **Android app:** **Connect a server or partner** → enter the server
+     address → **I have an invitation**, enter or scan the code and create
+     their own account.
+   - **Web app:** the partner needs an existing account on the server (for
+     example created via the Android app, OIDC or open registration). After
+     signing in, they enter the code under **Settings → Using Lunara together**
+     or open the invitation link, and confirm the connection.
 3. The tracker decides **what** is shared – estimate, period dates, fertile
    window and further details, each one individually. A new connection only
    shares the minimum at first.

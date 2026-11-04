@@ -99,8 +99,11 @@ is neither needed nor intended.
    **Web settings → Using Lunara together** and create an invitation.
 2. Only pass the single-use code or invitation link on to the intended person.
    It does not contain an account password.
-3. Partner: enter or scan the invitation in the app, or open the link, and
-   confirm it explicitly with your own account.
+3. Partner on Android: **Connect a server or partner → I have an invitation**,
+   enter or scan the code and create or use your own account. Partner on the
+   web: sign in with an existing account, then enter the code under
+   **Settings → Using Lunara together** or open the link, and confirm the
+   connection explicitly.
 4. With Authentik, first confirm the intended personal access and redeem the
    invitation with exactly that account.
 
@@ -265,10 +268,11 @@ Limits and rules:
   silently merged.
 - CSV supports comma, semicolon or tab as separator, UTF-8 with or without BOM,
   UTF-16 with BOM and correctly placed quotation marks.
-- A start date is required. The end date column is optional; a missing end date
-  means an **ongoing, open period**, not an unknown historical end. It stays
-  open until you end it and can therefore collide with later entries. An end
-  is never guessed.
+- A start date is required. The end date column is optional. Without an end
+  date the period counts as ongoing for at most five days (start day included);
+  after that Lunara assumes it ended, also for overlap checks with later
+  entries (see [PERIOD-ENDS.md](PERIOD-ENDS.md)). The stored and exported end
+  stays empty – the assumption is never saved as a recorded end.
 - Invalid data, entries in the future and an end before the start are rejected.
 - The standard format `startDate,endDate` and recognized German and English
   column names are supported. Not every third-party export structure is
