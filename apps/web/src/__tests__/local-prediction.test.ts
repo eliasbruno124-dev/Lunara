@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateLocalPrediction } from '../local-prediction';
+import { calculateLocalPrediction, LOCAL_PREDICTION_ALGORITHM_VERSION } from '../local-prediction';
 import { defaultPortableExtras } from '../backup';
 import { addDays, daysBetween } from '../date';
 import type { PeriodEvent } from '../types';
@@ -30,6 +30,7 @@ describe('local solo prediction', () => {
       predictedEndFrom: '2026-04-24', predictedEndTo: '2026-04-30',
       fertileWindowFrom: '2026-04-01', fertileWindowTo: '2026-04-13',
       confidence: 'MEDIUM', basedOnCycleCount: 3, variationDays: 3, fertilityEstimate: true,
+      algorithmVersion: 'lunara-robust-v3',
     });
     expect(prediction.variationDays).toBe(daysBetween(prediction.predictedStartFrom!, prediction.predictedStartTo!) / 2);
   });
@@ -100,7 +101,7 @@ describe('local solo prediction', () => {
     { intervals: [28], confidence: 'LOW', halfWidth: 4, fertile: false },
     { intervals: [28, 28, 28], confidence: 'MEDIUM', halfWidth: 3, fertile: true },
     { intervals: [28, 28, 28, 28, 28, 28], confidence: 'HIGH', halfWidth: 2, fertile: true },
-    { intervals: [28, 28, 28, 28, 28, 28, 365], confidence: 'HIGH', halfWidth: 2, fertile: false },
+    { intervals: [28, 28, 28, 28, 28, 28, 365], confidence: 'MEDIUM', halfWidth: 2, fertile: false },
   ])('preserves confidence and fertility safety for $intervals', ({ intervals, confidence, halfWidth, fertile }) => {
     const periods = history(intervals);
     const result = calculateLocalPrediction(periods, periods.at(-1)!.startDate, profile);
@@ -109,6 +110,67 @@ describe('local solo prediction', () => {
     expect(disabled.fertilityEstimate).toBe(false);
     expect(disabled.fertileWindowFrom).toBeNull();
     expect(disabled.predictedStartFrom).toBe(result.predictedStartFrom);
+  });
+
+  it('widens a variable history with the v3 scaled MAD while preserving its center', () => {
+    const records = history([26, 28, 30]);
+    const lastStart = records.at(-1)!.startDate;
+    const result = calculateLocalPrediction(records, lastStart, profile);
+    expect(result).toMatchObject({
+      available: true,
+      algorithmVersion: 'lunara-robust-v3',
+      confidence: 'MEDIUM',
+      variationDays: 5,
+      predictedStartFrom: addDays(lastStart, 28 - 5),
+      predictedStartTo: addDays(lastStart, 28 + 5),
+    });
+  });
+
+  it('keeps a fourteen-day half-width available but rejects fifteen days', () => {
+    const accepted = history([22, 22, 22, 35, 35, 35]);
+    const rejected = history([21, 21, 21, 35, 35, 35]);
+    expect(calculateLocalPrediction(accepted, accepted.at(-1)!.startDate, profile)).toMatchObject({
+      available: true,
+      confidence: 'LOW',
+      variationDays: 14,
+      fertilityEstimate: false,
+    });
+    const result = calculateLocalPrediction(rejected, rejected.at(-1)!.startDate, profile);
+    expect(result).toMatchObject({
+      available: false,
+      confidence: 'NONE',
+      reason: 'UNRELIABLE_RANGE',
+      basedOnCycleCount: 6,
+      algorithmVersion: 'lunara-robust-v3',
+    });
+    expect(result.predictedStartFrom).toBeUndefined();
+    expect(result.predictedStartTo).toBeUndefined();
+    expect(result.fertileWindowFrom).toBeUndefined();
+    expect(result.fertileWindowTo).toBeUndefined();
+  });
+
+  it('does not display a next-start window reaching before the latest recorded start, even for stale inputs', () => {
+    const records = history([90, 15]);
+    for (const referenceDate of [records.at(-1)!.startDate, '2030-01-01']) {
+      expect(calculateLocalPrediction(records, referenceDate, profile)).toMatchObject({
+        available: false,
+        confidence: 'NONE',
+        reason: 'UNRELIABLE_RANGE',
+        basedOnCycleCount: 2,
+      });
+    }
+  });
+
+  it.each([
+    { intervals: [28, 28, 28, 28, 28, 28, 365], confidence: 'MEDIUM' },
+    { intervals: [28, 28, 28, 28, 28, 28, 365, 28], confidence: 'MEDIUM' },
+    { intervals: [28, 28, 28, 28, 28, 28, 365, 28, 28], confidence: 'HIGH' },
+    { intervals: [28, 28, 28, 28, 28, 28, 1], confidence: 'HIGH' },
+    { intervals: [15, 15, 15, 15, 50, 15, 365], confidence: 'LOW' },
+    { intervals: [365, ...Array<number>(12).fill(28)], confidence: 'HIGH' },
+  ])('caps only high confidence after one of the two most recent raw intervals was a long gap: $intervals', ({ intervals, confidence }) => {
+    const records = history(intervals);
+    expect(calculateLocalPrediction(records, records.at(-1)!.startDate, profile)).toMatchObject({ available: true, confidence });
   });
 
   it('expires strictly after the latest predicted start, including across DST dates', () => {
@@ -135,6 +197,7 @@ describe('local solo prediction', () => {
       available: false,
       confidence: 'NONE',
       reason: 'INSUFFICIENT_DATA',
+      algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION,
     });
   });
 

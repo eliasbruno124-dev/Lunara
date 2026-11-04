@@ -509,6 +509,7 @@
     <string name="journal_prediction_unavailable">Aktuell keine\nSchätzung.</string>
     <string name="journal_prediction_paused">Die Vorhersage ist pausiert.</string>
     <string name="journal_prediction_special">Für den gewählten Sondermodus wird keine Standardprognose angezeigt.</string>
+    <string name="journal_prediction_unreliable_range">Deine Zyklen schwanken noch zu stark für eine hilfreiche Schätzung.</string>
     <string name="journal_prediction_stale">Die letzten Daten liegen zu weit zurück. Prüfe deine Einträge im Kalender.</string>
     <string name="journal_prediction_pending">Deine Änderungen sind noch nicht synchronisiert. Die Schätzung wird danach aktualisiert.</string>
     <string name="session_recovery_short">Deine Einträge bleiben lokal erhalten. Melde dich mit demselben Konto an.</string>

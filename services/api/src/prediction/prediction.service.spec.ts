@@ -52,4 +52,38 @@ describe('PredictionService', () => {
       reason: 'STALE_HISTORY',
     });
   });
+
+  it('removes the previous cached forecast when the new range is unreliable', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-03-11T12:00:00Z'));
+    const cacheTransaction = {
+      prediction: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+        create: jest.fn(),
+      },
+    };
+    const prisma = {
+      cycleProfile: {
+        findUnique: jest.fn().mockResolvedValue({
+          timezone: 'Europe/Berlin',
+          fertilityPredictionEnabled: true,
+          predictionPaused: false,
+          specialMode: 'NONE',
+        }),
+      },
+      periodEvent: {
+        findMany: jest.fn().mockResolvedValue(
+          ['2026-01-01', '2026-01-29', '2026-03-11']
+            .map(start => ({ startDate: new Date(`${start}T00:00:00Z`), endDate: null })),
+        ),
+      },
+      $transaction: jest.fn(async (update: (transaction: typeof cacheTransaction) => Promise<void>) => update(cacheTransaction)),
+    };
+
+    const result = await new PredictionService(prisma as never).recalculateAndCache('user-id');
+
+    expect(result).toMatchObject({ available: false, reason: 'UNRELIABLE_RANGE' });
+    expect(cacheTransaction.prediction.deleteMany).toHaveBeenCalledWith({ where: { userId: 'user-id' } });
+    expect(cacheTransaction.prediction.create).not.toHaveBeenCalled();
+    expect(result).not.toHaveProperty('fertileWindowFrom');
+  });
 });

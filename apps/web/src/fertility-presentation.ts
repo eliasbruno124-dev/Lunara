@@ -10,7 +10,7 @@ export function hasFertileEstimate(prediction: Prediction | null | undefined): b
       safety.notContraception === true && safety.doesNotConfirmOvulation === true && safety.reason === 'AVAILABLE';
   if (!allowed) return false;
   try { parseIsoDate(prediction.fertileWindowFrom); parseIsoDate(prediction.fertileWindowTo); } catch { return false; }
-  // v2's widest eligible interval is 7 + 2*6 = 19 inclusive days. Reject legacy
+  // v3's widest eligible interval is 7 + 2*6 = 19 inclusive days. Reject legacy
   // broad intervals rather than clipping them into apparently precise estimates.
   const width = daysBetween(prediction.fertileWindowFrom, prediction.fertileWindowTo) + 1;
   return width >= 1 && width <= 19;

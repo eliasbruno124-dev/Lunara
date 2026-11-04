@@ -1,10 +1,19 @@
 # Prediction algorithm
 
-Algorithm identifier: `lunara-robust-v2`
+Algorithm identifier: `lunara-robust-v3`
 
 Lunara calculates a cautious, understandable date range. The result is
 not a medical prediction, evidence of ovulation, or a method of
 contraception.
+
+## Changes in 1.6.0
+
+Version 3 widens the MAD-based spread with a factor of 1.28, rejects a
+start range with a half-width above 14 days or a beginning before the last
+recorded start, and caps confidence at `MEDIUM` after a recent excluded
+interval longer than 90 days. The center, minimum widths and safety-day
+additions are unchanged. The factor broadens the heuristic; it does not
+establish a calibrated 80% coverage probability or clinical accuracy.
 
 ## Accuracy review of September 21, 2026
 
@@ -27,22 +36,22 @@ accuracy. There is no prospective validation, measured personal error rate,
 or calibrated coverage probability for the displayed window. `HIGH` is an
 internal heuristic and does not mean “medically very precise.”
 
-The independent review reproduced the following limitations:
+The independent review reproduced the following limitations in version 2:
 
-- Six 28-day cycles followed by a 365-day gap in recording can
-  still produce `HIGH` and a half-width of two days. The large
-  interval is excluded from the model before confidence is calculated.
-  Fertility is correctly not estimated in this case.
+- Six 28-day cycles followed by a 365-day gap in recording could
+  produce `HIGH` and a half-width of two days. Version 3 retains the
+  half-width but caps confidence at `MEDIUM` while that gap is the newest
+  or second-newest raw interval. Fertility remains unavailable.
 - The sequence 15, 90, 15 days produces `LOW`, but because MAD = 0, its
   half-width is only three days. The robust range is not an interval with
   a guaranteed probability of containing the actual start.
 - The end range accounts for the median bleeding duration, not its
   own variability. Bleeding episodes of different lengths therefore do not widen it.
 
-These limitations were not resolved through formula changes in 1.1.5.
-That update concerns sign-in and synchronization. A better-calibrated
-uncertainty display in the future requires separate, consistent changes to
-the server, Android solo algorithm, and PWA, together with suitable test data.
+The zero-MAD and bleeding-duration limitations remain in version 3.
+The changes in 1.6.0 are implemented consistently in the server, Android
+solo algorithm and PWA; a calibrated uncertainty display still requires
+suitable validation data.
 
 ## Inputs
 
@@ -95,7 +104,7 @@ always “low” and the range is visibly widened.
 ## Prediction range
 
 The center is `last period start + typical cycle length`. The
-half-width is robust and uses `ceil(1.4826 × MAD) + 1`. With fewer than
+half-width is robust and uses `ceil(1.28 × 1.4826 × MAD) + 1`. With fewer than
 three cycles, one additional safety day is added. Its minimum is:
 
 - 0 cycles plus a manual value: 4 days
@@ -110,6 +119,14 @@ not the width of the prediction window. This prevents a single unusual
 interval from expanding the visible window by months. The expected start
 runs from the center minus the half-width to the center plus the half-width.
 
+If the half-width exceeds 14 days, or the calculated beginning precedes the
+last recorded period start, the result is unavailable with reason
+`UNRELIABLE_RANGE`. No start, end or fertility dates are returned for this
+case. The interface explains: "Your cycles vary too much for a useful estimate
+yet." Statistics and the number of model cycles remain available. This check
+takes precedence over `STALE_HISTORY`; the range is not clipped to look more
+precise.
+
 If the entire calculated start window is before the local reference date,
 an outdated prediction is not returned as the “next period.” The API then
 responds with `STALE_HISTORY`. Lunara does not automatically extrapolate
@@ -122,7 +139,7 @@ observed durations remain visible as excluded raw values, but are not silently
 used as the typical period duration. Selection is independent of the order
 of the API input. Without usable history, an explicit typical duration can
 be used.
-If that is also absent, version 2 uses a cautious five-day prior for API
+If that is also absent, version 3 retains the cautious five-day prior for API
 compatibility. The statistics must identify the source as
 `observed-periods`, `profile-fallback`, or `default-prior`. The interface must
 not describe a prior as a personally observed typical duration.
@@ -136,6 +153,12 @@ The start range plus the duration gives the end range.
   and a range contribution no greater than six days
 - `HIGH`: at least six cycles, robust variability no greater than two days,
   and a range contribution no greater than three days
+
+Robust variability here means `ceil(1.28 × 1.4826 × MAD)`. If either of the
+last two **raw** intervals in the statistics window is longer than 90 days,
+`HIGH` is capped at `MEDIUM`. `LOW` remains `LOW`. Older excluded intervals
+and intervals below 15 days do not trigger this cap; any excluded interval
+still prevents a fertility estimate.
 
 The API returns the level, observed and used counts, typical length,
 raw median, model median, minimum, maximum, excluded intervals,
@@ -187,19 +210,21 @@ Android, PWA, and server must use the same steps and constants:
    median, sort value/weight pairs by value and choose the first value whose
    cumulative weight reaches at least half of the total weight.
 4. Model MAD is the median of absolute distances from the model median.
-   `robustSpread = ceil(MAD × 1.4826)`. The half-width for 0–2 model cycles is
+   `robustSpread = ceil(1.28 × 1.4826 × MAD)`. The half-width for 0–2 model cycles is
    `max(4, robustSpread+2)`, for 3–5 it is `max(3, robustSpread+1)`, and otherwise
    `max(2, robustSpread+1)`.
 5. The range contribution is `ceil((modelMaximum-modelMinimum)/4)` and is
-   used only for the confidence rules.
+   used only for the confidence rules. After applying those rules, cap
+   `HIGH` at `MEDIUM` if either of the last two raw intervals is above 90 days.
 6. For period durations, first sort entries by start, then select the last
    twelve positive completed durations. Values above 30 remain in the raw
    statistics but are not part of the model basis. The median is rounded to
    whole days, followed by the profile fallback and finally the labeled
    five-day prior.
 7. The start center is `lastStart + weightedMedian`. Start and end boundaries
-   are inclusive. If `predictedStartTo < referenceDate`, the result is
-   `STALE_HISTORY`.
+   are inclusive. First return `UNRELIABLE_RANGE` if `halfWidth > 14` or
+   `predictedStartFrom < lastStart`. Otherwise, if
+   `predictedStartTo < referenceDate`, the result is `STALE_HISTORY`.
 8. Fertility is available only when enabled, with at least three model cycles,
    no excluded raw intervals, confidence other than `LOW`, and a half-width
    no greater than 14. The default luteal phase is 14. Window boundaries are
@@ -242,6 +267,14 @@ Fail-closed vectors:
 - Raw intervals `[28,28,365,28]` produce model intervals `[28,28,28]`,
   excluded intervals `[365]`, a half-width of 3, and, when fertility is enabled,
   `UNRELIABLE_DATA` instead of a window.
+- Raw intervals `[28,40]` produce a half-width of 14 and remain available.
+  `[28,41]` produce a half-width of 15 and `UNRELIABLE_RANGE`.
+- Raw intervals `[90,15]` produce `UNRELIABLE_RANGE`, rather than a next-start
+  range beginning before the last recorded start, even with a stale reference date.
+- Six 28-day intervals followed by `[365]` or `[365,28]` produce `MEDIUM`;
+  six 28-day intervals followed by `[365,28,28]` may produce `HIGH` again.
+  Fertility remains unavailable in each case while the excluded gap is in
+  the statistics window.
 
 ## Limitations
 

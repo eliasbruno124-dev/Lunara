@@ -2,6 +2,10 @@ import { addDays, daysBetween, todayIso } from './date';
 import type { PortableProfile } from './backup';
 import type { PeriodEvent, Prediction } from './types';
 
+export const LOCAL_PREDICTION_ALGORITHM_VERSION = 'lunara-robust-v3';
+
+type LocalPrediction = Prediction & { algorithmVersion: typeof LOCAL_PREDICTION_ALGORITHM_VERSION };
+
 function median(values: number[]): number {
   if (!values.length) return 0;
   const sorted = [...values].sort((left, right) => left - right);
@@ -34,19 +38,19 @@ export function calculateLocalPrediction(
   periods: PeriodEvent[],
   referenceDate = todayIso(),
   profile?: PortableProfile,
-): Prediction {
+): LocalPrediction {
   if (profile?.predictionPaused) {
-    return { available: false, confidence: 'NONE', reason: 'PREDICTION_PAUSED' };
+    return { available: false, confidence: 'NONE', reason: 'PREDICTION_PAUSED', algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION };
   }
   if (profile?.specialMode && profile.specialMode !== 'NONE') {
-    return { available: false, confidence: 'NONE', reason: 'SPECIAL_MODE' };
+    return { available: false, confidence: 'NONE', reason: 'SPECIAL_MODE', algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION };
   }
   const activePeriods = periods.filter((period) => !period.deletedAt).sort((left, right) => left.startDate.localeCompare(right.startDate));
   const starts = [...new Set(activePeriods.map((period) => period.startDate))]
     .sort()
     .slice(-13);
   if (!starts.length) {
-    return { available: false, confidence: 'NONE', reason: 'NO_PERIOD_START' };
+    return { available: false, confidence: 'NONE', reason: 'NO_PERIOD_START', algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION };
   }
   const observedCycleLengths = starts
     .slice(1)
@@ -57,11 +61,11 @@ export function calculateLocalPrediction(
   const excludedCycleCount = observedCycleLengths.length - cycleLengths.length;
   const fallbackCycleLength = supportedInteger(profile?.typicalCycleLength, 15, 90);
   if (!cycleLengths.length && fallbackCycleLength === null) {
-    return { available: false, confidence: 'NONE', reason: 'INSUFFICIENT_DATA' };
+    return { available: false, confidence: 'NONE', reason: 'INSUFFICIENT_DATA', algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION };
   }
   const modelMedian = cycleLengths.length ? median(cycleLengths) : fallbackCycleLength!;
   const deviations = cycleLengths.map((length) => Math.abs(length - modelMedian));
-  const robustVariation = Math.ceil(median(deviations) * 1.4826);
+  const robustVariation = Math.ceil(1.28 * 1.4826 * median(deviations));
   const rangeSignal = cycleLengths.length
     ? Math.ceil(((Math.max(...cycleLengths) - Math.min(...cycleLengths)) / 2) * 0.5)
     : 0;
@@ -74,6 +78,16 @@ export function calculateLocalPrediction(
     cycleLengths.length ? weightedMedian(cycleLengths) : fallbackCycleLength!,
   );
   const predicted = addDays(starts.at(-1)!, typicalCycle);
+  const predictedStartFrom = addDays(predicted, -uncertainty);
+  if (uncertainty > 14 || predictedStartFrom < starts.at(-1)!) {
+    return {
+      available: false,
+      confidence: 'NONE',
+      reason: 'UNRELIABLE_RANGE',
+      basedOnCycleCount: cycleLengths.length,
+      algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION,
+    };
+  }
   // Match the canonical model: select the latest 12 positive completed observations
   // before excluding >30-day durations. Profile fallback limits are not observation limits.
   const durations = activePeriods
@@ -91,9 +105,11 @@ export function calculateLocalPrediction(
       confidence: 'NONE',
       reason: 'STALE_HISTORY',
       basedOnCycleCount: cycleLengths.length,
+      algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION,
     };
   }
-  const confidence = cycleLengths.length >= 6 && robustVariation <= 2 && rangeSignal <= 3
+  const recentLongGap = observedCycleLengths.slice(-2).some((length) => length > 90);
+  const confidence = !recentLongGap && cycleLengths.length >= 6 && robustVariation <= 2 && rangeSignal <= 3
     ? 'HIGH'
     : cycleLengths.length >= 3 && robustVariation <= 5 && rangeSignal <= 6
       ? 'MEDIUM'
@@ -107,7 +123,7 @@ export function calculateLocalPrediction(
   const lutealLength = supportedInteger(profile?.lutealLength, 8, 20) ?? 14;
   return {
     available: true,
-    predictedStartFrom: addDays(predicted, -uncertainty),
+    predictedStartFrom,
     predictedStartTo: addDays(predicted, uncertainty),
     predictedEndFrom: addDays(predicted, typicalDuration - 1 - uncertainty),
     predictedEndTo: addDays(predicted, typicalDuration - 1 + uncertainty),
@@ -121,6 +137,7 @@ export function calculateLocalPrediction(
     confidence,
     basedOnCycleCount: cycleLengths.length,
     variationDays: uncertainty,
+    algorithmVersion: LOCAL_PREDICTION_ALGORITHM_VERSION,
     explanation: `Recency-weighted median with MAD from ${cycleLengths.length} recorded cycles`,
   };
 }

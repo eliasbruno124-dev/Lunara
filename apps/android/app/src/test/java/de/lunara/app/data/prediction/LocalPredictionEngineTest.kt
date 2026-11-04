@@ -29,11 +29,15 @@ class LocalPredictionEngineTest {
         assertNotNull(FertilityWindowPolicy.validated(raw))
     }
 
-    @Test fun legacyWideCycleFixtureRemainsSuppressedByUnchangedV2Formula() {
+    @Test fun wideCycleFixtureHasNoUsefulStartOrFertilityEstimate() {
         val periods = periodsForIntervals(listOf(20, 28, 36))
         val result = LocalPredictionEngine.calculate(LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true), clock)
-        assertFalse(requireNotNull(result.fertilityEstimate).available)
+        assertFalse(result.available)
+        assertEquals("UNRELIABLE_RANGE", result.reason)
+        assertNull(result.predictedStartFrom)
+        assertNull(result.predictedStartTo)
         assertNull(result.fertileWindowFrom)
+        assertNull(result.fertileWindowTo)
         assertNull(FertilityWindowPolicy.validated(result))
     }
 
@@ -62,7 +66,103 @@ class LocalPredictionEngineTest {
         assertEquals(5, result.typicalPeriodLength)
         assertEquals(3, result.variationDays)
         assertEquals("default-prior", result.statistics?.get("periodDurationDataBasis"))
+        assertEquals("lunara-robust-v3", result.algorithmVersion)
         assertEquals(LocalPredictionEngine.ALGORITHM_VERSION, result.algorithmVersion)
+    }
+
+    @Test
+    fun scaledMadWidensTheUsefulRangeAndPreservesTheFertilityCeiling() {
+        val periods = periodsForIntervals(listOf(24, 26, 29, 31))
+        val result = LocalPredictionEngine.calculate(
+            LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true),
+            clock,
+        )
+
+        assertTrue(result.available)
+        assertEquals(2.5, result.statistics?.get("medianAbsoluteDeviation"))
+        assertEquals(6, result.variationDays)
+        assertEquals("MEDIUM", result.confidence)
+        assertEquals("2024-05-13", result.predictedStartFrom)
+        assertEquals("2024-05-25", result.predictedStartTo)
+        assertEquals("2024-04-24", result.fertileWindowFrom)
+        assertEquals("2024-05-12", result.fertileWindowTo)
+        assertNotNull(FertilityWindowPolicy.validated(result))
+    }
+
+    @Test
+    fun fourteenDayHalfWidthIsAvailableButFifteenDaysIsUnreliable() {
+        val boundaryPeriods = periodsForIntervals(listOf(28, 40))
+        val boundary = LocalPredictionEngine.calculate(
+            LocalPredictionEngine.Input(boundaryPeriods, boundaryPeriods.last().startDate),
+            clock,
+        )
+        assertTrue(boundary.available)
+        assertEquals(14, boundary.variationDays)
+        assertEquals("LOW", boundary.confidence)
+
+        val excessivePeriods = periodsForIntervals(listOf(28, 41))
+        val excessive = LocalPredictionEngine.calculate(
+            LocalPredictionEngine.Input(excessivePeriods, excessivePeriods.last().startDate, fertilityPredictionEnabled = true),
+            clock,
+        )
+        assertFalse(excessive.available)
+        assertEquals("UNRELIABLE_RANGE", excessive.reason)
+        assertEquals(15, excessive.statistics?.get("variationDays"))
+        assertNull(excessive.predictedStartFrom)
+        assertNull(excessive.predictedEndTo)
+        assertNull(FertilityWindowPolicy.validated(excessive))
+    }
+
+    @Test
+    fun aWindowStartingBeforeTheLatestRecordedPeriodFailsClosedBeforeStaleHistory() {
+        val periods = periodsForIntervals(listOf(90, 15))
+        for (referenceDate in listOf(periods.last().startDate, "2030-01-01")) {
+            val result = LocalPredictionEngine.calculate(
+                LocalPredictionEngine.Input(periods, referenceDate, fertilityPredictionEnabled = true),
+                clock,
+            )
+            assertFalse(result.available)
+            assertEquals("UNRELIABLE_RANGE", result.reason)
+            assertEquals(74, result.statistics?.get("variationDays"))
+            assertNull(result.predictedStartFrom)
+            assertNull(result.predictedStartTo)
+            assertNull(result.fertileWindowFrom)
+            assertNull(result.fertileWindowTo)
+        }
+    }
+
+    @Test
+    fun onlyTheTwoMostRecentRawIntervalsCapHighConfidenceAfterALongGap() {
+        val vectors = listOf(
+            listOf(28, 28, 28, 28, 28, 28, 365) to "MEDIUM",
+            listOf(28, 28, 28, 28, 28, 365, 28) to "MEDIUM",
+            listOf(28, 28, 28, 28, 365, 28, 28) to "HIGH",
+        )
+        for ((intervals, confidence) in vectors) {
+            val periods = periodsForIntervals(intervals)
+            val result = LocalPredictionEngine.calculate(
+                LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true),
+                clock,
+            )
+            assertTrue(result.available)
+            assertEquals(confidence, result.confidence)
+            assertEquals(2, result.variationDays)
+            assertEquals(6, result.basedOnCycleCount)
+            assertFalse(requireNotNull(result.fertilityEstimate).available)
+        }
+    }
+
+    @Test
+    fun recentGapsNeverPromoteLowConfidenceOrRestoreFertility() {
+        val periods = periodsForIntervals(listOf(15, 90, 15, 365))
+        val result = LocalPredictionEngine.calculate(
+            LocalPredictionEngine.Input(periods, periods.last().startDate, fertilityPredictionEnabled = true),
+            clock,
+        )
+
+        assertTrue(result.available)
+        assertEquals("LOW", result.confidence)
+        assertFalse(requireNotNull(result.fertilityEstimate).available)
     }
 
     @Test

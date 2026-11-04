@@ -1,4 +1,4 @@
-export const PREDICTION_ALGORITHM_VERSION = 'lunara-robust-v2';
+export const PREDICTION_ALGORITHM_VERSION = 'lunara-robust-v3';
 
 export type PredictionConfidenceValue = 'LOW' | 'MEDIUM' | 'HIGH' | 'UNAVAILABLE';
 
@@ -102,7 +102,8 @@ export interface UnavailablePrediction {
     | 'PREDICTION_PAUSED'
     | 'SPECIAL_MODE'
     | 'INSUFFICIENT_DATA'
-    | 'STALE_HISTORY';
+    | 'STALE_HISTORY'
+    | 'UNRELIABLE_RANGE';
   basedOnCycleCount?: number;
   statistics?: CycleStatistics;
 }
@@ -201,7 +202,7 @@ export function calculatePrediction(
   const mad = modelCycleMedian === null
     ? null
     : median(cycleLengths.map((length) => Math.abs(length - modelCycleMedian)));
-  const robustSpread = mad === null ? 0 : Math.ceil(mad * 1.4826);
+  const robustSpread = mad === null ? 0 : Math.ceil(1.28 * 1.4826 * mad);
   // The usable range affects confidence only. The visible band itself remains
   // based on MAD, so one retained in-range outlier cannot inflate it by months.
   const rangeSignal = cycleLengths.length > 0
@@ -285,7 +286,17 @@ export function calculatePrediction(
   const center = lastStart.day + robustCycleLength;
   const startFrom = center - variationDays;
   const startTo = center + variationDays;
-  const confidence = confidenceFor(cycleLengths.length, robustSpread, rangeSignal);
+  if (variationDays > 14 || startFrom < lastStart.day) {
+    return unavailable('UNRELIABLE_RANGE', {
+      basedOnCycleCount: cycleLengths.length,
+      statistics,
+    });
+  }
+  const modelConfidence = confidenceFor(cycleLengths.length, robustSpread, rangeSignal);
+  const recentLongGap = observedCycleLengths.slice(-2).some(
+    (length) => length > MAX_MODEL_CYCLE_LENGTH,
+  );
+  const confidence = recentLongGap && modelConfidence === 'HIGH' ? 'MEDIUM' : modelConfidence;
   const referenceDay = epochDay(input.referenceDate ?? now.toISOString().slice(0, 10));
   if (startTo < referenceDay) {
     return unavailable('STALE_HISTORY', {

@@ -80,6 +80,7 @@ internal fun PredictionHero(
     val unavailableReason = when (reason) {
         "PREDICTION_PAUSED" -> R.string.journal_prediction_paused
         "SPECIAL_MODE" -> R.string.journal_prediction_special
+        "UNRELIABLE_RANGE" -> R.string.journal_prediction_unreliable_range
         "STALE_HISTORY" -> R.string.journal_prediction_stale
         "PENDING_CHANGES" -> R.string.journal_prediction_pending
         else -> R.string.journal_prediction_empty_body

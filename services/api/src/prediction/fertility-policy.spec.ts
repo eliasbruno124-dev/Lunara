@@ -18,7 +18,7 @@ describe('supported fertility envelopes', () => {
     expect(isSupportedFertileWindow(from, to)).toBe(expected);
   });
 
-  it('retains the current v2 maximum and suppresses the historical problematic cycle vector', () => {
+  it('retains the current v3 maximum and suppresses the historical problematic cycle vector', () => {
     const predict = (lengths: number[]) => {
       const periods = [{ startDate: '2026-01-01' }];
       for (const length of lengths) {
@@ -27,17 +27,15 @@ describe('supported fertility envelopes', () => {
       }
       return calculatePrediction({ periods, referenceDate: periods[periods.length - 1]!.startDate, fertilityPredictionEnabled: true });
     };
-    const maximum = predict([24, 27, 30]);
+    const maximum = predict([24, 26, 29, 31]);
     expect(maximum.available).toBe(true);
     if (!maximum.available) throw new Error('Expected available synthetic prediction');
     expect(maximum.fertilityEstimate.available).toBe(true);
     expect((Date.parse(maximum.fertileWindowTo!) - Date.parse(maximum.fertileWindowFrom!)) / 86_400_000 + 1).toBe(19);
     expect(isSupportedFertileWindow(maximum.fertileWindowFrom, maximum.fertileWindowTo)).toBe(true);
     const legacyVector = predict([20, 28, 36]);
-    expect(legacyVector.available).toBe(true);
-    if (!legacyVector.available) throw new Error('Expected available synthetic cycle estimate');
-    expect(legacyVector.fertilityEstimate).toMatchObject({ available: false, reason: 'UNRELIABLE_DATA' });
-    expect(legacyVector.fertileWindowFrom).toBeNull();
-    expect(legacyVector.fertileWindowTo).toBeNull();
+    expect(legacyVector).toMatchObject({ available: false, reason: 'UNRELIABLE_RANGE' });
+    expect(legacyVector).not.toHaveProperty('fertileWindowFrom');
+    expect(legacyVector).not.toHaveProperty('fertileWindowTo');
   });
 });

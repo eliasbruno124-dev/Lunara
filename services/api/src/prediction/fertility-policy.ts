@@ -1,4 +1,4 @@
-/** v2 eligible range maximum: 7 + 2 * variationDays, with variationDays <= 6. */
+/** v3 eligible range maximum: 7 + 2 * variationDays, with variationDays <= 6. */
 export const MAX_FERTILE_WINDOW_DAYS = 19;
 
 /** Reject unsupported legacy/cached envelopes; never clip uncertainty. */

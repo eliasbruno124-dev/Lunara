@@ -27,6 +27,11 @@ class PredictionFreshnessPolicyTest {
         assertNull(PredictionFreshnessPolicy.unavailableReason(prediction, today, false))
         assertEquals("PREDICTION_PAUSED", PredictionFreshnessPolicy.unavailableReason(prediction.copy(available = false, reason = "PREDICTION_PAUSED"), today, true))
     }
+    @Test fun `unreliable range remains the displayed reason instead of missing or pending data`() {
+        val unavailable = PredictionDto(available = false, confidence = "UNAVAILABLE", reason = "UNRELIABLE_RANGE")
+        assertEquals("UNRELIABLE_RANGE", PredictionFreshnessPolicy.unavailableReason(unavailable, LocalDate.parse("2026-04-26")))
+        assertEquals("UNRELIABLE_RANGE", PredictionFreshnessPolicy.unavailableReason(unavailable, LocalDate.parse("2026-04-26"), true))
+    }
     @Test fun `known profile timezone wins over device timezone at midnight`() {
         val now = Instant.parse("2026-04-26T22:30:00Z")
         val device = ZoneId.of("America/Los_Angeles")

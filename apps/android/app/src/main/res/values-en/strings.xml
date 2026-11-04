@@ -509,6 +509,7 @@
     <string name="journal_prediction_unavailable">No estimate\nright now.</string>
     <string name="journal_prediction_paused">Prediction is paused.</string>
     <string name="journal_prediction_special">No standard prediction is shown for the selected special mode.</string>
+    <string name="journal_prediction_unreliable_range">Your cycles vary too much for a useful estimate yet.</string>
     <string name="journal_prediction_stale">The latest data is too old for a current estimate. Review your calendar entries.</string>
     <string name="journal_prediction_pending">Your changes have not synced yet. The estimate will be updated afterwards.</string>
     <string name="session_recovery_short">Your entries stay on this device. Sign in again with the same account.</string>

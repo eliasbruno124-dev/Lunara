@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- Predictions use `lunara-robust-v3` on the server, Android and web: wider MAD-based ranges for variable cycles, a clear unavailable state for unusably broad ranges, and confidence capped at medium after a recent long gap in recording. These changes do not establish a calibrated coverage probability.
+
 ## 1.5.1
 
 - The Android app's donation button now opens the correct PayPal address (`paypal.me/eliasbruno123`).

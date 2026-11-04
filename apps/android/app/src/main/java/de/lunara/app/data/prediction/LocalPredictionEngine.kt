@@ -12,12 +12,13 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-/** Portable Android implementation of the documented `lunara-robust-v2` contract. */
+/** Portable Android implementation of the documented `lunara-robust-v3` contract. */
 object LocalPredictionEngine {
-    const val ALGORITHM_VERSION = "lunara-robust-v2"
+    const val ALGORITHM_VERSION = "lunara-robust-v3"
 
     private const val MIN_MODEL_CYCLE_LENGTH = 15
     private const val MAX_MODEL_CYCLE_LENGTH = 90
+    private const val MAX_PREDICTION_VARIATION_DAYS = 14
     private const val MAX_FERTILITY_VARIATION_DAYS = 14
     private const val DEFAULT_PERIOD_DURATION = 5
     private val strictIsoDate = DateTimeFormatter.ISO_LOCAL_DATE.withResolverStyle(ResolverStyle.STRICT)
@@ -60,7 +61,7 @@ object LocalPredictionEngine {
         val mad = modelMedian?.let { center ->
             medianDoubles(modelCycleLengths.map { kotlin.math.abs(it - center) })
         }
-        val robustSpread = mad?.let { ceil(it * 1.4826).toInt() } ?: 0
+        val robustSpread = mad?.let { ceil(1.28 * 1.4826 * it).toInt() } ?: 0
         val rangeSignal = modelCycleLengths.takeIf { it.isNotEmpty() }?.let { values ->
             ceil((values.max() - values.min()) / 4.0).toInt()
         } ?: 0
@@ -131,7 +132,17 @@ object LocalPredictionEngine {
         val center = starts.last().plusDays(typicalCycleLength.toLong())
         val startFrom = center.minusDays(variationDays.toLong())
         val startTo = center.plusDays(variationDays.toLong())
-        val confidence = confidence(modelCycleLengths.size, robustSpread, rangeSignal)
+        if (variationDays > MAX_PREDICTION_VARIATION_DAYS || startFrom.isBefore(starts.last())) {
+            return unavailable(
+                reason = "UNRELIABLE_RANGE",
+                clock = clock,
+                basedOnCycleCount = modelCycleLengths.size,
+                statistics = statistics,
+            )
+        }
+        val modelConfidence = confidence(modelCycleLengths.size, robustSpread, rangeSignal)
+        val recentExcludedGap = observedCycleLengths.takeLast(2).any { it > MAX_MODEL_CYCLE_LENGTH }
+        val confidence = if (recentExcludedGap && modelConfidence == "HIGH") "MEDIUM" else modelConfidence
         val referenceDate = strictDate(input.referenceDate)
         if (startTo.isBefore(referenceDate)) {
             return unavailable(

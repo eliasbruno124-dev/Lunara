@@ -25,7 +25,7 @@ function lastStart(periods: HistoricalPeriod[]): string {
   return [...periods].map((period) => period.startDate).sort().at(-1) as string;
 }
 
-describe('calculatePrediction v2', () => {
+describe('calculatePrediction v3', () => {
   it('uses observed cycles rather than a hard-coded 28-day cycle', () => {
     const result = calculatePrediction(
       {
@@ -43,7 +43,7 @@ describe('calculatePrediction v2', () => {
     expect(result.available).toBe(true);
     if (!result.available) return;
     expect(result.algorithmVersion).toBe(PREDICTION_ALGORITHM_VERSION);
-    expect(result.algorithmVersion).toBe('lunara-robust-v2');
+    expect(result.algorithmVersion).toBe('lunara-robust-v3');
     expect(result.typicalCycleLength).toBe(30);
     expect(result.predictedStartFrom).toBe('2026-05-28');
     expect(result.predictedStartTo).toBe('2026-06-03');
@@ -151,6 +151,97 @@ describe('calculatePrediction v2', () => {
     if (!result.available) return;
     expect(result.variationDays).toBe(3);
     expect(result.confidence).toBe('MEDIUM');
+  });
+
+  it('widens the robust spread without changing the model center', () => {
+    const periods = periodsForCycleLengths([24, 26, 28, 28, 30, 32]);
+    const result = calculatePrediction({ periods, referenceDate: lastStart(periods) });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.typicalCycleLength).toBe(28);
+    expect(result.statistics.medianAbsoluteDeviation).toBe(2);
+    expect(result.variationDays).toBe(5);
+    expect(result.confidence).toBe('MEDIUM');
+  });
+
+  it('keeps a fourteen-day half-width available with two observed intervals', () => {
+    const periods = periodsForCycleLengths([28, 40]);
+    const result = calculatePrediction({ periods, referenceDate: lastStart(periods) });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.typicalCycleLength).toBe(40);
+    expect(result.variationDays).toBe(14);
+    expect(result.confidence).toBe('LOW');
+    expect(result.fertilityEstimate.available).toBe(false);
+  });
+
+  it('withholds a fifteen-day half-width rather than presenting it as the next period', () => {
+    const periods = periodsForCycleLengths([28, 41]);
+    const result = calculatePrediction({
+      periods,
+      referenceDate: lastStart(periods),
+      fertilityPredictionEnabled: true,
+    });
+    expect(result).toMatchObject({
+      available: false,
+      confidence: 'UNAVAILABLE',
+      algorithmVersion: 'lunara-robust-v3',
+      reason: 'UNRELIABLE_RANGE',
+      basedOnCycleCount: 2,
+      statistics: {
+        modelCycleLengths: [28, 41],
+        variationDays: 15,
+      },
+    });
+    expect(result).not.toHaveProperty('predictedStartFrom');
+    expect(result).not.toHaveProperty('fertileWindowFrom');
+    expect(result).not.toHaveProperty('fertileWindowTo');
+  });
+
+  it.each(['2026-04-16', '2027-04-16'])(
+    'withholds an unusable range before the last start, even at reference date %s',
+    (referenceDate) => {
+      const result = calculatePrediction({
+        periods: [
+          { startDate: '2026-01-01' },
+          { startDate: '2026-04-01' },
+          { startDate: '2026-04-16' },
+        ],
+        referenceDate,
+        fertilityPredictionEnabled: true,
+      });
+      expect(result).toMatchObject({
+        available: false,
+        reason: 'UNRELIABLE_RANGE',
+        statistics: { modelCycleLengths: [90, 15], variationDays: 74 },
+      });
+      expect(result).not.toHaveProperty('predictedStartFrom');
+      expect(result).not.toHaveProperty('fertileWindowFrom');
+    },
+  );
+
+  it.each([
+    { name: 'newest', lengths: [...Array<number>(6).fill(28), 365], expected: 'MEDIUM' },
+    { name: 'second newest', lengths: [...Array<number>(6).fill(28), 365, 28], expected: 'MEDIUM' },
+    { name: 'third newest', lengths: [...Array<number>(6).fill(28), 365, 28, 28], expected: 'HIGH' },
+    { name: 'outside the statistics window', lengths: [365, ...Array<number>(12).fill(28)], expected: 'HIGH' },
+    { name: 'recent short excluded interval', lengths: [...Array<number>(6).fill(28), 1], expected: 'HIGH' },
+    { name: 'ninety-day usable intervals', lengths: Array<number>(6).fill(90), expected: 'HIGH' },
+  ])('caps high confidence only for a recent excluded long gap: $name', ({ lengths, expected }) => {
+    const periods = periodsForCycleLengths(lengths);
+    const result = calculatePrediction({ periods, referenceDate: lastStart(periods) });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.confidence).toBe(expected);
+    expect(result.variationDays).toBe(2);
+  });
+
+  it('does not upgrade low confidence after a recent long gap', () => {
+    const periods = periodsForCycleLengths([24, 28, 32, 365]);
+    const result = calculatePrediction({ periods, referenceDate: lastStart(periods) });
+    expect(result.available).toBe(true);
+    if (!result.available) return;
+    expect(result.confidence).toBe('LOW');
   });
 
   it('uses an explicit profile fallback only when no usable complete cycle exists', () => {
@@ -311,7 +402,7 @@ describe('calculatePrediction v2', () => {
       fertileWindowTo: '2026-04-13',
       confidence: 'MEDIUM',
       basedOnCycleCount: 3,
-      algorithmVersion: 'lunara-robust-v2',
+      algorithmVersion: 'lunara-robust-v3',
       typicalCycleLength: 28,
       typicalPeriodLength: 5,
       variationDays: 3,
