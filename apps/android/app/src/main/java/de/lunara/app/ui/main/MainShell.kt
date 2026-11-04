@@ -1,5 +1,6 @@
 package de.lunara.app.ui.main
 
+import androidx.compose.material3.RadioButton
 import de.lunara.app.core.model.PeriodEndPolicy
 
 import android.Manifest
@@ -425,6 +426,7 @@ fun MainShell(
                     onUpdateSharing = viewModel::updateSharing,
                     onUpdateCarePreferences = viewModel::updateCarePreferences,
                     onFertilityPrediction = viewModel::setFertilityPredictionEnabled,
+                    onCycleSettings = viewModel::updateCycleSettings,
                     onChangePassword = viewModel::changePassword,
                     onClearPasswordChangeStatus = viewModel::clearPasswordChangeStatus,
                     onBeginAuthentikLink = viewModel::beginAuthentikLink,
@@ -2444,6 +2446,7 @@ internal fun SettingsScreen(
     onUpdateSharing: (UpdateSharingRequest) -> Unit,
     onUpdateCarePreferences: (UpdateCarePreferencesRequest) -> Unit,
     onFertilityPrediction: (Boolean) -> Unit,
+    onCycleSettings: (de.lunara.app.data.repository.CycleSettings) -> Unit = {},
     onChangePassword: (String, String, String) -> Unit,
     onClearPasswordChangeStatus: () -> Unit,
     onBeginAuthentikLink: ((Intent) -> Unit) -> Unit,
@@ -2759,6 +2762,8 @@ internal fun SettingsScreen(
         }
         }
         if (settingsSection == SettingsSection.CYCLE && session.role == UserRole.TRACKER) {
+            item { SettingHeader(stringResource(R.string.cycle_settings_header)) }
+            item { CycleSettingsControl(profile = cycleProfile, busy = settingsBusy, onSave = onCycleSettings) }
             item { SettingHeader(stringResource(R.string.fertility_predictions)) }
             item {
                 FertilityPredictionControl(
@@ -3259,6 +3264,117 @@ internal fun PasswordChangeDialog(
             TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) }
         },
     )
+}
+
+@Composable
+private fun lifePhaseLabel(mode: String): String = stringResource(
+    when (mode) {
+        "HORMONAL_CONTRACEPTION" -> R.string.life_phase_hormonal
+        "PREGNANCY" -> R.string.life_phase_pregnancy
+        "POSTPARTUM" -> R.string.life_phase_postpartum
+        "MENOPAUSE_TRANSITION" -> R.string.life_phase_menopause
+        "PAUSED" -> R.string.life_phase_paused
+        else -> R.string.life_phase_none
+    },
+)
+
+/** Life phase, known lengths and prediction pause; every change is saved at once. */
+@Composable
+private fun CycleSettingsControl(
+    profile: CycleProfileDto?,
+    busy: Boolean,
+    onSave: (de.lunara.app.data.repository.CycleSettings) -> Unit,
+) {
+    val current = profile?.let { de.lunara.app.data.repository.CycleSettings.of(it) }
+    var choosePhase by remember { mutableStateOf(false) }
+    var editLength by remember { mutableStateOf<String?>(null) }
+    val enabled = current != null && !busy
+    val automatic = stringResource(R.string.length_automatic)
+    SettingText(
+        Icons.Rounded.DateRange,
+        stringResource(R.string.life_phase),
+        current?.let { lifePhaseLabel(it.specialMode) },
+    ) { if (enabled) choosePhase = true }
+    SettingText(
+        Icons.Rounded.DateRange,
+        stringResource(R.string.typical_cycle_length),
+        current?.typicalCycleLength?.let { stringResource(R.string.length_days, it) } ?: automatic,
+    ) { if (enabled) editLength = "cycle" }
+    SettingText(
+        Icons.Rounded.DateRange,
+        stringResource(R.string.typical_period_length),
+        current?.typicalPeriodLength?.let { stringResource(R.string.length_days, it) } ?: automatic,
+    ) { if (enabled) editLength = "period" }
+    SettingSwitch(
+        icon = Icons.Rounded.Info,
+        title = stringResource(R.string.pause_predictions),
+        subtitle = stringResource(R.string.pause_predictions_summary),
+        checked = current?.predictionPaused == true,
+        onChecked = { paused -> current?.let { onSave(it.copy(predictionPaused = paused)) } },
+        enabled = enabled,
+    )
+    if (choosePhase && current != null) {
+        AlertDialog(
+            onDismissRequest = { choosePhase = false },
+            title = { Text(stringResource(R.string.life_phase)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.life_phase_summary), style = MaterialTheme.typography.bodyMedium)
+                    de.lunara.app.data.repository.CycleSettings.MODES.forEach { mode ->
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable(role = Role.RadioButton) {
+                                    choosePhase = false
+                                    onSave(current.copy(specialMode = mode))
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = current.specialMode == mode, onClick = null)
+                            Text(lifePhaseLabel(mode), Modifier.padding(start = 12.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { choosePhase = false }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+    val target = editLength
+    if (target != null && current != null) {
+        val range = if (target == "cycle") 15..90 else 1..14
+        var text by remember(target) {
+            mutableStateOf(((if (target == "cycle") current.typicalCycleLength else current.typicalPeriodLength) ?: "").toString())
+        }
+        val parsed = de.lunara.app.data.repository.CycleSettings.parseLength(text, range)
+        AlertDialog(
+            onDismissRequest = { editLength = null },
+            title = { Text(stringResource(if (target == "cycle") R.string.typical_cycle_length else R.string.typical_period_length)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.length_hint, range.first, range.last), style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it.filter(Char::isDigit).take(2) },
+                        singleLine = true,
+                        isError = parsed.isFailure,
+                        placeholder = { Text(automatic) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = parsed.isSuccess,
+                    onClick = {
+                        val value = parsed.getOrNull()
+                        editLength = null
+                        onSave(if (target == "cycle") current.copy(typicalCycleLength = value) else current.copy(typicalPeriodLength = value))
+                    },
+                ) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = { TextButton(onClick = { editLength = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
 }
 
 @Composable

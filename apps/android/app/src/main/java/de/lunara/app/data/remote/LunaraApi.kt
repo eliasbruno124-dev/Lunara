@@ -63,6 +63,8 @@ interface LunaraApi {
     @GET suspend fun prediction(@Url url: String): Response<PredictionDto>
     @GET suspend fun cycleProfile(@Url url: String): Response<CycleProfileDto>
     @PATCH suspend fun updateCycleProfile(@Url url: String, @Body request: UpdateCycleProfileRequest): Response<CycleProfileDto>
+    /** Raw JSON body, because Gson drops nulls and clearing a typical length needs an explicit null. */
+    @PATCH suspend fun updateCycleSettings(@Url url: String, @Body body: okhttp3.RequestBody): Response<CycleProfileDto>
     @GET suspend fun todayTip(@Url url: String): Response<TodayTipDto>
     @GET suspend fun personalTips(@Url url: String): Response<List<de.lunara.app.data.remote.dto.PersonalTipDto>>
     @POST suspend fun createPersonalTip(@Url url: String, @Body request: de.lunara.app.data.remote.dto.CreatePersonalTipRequest): Response<de.lunara.app.data.remote.dto.PersonalTipDto>

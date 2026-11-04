@@ -211,6 +211,28 @@ class AppPreferences @Inject constructor(
         }
     }
 
+    /** Solo mode: life phase, known lengths and prediction pause of the local tracker. */
+    suspend fun setLocalCycleSettings(
+        expectedUserId: String,
+        specialMode: String,
+        typicalCycleLength: Int?,
+        typicalPeriodLength: Int?,
+        predictionPaused: Boolean,
+    ) {
+        context.lunaraDataStore.edit { values ->
+            if (
+                values[APP_MODE] == AppMode.LOCAL.name &&
+                values[USER_ID] == expectedUserId &&
+                values[ROLE] == UserRole.TRACKER.name
+            ) {
+                values[LOCAL_SPECIAL_MODE] = specialMode
+                values.putOrRemove(LOCAL_TYPICAL_CYCLE_LENGTH, typicalCycleLength?.takeIf { it in 15..90 })
+                values.putOrRemove(LOCAL_TYPICAL_PERIOD_LENGTH, typicalPeriodLength?.takeIf { it in 1..14 })
+                values[LOCAL_PREDICTION_PAUSED] = predictionPaused
+            }
+        }
+    }
+
     suspend fun restoreLocalSettings(expectedUserId: String, snapshot: LocalSettingsSnapshot) {
         context.lunaraDataStore.edit { values ->
             check(

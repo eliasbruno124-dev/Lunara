@@ -7,6 +7,7 @@ import {
   PeriodSyncEngine,
   canAttempt,
   failedMutation,
+  queuePeriodDelete,
   queuePeriodEnd,
   queuePeriodStart,
   retryDelayMs,
@@ -147,5 +148,30 @@ describe('offline period mutation queue', () => {
     await adoptB;
     expect(storage.values.size).toBe(1);
     expect(metadataWrites).toEqual([]);
+  });
+});
+
+describe('deleting a period', () => {
+  it('drops a never-synced period without contacting the server', async () => {
+    const storage = new MemoryQueue();
+    const period = await queuePeriodStart('2026-10-01', storage);
+    await queuePeriodDelete(period, storage);
+    expect(await storage.getMutations()).toEqual([]);
+  });
+
+  it('queues a versioned delete for a synced period and drops its pending edits', async () => {
+    const storage = new MemoryQueue();
+    const synced = { id: crypto.randomUUID(), startDate: '2026-10-01', endDate: null, source: 'MANUAL' as const, version: 3 };
+    await queuePeriodEnd(synced, '2026-10-04', storage);
+    await queuePeriodDelete(synced, storage);
+    const mutations = await storage.getMutations();
+    expect(mutations).toHaveLength(1);
+    expect(mutations[0]).toMatchObject({ entityId: synced.id, operation: 'DELETE', payload: { id: synced.id, version: 3 } });
+  });
+
+  it('refuses to delete a server period without a known version', async () => {
+    const storage = new MemoryQueue();
+    const unknown = { id: crypto.randomUUID(), startDate: '2026-10-01', endDate: null, source: 'MANUAL' as const };
+    await expect(queuePeriodDelete(unknown, storage)).rejects.toThrow();
   });
 });

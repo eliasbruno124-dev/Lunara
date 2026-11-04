@@ -566,4 +566,20 @@
     <string name="period_import_changed">Die Einträge haben sich seit der Vorschau geändert. Wähle die Datei erneut, um eine aktuelle Vorschau zu prüfen. Es wurde nichts importiert.</string>
     <string name="period_transfer_account_changed">Konto oder Verbindung wurden geändert. Starte den Vorgang im gewünschten Konto erneut.</string>
     <string name="period_transfer_failed">Die Datei konnte nicht verarbeitet werden. Prüfe den Speicherort und versuche es erneut. Bei einem fehlgeschlagenen Export kann eine unvollständige Datei zurückbleiben.</string>
+    <string name="cycle_settings_header">Dein Zyklus</string>
+    <string name="life_phase">Lebensphase</string>
+    <string name="life_phase_summary">In besonderen Phasen zeigt Lunara keine normale Periodenprognose. Dein Verlauf bleibt erhalten.</string>
+    <string name="life_phase_none">Normaler Zyklus</string>
+    <string name="life_phase_hormonal">Hormonelle Verhütung (z. B. Pille)</string>
+    <string name="life_phase_pregnancy">Schwangerschaft</string>
+    <string name="life_phase_postpartum">Nach der Geburt / Stillzeit</string>
+    <string name="life_phase_menopause">Wechseljahre</string>
+    <string name="life_phase_paused">Pause</string>
+    <string name="typical_cycle_length">Typische Zykluslänge</string>
+    <string name="typical_period_length">Typische Periodendauer</string>
+    <string name="length_automatic">Automatisch (aus deinen Einträgen)</string>
+    <string name="length_days">%1$d Tage</string>
+    <string name="length_hint">%1$d–%2$d Tage. Leer lassen, um sie aus deinen Einträgen zu berechnen.</string>
+    <string name="pause_predictions">Vorhersagen pausieren</string>
+    <string name="pause_predictions_summary">Während der Pause werden keine Schätzungen angezeigt; deine Einträge bleiben.</string>
 </resources>

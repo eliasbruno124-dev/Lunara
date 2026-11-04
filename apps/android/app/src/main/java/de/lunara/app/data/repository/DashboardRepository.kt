@@ -1,5 +1,7 @@
 package de.lunara.app.data.repository
 
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import de.lunara.app.data.preferences.AppPreferences
 import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.ApiClientFactory
@@ -187,6 +189,37 @@ class DashboardRepository @Inject constructor(
         return response.requireBody()
     }
 
+    suspend fun updateCycleSettings(settings: CycleSettings): CycleProfileDto {
+        val state = preferences.state.first()
+        if (state.appMode == AppMode.LOCAL) {
+            val session = state.session ?: throw SessionChangedException()
+            if (session.role != de.lunara.app.core.model.UserRole.TRACKER) throw ApiException(403)
+            preferences.setLocalCycleSettings(
+                session.userId,
+                settings.specialMode,
+                settings.typicalCycleLength,
+                settings.typicalPeriodLength,
+                settings.predictionPaused,
+            )
+            return cycleProfile()
+        }
+        val base = state.baseUrl ?: throw ApiException(400)
+        val json = org.json.JSONObject()
+            .put("specialMode", settings.specialMode)
+            .put("typicalCycleLengthOptional", settings.typicalCycleLength ?: org.json.JSONObject.NULL)
+            .put("typicalPeriodLengthOptional", settings.typicalPeriodLength ?: org.json.JSONObject.NULL)
+            .put("predictionPaused", settings.predictionPaused)
+            .toString()
+        fun body() = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        var response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+            .updateCycleSettings(endpoint(base, "api/v1/cycle/profile"), body())
+        if (response.code() == 401 && connectionRepository.refresh()) {
+            response = apiFactory.create(base, secrets.gatewayCredentials, secrets.accessToken)
+                .updateCycleSettings(endpoint(base, "api/v1/cycle/profile"), body())
+        }
+        return response.requireBody()
+    }
+
     suspend fun sendCheckIn(prompt: String): de.lunara.app.data.remote.dto.CheckInDto {
         val base = preferences.state.first().baseUrl ?: throw ApiException(400)
         val request = de.lunara.app.data.remote.dto.CreateCheckInRequest(prompt.take(240))
@@ -197,5 +230,32 @@ class DashboardRepository @Inject constructor(
                 .createCheckIn(endpoint(base, "api/v1/check-ins"), request)
         }
         return response.requireBody()
+    }
+}
+
+/** Life phase and known lengths a tracker can set; null lengths mean "calculate from entries". */
+data class CycleSettings(
+    val specialMode: String,
+    val typicalCycleLength: Int?,
+    val typicalPeriodLength: Int?,
+    val predictionPaused: Boolean,
+) {
+    companion object {
+        val MODES = listOf("NONE", "HORMONAL_CONTRACEPTION", "PREGNANCY", "POSTPARTUM", "MENOPAUSE_TRANSITION", "PAUSED")
+
+        fun of(profile: CycleProfileDto) = CycleSettings(
+            specialMode = profile.specialMode.takeIf { it in MODES } ?: "NONE",
+            typicalCycleLength = profile.typicalCycleLengthOptional,
+            typicalPeriodLength = profile.typicalPeriodLengthOptional,
+            predictionPaused = profile.predictionPaused,
+        )
+
+        /** Accepts empty input as "automatic" and rejects values outside the server's limits. */
+        fun parseLength(text: String, range: IntRange): Result<Int?> {
+            val trimmed = text.trim()
+            if (trimmed.isEmpty()) return Result.success(null)
+            val value = trimmed.toIntOrNull() ?: return Result.failure(IllegalArgumentException())
+            return if (value in range) Result.success(value) else Result.failure(IllegalArgumentException())
+        }
     }
 }

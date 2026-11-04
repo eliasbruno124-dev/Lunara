@@ -8,6 +8,7 @@ import {
 } from './auth';
 import type {
   AuthResponse,
+  CycleProfile,
   HouseholdResponse,
   InvitationResponse,
   MetaResponse,
@@ -16,6 +17,7 @@ import type {
   PeriodEvent,
   PartnerTip,
   Prediction,
+  SharingSettings,
   SyncMutation,
   SyncResponse,
 } from './types';
@@ -102,6 +104,22 @@ export class LunaraApi {
       throw new ApiError(409, 'Joining was superseded by another session change');
     }
     return response;
+  }
+
+  async sharingSettings(): Promise<SharingSettings> {
+    return this.request('/api/v1/sharing');
+  }
+
+  async updateSharingSettings(patch: Partial<SharingSettings>): Promise<SharingSettings> {
+    return this.request('/api/v1/sharing', { method: 'PATCH', body: patch });
+  }
+
+  async cycleProfile(): Promise<CycleProfile> {
+    return this.request('/api/v1/cycle/profile');
+  }
+
+  async updateCycleProfile(patch: Partial<CycleProfile>): Promise<CycleProfile> {
+    return this.request('/api/v1/cycle/profile', { method: 'PATCH', body: patch });
   }
 
   async oidcStatus(): Promise<{ enabled: boolean; providerName?: string; linked: boolean }> {

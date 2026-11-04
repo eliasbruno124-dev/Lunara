@@ -167,3 +167,23 @@ export interface SyncResponse {
   }>;
   partnerDashboard?: PartnerDashboard;
 }
+
+/** Partner sharing switches the web app can change (subset of the API settings). */
+export interface SharingSettings {
+  sharePrediction: boolean;
+  sharePeriodDates: boolean;
+  sharePhase: boolean;
+  shareFertileWindow: boolean;
+  tipsEnabled: boolean;
+  sharingPaused: boolean;
+}
+
+export type SpecialMode = 'NONE' | 'HORMONAL_CONTRACEPTION' | 'PREGNANCY' | 'POSTPARTUM' | 'MENOPAUSE_TRANSITION' | 'PAUSED';
+
+export interface CycleProfile {
+  typicalCycleLengthOptional: number | null;
+  typicalPeriodLengthOptional: number | null;
+  fertilityPredictionEnabled: boolean;
+  predictionPaused: boolean;
+  specialMode: SpecialMode;
+}

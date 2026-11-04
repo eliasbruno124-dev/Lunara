@@ -566,4 +566,20 @@
     <string name="period_import_changed">Entries changed after the preview. Select the file again to review a current preview. Nothing was imported.</string>
     <string name="period_transfer_account_changed">The account or connection changed. Start again in the intended account.</string>
     <string name="period_transfer_failed">The file could not be processed. Check the destination and try again. A failed export may leave an incomplete file.</string>
+    <string name="cycle_settings_header">Your cycle</string>
+    <string name="life_phase">Life phase</string>
+    <string name="life_phase_summary">In special phases Lunara shows no regular period prediction. Your history is kept.</string>
+    <string name="life_phase_none">Regular cycle</string>
+    <string name="life_phase_hormonal">Hormonal contraception (e.g. the pill)</string>
+    <string name="life_phase_pregnancy">Pregnancy</string>
+    <string name="life_phase_postpartum">After birth / breastfeeding</string>
+    <string name="life_phase_menopause">Menopause transition</string>
+    <string name="life_phase_paused">Pause</string>
+    <string name="typical_cycle_length">Typical cycle length</string>
+    <string name="typical_period_length">Typical period length</string>
+    <string name="length_automatic">Automatic (from your entries)</string>
+    <string name="length_days">%1$d days</string>
+    <string name="length_hint">%1$d–%2$d days. Leave empty to calculate it from your entries.</string>
+    <string name="pause_predictions">Pause predictions</string>
+    <string name="pause_predictions_summary">No estimates are shown while paused; your entries stay.</string>
 </resources>
