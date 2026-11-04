@@ -7,6 +7,7 @@
 **Your cycle. Your space. Shared only the way you want.**
 
 A private cycle tracker for one person – and, if you like, their partner.<br>
+Works **standalone on Android without any server**, or together via your own server.<br>
 No ads, no tracking, no cloud company. Your data stays with you.
 
 [![Latest release](https://img.shields.io/github/v/release/eliasbruno124-dev/Lunara?label=download)](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
@@ -36,11 +37,19 @@ No ads, no tracking, no cloud company. Your data stays with you.
 
 > Lunara is not a medical device and must not be used for contraception.
 
-## Choose how you want to use it
+## Works on its own – or with your own server
 
-| | Just me | Together with my partner |
+**The Android app is fully standalone.** Install the APK, choose
+**Only on this device**, and you're done: no server, no account, no internet
+connection needed. Your entries are stored encrypted on your phone only.
+
+**Want to share with your partner or use several devices?** Then the same app
+connects to your own Lunara server instead. You decide when you install it –
+one app does both.
+
+| | Standalone (just me) | With your own server (together) |
 | --- | --- | --- |
-| **What you need** | An Android phone | A small server you control (home server, Raspberry Pi, rented server) |
+| **What you need** | Only the Android app – no server | A small server you control (home server, Raspberry Pi, rented server) |
 | **Effort** | 1 minute | about 10 minutes, once |
 | **Your data** | Encrypted on your phone only | On your own server |
 | **Start** | [Download the app](https://github.com/eliasbruno124-dev/Lunara/releases/latest) → *Only on this device* | Follow the 3 steps below |
@@ -173,4 +182,16 @@ level – never as a fixed date. It is not suitable for contraception.
 Found a bug? [Open an issue](https://github.com/eliasbruno124-dev/Lunara/issues).
 Security problem? Please report it privately, see [SECURITY.md](SECURITY.md).
 
-Lunara is free and open source under the [MIT license](LICENSE).
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Support the Developer
+
+This app is free and open-source, maintained with a lot of love in my spare time. If it brings value to you and your partner, a small donation would mean the world to me.
+
+<p align="center">
+  <a href="https://paypal.me/eliasbruno123">
+    <img src="https://img.shields.io/badge/Donate%20with-PayPal-0070BA?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate with PayPal">
+  </a>
+</p>
