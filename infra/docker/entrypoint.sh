@@ -29,6 +29,11 @@ init_secrets() {
   # Only one initializer at a time; a second one waits for the first.
   waited=0
   until mkdir "$SECRETS_DIR/.lock" 2>/dev/null; do
+    # A lock older than two minutes was left by an aborted initializer.
+    if [ -n "$(find "$SECRETS_DIR/.lock" -maxdepth 0 -mmin +2 2>/dev/null)" ]; then
+      rmdir "$SECRETS_DIR/.lock" 2>/dev/null || true
+      continue
+    fi
     waited=$((waited + 1))
     if [ "$waited" -ge 60 ]; then
       echo "lunara: $SECRETS_DIR/.lock is held by another initializer (remove it if none is running)" >&2
@@ -37,6 +42,7 @@ init_secrets() {
     sleep 1
   done
   trap 'rmdir "$SECRETS_DIR/.lock" 2>/dev/null || true' EXIT
+  trap 'exit 1' INT TERM
   present=0
   for name in $NAMES; do
     [ -s "$SECRETS_DIR/$name" ] && present=$((present + 1))
