@@ -90,6 +90,37 @@ export async function queuePeriodEnd(
   return updated;
 }
 
+/**
+ * Removes a period. A period that never reached the server only loses its
+ * pending creation; a synced period gets a versioned DELETE, and pending
+ * edits of it are dropped because the deletion supersedes them.
+ */
+export async function queuePeriodDelete(
+  period: PeriodEvent,
+  storage: QueueStorage = queueStorage,
+): Promise<void> {
+  const related = (await storage.getMutations()).filter((mutation) => mutation.entityId === period.id);
+  const unsyncedCreate = related.find(
+    (mutation) => mutation.operation === 'UPSERT' && !('version' in mutation.payload),
+  );
+  for (const mutation of related) await storage.deleteMutation(mutation.clientMutationId);
+  if (!unsyncedCreate) {
+    if (!period.version) throw new Error('The period must sync before it can be deleted');
+    await storage.putMutation({
+      clientMutationId: crypto.randomUUID(),
+      entityId: period.id,
+      entityType: 'PERIOD',
+      operation: 'DELETE',
+      payload: { id: period.id, version: period.version },
+      createdAt: Date.now(),
+      attemptCount: 0,
+      nextAttemptAt: 0,
+      state: 'PENDING',
+    });
+  }
+  if (storage === queueStorage) await periodStore.delete(period.id);
+}
+
 export interface SyncState {
   pending: number;
   failed: number;

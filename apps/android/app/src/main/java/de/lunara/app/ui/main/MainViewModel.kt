@@ -666,6 +666,24 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun updateCycleSettings(settings: de.lunara.app.data.repository.CycleSettings) {
+        val ownerId = sessionOwnerId.value ?: return
+        if (preferencesStateRole != UserRole.TRACKER || settingsBusy.value) return
+        launchForSession(ownerId) {
+            ifCurrentSession(ownerId) { settingsBusy.value = true }
+            runSessionOperation { dashboardRepository.updateCycleSettings(settings) }
+                .onSuccess { profile ->
+                    ifCurrentSession(ownerId) {
+                        cycleProfile.value = profile
+                        settingsError.value = false
+                        refreshTrackerPredictionNow(ownerId)
+                    }
+                }
+                .onFailure { ifCurrentSession(ownerId) { settingsError.value = true } }
+            ifCurrentSession(ownerId) { settingsBusy.value = false }
+        }
+    }
+
     fun sendCheckIn(prompt: String) {
         if (preferencesStateMode == AppMode.LOCAL) return
         val ownerId = sessionOwnerId.value ?: return

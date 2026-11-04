@@ -60,8 +60,11 @@ import {
   startOidc,
   supportsOidcEnrollment,
 } from './oidc';
-import { PeriodSyncEngine, queuePeriodEnd, queuePeriodStart, type SyncState } from './sync';
+import { PeriodSyncEngine, queuePeriodDelete, queuePeriodEnd, queuePeriodStart, type SyncState } from './sync';
 import type {
+  CycleProfile,
+  SharingSettings,
+  SpecialMode,
   Language,
   InvitationResponse,
   MetaResponse,
@@ -123,6 +126,12 @@ class LunaraWebApp {
   private syncing = false;
   private initError: string | null = null;
   private joinExpanded = false;
+  // Period whose deletion waits for the second, confirming tap.
+  private confirmDeletePeriodId: string | null = null;
+  // Sharing switches and cycle profile of the signed-in tracker, loaded on first view.
+  private sharingState: { userId: string; settings: SharingSettings | null; failed: boolean } | null = null;
+  private profileState: { userId: string; profile: CycleProfile | null; failed: boolean } | null = null;
+  private settingsMessage: { area: 'sharing' | 'profile'; text: string; error: boolean } | null = null;
   // Provider token held only in memory until the password confirms the connection.
   private pendingOidcLink: { token: string; userId: string; receivedAt: number } | null = null;
   private oidcStatus: { linked: boolean } | null = null;
@@ -1280,7 +1289,7 @@ class LunaraWebApp {
       const selectedPeriod = periodForDate(this.periods, this.selectedDate, referenceDate);
       const active = this.activePeriod(referenceDate);
       if (selectedPeriod) {
-        selected.append(this.periodEndEditor(selectedPeriod, referenceDate));
+        selected.append(this.periodEndEditor(selectedPeriod, referenceDate), this.periodDeleteControl(selectedPeriod));
       } else if (!active) {
         const start = button('primary-button', this.t('startOnDate'), () => this.startPeriod(this.selectedDate!));
         start.disabled =
@@ -1405,7 +1414,8 @@ class LunaraWebApp {
     if (this.localMode) logout.disabled = this.localVaultCoordinator.busy;
     view.append(account, this.settingsGroup('preferences', 'preferencesGroup', 'preferencesHint', language, appearance));
     if (!this.localMode && this.user?.role === 'TRACKER') {
-      view.append(this.settingsGroup('sharing', 'sharingGroup', 'sharingHint', this.partnerInvitationCard(), this.manualInvitationAcceptanceCard()));
+      view.append(this.settingsGroup('sharing', 'sharingGroup', 'sharingHint', this.sharingSettingsCard(), this.partnerInvitationCard(), this.manualInvitationAcceptanceCard()));
+      view.append(this.settingsGroup('cycle', 'cycleGroup', 'cycleHint', this.cycleProfileCard()));
     } else if (!this.localMode && this.user?.role === 'PARTNER') {
       view.append(this.settingsGroup('sharing', 'sharingGroup', 'calendarAccessTitle',
         createPartnerCalendarAccessCard(this.partnerCalendar.current, this.language)));
@@ -1955,6 +1965,229 @@ class LunaraWebApp {
       await this.loadCachedData();
     }
     this.toast(this.t('periodEnded'));
+    this.render();
+    if (!this.localMode && navigator.onLine) await this.performSync(false);
+  }
+
+  private ensureTrackerSettingsLoaded(): void {
+    const userId = this.user?.id;
+    if (!userId || this.localMode) return;
+    if (this.sharingState?.userId !== userId) {
+      this.sharingState = { userId, settings: null, failed: false };
+      void this.api.sharingSettings()
+        .then((settings) => { if (this.sharingState?.userId === userId) { this.sharingState.settings = settings; this.render(); } })
+        .catch(() => { if (this.sharingState?.userId === userId) { this.sharingState.failed = true; this.render(); } });
+    }
+    if (this.profileState?.userId !== userId) {
+      this.profileState = { userId, profile: null, failed: false };
+      void this.api.cycleProfile()
+        .then((profile) => { if (this.profileState?.userId === userId) { this.profileState.profile = profile; this.render(); } })
+        .catch(() => { if (this.profileState?.userId === userId) { this.profileState.failed = true; this.render(); } });
+    }
+  }
+
+  private settingsNotice(area: 'sharing' | 'profile', card: HTMLElement): void {
+    if (this.settingsMessage?.area !== area) return;
+    const message = element('p', this.settingsMessage.error ? 'form-error' : 'notice', this.settingsMessage.text);
+    if (this.settingsMessage.error) message.setAttribute('role', 'alert');
+    card.append(message);
+  }
+
+  private toggleRow(label: string, checked: boolean, disabled: boolean, onChange: (value: boolean) => void, hint?: string): HTMLElement {
+    const row = element('label', 'toggle-row');
+    const input = element('input') as HTMLInputElement;
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.disabled = disabled;
+    input.addEventListener('change', () => onChange(input.checked));
+    const text = element('span', 'toggle-text');
+    text.append(element('span', '', label));
+    if (hint) text.append(element('small', 'subtle', hint));
+    row.append(text, input);
+    return row;
+  }
+
+  /** What the partner may see; the tracker decides, also from the browser (e.g. iPhone). */
+  private sharingSettingsCard(): HTMLElement {
+    this.ensureTrackerSettingsLoaded();
+    const card = element('section', 'info-card setting-card sharing-settings');
+    card.append(element('h2', '', this.t('sharingSettingsTitle')), element('p', 'subtle', this.t('sharingSettingsIntro')));
+    const state = this.sharingState;
+    if (!state?.settings) {
+      card.append(element('p', state?.failed ? 'form-error' : 'subtle', this.t(state?.failed ? 'settingsLoadFailed' : 'loading')));
+      return card;
+    }
+    const settings = state.settings;
+    const offline = !navigator.onLine;
+    const fertilityOn = this.profileState?.profile?.fertilityPredictionEnabled === true;
+    const save = (patch: Partial<SharingSettings>): void => {
+      const before = { ...settings };
+      Object.assign(settings, patch);
+      this.settingsMessage = null;
+      this.render();
+      void this.api.updateSharingSettings(patch)
+        .then((saved) => {
+          if (this.sharingState?.userId === state.userId) this.sharingState.settings = saved;
+          this.settingsMessage = { area: 'sharing', text: this.t('settingsSaved'), error: false };
+        })
+        .catch(() => {
+          if (this.sharingState?.userId === state.userId) this.sharingState.settings = before;
+          this.settingsMessage = { area: 'sharing', text: this.t('settingsSaveFailed'), error: true };
+        })
+        .finally(() => this.render());
+    };
+    card.append(
+      this.toggleRow(this.t('sharingPause'), settings.sharingPaused, offline, (value) => save({ sharingPaused: value }), this.t('sharingPauseHint')),
+      this.toggleRow(this.t('sharingPrediction'), settings.sharePrediction, offline, (value) => save({ sharePrediction: value })),
+      this.toggleRow(this.t('sharingPeriodDates'), settings.sharePeriodDates, offline, (value) => save({ sharePeriodDates: value })),
+      this.toggleRow(this.t('sharingPhase'), settings.sharePhase, offline, (value) => save({ sharePhase: value })),
+      this.toggleRow(this.t('sharingFertileWindow'), settings.shareFertileWindow, offline || (!fertilityOn && !settings.shareFertileWindow),
+        (value) => save({ shareFertileWindow: value }), fertilityOn ? undefined : this.t('sharingFertileNeedsEstimate')),
+      this.toggleRow(this.t('sharingTips'), settings.tipsEnabled, offline, (value) => save({ tipsEnabled: value })),
+    );
+    if (offline) card.append(element('p', 'subtle', this.t('settingsOffline')));
+    this.settingsNotice('sharing', card);
+    return card;
+  }
+
+  /** Life phase, known cycle length and optional estimates for the tracker's own predictions. */
+  private cycleProfileCard(): HTMLElement {
+    this.ensureTrackerSettingsLoaded();
+    const card = element('section', 'info-card setting-card cycle-profile');
+    card.append(element('h2', '', this.t('cycleProfileTitle')), element('p', 'subtle', this.t('cycleProfileIntro')));
+    const state = this.profileState;
+    if (!state?.profile) {
+      card.append(element('p', state?.failed ? 'form-error' : 'subtle', this.t(state?.failed ? 'settingsLoadFailed' : 'loading')));
+      return card;
+    }
+    const profile = state.profile;
+    const form = element('form', 'login-form cycle-profile-form');
+    const phaseLabel = element('label', '', this.t('lifePhase'));
+    const phase = element('select') as HTMLSelectElement;
+    phase.name = 'specialMode';
+    const phases: SpecialMode[] = ['NONE', 'HORMONAL_CONTRACEPTION', 'PREGNANCY', 'POSTPARTUM', 'MENOPAUSE_TRANSITION', 'PAUSED'];
+    for (const mode of phases) {
+      const option = element('option', '', this.t(`lifePhase_${mode}` as MessageKey)) as HTMLOptionElement;
+      option.value = mode;
+      option.selected = profile.specialMode === mode;
+      phase.append(option);
+    }
+    phaseLabel.append(phase, element('small', 'subtle', this.t('lifePhaseHint')));
+    const number = (name: string, label: MessageKey, hint: MessageKey, value: number | null, min: number, max: number): [HTMLElement, HTMLInputElement] => {
+      const wrapper = element('label', '', this.t(label));
+      const input = element('input') as HTMLInputElement;
+      input.type = 'number';
+      input.name = name;
+      input.min = String(min);
+      input.max = String(max);
+      input.inputMode = 'numeric';
+      input.placeholder = this.t('automatic');
+      input.value = value === null ? '' : String(value);
+      wrapper.append(input, element('small', 'subtle', this.t(hint)));
+      return [wrapper, input];
+    };
+    const [cycleLabel, cycleLength] = number('cycleLength', 'typicalCycleLength', 'typicalCycleLengthHint', profile.typicalCycleLengthOptional, 15, 90);
+    const [periodLabel, periodLength] = number('periodLength', 'typicalPeriodLength', 'typicalPeriodLengthHint', profile.typicalPeriodLengthOptional, 1, 14);
+    let paused = profile.predictionPaused;
+    let fertility = profile.fertilityPredictionEnabled;
+    const submit = element('button', 'primary-button', this.t('save'));
+    submit.type = 'submit';
+    submit.disabled = !navigator.onLine;
+    form.append(
+      phaseLabel,
+      cycleLabel,
+      periodLabel,
+      this.toggleRow(this.t('predictionPauseToggle'), paused, false, (value) => { paused = value; }),
+      this.toggleRow(this.t('fertilityEstimateToggle'), fertility, false, (value) => { fertility = value; }, this.t('fertilityEstimateHint')),
+      submit,
+    );
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const toNumber = (input: HTMLInputElement): number | null => input.value.trim() === '' ? null : Number(input.value);
+      const patch: Partial<CycleProfile> = {
+        specialMode: phase.value as SpecialMode,
+        typicalCycleLengthOptional: toNumber(cycleLength),
+        typicalPeriodLengthOptional: toNumber(periodLength),
+        predictionPaused: paused,
+        fertilityPredictionEnabled: fertility,
+      };
+      submit.disabled = true;
+      this.settingsMessage = null;
+      void this.api.updateCycleProfile(patch)
+        .then(async (saved) => {
+          if (this.profileState?.userId === state.userId) this.profileState.profile = saved;
+          // Turning the estimate off also revokes its sharing on the server.
+          if (!saved.fertilityPredictionEnabled && this.sharingState?.settings) this.sharingState.settings.shareFertileWindow = false;
+          this.settingsMessage = { area: 'profile', text: this.t('settingsSaved'), error: false };
+          await this.refreshData();
+        })
+        .catch(() => {
+          this.settingsMessage = { area: 'profile', text: this.t('settingsSaveFailed'), error: true };
+        })
+        .finally(() => this.render());
+    });
+    card.append(form);
+    if (!navigator.onLine) card.append(element('p', 'subtle', this.t('settingsOffline')));
+    this.settingsNotice('profile', card);
+    return card;
+  }
+
+  /** Two-step delete, so a wrong start can be removed without risking a slip of the finger. */
+  private periodDeleteControl(period: PeriodEvent): HTMLElement {
+    const box = element('div', 'period-delete');
+    const busy = this.syncing || this.localVaultCoordinator.busy;
+    if (this.confirmDeletePeriodId !== period.id) {
+      const ask = button('text-button danger-text', this.t('periodDelete'), () => {
+        this.confirmDeletePeriodId = period.id;
+        this.render();
+      });
+      ask.disabled = busy;
+      box.append(ask);
+      return box;
+    }
+    const confirm = button('secondary-button danger-button', this.t('periodDeleteConfirm'), () => void this.deletePeriod(period));
+    confirm.disabled = busy;
+    box.append(
+      element('p', 'subtle', this.t('periodDeleteQuestion')),
+      confirm,
+      button('text-button', this.t('cancel'), () => {
+        this.confirmDeletePeriodId = null;
+        this.render();
+      }),
+    );
+    return box;
+  }
+
+  private async deletePeriod(period: PeriodEvent): Promise<void> {
+    this.confirmDeletePeriodId = null;
+    if (
+      this.user?.role !== 'TRACKER' ||
+      !this.periods.some((item) => item.id === period.id && !item.deletedAt) ||
+      this.syncing ||
+      this.localVaultCoordinator.busy
+    ) return;
+    const remaining = this.periods.filter((item) => item.id !== period.id);
+    try {
+      if (this.localMode) {
+        await this.persistLocalState(remaining);
+      } else {
+        await this.serverIdentities.run(
+          serverIdentityKey(window.location.origin, this.user!),
+          async (assertCurrent) => {
+            await queuePeriodDelete(period);
+            assertCurrent();
+          },
+        );
+        this.periods = remaining;
+        await this.loadCachedData();
+      }
+    } catch {
+      this.toast(this.t(this.localMode ? 'vaultSaveFailed' : 'periodDeleteFailed'));
+      this.render();
+      return;
+    }
+    this.selectedDate = null;
+    this.toast(this.t('periodDeleted'));
     this.render();
     if (!this.localMode && navigator.onLine) await this.performSync(false);
   }
