@@ -28,13 +28,15 @@ RUN npm ci --omit=dev \
     && npm run prisma:generate --workspace=@lunara/api
 
 FROM debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587 AS runtime
-LABEL org.opencontainers.image.version="1.3.5-node-24.21.0"
+LABEL org.opencontainers.image.version="1.4.0-node-24.21.0"
 ENV NODE_ENV=production \
+    APP_VERSION=1.4.0 \
     PORT=3000
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends perl-base openssl ca-certificates libstdc++6 \
     && groupadd --gid 10001 lunara \
-    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin lunara
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin lunara \
+    && install -d -m 0700 -o 10001 -g 10001 /secrets
 WORKDIR /app
 COPY --from=base /usr/local/bin/node /usr/local/bin/node
 COPY --from=production-dependencies --chown=lunara:lunara /workspace/node_modules ./node_modules
@@ -46,8 +48,10 @@ COPY --from=build --chown=lunara:lunara /workspace/services/api/package.json ./s
 COPY --from=build --chown=lunara:lunara /workspace/services/api/prisma ./services/api/prisma
 COPY --from=build --chown=lunara:lunara /workspace/apps/web/dist ./apps/web/dist
 COPY --chown=lunara:lunara artifacts/lunara-release.apk ./apps/web/dist/downloads/lunara.apk
+COPY --chmod=0755 infra/docker/entrypoint.sh /usr/local/bin/lunara-entrypoint
 USER 10001:10001
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.revision="${VCS_REF}"
 EXPOSE 3000
+ENTRYPOINT ["/usr/local/bin/lunara-entrypoint"]
 CMD ["node", "services/api/dist/main.js"]

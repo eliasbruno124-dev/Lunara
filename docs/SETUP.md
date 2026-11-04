@@ -1,6 +1,6 @@
 # Setting up Lunara
 
-This guide describes Lunara 1.3.5. The screenshots show the real interface
+This guide describes Lunara 1.4.0. The screenshots show the real interface
 with synthetic test accounts and sample data; no private accounts, passwords
 or health data.
 
@@ -73,8 +73,9 @@ of the Android build in use.
 ### Web app
 
 Open the same HTTPS address in the browser. An account that already exists on
-the server can sign in there. An empty instance is set up first via Android or
-directly on the server (see [INSTALL.md](INSTALL.md#5-creating-the-first-account)).
+the server can sign in there. On an empty server the web app offers
+**Set up Lunara** with the setup code from the server log (see
+[INSTALL.md](INSTALL.md#3-create-your-account)).
 
 The web app can be installed in supported browsers. On iPhone:
 **Share → Add to Home Screen**. Installing the web app and the native Android
@@ -101,9 +102,10 @@ is neither needed nor intended.
    It does not contain an account password.
 3. Partner on Android: **Connect a server or partner → I have an invitation**,
    enter or scan the code and create or use your own account. Partner on the
-   web: sign in with an existing account, then enter the code under
-   **Settings → Using Lunara together** or open the link, and confirm the
-   connection explicitly.
+   web (e.g. iPhone): choose **My own server → I have an invitation**, enter a
+   name, username, password and the code, and tap **Create account and
+   connect**. An existing account can instead enter the code under
+   **Settings → Using Lunara together** and confirm the connection.
 4. With Authentik, first confirm the intended personal access and redeem the
    invitation with exactly that account.
 

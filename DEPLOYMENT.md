@@ -64,6 +64,16 @@ Private keys and keystores must stay outside the build context.
 
 ## 3. Configuration and secrets
 
+> **Simple path:** the one-file installation in [docs/INSTALL.md](docs/INSTALL.md)
+> needs none of the following. Its image entrypoint
+> (`infra/docker/entrypoint.sh`) creates `POSTGRES_PASSWORD`, `APP_MASTER_KEY`,
+> `AUTH_SIGNING_KEY`, `REFRESH_TOKEN_PEPPER` and `BOOTSTRAP_TOKEN` once via the
+> `init` service in the `/secrets` volume (mode 0600, read-only for all other
+> services) and builds `DATABASE_URL` from them. Any variable you set yourself
+> – even to an empty value – takes precedence, so the manual setup below keeps
+> working unchanged. A partially filled `/secrets` volume is refused instead
+> of being regenerated.
+
 Only for a new installation without an existing `.env`:
 
 ```bash

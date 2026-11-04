@@ -122,6 +122,7 @@ class LunaraWebApp {
   private installPrompt: BeforeInstallPromptEvent | null = null;
   private syncing = false;
   private initError: string | null = null;
+  private joinExpanded = false;
   private localMode = false;
   private localVaultAvailable = false;
   private readonly localVault = new LocalVaultSession();
@@ -444,6 +445,8 @@ class LunaraWebApp {
   }
 
   private render(): void {
+    const skipLink = document.querySelector('.skip-link');
+    if (skipLink) skipLink.textContent = this.language === 'de' ? 'Zum Inhalt' : 'Skip to content';
     // Keep only a same-record, same-identity manual draft across clock/sync redraws.
     // It never enters a cache and disappears on navigation or account lock.
     const previousEditor = this.root.querySelector<HTMLFormElement>('.period-end-editor');
@@ -600,6 +603,14 @@ class LunaraWebApp {
       main.append(this.loginIntroduction(), card);
       return main;
     }
+    // A new server cannot have invitations yet, so setup always wins.
+    if (this.meta?.setupRequired) {
+      card.append(brand, notice, this.setupForm(), button('text-button language-toggle', this.language === 'de' ? 'English' : 'Deutsch', () => {
+        this.setLanguage(this.language === 'de' ? 'en' : 'de');
+      }));
+      main.append(this.loginIntroduction(), card);
+      return main;
+    }
     const form = element('form', 'login-form');
     const usernameLabel = element('label', '', this.t('username'));
     const username = element('input') as HTMLInputElement;
@@ -650,8 +661,8 @@ class LunaraWebApp {
         element('p', 'invitation-code', this.invitationCode),
       );
     }
-    if (this.meta?.setupRequired) card.append(element('p', 'warning-card', this.t('setupRequired')));
     card.append(form, error);
+    if (!this.meta?.setupRequired && navigator.onLine !== false) card.append(this.joinSection());
     if (this.meta?.authenticationMethods?.includes('OIDC')) {
       const divider = element('div', 'divider', this.t('or'));
       card.append(divider);
@@ -1925,6 +1936,174 @@ class LunaraWebApp {
     toast.setAttribute('role', 'status');
     document.body.append(toast);
     window.setTimeout(() => toast.remove(), 3_000);
+  }
+
+  /** Partner sign-up with an invitation, so couples can use Lunara entirely in the browser. */
+  private joinSection(): HTMLElement {
+    const section = element('section', 'join-section');
+    if (!this.invitationCode && !this.joinExpanded) {
+      section.append(button('text-button', this.t('joinOpen'), () => {
+        this.joinExpanded = true;
+        this.render();
+      }));
+      return section;
+    }
+    const form = element('form', 'login-form join-form');
+    const field = (label: string, input: HTMLInputElement, hint?: string): HTMLElement => {
+      const wrapper = element('label', '', label);
+      wrapper.append(input);
+      if (hint) wrapper.append(element('span', 'subtle', hint));
+      return wrapper;
+    };
+    const input = (name: string, autocomplete: AutoFill, type = 'text'): HTMLInputElement => {
+      const value = element('input') as HTMLInputElement;
+      value.name = name;
+      value.type = type;
+      value.autocomplete = autocomplete;
+      value.required = true;
+      return value;
+    };
+    const displayName = input('joinDisplayName', 'name');
+    displayName.maxLength = 120;
+    const username = input('joinUsername', 'username');
+    username.minLength = 3;
+    username.maxLength = 64;
+    const password = input('joinPassword', 'new-password', 'password');
+    password.minLength = 8;
+    password.maxLength = 256;
+    const code = input('joinCode', 'one-time-code');
+    code.spellcheck = false;
+    code.minLength = 8;
+    code.maxLength = 12;
+    code.value = this.invitationCode ?? '';
+    const submit = element('button', 'secondary-button', this.t('joinSubmit'));
+    submit.type = 'submit';
+    const error = element('p', 'form-error');
+    error.setAttribute('role', 'alert');
+    form.append(
+      element('h2', '', this.t('joinTitle')),
+      element('p', 'subtle', this.t('joinIntro')),
+      field(this.t('setupName'), displayName),
+      field(this.t('username'), username),
+      field(this.t('password'), password, this.t('setupPasswordHint')),
+      field(this.t('joinCode'), code),
+      submit,
+      error,
+    );
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      submit.disabled = true;
+      error.textContent = '';
+      try {
+        const session = await this.api.join({
+          username: username.value.trim(),
+          password: password.value,
+          displayName: displayName.value.trim(),
+          invitationCode: code.value.trim(),
+          preferredLanguage: this.language === 'de' ? 'DE' : 'EN',
+        });
+        password.value = '';
+        clearPendingInvitation(sessionStorage);
+        this.invitationCode = null;
+        this.joinExpanded = false;
+        if (!(await this.rememberUser(session.user))) throw new ApiError(409, 'Join superseded');
+        await this.loadCachedData();
+        await this.refreshData();
+        this.render();
+      } catch (joinError) {
+        const status = joinError instanceof ApiError ? joinError.status : -1;
+        const message = joinError instanceof Error ? joinError.message : '';
+        error.textContent = status === 0 ? this.t('serverUnavailable')
+          : status === 400 ? this.t('setupInvalid')
+            : status === 409 && /username/i.test(message) ? this.t('joinUsernameTaken')
+              : this.t('joinFailed');
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    section.append(form);
+    return section;
+  }
+
+  /** First account on a new server, created with the setup code from the server log. */
+  private setupForm(): HTMLElement {
+    const form = element('form', 'login-form setup-form');
+    const field = (label: string, input: HTMLInputElement, hint?: string): HTMLElement => {
+      const wrapper = element('label', '', label);
+      wrapper.append(input);
+      if (hint) wrapper.append(element('span', 'subtle', hint));
+      return wrapper;
+    };
+    const input = (name: string, autocomplete: AutoFill, type = 'text'): HTMLInputElement => {
+      const value = element('input') as HTMLInputElement;
+      value.name = name;
+      value.type = type;
+      value.autocomplete = autocomplete;
+      value.required = true;
+      return value;
+    };
+    const displayName = input('displayName', 'name');
+    displayName.maxLength = 120;
+    const username = input('username', 'username');
+    username.minLength = 3;
+    username.maxLength = 64;
+    const password = input('password', 'new-password', 'password');
+    password.minLength = 8;
+    password.maxLength = 256;
+    const code = input('setupCode', 'one-time-code');
+    code.spellcheck = false;
+    code.minLength = 20;
+    code.maxLength = 256;
+    const submit = element('button', 'primary-button', this.t('setupSubmit'));
+    submit.type = 'submit';
+    const error = element('p', 'form-error');
+    error.setAttribute('role', 'alert');
+    form.append(
+      element('h2', '', this.t('setupTitle')),
+      element('p', 'notice', this.t('setupRequired')),
+      field(this.t('setupName'), displayName),
+      field(this.t('username'), username),
+      field(this.t('password'), password, this.t('setupPasswordHint')),
+      field(this.t('setupCode'), code, this.t('setupCodeHint')),
+      submit,
+      error,
+    );
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      submit.disabled = true;
+      error.textContent = '';
+      try {
+        const session = await this.api.setup({
+          username: username.value.trim(),
+          password: password.value,
+          displayName: displayName.value.trim(),
+          bootstrapToken: code.value.trim(),
+          preferredLanguage: this.language === 'de' ? 'DE' : 'EN',
+        });
+        password.value = '';
+        code.value = '';
+        if (this.meta) this.meta = { ...this.meta, setupRequired: false };
+        if (!(await this.rememberUser(session.user))) throw new ApiError(409, 'Setup superseded');
+        await this.loadCachedData();
+        await this.refreshData();
+        this.render();
+      } catch (setupError) {
+        const status = setupError instanceof ApiError ? setupError.status : -1;
+        if (status === 409 && this.meta) {
+          this.meta = { ...this.meta, setupRequired: false };
+          this.initError = this.t('setupAlreadyDone');
+          this.render();
+          return;
+        }
+        error.textContent = status === 401 ? this.t('setupWrongCode')
+          : status === 400 ? this.t('setupInvalid')
+            : status === 0 ? this.t('serverUnavailable')
+              : this.t('loginFailed');
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    return form;
   }
 
   /**

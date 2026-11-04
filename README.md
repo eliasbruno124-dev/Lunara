@@ -1,135 +1,176 @@
+<div align="center">
+
+<img src="apps/web/public/icons/lunara-192.png" width="96" alt="Lunara logo">
+
 # Lunara
 
-**A private, self-hosted cycle tracker for one person and their partner.**
-Android app, installable web app and your own server – no ads, no tracking,
-no telemetry and no Google services.
+**Your cycle. Your space. Shared only the way you want.**
 
-[![Release](https://img.shields.io/github/v/release/eliasbruno124-dev/Lunara)](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
-[![Image](https://img.shields.io/badge/ghcr.io-eliasbruno124--dev%2Flunara-blue)](https://github.com/eliasbruno124-dev/Lunara/pkgs/container/lunara)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+A private cycle tracker for one person – and, if you like, their partner.<br>
+No ads, no tracking, no cloud company. Your data stays with you.
 
-<p>
-  <img src="docs/screenshots/hd/03-tracker-today.png" width="24%" alt="Today view with the expected period start">
-  <img src="docs/screenshots/hd/05-tracker-calendar-recorded.png" width="24%" alt="Calendar with recorded period days">
-  <img src="docs/screenshots/hd/04-tracker-calendar-estimate.png" width="24%" alt="Calendar with an estimated period">
-  <img src="docs/screenshots/hd/07-partner-today.png" width="24%" alt="Partner view with outlook and today's suggestion">
-</p>
+[![Latest release](https://img.shields.io/github/v/release/eliasbruno124-dev/Lunara?label=download)](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-> Lunara is **not a medical device**. It does not diagnose anything, does not
-> confirm ovulation and must **not be used for contraception**.
+<img src="docs/screenshots/hd/03-tracker-today.png" width="23%" alt="Today: your expected period start">
+<img src="docs/screenshots/hd/05-tracker-calendar-recorded.png" width="23%" alt="Calendar with recorded days">
+<img src="docs/screenshots/hd/04-tracker-calendar-estimate.png" width="23%" alt="Calendar with the estimated next period">
+<img src="docs/screenshots/hd/07-partner-today.png" width="23%" alt="Your partner's view with a small idea for today">
 
-## Quick start (your own server)
+</div>
+
+## What Lunara does for you
+
+**For you**
+- Record your period with one tap – the calendar shows past days (**P**) and the
+  expected next period (**≈**).
+- See *when* your next period will probably start, as an honest range.
+- Decide yourself what your partner may see – at first only the expected date
+  range is shared.
+
+**For your partner**
+- A calm view of what you chose to share: the expected time, and only if you
+  want, more.
+- A small, kind idea for everyday life – like taking over the evening routine.
+- Their own account and app, connected to you with one invitation code.
+
+> Lunara is not a medical device and must not be used for contraception.
+
+## Choose how you want to use it
+
+| | Just me | Together with my partner |
+| --- | --- | --- |
+| **What you need** | An Android phone | A small server you control (home server, Raspberry Pi, rented server) |
+| **Effort** | 1 minute | about 10 minutes, once |
+| **Your data** | Encrypted on your phone only | On your own server |
+| **Start** | [Download the app](https://github.com/eliasbruno124-dev/Lunara/releases/latest) → *Only on this device* | Follow the 3 steps below |
+
+## Install together in 3 steps
+
+You need a computer with [Docker](https://docs.docker.com/engine/install/) and a
+web address (domain) that points to it, e.g. `lunara.example.com`.
+
+**1. Download the installation file into an empty folder**
 
 ```bash
 mkdir lunara && cd lunara
-BASE=https://raw.githubusercontent.com/eliasbruno124-dev/Lunara/main/examples
-curl -fsSLO $BASE/docker-compose.yml && curl -fsSLO $BASE/Caddyfile
-curl -fsSL $BASE/.env.example -o .env && chmod 600 .env
-# fill in .env: domain + secrets (the commands are in the file)
-docker compose --profile caddy up -d
+curl -fsSLO https://raw.githubusercontent.com/eliasbruno124-dev/Lunara/main/examples/docker-compose.yml
 ```
 
-Then open `https://your-domain`. The **[installation guide with screenshots](docs/INSTALL.md)**
-explains every step: HTTPS, first account, Android app, inviting a partner,
-updates and backups.
-
-**Only on your own Android phone?** You don't need a server. Download
-`lunara-release.apk` from the [latest release](https://github.com/eliasbruno124-dev/Lunara/releases/latest)
-and choose **Only on this device** (Android 8+).
-
-Lunara starts in English. German is available as a second language.
-
-## Ways to use Lunara
-
-| Mode | Storage | Sharing |
-| --- | --- | --- |
-| Android, only on this device | Encrypted with SQLCipher and the Android Keystore | No, no server account |
-| Web app, only on this device | Passphrase-encrypted local vault | No, no server account |
-| Your own server | PostgreSQL; Android and the web app synchronize with the same API | Separate tracker/partner accounts, only explicitly shared details |
-| Your own server with Authentik | The same Lunara server behind the gateway | Personal OIDC sign-in instead of an additional Lunara password |
-
-For Android solo mode the APK from GitHub is all you need: **no server, no
-Docker, no Authentik and no account**. The web app has to be reachable for the
-first load; local data is not synchronized to the server because of that.
-Sharing requires your own HTTPS instance. Authentik is optional and not part
-of the Lunara Compose stack.
-
-## Features
-
-- Periods, daily logs, calendar and history on Android; period entries and
-  calendar in the web app as well.
-- Offline recording with pending changes and automatic synchronization.
-- English and German, light/dark mode and an installable web app.
-- Separate roles: the tracking person manages data and sharing, the partner
-  only sees what is allowed.
-- Granular sharing, pauses and private days; optional supportive tips.
-- Encrypted solo backups for changing devices and server-side backup/restore
-  tools.
-- Export of your own periods as CSV/JSON and file import with preview and
-  confirmation on Android and the web; no guaranteed compatibility with
-  arbitrary third-party formats.
-
-A partner connection never turns on sharing automatically. "Not shared" means
-neither "no entries" nor "data deleted".
-
-## Downloads
-
-| What | Where |
-| --- | --- |
-| Android app (signed) | `lunara-release.apk` in the [release](https://github.com/eliasbruno124-dev/Lunara/releases/latest), checksums in `SHA256SUMS` |
-| Server image (amd64 + arm64) | `ghcr.io/eliasbruno124-dev/lunara:<version>` or `:latest` |
-| Example configuration | [`examples/`](examples/) |
-
-Every running instance also serves the matching APK itself:
-`https://your-domain/api/v1/downloads/lunara.apk` (in the web app under
-**Settings → App & connection**).
-
-## Updating and keeping your data
-
-Install a new APK as an update **over the existing installation**. Do not
-uninstall first and do not clear the app data. Android only accepts an update
-with a compatible package ID, a higher version number and a matching
-signature; a self-signed build does not replace the published APK.
-
-Sign-in is renewed automatically but not guaranteed forever. Revoked or
-genuinely expired provider credentials, deleted accounts and lost device keys
-require signing in again. Use the same account for **Renew sign-in**; pending
-local entries are kept. Details: [setup and help](docs/SETUP.md).
-
-## Development
-
-Node.js 24+, npm 11+; for Android a suitable JDK and the Android SDK.
-The app uses Compose/Kotlin, the web app TypeScript/Vite and the API
-NestJS/Prisma with PostgreSQL.
+**2. Tell Lunara your address and start it**
 
 ```bash
-npm ci
-npm run prisma:generate
-npm run prisma:validate
-npm run lint
-npm test
-npm run build
-npm run openapi:check
+echo "LUNARA_DOMAIN=lunara.example.com" > .env
+docker compose up -d
 ```
 
-Android tasks and device checks are described in [TESTING.md](TESTING.md).
-Read [CODE_GUIDE.md](docs/CODE_GUIDE.md) before making changes and check the
-generated code map afterwards. Development, debug and unsigned artifacts are
-not equivalent user updates.
+Lunara creates all passwords and keys by itself and gets a free HTTPS
+certificate automatically. Nothing else to configure.
 
-## Documentation
+**3. Create your account in the browser**
 
-- [Installing on your own server (with screenshots)](docs/INSTALL.md)
-- [Setup, sharing, backup and changing devices in the app](docs/SETUP.md)
-- [Advanced deployment: Traefik, Authentik/OIDC, scripts](DEPLOYMENT.md)
-- [Security](SECURITY.md) and [privacy](PRIVACY.md)
-- [Prediction method and limits](ALGORITHM.md), [period end](docs/PERIOD-ENDS.md)
-- [Partner tips](docs/PARTNER_TIPS.md) and [design](docs/DESIGN.md)
-- [Testing](TESTING.md) and [code navigation](docs/CODE_GUIDE.md)
-- [Android signing and Google Play preparation](docs/GOOGLE_PLAY_RELEASE.md)
-- [Changelog](CHANGELOG.md)
+```bash
+docker compose logs lunara
+```
 
-## License
+This shows a one-time **setup code**. Open your address, choose **My own server**,
+enter your name, a username, a password and the code – done.
 
-[MIT](LICENSE). Please do not report security issues as public issues; follow
-[SECURITY.md](SECURITY.md) instead.
+<p>
+<img src="docs/screenshots/hd/11-first-setup.png" width="30%" alt="Set up Lunara: name, username, password and setup code">
+<img src="docs/screenshots/hd/12-partner-join.png" width="30%" alt="Partner account with an invitation code">
+</p>
+
+**Then invite your partner:** *Settings → Using Lunara together → Invite partner*.
+Your partner opens the same address, taps **I have an invitation** and creates
+their own account with the code.
+
+<details>
+<summary><b>Using Portainer or an existing reverse proxy?</b></summary>
+
+- **Portainer** (standalone Docker): *Stacks → Add stack*, paste
+  [`docker-compose.yml`](examples/docker-compose.yml) and add the environment
+  variable `LUNARA_DOMAIN`. The setup code is in the logs of the `lunara`
+  container.
+- **Already have Traefik, Nginx Proxy Manager, Caddy …?** Download
+  [`docker-compose.proxy.yml`](examples/docker-compose.proxy.yml) and save it as
+  `docker-compose.yml` – it leaves out the built-in HTTPS and explains how to
+  connect your proxy. Everything else stays the same.
+
+</details>
+
+## Get the app on your phones
+
+- **Android:** in Lunara open *Settings → App & connection → Download Android app*,
+  or get `lunara-release.apk` from the [latest release](https://github.com/eliasbruno124-dev/Lunara/releases/latest).
+- **iPhone:** open your Lunara address in Safari → *Share → Add to Home Screen*.
+- **Computer:** just use the browser – or install it via the icon in the address bar.
+
+Lunara starts in English; German is available too.
+
+## Your privacy
+
+- Your data lives on **your** phone or **your** server – never with us.
+- No ads, no analytics, no tracking, no Google services.
+- Passwords are stored as secure hashes, sensitive data is encrypted.
+- Your partner only sees what you switch on (in the Android app), and you can
+  switch it off anytime.
+
+Details: [Privacy](PRIVACY.md) · [Security](SECURITY.md)
+
+## Questions
+
+<details><summary><b>Do I really need a domain?</b></summary>
+
+For two phones that should sync from anywhere: yes, because the apps only talk
+to Lunara over HTTPS. A free subdomain from a dynamic-DNS service works fine.
+If you use Lunara alone on Android, you need nothing at all.
+</details>
+
+<details><summary><b>Does it run on a Raspberry Pi?</b></summary>
+
+Yes. The image is built for normal PCs/servers (amd64) and for ARM (arm64), e.g.
+Raspberry Pi 4 and 5.
+</details>
+
+<details><summary><b>How do I update?</b></summary>
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Android: install the new APK over the old one – don't uninstall first.
+</details>
+
+<details><summary><b>How do I back up?</b></summary>
+
+Back up the two Docker volumes **`lunara_database`** and **`lunara_secrets`**
+together – the keys in `secrets` are needed to read the data. A ready-made
+command is in the [installation guide](docs/INSTALL.md#8-updates-backup-and-restore).
+</details>
+
+<details><summary><b>I forgot my password.</b></summary>
+
+Lunara has no e-mail address of yours, so there is no reset link. Keep your
+password in a password manager. While signed in, you can change it in the
+Android app under *Settings → Account and security*.
+</details>
+
+<details><summary><b>Is the prediction reliable?</b></summary>
+
+It is an estimate from your past cycles, shown as a range with a confidence
+level – never as a fixed date. It is not suitable for contraception.
+[How it works](ALGORITHM.md)
+</details>
+
+## More
+
+- [Installation guide with screenshots](docs/INSTALL.md) – every step explained
+- [Using the app: sharing, backups, new phone](docs/SETUP.md)
+- [Advanced setups: Traefik, Authentik/OIDC, scripts](DEPLOYMENT.md)
+- [Changelog](CHANGELOG.md) · [Developing Lunara](docs/CODE_GUIDE.md) · [Testing](TESTING.md)
+
+Found a bug? [Open an issue](https://github.com/eliasbruno124-dev/Lunara/issues).
+Security problem? Please report it privately, see [SECURITY.md](SECURITY.md).
+
+Lunara is free and open source under the [MIT license](LICENSE).

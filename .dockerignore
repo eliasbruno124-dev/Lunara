@@ -48,6 +48,7 @@ infra/**
 !infra/docker
 infra/docker/**
 !infra/docker/api.Dockerfile
+!infra/docker/entrypoint.sh
 
 # Only the signed installable APK belongs in the runtime image; never signing
 # material, deployment credentials or the rest of the artifact directory.

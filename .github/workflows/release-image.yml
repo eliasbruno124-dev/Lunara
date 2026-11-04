@@ -50,6 +50,10 @@ jobs:
             echo "Tag ${tag} is not a release version" >&2
             exit 1
           fi
+          grep -q "APP_VERSION=${version} " infra/docker/api.Dockerfile || {
+            echo "infra/docker/api.Dockerfile APP_VERSION does not match ${version}" >&2
+            exit 1
+          }
           revision="$(git rev-parse HEAD)"
           newest="$(git tag --list 'v*.*.*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)"
           echo "version=${version}" >> "${GITHUB_OUTPUT}"

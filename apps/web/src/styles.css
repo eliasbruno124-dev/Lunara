@@ -387,3 +387,15 @@ label { display: grid; gap: 8px; font-size: 0.9rem; font-weight: 650; }
   margin-top: 0.2rem;
   accent-color: var(--petrol);
 }
+
+/* Partner sign-up and first-time setup below / instead of the sign-in form. */
+.join-section {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+.join-section > .text-button { width: 100%; }
+.setup-form h2,
+.join-form h2 { margin: 0.25rem 0 0; }
+.setup-form label .subtle,
+.join-form label .subtle { display: block; margin-top: 0.35rem; font-size: 0.875rem; }

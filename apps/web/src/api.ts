@@ -62,6 +62,48 @@ export class LunaraApi {
     return response;
   }
 
+  /** First account on an empty server; needs the one-time setup code from the server log. */
+  async setup(input: {
+    username: string;
+    password: string;
+    displayName: string;
+    bootstrapToken: string;
+    preferredLanguage: 'DE' | 'EN';
+  }): Promise<AuthResponse> {
+    const boundary = this.beginSessionBoundary();
+    await boundary.cleared;
+    const response = await this.request<AuthResponse>('/api/v1/setup', {
+      method: 'POST',
+      auth: false,
+      body: { ...input, deviceName: 'Lunara Web App' },
+    });
+    if (!(await this.acceptSession(response, undefined, boundary.generation))) {
+      throw new ApiError(409, 'Setup was superseded by another session change');
+    }
+    return response;
+  }
+
+  /** New partner account that redeems an invitation in one step. */
+  async join(input: {
+    username: string;
+    password: string;
+    displayName: string;
+    invitationCode: string;
+    preferredLanguage: 'DE' | 'EN';
+  }): Promise<AuthResponse> {
+    const boundary = this.beginSessionBoundary();
+    await boundary.cleared;
+    const response = await this.request<AuthResponse>('/api/v1/household/join', {
+      method: 'POST',
+      auth: false,
+      body: { ...input, deviceName: 'Lunara Web App' },
+    });
+    if (!(await this.acceptSession(response, undefined, boundary.generation))) {
+      throw new ApiError(409, 'Joining was superseded by another session change');
+    }
+    return response;
+  }
+
   async oidcLogin(
     accessToken: string,
     oidcRefresh: OidcRefreshSession,

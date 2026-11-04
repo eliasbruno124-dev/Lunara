@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- **One-file installation:** `examples/docker-compose.yml` only needs your domain. Passwords and keys are created automatically on the first start and kept in the `lunara_secrets` volume; HTTPS comes from the built-in Caddy. `docker-compose.proxy.yml` covers existing reverse proxies. Explicit environment variables still take precedence, so existing installations are unaffected.
+- **Set up Lunara in the browser:** a new server shows a setup form; the one-time setup code is printed in the server log only while setup is still open.
+- **Partners can join in the browser:** "I have an invitation" creates a partner account directly in the web app, so couples without Android (e.g. iPhone) can use Lunara completely.
+- The image reports its own version; the key volume is never partially regenerated.
+- Simpler, friendlier README and installation guide. Old releases were removed from GitHub; only the current APK is offered.
+
 ## 1.3.5
 
 - The Android app and the web app now start in English on new installations, regardless of the device language. German stays available on the first screen, in the web settings and (Android 13+) in the system's per-app language settings. Existing installations keep their language.

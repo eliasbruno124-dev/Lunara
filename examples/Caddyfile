@@ -1,6 +1,0 @@
-# Caddy obtains the HTTPS certificate automatically. Requirement: the domain in
-# LUNARA_DOMAIN points to this server via DNS and ports 80/443 are open.
-{$LUNARA_DOMAIN} {
-	encode zstd gzip
-	reverse_proxy lunara:3000
-}

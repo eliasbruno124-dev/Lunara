@@ -50,7 +50,7 @@ entropy_report="$(git ls-files -co --exclude-standard -z \
   | xargs -0 -r grep -IEn '[A-Za-z0-9+/=_-]{48,}' \
   | sed '/^docs\/code-map-flows\.json:/ s@"path": "apps/android/app/src/main/java/de/lunara/app/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
   | sed '/^docs\/code-map-flows\.json:/ s@"path": "services/api/src/[^\"]*"@"path": "VERIFIED-SOURCE-PATH"@g' \
-  | sed 's@docs/screenshots/\(setup\|hd\)/[[:alnum:]-]*\.png@SCREENSHOT-ASSET@g; s@https://img\.shields\.io/[^)]*@BADGE@g; s@https://github\.com/eliasbruno124-dev/Lunara/[[:alnum:]/._-]*@PROJECT-LINK@g' \
+  | sed 's@docs/screenshots/\(setup\|hd\)/[[:alnum:]-]*\.png@SCREENSHOT-ASSET@g; s@https://img\.shields\.io/[^)]*@BADGE@g; s@https://github\.com/eliasbruno124-dev/Lunara/[[:alnum:]/._-]*@PROJECT-LINK@g; s@https://raw\.githubusercontent\.com/eliasbruno124-dev/Lunara/[[:alnum:]/._-]*@PROJECT-LINK@g; s@=\{20,\}@DIVIDER@g' \
   | sed 's@https://www\.nhs\.uk/conditions/periods/fertility-in-the-menstrual-cycle/@PUBLIC-MEDICAL-REFERENCE@g; s@https://www\.nhs\.uk/contraception/methods-of-contraception/natural-family-planning/@PUBLIC-MEDICAL-REFERENCE@g; s@https://help\.flo\.health/hc/en-us/articles/360061400591-What-are-Flo-stories@PUBLIC-PRODUCT-REFERENCE@g' \
   | grep -E '^[^:]+:[0-9]+:.*[A-Za-z0-9+/=_-]{48,}' \
   | grep -Ev '^docs/(CODE_MAP\.md|code-map\.json):' \
