@@ -13,6 +13,7 @@ import de.lunara.app.data.preferences.AppMode
 import de.lunara.app.data.remote.dto.PartnerDashboardDto
 import de.lunara.app.data.remote.dto.PredictionDto
 import de.lunara.app.data.repository.DashboardRepository
+import de.lunara.app.data.repository.PredictionOutdatedException
 import de.lunara.app.data.sync.ProcessSyncGate
 import java.time.LocalDate
 import java.time.LocalTime
@@ -64,6 +65,8 @@ class NotificationWorker @AssistedInject constructor(
         var prediction: PredictionDto? = null
         var partnerDashboard: PartnerDashboardDto? = null
         var remoteUnavailable = false
+        // Settings changed during the request: the cached estimate predates them, so do not use it.
+        var predictionOutdated = false
         when (role) {
             UserRole.TRACKER -> {
                 if (settings.periodTomorrow || settings.fertileTomorrow) {
@@ -71,6 +74,9 @@ class NotificationWorker @AssistedInject constructor(
                         prediction = dashboardRepository.trackerPrediction(userId)
                     } catch (cancelled: CancellationException) {
                         throw cancelled
+                    } catch (_: PredictionOutdatedException) {
+                        remoteUnavailable = true
+                        predictionOutdated = true
                     } catch (_: Throwable) {
                         remoteUnavailable = true
                     }
@@ -111,7 +117,7 @@ class NotificationWorker @AssistedInject constructor(
 
             val today = LocalDate.now()
             val effectivePrediction = if (
-                role == UserRole.TRACKER && prediction == null && remoteUnavailable
+                role == UserRole.TRACKER && prediction == null && remoteUnavailable && !predictionOutdated
             ) {
                 dataCache.trackerPrediction(userId)
             } else {

@@ -2,7 +2,7 @@
 
 This guide takes you from an empty server to Lunara running for you and your
 partner – in about 10 minutes, without creating any passwords or keys by hand.
-It applies to **Lunara 1.6.0**.
+It applies to **Lunara 1.6.1**.
 
 All screenshots show the real interface with made-up accounts ("Mia" and
 "Jonas").

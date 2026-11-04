@@ -119,16 +119,13 @@ class DashboardRepository @Inject constructor(
 
     fun predictionGeneration(): Long = cycleSettingsGeneration.get()
 
-    suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {
-        // If the cycle settings change while a request runs, ask again so that the
-        // screen and reminders never get an estimate from before the change.
-        repeat(2) {
-            val generation = cycleSettingsGeneration.get()
-            val prediction = trackerPredictionOnce(expectedUserId, generation)
-            if (generation == cycleSettingsGeneration.get()) return prediction
+    suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto =
+        // If the cycle settings change while a request runs, ask again. An estimate from before
+        // the change is never returned or cached; after repeated changes this throws
+        // PredictionOutdatedException, the screen keeps its value and reminders retry later.
+        fetchWithStableGeneration(cycleSettingsGeneration::get) { generation ->
+            trackerPredictionOnce(expectedUserId, generation)
         }
-        return trackerPredictionOnce(expectedUserId, cycleSettingsGeneration.get())
-    }
 
     private suspend fun trackerPredictionOnce(
         expectedUserId: String,

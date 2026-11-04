@@ -20,7 +20,7 @@
       "path": ".env.example",
       "role": "Documentation or project configuration",
       "bytes": 2457,
-      "sha256": "ca03f45ba0856425453e01161ae1262645e77007f6abb350780817348481f441",
+      "sha256": "7ca6d8d33299c264b133295284b4ce9c7e5aecaa3ddf779b306923c7691a43bf",
       "symbols": []
     },
     {
@@ -104,9 +104,9 @@
     {
       "path": "CHANGELOG.md",
       "role": "Documentation or project configuration",
-      "bytes": 31549,
-      "sha256": "647cca8d5d17231887364b3cb737e85cc30fedec32a3fc88d78fb47508816ad8",
-      "lines": 495,
+      "bytes": 32098,
+      "sha256": "304f0166cf9ca73af3bcf2269b91d6a97afd4a41661471061d6af736e7a443f1",
+      "lines": 501,
       "symbols": []
     },
     {
@@ -167,7 +167,7 @@
       "path": "apps/android/app/build.gradle.kts",
       "role": "Android application and build",
       "bytes": 7612,
-      "sha256": "7c82083ef0023cc60711b154b35e6b06f6bfdeca1979c2276b2ed6d01ba5189b",
+      "sha256": "cb4e14e1e9b46a446c98b6653fbd5afff85d29310b4f66301e5058faa141739b",
       "lines": 182,
       "symbols": []
     },
@@ -19020,9 +19020,9 @@
     {
       "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/DashboardRepository.kt",
       "role": "Android data and session coordination",
-      "bytes": 15417,
-      "sha256": "8fcd6f9f1affa4b508eb51f479f3014612e0d56feb7a42cccadecf5fc7db671f",
-      "lines": 295,
+      "bytes": 15347,
+      "sha256": "56c9a711730df4fe30b828e084bda4b3a4e9500602a48de900488113800642ca",
+      "lines": 292,
       "symbols": [
         {
           "name": "DashboardRepository",
@@ -19339,343 +19339,337 @@
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 125,
+          "line": 126,
           "owner": "DashboardRepository.trackerPrediction"
         },
         {
           "name": "generation",
-          "kind": "Property",
+          "kind": "Parameter",
           "line": 126,
-          "owner": "DashboardRepository.trackerPrediction.<anonymous>"
-        },
-        {
-          "name": "prediction",
-          "kind": "Property",
-          "line": 127,
           "owner": "DashboardRepository.trackerPrediction.<anonymous>"
         },
         {
           "name": "trackerPredictionOnce",
           "kind": "NamedFunction",
-          "line": 133,
+          "line": 130,
           "owner": "DashboardRepository"
         },
         {
           "name": "expectedUserId",
           "kind": "Parameter",
-          "line": 134,
+          "line": 131,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "generation",
           "kind": "Parameter",
-          "line": 135,
+          "line": 132,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "preferenceState",
           "kind": "Property",
-          "line": 137,
+          "line": 134,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "prediction",
           "kind": "Property",
-          "line": 140,
+          "line": 137,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 145,
+          "line": 142,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "current",
           "kind": "Property",
-          "line": 146,
+          "line": 143,
           "owner": "DashboardRepository.trackerPredictionOnce.<anonymous>"
         },
         {
           "name": "base",
           "kind": "Property",
-          "line": 154,
+          "line": 151,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "response",
           "kind": "Property",
-          "line": 155,
+          "line": 152,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "prediction",
           "kind": "Property",
-          "line": 161,
+          "line": 158,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 162,
+          "line": 159,
           "owner": "DashboardRepository.trackerPredictionOnce"
         },
         {
           "name": "cycleProfile",
           "kind": "NamedFunction",
-          "line": 170,
+          "line": 167,
           "owner": "DashboardRepository"
         },
         {
           "name": "state",
           "kind": "Property",
-          "line": 171,
+          "line": 168,
           "owner": "DashboardRepository.cycleProfile"
         },
         {
           "name": "session",
           "kind": "Property",
-          "line": 173,
+          "line": 170,
           "owner": "DashboardRepository.cycleProfile"
         },
         {
           "name": "base",
           "kind": "Property",
-          "line": 186,
+          "line": 183,
           "owner": "DashboardRepository.cycleProfile"
         },
         {
           "name": "response",
           "kind": "Property",
-          "line": 187,
+          "line": 184,
           "owner": "DashboardRepository.cycleProfile"
         },
         {
           "name": "setFertilityPredictionEnabled",
           "kind": "NamedFunction",
-          "line": 196,
+          "line": 193,
           "owner": "DashboardRepository"
         },
         {
           "name": "enabled",
           "kind": "Parameter",
-          "line": 196,
+          "line": 193,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "state",
           "kind": "Property",
-          "line": 197,
+          "line": 194,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "session",
           "kind": "Property",
-          "line": 199,
+          "line": 196,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "base",
           "kind": "Property",
-          "line": 204,
+          "line": 201,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "request",
           "kind": "Property",
-          "line": 205,
+          "line": 202,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "response",
           "kind": "Property",
-          "line": 206,
+          "line": 203,
           "owner": "DashboardRepository.setFertilityPredictionEnabled"
         },
         {
           "name": "updateCycleSettings",
           "kind": "NamedFunction",
-          "line": 215,
+          "line": 212,
           "owner": "DashboardRepository"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 215,
+          "line": 212,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "state",
           "kind": "Property",
-          "line": 217,
+          "line": 214,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "session",
           "kind": "Property",
-          "line": 219,
+          "line": 216,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "base",
           "kind": "Property",
-          "line": 232,
+          "line": 229,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "json",
           "kind": "Property",
-          "line": 233,
+          "line": 230,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "body",
           "kind": "NamedFunction",
-          "line": 239,
+          "line": 236,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "response",
           "kind": "Property",
-          "line": 240,
+          "line": 237,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "saved",
           "kind": "Property",
-          "line": 246,
+          "line": 243,
           "owner": "DashboardRepository.updateCycleSettings"
         },
         {
           "name": "sendCheckIn",
           "kind": "NamedFunction",
-          "line": 253,
+          "line": 250,
           "owner": "DashboardRepository"
         },
         {
           "name": "prompt",
           "kind": "Parameter",
-          "line": 253,
+          "line": 250,
           "owner": "DashboardRepository.sendCheckIn"
         },
         {
           "name": "base",
           "kind": "Property",
-          "line": 254,
+          "line": 251,
           "owner": "DashboardRepository.sendCheckIn"
         },
         {
           "name": "request",
           "kind": "Property",
-          "line": 255,
+          "line": 252,
           "owner": "DashboardRepository.sendCheckIn"
         },
         {
           "name": "response",
           "kind": "Property",
-          "line": 256,
+          "line": 253,
           "owner": "DashboardRepository.sendCheckIn"
         },
         {
           "name": "CycleSettings",
           "kind": "Class",
-          "line": 267,
+          "line": 264,
           "owner": ""
         },
         {
           "name": "CycleSettings",
           "kind": "PrimaryConstructor",
-          "line": 267,
+          "line": 264,
           "owner": "CycleSettings"
         },
         {
           "name": "specialMode",
           "kind": "Parameter",
-          "line": 268,
+          "line": 265,
           "owner": "CycleSettings.CycleSettings"
         },
         {
           "name": "typicalCycleLength",
           "kind": "Parameter",
-          "line": 269,
+          "line": 266,
           "owner": "CycleSettings.CycleSettings"
         },
         {
           "name": "typicalPeriodLength",
           "kind": "Parameter",
-          "line": 270,
+          "line": 267,
           "owner": "CycleSettings.CycleSettings"
         },
         {
           "name": "predictionPaused",
           "kind": "Parameter",
-          "line": 271,
+          "line": 268,
           "owner": "CycleSettings.CycleSettings"
         },
         {
           "name": "switchesPredictionsOff",
           "kind": "NamedFunction",
-          "line": 274,
+          "line": 271,
           "owner": "CycleSettings"
         },
         {
           "name": "Companion",
           "kind": "ObjectDeclaration",
-          "line": 276,
+          "line": 273,
           "owner": "CycleSettings"
         },
         {
           "name": "MODES",
           "kind": "Property",
-          "line": 277,
+          "line": 274,
           "owner": "CycleSettings.Companion"
         },
         {
           "name": "of",
           "kind": "NamedFunction",
-          "line": 279,
+          "line": 276,
           "owner": "CycleSettings.Companion"
         },
         {
           "name": "profile",
           "kind": "Parameter",
-          "line": 279,
+          "line": 276,
           "owner": "CycleSettings.Companion.of"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 280,
+          "line": 277,
           "owner": "CycleSettings.Companion.of"
         },
         {
           "name": "parseLength",
           "kind": "NamedFunction",
-          "line": 287,
+          "line": 284,
           "owner": "CycleSettings.Companion"
         },
         {
           "name": "text",
           "kind": "Parameter",
-          "line": 287,
+          "line": 284,
           "owner": "CycleSettings.Companion.parseLength"
         },
         {
           "name": "range",
           "kind": "Parameter",
-          "line": 287,
+          "line": 284,
           "owner": "CycleSettings.Companion.parseLength"
         },
         {
           "name": "trimmed",
           "kind": "Property",
-          "line": 288,
+          "line": 285,
           "owner": "CycleSettings.Companion.parseLength"
         },
         {
           "name": "value",
           "kind": "Property",
-          "line": 290,
+          "line": 287,
           "owner": "CycleSettings.Companion.parseLength"
         }
       ]
@@ -25096,6 +25090,75 @@
       ]
     },
     {
+      "path": "apps/android/app/src/main/java/de/lunara/app/data/repository/StableGeneration.kt",
+      "role": "Android data and session coordination",
+      "bytes": 954,
+      "sha256": "d14bac2d70e95001998e3ce803544acdde8bce8860831bfb2844fbac09d63912",
+      "lines": 24,
+      "symbols": [
+        {
+          "name": "PredictionOutdatedException",
+          "kind": "Class",
+          "line": 4,
+          "owner": ""
+        },
+        {
+          "name": "T",
+          "kind": "TypeParameter",
+          "line": 11,
+          "owner": "fetchWithStableGeneration"
+        },
+        {
+          "name": "fetchWithStableGeneration",
+          "kind": "NamedFunction",
+          "line": 11,
+          "owner": ""
+        },
+        {
+          "name": "currentGeneration",
+          "kind": "Parameter",
+          "line": 12,
+          "owner": "fetchWithStableGeneration"
+        },
+        {
+          "name": "attempts",
+          "kind": "Parameter",
+          "line": 13,
+          "owner": "fetchWithStableGeneration"
+        },
+        {
+          "name": "fetch",
+          "kind": "Parameter",
+          "line": 14,
+          "owner": "fetchWithStableGeneration"
+        },
+        {
+          "name": "generation",
+          "kind": "Parameter",
+          "line": 14,
+          "owner": "fetchWithStableGeneration.fetch"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 17,
+          "owner": "fetchWithStableGeneration"
+        },
+        {
+          "name": "generation",
+          "kind": "Property",
+          "line": 18,
+          "owner": "fetchWithStableGeneration.<anonymous>"
+        },
+        {
+          "name": "result",
+          "kind": "Property",
+          "line": 19,
+          "owner": "fetchWithStableGeneration.<anonymous>"
+        }
+      ]
+    },
+    {
       "path": "apps/android/app/src/main/java/de/lunara/app/data/sync/MutationQueue.kt",
       "role": "Synchronization",
       "bytes": 4189,
@@ -28341,332 +28404,344 @@
     {
       "path": "apps/android/app/src/main/java/de/lunara/app/notifications/NotificationWorker.kt",
       "role": "Notifications",
-      "bytes": 8322,
-      "sha256": "886dfe4e5cda55a038b97dc0ee2fc697f1e0dd57af1ac236f24e96dd1520c4c1",
-      "lines": 196,
+      "bytes": 8712,
+      "sha256": "19a4bf903c377846eb41e165942c68750ad69a89963eb278c4b62a4d825529a8",
+      "lines": 202,
       "symbols": [
         {
           "name": "NotificationWorker",
           "kind": "Class",
-          "line": 23,
+          "line": 24,
           "owner": ""
         },
         {
           "name": "NotificationWorker",
           "kind": "PrimaryConstructor",
-          "line": 23,
+          "line": 24,
           "owner": "NotificationWorker"
         },
         {
           "name": "appContext",
           "kind": "Parameter",
-          "line": 24,
+          "line": 25,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "workerParameters",
           "kind": "Parameter",
-          "line": 25,
+          "line": 26,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "preferences",
           "kind": "Parameter",
-          "line": 26,
+          "line": 27,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "dashboardRepository",
           "kind": "Parameter",
-          "line": 27,
+          "line": 28,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "database",
           "kind": "Parameter",
-          "line": 28,
+          "line": 29,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "notificationManager",
           "kind": "Parameter",
-          "line": 29,
+          "line": 30,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "deliveryStore",
           "kind": "Parameter",
-          "line": 30,
+          "line": 31,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "dataCache",
           "kind": "Parameter",
-          "line": 31,
+          "line": 32,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "notificationScheduler",
           "kind": "Parameter",
-          "line": 32,
+          "line": 33,
           "owner": "NotificationWorker.NotificationWorker"
         },
         {
           "name": "doWork",
           "kind": "NamedFunction",
-          "line": 34,
+          "line": 35,
           "owner": "NotificationWorker"
         },
         {
           "name": "state",
           "kind": "Property",
-          "line": 35,
+          "line": 36,
           "owner": "NotificationWorker.doWork"
         },
         {
           "name": "session",
           "kind": "Property",
-          "line": 36,
+          "line": 37,
           "owner": "NotificationWorker.doWork"
         },
         {
           "name": "settings",
           "kind": "Property",
-          "line": 37,
+          "line": 38,
           "owner": "NotificationWorker.doWork"
         },
         {
           "name": "cancelled",
           "kind": "Parameter",
-          "line": 48,
+          "line": 49,
           "owner": "NotificationWorker.doWork"
         },
         {
           "name": "_",
           "kind": "Parameter",
-          "line": 50,
+          "line": 51,
           "owner": "NotificationWorker.doWork"
         },
         {
           "name": "performNotificationCheck",
           "kind": "NamedFunction",
-          "line": 59,
+          "line": 60,
           "owner": "NotificationWorker"
         },
         {
           "name": "userId",
           "kind": "Parameter",
-          "line": 60,
+          "line": 61,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "role",
           "kind": "Parameter",
-          "line": 61,
+          "line": 62,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 62,
+          "line": 63,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "prediction",
           "kind": "Property",
-          "line": 64,
+          "line": 65,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "partnerDashboard",
           "kind": "Property",
-          "line": 65,
+          "line": 66,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "remoteUnavailable",
           "kind": "Property",
-          "line": 66,
+          "line": 67,
+          "owner": "NotificationWorker.performNotificationCheck"
+        },
+        {
+          "name": "predictionOutdated",
+          "kind": "Property",
+          "line": 69,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "cancelled",
           "kind": "Parameter",
-          "line": 72,
+          "line": 75,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "_",
           "kind": "Parameter",
-          "line": 74,
+          "line": 77,
+          "owner": "NotificationWorker.performNotificationCheck"
+        },
+        {
+          "name": "_",
+          "kind": "Parameter",
+          "line": 80,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "cancelled",
           "kind": "Parameter",
-          "line": 83,
+          "line": 89,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "_",
           "kind": "Parameter",
-          "line": 85,
+          "line": 91,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 97,
+          "line": 103,
           "owner": "NotificationWorker.performNotificationCheck"
         },
         {
           "name": "currentState",
           "kind": "Property",
-          "line": 98,
+          "line": 104,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "currentSession",
           "kind": "Property",
-          "line": 99,
+          "line": 105,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "currentSettings",
           "kind": "Property",
-          "line": 103,
+          "line": 109,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "today",
           "kind": "Property",
-          "line": 112,
+          "line": 118,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "effectivePrediction",
           "kind": "Property",
-          "line": 113,
+          "line": 119,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "hasDailyLog",
           "kind": "Property",
-          "line": 120,
+          "line": 126,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "pendingTrackerChanges",
           "kind": "Property",
-          "line": 125,
+          "line": 131,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "candidates",
           "kind": "Property",
-          "line": 130,
+          "line": 136,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "publicationFailed",
           "kind": "Property",
-          "line": 139,
+          "line": 145,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 140,
+          "line": 146,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>"
         },
         {
           "name": "candidate",
           "kind": "Parameter",
-          "line": 140,
+          "line": 146,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>.<anonymous>"
         },
         {
           "name": "occurrenceKey",
           "kind": "Property",
-          "line": 141,
+          "line": 147,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>.<anonymous>"
         },
         {
           "name": "reservation",
           "kind": "Property",
-          "line": 142,
+          "line": 148,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>.<anonymous>"
         },
         {
           "name": "published",
           "kind": "Property",
-          "line": 148,
+          "line": 154,
           "owner": "NotificationWorker.performNotificationCheck.<anonymous>.<anonymous>"
         },
         {
           "name": "scheduleIfCurrent",
           "kind": "NamedFunction",
-          "line": 164,
+          "line": 170,
           "owner": "NotificationWorker"
         },
         {
           "name": "expectedUserId",
           "kind": "Parameter",
-          "line": 165,
+          "line": 171,
           "owner": "NotificationWorker.scheduleIfCurrent"
         },
         {
           "name": "deferUntilQuietEnd",
           "kind": "Parameter",
-          "line": 166,
+          "line": 172,
           "owner": "NotificationWorker.scheduleIfCurrent"
         },
         {
           "name": "<anonymous>",
           "kind": "FunctionLiteral",
-          "line": 167,
+          "line": 173,
           "owner": "NotificationWorker.scheduleIfCurrent"
         },
         {
           "name": "currentState",
           "kind": "Property",
-          "line": 168,
+          "line": 174,
           "owner": "NotificationWorker.scheduleIfCurrent.<anonymous>"
         },
         {
           "name": "finishAndScheduleNext",
           "kind": "NamedFunction",
-          "line": 182,
+          "line": 188,
           "owner": "NotificationWorker"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 182,
+          "line": 188,
           "owner": "NotificationWorker.finishAndScheduleNext"
         },
         {
           "name": "finishAfterQuietTime",
           "kind": "NamedFunction",
-          "line": 187,
+          "line": 193,
           "owner": "NotificationWorker"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 187,
+          "line": 193,
           "owner": "NotificationWorker.finishAfterQuietTime"
         },
         {
           "name": "Companion",
           "kind": "ObjectDeclaration",
-          "line": 192,
+          "line": 198,
           "owner": "NotificationWorker"
         },
         {
           "name": "MAX_ATTEMPTS",
           "kind": "Property",
-          "line": 193,
+          "line": 199,
           "owner": "NotificationWorker.Companion"
         }
       ]
@@ -53941,6 +54016,153 @@
       ]
     },
     {
+      "path": "apps/android/app/src/test/java/de/lunara/app/data/repository/StableGenerationTest.kt",
+      "role": "Automated regression",
+      "bytes": 1307,
+      "sha256": "66ea418706b059a4085c937073518de65fac8b97a7d3fa14337958592e8fa0cd",
+      "lines": 42,
+      "symbols": [
+        {
+          "name": "StableGenerationTest",
+          "kind": "Class",
+          "line": 8,
+          "owner": ""
+        },
+        {
+          "name": "returnsFirstResultWhenNothingChanges",
+          "kind": "NamedFunction",
+          "line": 10,
+          "owner": "StableGenerationTest"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 10,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges"
+        },
+        {
+          "name": "calls",
+          "kind": "Property",
+          "line": 11,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges.<anonymous>"
+        },
+        {
+          "name": "result",
+          "kind": "Property",
+          "line": 12,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges.<anonymous>"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 12,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges.<anonymous>.result"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 12,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges.<anonymous>.result"
+        },
+        {
+          "name": "generation",
+          "kind": "Parameter",
+          "line": 12,
+          "owner": "StableGenerationTest.returnsFirstResultWhenNothingChanges.<anonymous>.result.<anonymous>"
+        },
+        {
+          "name": "retriesAfterAChangeAndReturnsTheStableResult",
+          "kind": "NamedFunction",
+          "line": 18,
+          "owner": "StableGenerationTest"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 18,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult"
+        },
+        {
+          "name": "generation",
+          "kind": "Property",
+          "line": 19,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>"
+        },
+        {
+          "name": "seen",
+          "kind": "Property",
+          "line": 20,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>"
+        },
+        {
+          "name": "result",
+          "kind": "Property",
+          "line": 21,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 21,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>.result"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 21,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>.result"
+        },
+        {
+          "name": "requested",
+          "kind": "Parameter",
+          "line": 21,
+          "owner": "StableGenerationTest.retriesAfterAChangeAndReturnsTheStableResult.<anonymous>.result.<anonymous>"
+        },
+        {
+          "name": "neverReturnsAResultFromBeforeAChangeOnTheLastAttempt",
+          "kind": "NamedFunction",
+          "line": 31,
+          "owner": "StableGenerationTest"
+        },
+        {
+          "name": "generation",
+          "kind": "Property",
+          "line": 32,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt"
+        },
+        {
+          "name": "calls",
+          "kind": "Property",
+          "line": 33,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 34,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 35,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt.<anonymous>"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 36,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt.<anonymous>.<anonymous>"
+        },
+        {
+          "name": "<anonymous>",
+          "kind": "FunctionLiteral",
+          "line": 36,
+          "owner": "StableGenerationTest.neverReturnsAResultFromBeforeAChangeOnTheLastAttempt.<anonymous>.<anonymous>"
+        }
+      ]
+    },
+    {
       "path": "apps/android/app/src/test/java/de/lunara/app/data/sync/MutationQueuePolicyTest.kt",
       "role": "Automated regression",
       "bytes": 6441,
@@ -58582,7 +58804,7 @@
       "path": "apps/web/package.json",
       "role": "Web application",
       "bytes": 498,
-      "sha256": "b862f8d110c742ccc0e99c639687f734ae20a19fec0964a1c8cb08fd1823c3ba",
+      "sha256": "b619e6d92f06a0a529e262c6a2c552e2416e499189a8888a62687f948c6be764",
       "lines": 23,
       "symbols": []
     },
@@ -58950,6 +59172,105 @@
           "name": "cell",
           "kind": "Parameter",
           "line": 24,
+          "owner": ""
+        }
+      ]
+    },
+    {
+      "path": "apps/web/src/__tests__/donation.test.ts",
+      "role": "Automated regression",
+      "bytes": 2631,
+      "sha256": "47c8c273cbe4a8a8a84a36dc2be5af309e1c67697fd3fbdfd9cf622de4d46e3c",
+      "lines": 54,
+      "symbols": [
+        {
+          "name": "tag",
+          "kind": "Parameter",
+          "line": 9,
+          "owner": ""
+        },
+        {
+          "name": "brand",
+          "kind": "VariableDeclaration",
+          "line": 14,
+          "owner": ""
+        },
+        {
+          "name": "language",
+          "kind": "Parameter",
+          "line": 18,
+          "owner": ""
+        },
+        {
+          "name": "card",
+          "kind": "VariableDeclaration",
+          "line": 19,
+          "owner": ""
+        },
+        {
+          "name": "item",
+          "kind": "Parameter",
+          "line": 21,
+          "owner": ""
+        },
+        {
+          "name": "anchors",
+          "kind": "VariableDeclaration",
+          "line": 22,
+          "owner": ""
+        },
+        {
+          "name": "link",
+          "kind": "VariableDeclaration",
+          "line": 24,
+          "owner": ""
+        },
+        {
+          "name": "asked",
+          "kind": "VariableDeclaration",
+          "line": 32,
+          "owner": ""
+        },
+        {
+          "name": "cancel",
+          "kind": "VariableDeclaration",
+          "line": 33,
+          "owner": ""
+        },
+        {
+          "name": "message",
+          "kind": "Parameter",
+          "line": 33,
+          "owner": "cancel"
+        },
+        {
+          "name": "preventDefault",
+          "kind": "VariableDeclaration",
+          "line": 34,
+          "owner": ""
+        },
+        {
+          "name": "middle",
+          "kind": "VariableDeclaration",
+          "line": 39,
+          "owner": ""
+        },
+        {
+          "name": "accept",
+          "kind": "VariableDeclaration",
+          "line": 43,
+          "owner": ""
+        },
+        {
+          "name": "allowDefault",
+          "kind": "VariableDeclaration",
+          "line": 44,
+          "owner": ""
+        },
+        {
+          "name": "main",
+          "kind": "VariableDeclaration",
+          "line": 50,
           "owner": ""
         }
       ]
@@ -60034,9 +60355,9 @@
     {
       "path": "apps/web/src/__tests__/minimal-dom.ts",
       "role": "Automated regression",
-      "bytes": 1538,
-      "sha256": "059f296157d30597f893444f9443f3b5fdd99ce0d42929f00070ae697b11d541",
-      "lines": 37,
+      "bytes": 1565,
+      "sha256": "ac0818c0f0df5876e5486d86758635ffcc19a3ee626d7b3acf57ec3a3390e810",
+      "lines": 39,
       "symbols": [
         {
           "name": "MinimalElement",
@@ -60081,171 +60402,183 @@
           "owner": "MinimalElement"
         },
         {
-          "name": "dataset",
+          "name": "target",
           "kind": "PropertyDeclaration",
           "line": 9,
           "owner": "MinimalElement"
         },
         {
-          "name": "attributes",
+          "name": "rel",
           "kind": "PropertyDeclaration",
           "line": 10,
           "owner": "MinimalElement"
         },
         {
-          "name": "children",
+          "name": "dataset",
           "kind": "PropertyDeclaration",
           "line": 11,
           "owner": "MinimalElement"
         },
         {
-          "name": "events",
+          "name": "attributes",
           "kind": "PropertyDeclaration",
           "line": 12,
           "owner": "MinimalElement"
         },
         {
-          "name": "event",
-          "kind": "Parameter",
-          "line": 12,
-          "owner": "MinimalElement.events"
-        },
-        {
-          "name": "focused",
+          "name": "children",
           "kind": "PropertyDeclaration",
           "line": 13,
           "owner": "MinimalElement"
         },
         {
+          "name": "events",
+          "kind": "PropertyDeclaration",
+          "line": 14,
+          "owner": "MinimalElement"
+        },
+        {
+          "name": "event",
+          "kind": "Parameter",
+          "line": 14,
+          "owner": "MinimalElement.events"
+        },
+        {
+          "name": "focused",
+          "kind": "PropertyDeclaration",
+          "line": 15,
+          "owner": "MinimalElement"
+        },
+        {
           "name": "tagName",
           "kind": "Parameter",
-          "line": 15,
+          "line": 17,
           "owner": "MinimalElement"
         },
         {
           "name": "classList",
           "kind": "GetAccessor",
-          "line": 17,
+          "line": 19,
           "owner": "MinimalElement"
         },
         {
           "name": "classes",
           "kind": "Parameter",
-          "line": 19,
+          "line": 21,
           "owner": "MinimalElement.classList"
         },
         {
           "name": "classes",
           "kind": "Parameter",
-          "line": 20,
+          "line": 22,
           "owner": "MinimalElement.classList"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 20,
+          "line": 22,
           "owner": "MinimalElement.classList"
         },
         {
           "name": "append",
           "kind": "MethodDeclaration",
-          "line": 24,
+          "line": 26,
           "owner": "MinimalElement"
         },
         {
           "name": "children",
           "kind": "Parameter",
-          "line": 24,
+          "line": 26,
           "owner": "MinimalElement.append"
         },
         {
           "name": "replaceChildren",
           "kind": "MethodDeclaration",
-          "line": 25,
+          "line": 27,
           "owner": "MinimalElement"
         },
         {
           "name": "setAttribute",
           "kind": "MethodDeclaration",
-          "line": 26,
+          "line": 28,
           "owner": "MinimalElement"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 26,
+          "line": 28,
           "owner": "MinimalElement.setAttribute"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 26,
+          "line": 28,
           "owner": "MinimalElement.setAttribute"
         },
         {
           "name": "addEventListener",
           "kind": "MethodDeclaration",
-          "line": 27,
+          "line": 29,
           "owner": "MinimalElement"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 27,
+          "line": 29,
           "owner": "MinimalElement.addEventListener"
         },
         {
           "name": "listener",
           "kind": "Parameter",
-          "line": 27,
+          "line": 29,
           "owner": "MinimalElement.addEventListener"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 27,
+          "line": 29,
           "owner": "MinimalElement.addEventListener.listener"
         },
         {
           "name": "focus",
           "kind": "MethodDeclaration",
-          "line": 28,
+          "line": 30,
           "owner": "MinimalElement"
         },
         {
           "name": "emit",
           "kind": "MethodDeclaration",
-          "line": 29,
+          "line": 31,
           "owner": "MinimalElement"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 29,
+          "line": 31,
           "owner": "MinimalElement.emit"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 29,
+          "line": 31,
           "owner": "MinimalElement.emit"
         },
         {
           "name": "querySelectorAll",
           "kind": "MethodDeclaration",
-          "line": 30,
+          "line": 32,
           "owner": "MinimalElement"
         },
         {
           "name": "selector",
           "kind": "Parameter",
-          "line": 30,
+          "line": 32,
           "owner": "MinimalElement.querySelectorAll"
         },
         {
           "name": "child",
           "kind": "Parameter",
-          "line": 31,
+          "line": 33,
           "owner": "MinimalElement.querySelectorAll"
         }
       ]
@@ -66428,6 +66761,81 @@
       ]
     },
     {
+      "path": "apps/web/src/donation.ts",
+      "role": "Web application",
+      "bytes": 1532,
+      "sha256": "3d28563356f136ef7d2fae02de1826b45a4150ecc8779294a0dc16dd9e90c969",
+      "lines": 34,
+      "symbols": [
+        {
+          "name": "DONATION_URL",
+          "kind": "VariableDeclaration",
+          "line": 5,
+          "owner": ""
+        },
+        {
+          "name": "createDonationCard",
+          "kind": "FunctionDeclaration",
+          "line": 11,
+          "owner": ""
+        },
+        {
+          "name": "language",
+          "kind": "Parameter",
+          "line": 11,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "confirmOpen",
+          "kind": "Parameter",
+          "line": 11,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "message",
+          "kind": "Parameter",
+          "line": 11,
+          "owner": "createDonationCard.confirmOpen"
+        },
+        {
+          "name": "card",
+          "kind": "VariableDeclaration",
+          "line": 12,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "title",
+          "kind": "VariableDeclaration",
+          "line": 14,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "link",
+          "kind": "VariableDeclaration",
+          "line": 16,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "askFirst",
+          "kind": "VariableDeclaration",
+          "line": 23,
+          "owner": "createDonationCard"
+        },
+        {
+          "name": "event",
+          "kind": "Parameter",
+          "line": 23,
+          "owner": "createDonationCard.askFirst"
+        },
+        {
+          "name": "hint",
+          "kind": "VariableDeclaration",
+          "line": 28,
+          "owner": "createDonationCard"
+        }
+      ]
+    },
+    {
       "path": "apps/web/src/fertility-presentation.ts",
       "role": "Web application",
       "bytes": 1565,
@@ -66493,9 +66901,9 @@
     {
       "path": "apps/web/src/i18n.ts",
       "role": "Web application",
-      "bytes": 40761,
-      "sha256": "3c8f1d78593cae959fa0e09a34a079fd805ab9e983b58d947e2d3c09e264d493",
-      "lines": 615,
+      "bytes": 41504,
+      "sha256": "7090acb823f6d3a5af43f512b5e6e5f7f38d79e6a947f473fc99ed5eb11e6248",
+      "lines": 623,
       "symbols": [
         {
           "name": "messages",
@@ -66506,43 +66914,43 @@
         {
           "name": "MessageKey",
           "kind": "TypeAliasDeclaration",
-          "line": 602,
+          "line": 610,
           "owner": ""
         },
         {
           "name": "translate",
           "kind": "FunctionDeclaration",
-          "line": 604,
+          "line": 612,
           "owner": ""
         },
         {
           "name": "language",
           "kind": "Parameter",
-          "line": 605,
+          "line": 613,
           "owner": "translate"
         },
         {
           "name": "key",
           "kind": "Parameter",
-          "line": 606,
+          "line": 614,
           "owner": "translate"
         },
         {
           "name": "values",
           "kind": "Parameter",
-          "line": 607,
+          "line": 615,
           "owner": "translate"
         },
         {
           "name": "value",
           "kind": "VariableDeclaration",
-          "line": 609,
+          "line": 617,
           "owner": "translate"
         },
         {
           "name": "[name, replacement]",
           "kind": "VariableDeclaration",
-          "line": 610,
+          "line": 618,
           "owner": "translate"
         }
       ]
@@ -67918,584 +68326,578 @@
     {
       "path": "apps/web/src/main.ts",
       "role": "Web application",
-      "bytes": 110449,
-      "sha256": "e5b81bc9f4d83b3c536261ed5d72cc7de51040d7fd7d33a771b79d90f2062a55",
-      "lines": 2591,
+      "bytes": 110590,
+      "sha256": "48f7e44f849026a740a09f7da67ee8647deb40c7e544029f6af8e5643d995c4a",
+      "lines": 2593,
       "symbols": [
         {
           "name": "Screen",
-          "kind": "TypeAliasDeclaration",
-          "line": 79,
-          "owner": ""
-        },
-        {
-          "name": "ThemePreference",
           "kind": "TypeAliasDeclaration",
           "line": 80,
           "owner": ""
         },
         {
+          "name": "ThemePreference",
+          "kind": "TypeAliasDeclaration",
+          "line": 81,
+          "owner": ""
+        },
+        {
           "name": "BeforeInstallPromptEvent",
           "kind": "InterfaceDeclaration",
-          "line": 82,
+          "line": 83,
           "owner": ""
         },
         {
           "name": "element",
           "kind": "FunctionDeclaration",
-          "line": 87,
+          "line": 88,
           "owner": ""
         },
         {
           "name": "tag",
           "kind": "Parameter",
-          "line": 88,
-          "owner": "element"
-        },
-        {
-          "name": "className",
-          "kind": "Parameter",
           "line": 89,
           "owner": "element"
         },
         {
-          "name": "text",
+          "name": "className",
           "kind": "Parameter",
           "line": 90,
           "owner": "element"
         },
         {
+          "name": "text",
+          "kind": "Parameter",
+          "line": 91,
+          "owner": "element"
+        },
+        {
           "name": "node",
           "kind": "VariableDeclaration",
-          "line": 92,
+          "line": 93,
           "owner": "element"
         },
         {
           "name": "button",
           "kind": "FunctionDeclaration",
-          "line": 98,
+          "line": 99,
           "owner": ""
         },
         {
           "name": "className",
           "kind": "Parameter",
-          "line": 98,
+          "line": 99,
           "owner": "button"
         },
         {
           "name": "text",
           "kind": "Parameter",
-          "line": 98,
+          "line": 99,
           "owner": "button"
         },
         {
           "name": "action",
           "kind": "Parameter",
-          "line": 98,
+          "line": 99,
           "owner": "button"
         },
         {
           "name": "node",
           "kind": "VariableDeclaration",
-          "line": 99,
+          "line": 100,
           "owner": "button"
         },
         {
           "name": "LunaraWebApp",
           "kind": "ClassDeclaration",
-          "line": 105,
+          "line": 106,
           "owner": ""
         },
         {
           "name": "root",
           "kind": "PropertyDeclaration",
-          "line": 106,
+          "line": 107,
           "owner": "LunaraWebApp"
         },
         {
           "name": "api",
           "kind": "PropertyDeclaration",
-          "line": 107,
+          "line": 108,
           "owner": "LunaraWebApp"
         },
         {
           "name": "sync",
           "kind": "PropertyDeclaration",
-          "line": 108,
+          "line": 109,
           "owner": "LunaraWebApp"
         },
         {
           "name": "serverIdentities",
           "kind": "PropertyDeclaration",
-          "line": 109,
+          "line": 110,
           "owner": "LunaraWebApp"
         },
         {
           "name": "refreshRequests",
           "kind": "PropertyDeclaration",
-          "line": 110,
+          "line": 111,
           "owner": "LunaraWebApp"
         },
         {
           "name": "meta",
           "kind": "PropertyDeclaration",
-          "line": 111,
-          "owner": "LunaraWebApp"
-        },
-        {
-          "name": "user",
-          "kind": "PropertyDeclaration",
           "line": 112,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "periods",
+          "name": "user",
           "kind": "PropertyDeclaration",
           "line": 113,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "prediction",
+          "name": "periods",
           "kind": "PropertyDeclaration",
           "line": 114,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "partnerTip",
+          "name": "prediction",
           "kind": "PropertyDeclaration",
           "line": 115,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "partnerCalendar",
+          "name": "partnerTip",
           "kind": "PropertyDeclaration",
           "line": 116,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "screen",
+          "name": "partnerCalendar",
           "kind": "PropertyDeclaration",
           "line": 117,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "selectedDate",
+          "name": "screen",
           "kind": "PropertyDeclaration",
           "line": 118,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "calendarMonth",
+          "name": "selectedDate",
           "kind": "PropertyDeclaration",
           "line": 119,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "language",
+          "name": "calendarMonth",
           "kind": "PropertyDeclaration",
-          "line": 121,
+          "line": 120,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "theme",
+          "name": "language",
           "kind": "PropertyDeclaration",
           "line": 122,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "expandedSettings",
+          "name": "theme",
           "kind": "PropertyDeclaration",
           "line": 123,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "syncState",
+          "name": "expandedSettings",
           "kind": "PropertyDeclaration",
           "line": 124,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "installPrompt",
+          "name": "syncState",
           "kind": "PropertyDeclaration",
           "line": 125,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "syncing",
+          "name": "installPrompt",
           "kind": "PropertyDeclaration",
           "line": 126,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "initError",
+          "name": "syncing",
           "kind": "PropertyDeclaration",
           "line": 127,
           "owner": "LunaraWebApp"
         },
         {
-          "name": "joinExpanded",
+          "name": "initError",
           "kind": "PropertyDeclaration",
           "line": 128,
           "owner": "LunaraWebApp"
         },
         {
+          "name": "joinExpanded",
+          "kind": "PropertyDeclaration",
+          "line": 129,
+          "owner": "LunaraWebApp"
+        },
+        {
           "name": "confirmDeletePeriodId",
           "kind": "PropertyDeclaration",
-          "line": 130,
+          "line": 131,
           "owner": "LunaraWebApp"
         },
         {
           "name": "sharingState",
           "kind": "PropertyDeclaration",
-          "line": 132,
+          "line": 133,
           "owner": "LunaraWebApp"
         },
         {
           "name": "profileState",
           "kind": "PropertyDeclaration",
-          "line": 133,
+          "line": 134,
           "owner": "LunaraWebApp"
         },
         {
           "name": "settingsMessage",
           "kind": "PropertyDeclaration",
-          "line": 134,
+          "line": 135,
           "owner": "LunaraWebApp"
         },
         {
           "name": "pendingOidcLink",
           "kind": "PropertyDeclaration",
-          "line": 136,
+          "line": 137,
           "owner": "LunaraWebApp"
         },
         {
           "name": "oidcStatus",
           "kind": "PropertyDeclaration",
-          "line": 137,
+          "line": 138,
           "owner": "LunaraWebApp"
         },
         {
           "name": "oidcStatusUserId",
           "kind": "PropertyDeclaration",
-          "line": 139,
+          "line": 140,
           "owner": "LunaraWebApp"
         },
         {
           "name": "oidcLinkMessage",
           "kind": "PropertyDeclaration",
-          "line": 140,
+          "line": 141,
           "owner": "LunaraWebApp"
         },
         {
           "name": "localMode",
           "kind": "PropertyDeclaration",
-          "line": 141,
+          "line": 142,
           "owner": "LunaraWebApp"
         },
         {
           "name": "localVaultAvailable",
           "kind": "PropertyDeclaration",
-          "line": 142,
+          "line": 143,
           "owner": "LunaraWebApp"
         },
         {
           "name": "localVault",
           "kind": "PropertyDeclaration",
-          "line": 143,
+          "line": 144,
           "owner": "LunaraWebApp"
         },
         {
           "name": "localExtras",
           "kind": "PropertyDeclaration",
-          "line": 144,
+          "line": 145,
           "owner": "LunaraWebApp"
         },
         {
           "name": "importReport",
           "kind": "PropertyDeclaration",
-          "line": 145,
+          "line": 146,
           "owner": "LunaraWebApp"
         },
         {
           "name": "vaultLockTimer",
           "kind": "PropertyDeclaration",
-          "line": 146,
+          "line": 147,
           "owner": "LunaraWebApp"
         },
         {
           "name": "predictionDayTimer",
           "kind": "PropertyDeclaration",
-          "line": 147,
+          "line": 148,
           "owner": "LunaraWebApp"
         },
         {
           "name": "localVaultCoordinator",
           "kind": "PropertyDeclaration",
-          "line": 148,
+          "line": 149,
           "owner": "LunaraWebApp"
         },
         {
           "name": "loginChoice",
           "kind": "PropertyDeclaration",
-          "line": 149,
+          "line": 150,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationCode",
           "kind": "PropertyDeclaration",
-          "line": 150,
+          "line": 151,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationError",
           "kind": "PropertyDeclaration",
-          "line": 151,
+          "line": 152,
           "owner": "LunaraWebApp"
         },
         {
           "name": "acceptingInvitation",
           "kind": "PropertyDeclaration",
-          "line": 152,
+          "line": 153,
           "owner": "LunaraWebApp"
         },
         {
           "name": "partnerConnected",
           "kind": "PropertyDeclaration",
-          "line": 153,
+          "line": 154,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationOverviewLoading",
           "kind": "PropertyDeclaration",
-          "line": 154,
+          "line": 155,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationOverviewFailed",
           "kind": "PropertyDeclaration",
-          "line": 155,
+          "line": 156,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationCreationBusy",
           "kind": "PropertyDeclaration",
-          "line": 156,
+          "line": 157,
           "owner": "LunaraWebApp"
         },
         {
           "name": "createdInvitation",
           "kind": "PropertyDeclaration",
-          "line": 157,
+          "line": 158,
           "owner": "LunaraWebApp"
         },
         {
           "name": "createdInvitationLink",
           "kind": "PropertyDeclaration",
-          "line": 158,
+          "line": 159,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationCreationError",
           "kind": "PropertyDeclaration",
-          "line": 159,
+          "line": 160,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationLinkRejected",
           "kind": "PropertyDeclaration",
-          "line": 160,
+          "line": 161,
           "owner": "LunaraWebApp"
         },
         {
           "name": "root",
           "kind": "VariableDeclaration",
-          "line": 163,
+          "line": 164,
           "owner": "LunaraWebApp"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 173,
+          "line": 174,
           "owner": "LunaraWebApp"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 178,
+          "line": 179,
           "owner": "LunaraWebApp"
         },
         {
           "name": "eventName",
           "kind": "VariableDeclaration",
-          "line": 181,
+          "line": 182,
           "owner": "LunaraWebApp"
         },
         {
           "name": "start",
           "kind": "MethodDeclaration",
-          "line": 197,
+          "line": 198,
           "owner": "LunaraWebApp"
         },
         {
           "name": "captured",
           "kind": "VariableDeclaration",
-          "line": 201,
+          "line": 202,
           "owner": "LunaraWebApp.start"
         },
         {
           "name": "oidcResult",
           "kind": "VariableDeclaration",
-          "line": 221,
+          "line": 222,
           "owner": "LunaraWebApp.start"
         },
         {
           "name": "cachedUser",
           "kind": "VariableDeclaration",
-          "line": 238,
+          "line": 239,
           "owner": "LunaraWebApp.start"
         },
         {
           "name": "restoredUser",
           "kind": "VariableDeclaration",
-          "line": 240,
+          "line": 241,
           "owner": "LunaraWebApp.start"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 243,
+          "line": 244,
           "owner": "LunaraWebApp.start"
         },
         {
           "name": "t",
           "kind": "MethodDeclaration",
-          "line": 265,
+          "line": 266,
           "owner": "LunaraWebApp"
         },
         {
           "name": "key",
           "kind": "Parameter",
-          "line": 265,
+          "line": 266,
           "owner": "LunaraWebApp.t"
         },
         {
           "name": "values",
           "kind": "Parameter",
-          "line": 265,
+          "line": 266,
           "owner": "LunaraWebApp.t"
         },
         {
           "name": "fetchMeta",
           "kind": "MethodDeclaration",
-          "line": 269,
+          "line": 270,
           "owner": "LunaraWebApp"
         },
         {
           "name": "rememberUser",
           "kind": "MethodDeclaration",
-          "line": 277,
+          "line": 278,
           "owner": "LunaraWebApp"
         },
         {
           "name": "user",
           "kind": "Parameter",
-          "line": 277,
+          "line": 278,
           "owner": "LunaraWebApp.rememberUser"
         },
         {
           "name": "identityKey",
           "kind": "VariableDeclaration",
-          "line": 278,
+          "line": 279,
           "owner": "LunaraWebApp.rememberUser"
         },
         {
           "name": "previous",
           "kind": "VariableDeclaration",
-          "line": 280,
+          "line": 281,
           "owner": "LunaraWebApp.rememberUser"
         },
         {
           "name": "loadCachedData",
           "kind": "MethodDeclaration",
-          "line": 311,
+          "line": 312,
           "owner": "LunaraWebApp"
         },
         {
           "name": "user",
           "kind": "VariableDeclaration",
-          "line": 320,
+          "line": 321,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "identityKey",
           "kind": "VariableDeclaration",
-          "line": 322,
+          "line": 323,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 324,
+          "line": 325,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "periods",
           "kind": "VariableDeclaration",
-          "line": 325,
+          "line": 326,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "prediction",
           "kind": "VariableDeclaration",
-          "line": 326,
+          "line": 327,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "cachedPartnerDashboard",
           "kind": "VariableDeclaration",
-          "line": 327,
+          "line": 328,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "visible",
           "kind": "VariableDeclaration",
-          "line": 330,
+          "line": 331,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 332,
+          "line": 333,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "index",
           "kind": "Parameter",
-          "line": 332,
+          "line": 333,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "partnerTip",
           "kind": "VariableDeclaration",
-          "line": 338,
+          "line": 339,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "mutations",
           "kind": "VariableDeclaration",
-          "line": 339,
+          "line": 340,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "lastSuccessfulAt",
           "kind": "VariableDeclaration",
-          "line": 340,
-          "owner": "LunaraWebApp.loadCachedData"
-        },
-        {
-          "name": "item",
-          "kind": "Parameter",
-          "line": 347,
+          "line": 341,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
@@ -68505,2362 +68907,2362 @@
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
+          "name": "item",
+          "kind": "Parameter",
+          "line": 349,
+          "owner": "LunaraWebApp.loadCachedData"
+        },
+        {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 352,
+          "line": 353,
           "owner": "LunaraWebApp.loadCachedData"
         },
         {
           "name": "refreshData",
           "kind": "MethodDeclaration",
-          "line": 357,
+          "line": 358,
           "owner": "LunaraWebApp"
         },
         {
           "name": "user",
           "kind": "VariableDeclaration",
-          "line": 358,
+          "line": 359,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "identityKey",
-          "kind": "VariableDeclaration",
-          "line": 360,
-          "owner": "LunaraWebApp.refreshData"
-        },
-        {
-          "name": "request",
           "kind": "VariableDeclaration",
           "line": 361,
           "owner": "LunaraWebApp.refreshData"
         },
         {
+          "name": "request",
+          "kind": "VariableDeclaration",
+          "line": 362,
+          "owner": "LunaraWebApp.refreshData"
+        },
+        {
           "name": "assertIdentity",
           "kind": "Parameter",
-          "line": 363,
+          "line": 364,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "assertCurrent",
           "kind": "VariableDeclaration",
-          "line": 364,
+          "line": 365,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "[periods, prediction]",
           "kind": "VariableDeclaration",
-          "line": 366,
+          "line": 367,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "[dashboard, tip]",
           "kind": "VariableDeclaration",
-          "line": 381,
+          "line": 382,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "visible",
           "kind": "VariableDeclaration",
-          "line": 387,
+          "line": 388,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "prediction",
           "kind": "VariableDeclaration",
-          "line": 388,
+          "line": 389,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "periods",
           "kind": "VariableDeclaration",
-          "line": 389,
+          "line": 390,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 389,
+          "line": 390,
           "owner": "LunaraWebApp.refreshData.periods"
         },
         {
           "name": "index",
           "kind": "Parameter",
-          "line": 389,
+          "line": 390,
           "owner": "LunaraWebApp.refreshData.periods"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 408,
+          "line": 409,
           "owner": "LunaraWebApp.refreshData"
         },
         {
           "name": "performSync",
           "kind": "MethodDeclaration",
-          "line": 417,
+          "line": 418,
           "owner": "LunaraWebApp"
         },
         {
           "name": "force",
           "kind": "Parameter",
-          "line": 417,
+          "line": 418,
           "owner": "LunaraWebApp.performSync"
         },
         {
           "name": "user",
           "kind": "VariableDeclaration",
-          "line": 418,
+          "line": 419,
           "owner": "LunaraWebApp.performSync"
         },
         {
           "name": "identityKey",
-          "kind": "VariableDeclaration",
-          "line": 426,
-          "owner": "LunaraWebApp.performSync"
-        },
-        {
-          "name": "stale",
           "kind": "VariableDeclaration",
           "line": 427,
           "owner": "LunaraWebApp.performSync"
         },
         {
+          "name": "stale",
+          "kind": "VariableDeclaration",
+          "line": 428,
+          "owner": "LunaraWebApp.performSync"
+        },
+        {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 431,
+          "line": 432,
           "owner": "LunaraWebApp.performSync"
         },
         {
           "name": "state",
           "kind": "VariableDeclaration",
-          "line": 432,
+          "line": 433,
           "owner": "LunaraWebApp.performSync"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 437,
+          "line": 438,
           "owner": "LunaraWebApp.performSync"
         },
         {
           "name": "handleUnauthorized",
           "kind": "MethodDeclaration",
-          "line": 448,
+          "line": 449,
           "owner": "LunaraWebApp"
         },
         {
           "name": "expectedIdentityKey",
           "kind": "Parameter",
-          "line": 448,
+          "line": 449,
           "owner": "LunaraWebApp.handleUnauthorized"
         },
         {
           "name": "cleared",
           "kind": "VariableDeclaration",
-          "line": 449,
+          "line": 450,
           "owner": "LunaraWebApp.handleUnauthorized"
         },
         {
           "name": "renderLoading",
           "kind": "MethodDeclaration",
-          "line": 467,
+          "line": 468,
           "owner": "LunaraWebApp"
         },
         {
           "name": "splash",
           "kind": "VariableDeclaration",
-          "line": 469,
+          "line": 470,
           "owner": "LunaraWebApp.renderLoading"
         },
         {
           "name": "logo",
           "kind": "VariableDeclaration",
-          "line": 470,
+          "line": 471,
           "owner": "LunaraWebApp.renderLoading"
         },
         {
           "name": "render",
           "kind": "MethodDeclaration",
-          "line": 477,
+          "line": 478,
           "owner": "LunaraWebApp"
         },
         {
           "name": "skipLink",
           "kind": "VariableDeclaration",
-          "line": 478,
+          "line": 479,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "previousEditor",
           "kind": "VariableDeclaration",
-          "line": 482,
+          "line": 483,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "previousInput",
           "kind": "VariableDeclaration",
-          "line": 483,
+          "line": 484,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "draft",
           "kind": "VariableDeclaration",
-          "line": 484,
+          "line": 485,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "frame",
           "kind": "VariableDeclaration",
-          "line": 499,
+          "line": 500,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "main",
           "kind": "VariableDeclaration",
-          "line": 501,
+          "line": 502,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "editor",
           "kind": "VariableDeclaration",
-          "line": 508,
+          "line": 509,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 510,
+          "line": 511,
           "owner": "LunaraWebApp.render"
         },
         {
           "name": "clearPredictionDayTimer",
           "kind": "MethodDeclaration",
-          "line": 519,
+          "line": 520,
           "owner": "LunaraWebApp"
         },
         {
           "name": "schedulePredictionDayRefresh",
           "kind": "MethodDeclaration",
-          "line": 524,
+          "line": 525,
           "owner": "LunaraWebApp"
         },
         {
           "name": "refreshPredictionDate",
           "kind": "MethodDeclaration",
-          "line": 530,
+          "line": 531,
           "owner": "LunaraWebApp"
         },
         {
           "name": "invitationAcceptanceView",
           "kind": "MethodDeclaration",
-          "line": 542,
+          "line": 543,
           "owner": "LunaraWebApp"
         },
         {
           "name": "main",
           "kind": "VariableDeclaration",
-          "line": 543,
+          "line": 544,
           "owner": "LunaraWebApp.invitationAcceptanceView"
         },
         {
           "name": "card",
-          "kind": "VariableDeclaration",
-          "line": 545,
-          "owner": "LunaraWebApp.invitationAcceptanceView"
-        },
-        {
-          "name": "code",
           "kind": "VariableDeclaration",
           "line": 546,
           "owner": "LunaraWebApp.invitationAcceptanceView"
         },
         {
+          "name": "code",
+          "kind": "VariableDeclaration",
+          "line": 547,
+          "owner": "LunaraWebApp.invitationAcceptanceView"
+        },
+        {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 555,
+          "line": 556,
           "owner": "LunaraWebApp.invitationAcceptanceView"
         },
         {
           "name": "accept",
           "kind": "VariableDeclaration",
-          "line": 569,
+          "line": 570,
           "owner": "LunaraWebApp.invitationAcceptanceView"
         },
         {
           "name": "discard",
           "kind": "VariableDeclaration",
-          "line": 575,
+          "line": 576,
           "owner": "LunaraWebApp.invitationAcceptanceView"
         },
         {
           "name": "acceptPendingInvitation",
           "kind": "MethodDeclaration",
-          "line": 586,
+          "line": 587,
           "owner": "LunaraWebApp"
         },
         {
           "name": "code",
-          "kind": "VariableDeclaration",
-          "line": 587,
-          "owner": "LunaraWebApp.acceptPendingInvitation"
-        },
-        {
-          "name": "current",
           "kind": "VariableDeclaration",
           "line": 588,
           "owner": "LunaraWebApp.acceptPendingInvitation"
         },
         {
+          "name": "current",
+          "kind": "VariableDeclaration",
+          "line": 589,
+          "owner": "LunaraWebApp.acceptPendingInvitation"
+        },
+        {
           "name": "unresolvedMutations",
           "kind": "VariableDeclaration",
-          "line": 594,
+          "line": 595,
           "owner": "LunaraWebApp.acceptPendingInvitation"
         },
         {
           "name": "next",
           "kind": "VariableDeclaration",
-          "line": 600,
+          "line": 601,
           "owner": "LunaraWebApp.acceptPendingInvitation"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 607,
+          "line": 608,
           "owner": "LunaraWebApp.acceptPendingInvitation"
         },
         {
           "name": "loginView",
           "kind": "MethodDeclaration",
-          "line": 615,
+          "line": 616,
           "owner": "LunaraWebApp"
         },
         {
           "name": "main",
           "kind": "VariableDeclaration",
-          "line": 617,
+          "line": 618,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "card",
-          "kind": "VariableDeclaration",
-          "line": 619,
-          "owner": "LunaraWebApp.loginView"
-        },
-        {
-          "name": "brand",
           "kind": "VariableDeclaration",
           "line": 620,
           "owner": "LunaraWebApp.loginView"
         },
         {
-          "name": "logo",
+          "name": "brand",
           "kind": "VariableDeclaration",
           "line": 621,
           "owner": "LunaraWebApp.loginView"
         },
         {
+          "name": "logo",
+          "kind": "VariableDeclaration",
+          "line": 622,
+          "owner": "LunaraWebApp.loginView"
+        },
+        {
           "name": "notice",
           "kind": "VariableDeclaration",
-          "line": 627,
+          "line": 628,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "localPanel",
           "kind": "VariableDeclaration",
-          "line": 629,
+          "line": 630,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "form",
-          "kind": "VariableDeclaration",
-          "line": 644,
-          "owner": "LunaraWebApp.loginView"
-        },
-        {
-          "name": "usernameLabel",
           "kind": "VariableDeclaration",
           "line": 645,
           "owner": "LunaraWebApp.loginView"
         },
         {
-          "name": "username",
+          "name": "usernameLabel",
           "kind": "VariableDeclaration",
           "line": 646,
           "owner": "LunaraWebApp.loginView"
         },
         {
-          "name": "passwordLabel",
+          "name": "username",
           "kind": "VariableDeclaration",
-          "line": 653,
+          "line": 647,
           "owner": "LunaraWebApp.loginView"
         },
         {
-          "name": "password",
+          "name": "passwordLabel",
           "kind": "VariableDeclaration",
           "line": 654,
           "owner": "LunaraWebApp.loginView"
         },
         {
+          "name": "password",
+          "kind": "VariableDeclaration",
+          "line": 655,
+          "owner": "LunaraWebApp.loginView"
+        },
+        {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 661,
+          "line": 662,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 664,
+          "line": 665,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 667,
+          "line": 668,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "session",
           "kind": "VariableDeclaration",
-          "line": 672,
+          "line": 673,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "loginError",
           "kind": "VariableDeclaration",
-          "line": 678,
+          "line": 679,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "divider",
           "kind": "VariableDeclaration",
-          "line": 697,
+          "line": 698,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "beginOidc",
           "kind": "VariableDeclaration",
-          "line": 699,
+          "line": 700,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "intent",
           "kind": "Parameter",
-          "line": 699,
+          "line": 700,
           "owner": "LunaraWebApp.loginView.beginOidc"
         },
         {
           "name": "provider",
           "kind": "VariableDeclaration",
-          "line": 711,
+          "line": 712,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "preferredLanguage",
           "kind": "VariableDeclaration",
-          "line": 712,
+          "line": 713,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "enrollmentAvailable",
           "kind": "VariableDeclaration",
-          "line": 713,
+          "line": 714,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "oidcButton",
           "kind": "VariableDeclaration",
-          "line": 714,
+          "line": 715,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "oidcActions",
           "kind": "VariableDeclaration",
-          "line": 719,
+          "line": 720,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "partnerForm",
           "kind": "VariableDeclaration",
-          "line": 733,
+          "line": 734,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "invitationLabel",
           "kind": "VariableDeclaration",
-          "line": 734,
+          "line": 735,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "invitationCode",
           "kind": "VariableDeclaration",
-          "line": 735,
+          "line": 736,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "partnerSubmit",
           "kind": "VariableDeclaration",
-          "line": 745,
+          "line": 746,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 756,
+          "line": 757,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "normalizedCode",
           "kind": "VariableDeclaration",
-          "line": 758,
+          "line": 759,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "languageToggle",
           "kind": "VariableDeclaration",
-          "line": 790,
+          "line": 791,
           "owner": "LunaraWebApp.loginView"
         },
         {
           "name": "modeChoiceView",
           "kind": "MethodDeclaration",
-          "line": 804,
+          "line": 805,
           "owner": "LunaraWebApp"
         },
         {
           "name": "main",
           "kind": "VariableDeclaration",
-          "line": 805,
+          "line": 806,
           "owner": "LunaraWebApp.modeChoiceView"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 807,
+          "line": 808,
           "owner": "LunaraWebApp.modeChoiceView"
         },
         {
           "name": "choices",
           "kind": "VariableDeclaration",
-          "line": 813,
+          "line": 814,
           "owner": "LunaraWebApp.modeChoiceView"
         },
         {
           "name": "server",
           "kind": "VariableDeclaration",
-          "line": 814,
+          "line": 815,
           "owner": "LunaraWebApp.modeChoiceView"
         },
         {
           "name": "local",
           "kind": "VariableDeclaration",
-          "line": 822,
+          "line": 823,
           "owner": "LunaraWebApp.modeChoiceView"
         },
         {
           "name": "loginIntroduction",
           "kind": "MethodDeclaration",
-          "line": 842,
+          "line": 843,
           "owner": "LunaraWebApp"
         },
         {
           "name": "introduction",
           "kind": "VariableDeclaration",
-          "line": 843,
-          "owner": "LunaraWebApp.loginIntroduction"
-        },
-        {
-          "name": "brand",
-          "kind": "VariableDeclaration",
           "line": 844,
           "owner": "LunaraWebApp.loginIntroduction"
         },
         {
-          "name": "logo",
+          "name": "brand",
           "kind": "VariableDeclaration",
           "line": 845,
           "owner": "LunaraWebApp.loginIntroduction"
         },
         {
+          "name": "logo",
+          "kind": "VariableDeclaration",
+          "line": 846,
+          "owner": "LunaraWebApp.loginIntroduction"
+        },
+        {
           "name": "localVaultPanel",
           "kind": "MethodDeclaration",
-          "line": 857,
+          "line": 858,
           "owner": "LunaraWebApp"
         },
         {
           "name": "panel",
           "kind": "VariableDeclaration",
-          "line": 858,
-          "owner": "LunaraWebApp.localVaultPanel"
-        },
-        {
-          "name": "form",
-          "kind": "VariableDeclaration",
           "line": 859,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
-          "name": "passphraseLabel",
+          "name": "form",
           "kind": "VariableDeclaration",
           "line": 860,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
+          "name": "passphraseLabel",
+          "kind": "VariableDeclaration",
+          "line": 861,
+          "owner": "LunaraWebApp.localVaultPanel"
+        },
+        {
           "name": "passphrase",
           "kind": "VariableDeclaration",
-          "line": 865,
+          "line": 866,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "confirmation",
           "kind": "VariableDeclaration",
-          "line": 874,
+          "line": 875,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "confirmationLabel",
           "kind": "VariableDeclaration",
-          "line": 876,
+          "line": 877,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 887,
+          "line": 888,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 893,
+          "line": 894,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 896,
+          "line": 897,
           "owner": "LunaraWebApp.localVaultPanel"
         },
         {
           "name": "localIdentity",
           "kind": "MethodDeclaration",
-          "line": 933,
+          "line": 934,
           "owner": "LunaraWebApp"
         },
         {
           "name": "displayName",
           "kind": "Parameter",
-          "line": 933,
+          "line": 934,
           "owner": "LunaraWebApp.localIdentity"
         },
         {
           "name": "createLocalMode",
           "kind": "MethodDeclaration",
-          "line": 944,
+          "line": 945,
           "owner": "LunaraWebApp"
         },
         {
           "name": "passphrase",
           "kind": "Parameter",
-          "line": 944,
+          "line": 945,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
           "name": "generation",
           "kind": "VariableDeclaration",
-          "line": 946,
+          "line": 947,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
           "name": "legacyPeriods",
           "kind": "VariableDeclaration",
-          "line": 949,
+          "line": 950,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
           "name": "legacyExtras",
           "kind": "VariableDeclaration",
-          "line": 950,
+          "line": 951,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
           "name": "legacyUser",
           "kind": "VariableDeclaration",
-          "line": 953,
+          "line": 954,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
           "name": "state",
-          "kind": "VariableDeclaration",
-          "line": 957,
-          "owner": "LunaraWebApp.createLocalMode"
-        },
-        {
-          "name": "envelope",
           "kind": "VariableDeclaration",
           "line": 958,
           "owner": "LunaraWebApp.createLocalMode"
         },
         {
+          "name": "envelope",
+          "kind": "VariableDeclaration",
+          "line": 959,
+          "owner": "LunaraWebApp.createLocalMode"
+        },
+        {
           "name": "unlockLocalMode",
           "kind": "MethodDeclaration",
-          "line": 980,
+          "line": 981,
           "owner": "LunaraWebApp"
         },
         {
           "name": "passphrase",
           "kind": "Parameter",
-          "line": 980,
+          "line": 981,
           "owner": "LunaraWebApp.unlockLocalMode"
         },
         {
           "name": "generation",
           "kind": "VariableDeclaration",
-          "line": 982,
+          "line": 983,
           "owner": "LunaraWebApp.unlockLocalMode"
         },
         {
           "name": "envelope",
           "kind": "VariableDeclaration",
-          "line": 983,
+          "line": 984,
           "owner": "LunaraWebApp.unlockLocalMode"
         },
         {
           "name": "state",
           "kind": "VariableDeclaration",
-          "line": 985,
+          "line": 986,
           "owner": "LunaraWebApp.unlockLocalMode"
         },
         {
           "name": "applyLocalState",
           "kind": "MethodDeclaration",
-          "line": 1005,
+          "line": 1006,
           "owner": "LunaraWebApp"
         },
         {
           "name": "state",
           "kind": "Parameter",
-          "line": 1005,
+          "line": 1006,
           "owner": "LunaraWebApp.applyLocalState"
         },
         {
           "name": "left",
           "kind": "Parameter",
-          "line": 1006,
+          "line": 1007,
           "owner": "LunaraWebApp.applyLocalState"
         },
         {
           "name": "right",
           "kind": "Parameter",
-          "line": 1006,
+          "line": 1007,
           "owner": "LunaraWebApp.applyLocalState"
         },
         {
           "name": "persistLocalState",
           "kind": "MethodDeclaration",
-          "line": 1018,
+          "line": 1019,
           "owner": "LunaraWebApp"
         },
         {
           "name": "periods",
           "kind": "Parameter",
-          "line": 1019,
+          "line": 1020,
           "owner": "LunaraWebApp.persistLocalState"
         },
         {
           "name": "extras",
           "kind": "Parameter",
-          "line": 1020,
+          "line": 1021,
           "owner": "LunaraWebApp.persistLocalState"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1024,
-          "owner": "LunaraWebApp.persistLocalState"
-        },
-        {
-          "name": "state",
-          "kind": "VariableDeclaration",
           "line": 1025,
           "owner": "LunaraWebApp.persistLocalState"
         },
         {
-          "name": "envelope",
+          "name": "state",
           "kind": "VariableDeclaration",
           "line": 1026,
           "owner": "LunaraWebApp.persistLocalState"
         },
         {
+          "name": "envelope",
+          "kind": "VariableDeclaration",
+          "line": 1027,
+          "owner": "LunaraWebApp.persistLocalState"
+        },
+        {
           "name": "applyImportedTheme",
           "kind": "MethodDeclaration",
-          "line": 1039,
+          "line": 1040,
           "owner": "LunaraWebApp"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 1039,
+          "line": 1040,
           "owner": "LunaraWebApp.applyImportedTheme"
         },
         {
           "name": "armVaultLock",
           "kind": "MethodDeclaration",
-          "line": 1045,
+          "line": 1046,
           "owner": "LunaraWebApp"
         },
         {
           "name": "lockLocalVault",
           "kind": "MethodDeclaration",
-          "line": 1051,
+          "line": 1052,
           "owner": "LunaraWebApp"
         },
         {
           "name": "clearLocalVaultRuntime",
           "kind": "MethodDeclaration",
-          "line": 1059,
+          "line": 1060,
           "owner": "LunaraWebApp"
         },
         {
           "name": "appHeader",
           "kind": "MethodDeclaration",
-          "line": 1071,
+          "line": 1072,
           "owner": "LunaraWebApp"
         },
         {
           "name": "header",
           "kind": "VariableDeclaration",
-          "line": 1072,
+          "line": 1073,
           "owner": "LunaraWebApp.appHeader"
         },
         {
           "name": "brand",
           "kind": "VariableDeclaration",
-          "line": 1073,
+          "line": 1074,
           "owner": "LunaraWebApp.appHeader"
         },
         {
           "name": "icon",
           "kind": "VariableDeclaration",
-          "line": 1074,
+          "line": 1075,
           "owner": "LunaraWebApp.appHeader"
         },
         {
           "name": "status",
           "kind": "VariableDeclaration",
-          "line": 1076,
+          "line": 1077,
           "owner": "LunaraWebApp.appHeader"
         },
         {
           "name": "syncLabel",
           "kind": "MethodDeclaration",
-          "line": 1084,
+          "line": 1085,
           "owner": "LunaraWebApp"
         },
         {
           "name": "todayView",
           "kind": "MethodDeclaration",
-          "line": 1093,
+          "line": 1094,
           "owner": "LunaraWebApp"
         },
         {
           "name": "isTracker",
           "kind": "VariableDeclaration",
-          "line": 1094,
-          "owner": "LunaraWebApp.todayView"
-        },
-        {
-          "name": "view",
-          "kind": "VariableDeclaration",
           "line": 1095,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "lead",
+          "name": "view",
           "kind": "VariableDeclaration",
           "line": 1096,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "rail",
+          "name": "lead",
           "kind": "VariableDeclaration",
           "line": 1097,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "greeting",
+          "name": "rail",
           "kind": "VariableDeclaration",
-          "line": 1099,
+          "line": 1098,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "date",
+          "name": "greeting",
           "kind": "VariableDeclaration",
           "line": 1100,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "active",
+          "name": "date",
           "kind": "VariableDeclaration",
-          "line": 1109,
+          "line": 1101,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "controls",
+          "name": "active",
           "kind": "VariableDeclaration",
           "line": 1110,
           "owner": "LunaraWebApp.todayView"
         },
         {
-          "name": "action",
+          "name": "controls",
           "kind": "VariableDeclaration",
           "line": 1111,
           "owner": "LunaraWebApp.todayView"
         },
         {
+          "name": "action",
+          "kind": "VariableDeclaration",
+          "line": 1112,
+          "owner": "LunaraWebApp.todayView"
+        },
+        {
           "name": "icon",
           "kind": "VariableDeclaration",
-          "line": 1116,
+          "line": 1117,
           "owner": "LunaraWebApp.todayView"
         },
         {
           "name": "calendarAction",
           "kind": "VariableDeclaration",
-          "line": 1122,
+          "line": 1123,
           "owner": "LunaraWebApp.todayView"
         },
         {
           "name": "relationship",
           "kind": "VariableDeclaration",
-          "line": 1135,
+          "line": 1136,
           "owner": "LunaraWebApp.todayView"
         },
         {
           "name": "predictionCard",
           "kind": "MethodDeclaration",
-          "line": 1148,
+          "line": 1149,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1149,
+          "line": 1150,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
           "name": "referenceDate",
-          "kind": "VariableDeclaration",
-          "line": 1151,
-          "owner": "LunaraWebApp.predictionCard"
-        },
-        {
-          "name": "pendingChanges",
           "kind": "VariableDeclaration",
           "line": 1152,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
-          "name": "summary",
+          "name": "pendingChanges",
           "kind": "VariableDeclaration",
           "line": 1153,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
+          "name": "summary",
+          "kind": "VariableDeclaration",
+          "line": 1154,
+          "owner": "LunaraWebApp.predictionCard"
+        },
+        {
           "name": "confidenceKey",
           "kind": "VariableDeclaration",
-          "line": 1165,
+          "line": 1166,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
           "name": "basis",
           "kind": "VariableDeclaration",
-          "line": 1171,
+          "line": 1172,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
           "name": "fertility",
           "kind": "VariableDeclaration",
-          "line": 1191,
+          "line": 1192,
           "owner": "LunaraWebApp.predictionCard"
         },
         {
           "name": "tipCard",
           "kind": "MethodDeclaration",
-          "line": 1202,
+          "line": 1203,
           "owner": "LunaraWebApp"
         },
         {
           "name": "tip",
           "kind": "VariableDeclaration",
-          "line": 1203,
+          "line": 1204,
           "owner": "LunaraWebApp.tipCard"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1204,
+          "line": 1205,
           "owner": "LunaraWebApp.tipCard"
         },
         {
           "name": "action",
           "kind": "VariableDeclaration",
-          "line": 1211,
+          "line": 1212,
           "owner": "LunaraWebApp.tipCard"
         },
         {
           "name": "publisher",
           "kind": "VariableDeclaration",
-          "line": 1215,
+          "line": 1216,
           "owner": "LunaraWebApp.tipCard"
         },
         {
           "name": "reference",
           "kind": "VariableDeclaration",
-          "line": 1217,
+          "line": 1218,
           "owner": "LunaraWebApp.tipCard"
         },
         {
           "name": "recentPeriodsCard",
           "kind": "MethodDeclaration",
-          "line": 1226,
+          "line": 1227,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1227,
+          "line": 1228,
           "owner": "LunaraWebApp.recentPeriodsCard"
         },
         {
           "name": "list",
           "kind": "VariableDeclaration",
-          "line": 1229,
+          "line": 1230,
           "owner": "LunaraWebApp.recentPeriodsCard"
         },
         {
           "name": "period",
-          "kind": "VariableDeclaration",
-          "line": 1230,
-          "owner": "LunaraWebApp.recentPeriodsCard"
-        },
-        {
-          "name": "item",
-          "kind": "Parameter",
-          "line": 1230,
-          "owner": "LunaraWebApp.recentPeriodsCard"
-        },
-        {
-          "name": "state",
           "kind": "VariableDeclaration",
           "line": 1231,
           "owner": "LunaraWebApp.recentPeriodsCard"
         },
         {
-          "name": "range",
+          "name": "item",
+          "kind": "Parameter",
+          "line": 1231,
+          "owner": "LunaraWebApp.recentPeriodsCard"
+        },
+        {
+          "name": "state",
           "kind": "VariableDeclaration",
           "line": 1232,
           "owner": "LunaraWebApp.recentPeriodsCard"
         },
         {
+          "name": "range",
+          "kind": "VariableDeclaration",
+          "line": 1233,
+          "owner": "LunaraWebApp.recentPeriodsCard"
+        },
+        {
           "name": "item",
           "kind": "VariableDeclaration",
-          "line": 1235,
+          "line": 1236,
           "owner": "LunaraWebApp.recentPeriodsCard"
         },
         {
           "name": "calendarView",
           "kind": "MethodDeclaration",
-          "line": 1253,
+          "line": 1254,
           "owner": "LunaraWebApp"
         },
         {
           "name": "view",
-          "kind": "VariableDeclaration",
-          "line": 1254,
-          "owner": "LunaraWebApp.calendarView"
-        },
-        {
-          "name": "heading",
           "kind": "VariableDeclaration",
           "line": 1255,
           "owner": "LunaraWebApp.calendarView"
         },
         {
+          "name": "heading",
+          "kind": "VariableDeclaration",
+          "line": 1256,
+          "owner": "LunaraWebApp.calendarView"
+        },
+        {
           "name": "notice",
           "kind": "VariableDeclaration",
-          "line": 1263,
+          "line": 1264,
           "owner": "LunaraWebApp.calendarView"
         },
         {
           "name": "referenceDate",
-          "kind": "VariableDeclaration",
-          "line": 1266,
-          "owner": "LunaraWebApp.calendarView"
-        },
-        {
-          "name": "calendar",
           "kind": "VariableDeclaration",
           "line": 1267,
           "owner": "LunaraWebApp.calendarView"
         },
         {
+          "name": "calendar",
+          "kind": "VariableDeclaration",
+          "line": 1268,
+          "owner": "LunaraWebApp.calendarView"
+        },
+        {
           "name": "month",
           "kind": "Parameter",
-          "line": 1275,
+          "line": 1276,
           "owner": "LunaraWebApp.calendarView.calendar"
         },
         {
           "name": "date",
           "kind": "Parameter",
-          "line": 1278,
+          "line": 1279,
           "owner": "LunaraWebApp.calendarView.calendar"
         },
         {
           "name": "selected",
           "kind": "VariableDeclaration",
-          "line": 1286,
+          "line": 1287,
           "owner": "LunaraWebApp.calendarView"
         },
         {
           "name": "actions",
-          "kind": "VariableDeclaration",
-          "line": 1290,
-          "owner": "LunaraWebApp.calendarView"
-        },
-        {
-          "name": "selectedPeriod",
           "kind": "VariableDeclaration",
           "line": 1291,
           "owner": "LunaraWebApp.calendarView"
         },
         {
-          "name": "active",
+          "name": "selectedPeriod",
           "kind": "VariableDeclaration",
           "line": 1292,
           "owner": "LunaraWebApp.calendarView"
         },
         {
+          "name": "active",
+          "kind": "VariableDeclaration",
+          "line": 1293,
+          "owner": "LunaraWebApp.calendarView"
+        },
+        {
           "name": "start",
           "kind": "VariableDeclaration",
-          "line": 1296,
+          "line": 1297,
           "owner": "LunaraWebApp.calendarView"
         },
         {
           "name": "end",
           "kind": "VariableDeclaration",
-          "line": 1304,
+          "line": 1305,
           "owner": "LunaraWebApp.calendarView"
         },
         {
           "name": "calendarLegend",
           "kind": "MethodDeclaration",
-          "line": 1320,
+          "line": 1321,
           "owner": "LunaraWebApp"
         },
         {
           "name": "periodEndEditor",
           "kind": "MethodDeclaration",
-          "line": 1324,
+          "line": 1325,
           "owner": "LunaraWebApp"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1324,
+          "line": 1325,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "referenceDate",
           "kind": "Parameter",
-          "line": 1324,
+          "line": 1325,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "form",
           "kind": "VariableDeclaration",
-          "line": 1325,
+          "line": 1326,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "state",
           "kind": "VariableDeclaration",
-          "line": 1328,
+          "line": 1329,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "label",
-          "kind": "VariableDeclaration",
-          "line": 1332,
-          "owner": "LunaraWebApp.periodEndEditor"
-        },
-        {
-          "name": "input",
           "kind": "VariableDeclaration",
           "line": 1333,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
+          "name": "input",
+          "kind": "VariableDeclaration",
+          "line": 1334,
+          "owner": "LunaraWebApp.periodEndEditor"
+        },
+        {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1338,
+          "line": 1339,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "save",
           "kind": "VariableDeclaration",
-          "line": 1340,
+          "line": 1341,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "validate",
           "kind": "VariableDeclaration",
-          "line": 1342,
+          "line": 1343,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "invalid",
           "kind": "VariableDeclaration",
-          "line": 1343,
+          "line": 1344,
           "owner": "LunaraWebApp.periodEndEditor.validate"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 1349,
+          "line": 1350,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "owner",
           "kind": "VariableDeclaration",
-          "line": 1352,
+          "line": 1353,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "current",
           "kind": "VariableDeclaration",
-          "line": 1353,
+          "line": 1354,
           "owner": "LunaraWebApp.periodEndEditor"
         },
         {
           "name": "item",
           "kind": "Parameter",
-          "line": 1353,
+          "line": 1354,
           "owner": "LunaraWebApp.periodEndEditor.current"
         },
         {
           "name": "settingsView",
           "kind": "MethodDeclaration",
-          "line": 1361,
+          "line": 1362,
           "owner": "LunaraWebApp"
         },
         {
           "name": "view",
           "kind": "VariableDeclaration",
-          "line": 1362,
+          "line": 1363,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "heading",
           "kind": "VariableDeclaration",
-          "line": 1363,
+          "line": 1364,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "account",
           "kind": "VariableDeclaration",
-          "line": 1366,
+          "line": 1367,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "language",
           "kind": "VariableDeclaration",
-          "line": 1372,
+          "line": 1373,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "languageButtons",
           "kind": "VariableDeclaration",
-          "line": 1374,
+          "line": 1375,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "[code, label]",
           "kind": "VariableDeclaration",
-          "line": 1375,
+          "line": 1376,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "choice",
           "kind": "VariableDeclaration",
-          "line": 1376,
+          "line": 1377,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "appearance",
           "kind": "VariableDeclaration",
-          "line": 1382,
+          "line": 1383,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "themeButtons",
           "kind": "VariableDeclaration",
-          "line": 1384,
+          "line": 1385,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "choice",
           "kind": "VariableDeclaration",
-          "line": 1385,
-          "owner": "LunaraWebApp.settingsView"
-        },
-        {
-          "name": "label",
-          "kind": "VariableDeclaration",
           "line": 1386,
           "owner": "LunaraWebApp.settingsView"
         },
         {
-          "name": "choiceButton",
+          "name": "label",
           "kind": "VariableDeclaration",
           "line": 1387,
           "owner": "LunaraWebApp.settingsView"
         },
         {
+          "name": "choiceButton",
+          "kind": "VariableDeclaration",
+          "line": 1388,
+          "owner": "LunaraWebApp.settingsView"
+        },
+        {
           "name": "server",
           "kind": "VariableDeclaration",
-          "line": 1393,
+          "line": 1394,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "install",
           "kind": "VariableDeclaration",
-          "line": 1410,
+          "line": 1411,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "logout",
           "kind": "VariableDeclaration",
-          "line": 1411,
+          "line": 1412,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "appItems",
           "kind": "VariableDeclaration",
-          "line": 1433,
+          "line": 1434,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "oidcCard",
           "kind": "VariableDeclaration",
-          "line": 1434,
+          "line": 1435,
+          "owner": "LunaraWebApp.settingsView"
+        },
+        {
+          "name": "message",
+          "kind": "Parameter",
+          "line": 1437,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "accountActions",
           "kind": "VariableDeclaration",
-          "line": 1437,
+          "line": 1439,
           "owner": "LunaraWebApp.settingsView"
         },
         {
           "name": "settingsGroup",
           "kind": "MethodDeclaration",
-          "line": 1443,
+          "line": 1445,
           "owner": "LunaraWebApp"
         },
         {
           "name": "id",
           "kind": "Parameter",
-          "line": 1443,
+          "line": 1445,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "title",
           "kind": "Parameter",
-          "line": 1443,
+          "line": 1445,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "description",
           "kind": "Parameter",
-          "line": 1443,
+          "line": 1445,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "children",
           "kind": "Parameter",
-          "line": 1443,
+          "line": 1445,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "group",
           "kind": "VariableDeclaration",
-          "line": 1444,
+          "line": 1446,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "summary",
           "kind": "VariableDeclaration",
-          "line": 1447,
+          "line": 1449,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "labels",
           "kind": "VariableDeclaration",
-          "line": 1448,
+          "line": 1450,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "icon",
           "kind": "VariableDeclaration",
-          "line": 1450,
+          "line": 1452,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "content",
           "kind": "VariableDeclaration",
-          "line": 1452,
+          "line": 1454,
           "owner": "LunaraWebApp.settingsGroup"
         },
         {
           "name": "partnerInvitationCard",
           "kind": "MethodDeclaration",
-          "line": 1462,
+          "line": 1464,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1463,
+          "line": 1465,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1476,
+          "line": 1478,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1490,
+          "line": 1492,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "invitation",
           "kind": "VariableDeclaration",
-          "line": 1499,
+          "line": 1501,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "code",
-          "kind": "VariableDeclaration",
-          "line": 1500,
-          "owner": "LunaraWebApp.partnerInvitationCard"
-        },
-        {
-          "name": "linkLabel",
           "kind": "VariableDeclaration",
           "line": 1502,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
+          "name": "linkLabel",
+          "kind": "VariableDeclaration",
+          "line": 1504,
+          "owner": "LunaraWebApp.partnerInvitationCard"
+        },
+        {
           "name": "link",
           "kind": "VariableDeclaration",
-          "line": 1503,
+          "line": 1505,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "actions",
           "kind": "VariableDeclaration",
-          "line": 1508,
+          "line": 1510,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "create",
           "kind": "VariableDeclaration",
-          "line": 1527,
+          "line": 1529,
           "owner": "LunaraWebApp.partnerInvitationCard"
         },
         {
           "name": "loadInvitationOverview",
           "kind": "MethodDeclaration",
-          "line": 1537,
+          "line": 1539,
           "owner": "LunaraWebApp"
         },
         {
           "name": "user",
-          "kind": "VariableDeclaration",
-          "line": 1538,
-          "owner": "LunaraWebApp.loadInvitationOverview"
-        },
-        {
-          "name": "identityKey",
           "kind": "VariableDeclaration",
           "line": 1540,
           "owner": "LunaraWebApp.loadInvitationOverview"
         },
         {
+          "name": "identityKey",
+          "kind": "VariableDeclaration",
+          "line": 1542,
+          "owner": "LunaraWebApp.loadInvitationOverview"
+        },
+        {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1543,
+          "line": 1545,
           "owner": "LunaraWebApp.loadInvitationOverview"
         },
         {
           "name": "household",
           "kind": "VariableDeclaration",
-          "line": 1544,
+          "line": 1546,
           "owner": "LunaraWebApp.loadInvitationOverview"
         },
         {
           "name": "member",
           "kind": "Parameter",
-          "line": 1546,
+          "line": 1548,
           "owner": "LunaraWebApp.loadInvitationOverview"
         },
         {
           "name": "createPartnerInvitation",
           "kind": "MethodDeclaration",
-          "line": 1560,
+          "line": 1562,
           "owner": "LunaraWebApp"
         },
         {
           "name": "user",
           "kind": "VariableDeclaration",
-          "line": 1561,
+          "line": 1563,
           "owner": "LunaraWebApp.createPartnerInvitation"
         },
         {
           "name": "invitation",
           "kind": "VariableDeclaration",
-          "line": 1571,
+          "line": 1573,
           "owner": "LunaraWebApp.createPartnerInvitation"
         },
         {
           "name": "link",
           "kind": "VariableDeclaration",
-          "line": 1572,
+          "line": 1574,
           "owner": "LunaraWebApp.createPartnerInvitation"
         },
         {
           "name": "copyInvitationLink",
           "kind": "MethodDeclaration",
-          "line": 1593,
+          "line": 1595,
           "owner": "LunaraWebApp"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 1593,
+          "line": 1595,
           "owner": "LunaraWebApp.copyInvitationLink"
         },
         {
           "name": "shareInvitationLink",
           "kind": "MethodDeclaration",
-          "line": 1602,
+          "line": 1604,
           "owner": "LunaraWebApp"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 1602,
+          "line": 1604,
           "owner": "LunaraWebApp.shareInvitationLink"
         },
         {
           "name": "manualInvitationAcceptanceCard",
           "kind": "MethodDeclaration",
-          "line": 1610,
+          "line": 1612,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1611,
+          "line": 1613,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "form",
           "kind": "VariableDeclaration",
-          "line": 1616,
+          "line": 1618,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "label",
           "kind": "VariableDeclaration",
-          "line": 1617,
+          "line": 1619,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 1618,
+          "line": 1620,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 1626,
+          "line": 1628,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1628,
+          "line": 1630,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 1631,
+          "line": 1633,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "code",
           "kind": "VariableDeclaration",
-          "line": 1633,
+          "line": 1635,
           "owner": "LunaraWebApp.manualInvitationAcceptanceCard"
         },
         {
           "name": "periodTransferCard",
           "kind": "MethodDeclaration",
-          "line": 1647,
+          "line": 1649,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
-          "kind": "VariableDeclaration",
-          "line": 1648,
-          "owner": "LunaraWebApp.periodTransferCard"
-        },
-        {
-          "name": "owner",
-          "kind": "VariableDeclaration",
-          "line": 1649,
-          "owner": "LunaraWebApp.periodTransferCard"
-        },
-        {
-          "name": "local",
           "kind": "VariableDeclaration",
           "line": 1650,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
-          "name": "vaultGeneration",
+          "name": "owner",
           "kind": "VariableDeclaration",
           "line": 1651,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
-          "name": "assertOwner",
+          "name": "local",
           "kind": "VariableDeclaration",
           "line": 1652,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
+          "name": "vaultGeneration",
+          "kind": "VariableDeclaration",
+          "line": 1653,
+          "owner": "LunaraWebApp.periodTransferCard"
+        },
+        {
+          "name": "assertOwner",
+          "kind": "VariableDeclaration",
+          "line": 1654,
+          "owner": "LunaraWebApp.periodTransferCard"
+        },
+        {
           "name": "acknowledgment",
           "kind": "VariableDeclaration",
-          "line": 1658,
+          "line": 1660,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "consent",
           "kind": "VariableDeclaration",
-          "line": 1659,
+          "line": 1661,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "status",
           "kind": "VariableDeclaration",
-          "line": 1661,
+          "line": 1663,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "actions",
           "kind": "VariableDeclaration",
-          "line": 1662,
+          "line": 1664,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "exportButtons",
           "kind": "VariableDeclaration",
-          "line": 1663,
+          "line": 1665,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "format",
           "kind": "Parameter",
-          "line": 1663,
+          "line": 1665,
           "owner": "LunaraWebApp.periodTransferCard.exportButtons"
         },
         {
           "name": "control",
           "kind": "VariableDeclaration",
-          "line": 1664,
+          "line": 1666,
           "owner": "LunaraWebApp.periodTransferCard.exportButtons"
         },
         {
           "name": "body",
           "kind": "VariableDeclaration",
-          "line": 1667,
-          "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
-        },
-        {
-          "name": "blob",
-          "kind": "VariableDeclaration",
-          "line": 1668,
-          "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
-        },
-        {
-          "name": "url",
-          "kind": "VariableDeclaration",
           "line": 1669,
           "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
         },
         {
-          "name": "link",
+          "name": "blob",
           "kind": "VariableDeclaration",
           "line": 1670,
           "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
         },
         {
-          "name": "control",
-          "kind": "Parameter",
-          "line": 1677,
-          "owner": "LunaraWebApp.periodTransferCard"
+          "name": "url",
+          "kind": "VariableDeclaration",
+          "line": 1671,
+          "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
         },
         {
-          "name": "file",
+          "name": "link",
           "kind": "VariableDeclaration",
+          "line": 1672,
+          "owner": "LunaraWebApp.periodTransferCard.exportButtons.control"
+        },
+        {
+          "name": "control",
+          "kind": "Parameter",
           "line": 1679,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
-          "name": "pending",
-          "kind": "VariableDeclaration",
-          "line": 1680,
-          "owner": "LunaraWebApp.periodTransferCard"
-        },
-        {
-          "name": "busy",
+          "name": "file",
           "kind": "VariableDeclaration",
           "line": 1681,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
-          "name": "assertServerReady",
+          "name": "pending",
           "kind": "VariableDeclaration",
           "line": 1682,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
+          "name": "busy",
+          "kind": "VariableDeclaration",
+          "line": 1683,
+          "owner": "LunaraWebApp.periodTransferCard"
+        },
+        {
+          "name": "assertServerReady",
+          "kind": "VariableDeclaration",
+          "line": 1684,
+          "owner": "LunaraWebApp.periodTransferCard"
+        },
+        {
           "name": "showError",
           "kind": "VariableDeclaration",
-          "line": 1685,
+          "line": 1687,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "error",
           "kind": "Parameter",
-          "line": 1685,
+          "line": 1687,
           "owner": "LunaraWebApp.periodTransferCard.showError"
         },
         {
           "name": "keys",
           "kind": "VariableDeclaration",
-          "line": 1686,
+          "line": 1688,
           "owner": "LunaraWebApp.periodTransferCard.showError"
         },
         {
           "name": "confirm",
           "kind": "VariableDeclaration",
-          "line": 1689,
+          "line": 1691,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "records",
           "kind": "VariableDeclaration",
-          "line": 1694,
+          "line": 1696,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "plan",
           "kind": "VariableDeclaration",
-          "line": 1696,
+          "line": 1698,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1696,
+          "line": 1698,
           "owner": "LunaraWebApp.periodTransferCard.confirm.plan"
         },
         {
           "name": "additions",
           "kind": "VariableDeclaration",
-          "line": 1698,
+          "line": 1700,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1698,
+          "line": 1700,
           "owner": "LunaraWebApp.periodTransferCard.confirm.additions"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1701,
+          "line": 1703,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "queue",
           "kind": "VariableDeclaration",
-          "line": 1703,
+          "line": 1705,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1715,
+          "line": 1717,
           "owner": "LunaraWebApp.periodTransferCard.confirm"
         },
         {
           "name": "selected",
           "kind": "VariableDeclaration",
-          "line": 1721,
+          "line": 1723,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "bytes",
           "kind": "VariableDeclaration",
-          "line": 1727,
+          "line": 1729,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "encoding",
           "kind": "VariableDeclaration",
-          "line": 1729,
+          "line": 1731,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "records",
           "kind": "VariableDeclaration",
-          "line": 1730,
+          "line": 1732,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "plan",
           "kind": "VariableDeclaration",
-          "line": 1731,
+          "line": 1733,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1731,
+          "line": 1733,
           "owner": "LunaraWebApp.periodTransferCard.plan"
         },
         {
           "name": "counts",
           "kind": "VariableDeclaration",
-          "line": 1732,
+          "line": 1734,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1734,
+          "line": 1736,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 1743,
+          "line": 1745,
           "owner": "LunaraWebApp.periodTransferCard"
         },
         {
           "name": "backupCard",
           "kind": "MethodDeclaration",
-          "line": 1751,
+          "line": 1753,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1752,
+          "line": 1754,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "label",
           "kind": "VariableDeclaration",
-          "line": 1758,
+          "line": 1760,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "passphrase",
           "kind": "VariableDeclaration",
-          "line": 1759,
+          "line": 1761,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "file",
           "kind": "VariableDeclaration",
-          "line": 1765,
+          "line": 1767,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "actions",
           "kind": "VariableDeclaration",
-          "line": 1768,
+          "line": 1770,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "preserved",
           "kind": "VariableDeclaration",
-          "line": 1772,
+          "line": 1774,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "encrypted",
           "kind": "VariableDeclaration",
-          "line": 1773,
+          "line": 1775,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "blob",
           "kind": "VariableDeclaration",
-          "line": 1782,
+          "line": 1784,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "url",
           "kind": "VariableDeclaration",
-          "line": 1783,
+          "line": 1785,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "download",
           "kind": "VariableDeclaration",
-          "line": 1784,
+          "line": 1786,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "selected",
           "kind": "VariableDeclaration",
-          "line": 1798,
+          "line": 1800,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "imported",
           "kind": "VariableDeclaration",
-          "line": 1802,
+          "line": 1804,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "merged",
           "kind": "VariableDeclaration",
-          "line": 1803,
+          "line": 1805,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "mergedDailyLogs",
           "kind": "VariableDeclaration",
-          "line": 1804,
+          "line": 1806,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "importedExtras",
           "kind": "VariableDeclaration",
-          "line": 1805,
+          "line": 1807,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "report",
           "kind": "VariableDeclaration",
-          "line": 1826,
+          "line": 1828,
           "owner": "LunaraWebApp.backupCard"
         },
         {
           "name": "installCard",
           "kind": "MethodDeclaration",
-          "line": 1833,
+          "line": 1835,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 1835,
+          "line": 1837,
           "owner": "LunaraWebApp.installCard"
         },
         {
           "name": "bottomNavigation",
           "kind": "MethodDeclaration",
-          "line": 1850,
+          "line": 1852,
           "owner": "LunaraWebApp"
         },
         {
           "name": "navigation",
           "kind": "VariableDeclaration",
-          "line": 1851,
+          "line": 1853,
           "owner": "LunaraWebApp.bottomNavigation"
         },
         {
           "name": "items",
           "kind": "VariableDeclaration",
-          "line": 1853,
+          "line": 1855,
           "owner": "LunaraWebApp.bottomNavigation"
         },
         {
           "name": "[screen, label]",
           "kind": "VariableDeclaration",
-          "line": 1858,
+          "line": 1860,
           "owner": "LunaraWebApp.bottomNavigation"
         },
         {
           "name": "item",
           "kind": "VariableDeclaration",
-          "line": 1859,
+          "line": 1861,
           "owner": "LunaraWebApp.bottomNavigation"
         },
         {
           "name": "symbol",
           "kind": "VariableDeclaration",
-          "line": 1864,
+          "line": 1866,
           "owner": "LunaraWebApp.bottomNavigation"
         },
         {
           "name": "activePeriod",
           "kind": "MethodDeclaration",
-          "line": 1872,
+          "line": 1874,
           "owner": "LunaraWebApp"
         },
         {
           "name": "referenceDate",
           "kind": "Parameter",
-          "line": 1872,
+          "line": 1874,
           "owner": "LunaraWebApp.activePeriod"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1874,
+          "line": 1876,
           "owner": "LunaraWebApp.activePeriod"
         },
         {
           "name": "left",
           "kind": "Parameter",
-          "line": 1875,
+          "line": 1877,
           "owner": "LunaraWebApp.activePeriod"
         },
         {
           "name": "right",
           "kind": "Parameter",
-          "line": 1875,
+          "line": 1877,
           "owner": "LunaraWebApp.activePeriod"
         },
         {
           "name": "overlapsExisting",
           "kind": "MethodDeclaration",
-          "line": 1878,
+          "line": 1880,
           "owner": "LunaraWebApp"
         },
         {
           "name": "startDate",
           "kind": "Parameter",
-          "line": 1878,
+          "line": 1880,
           "owner": "LunaraWebApp.overlapsExisting"
         },
         {
           "name": "endDate",
           "kind": "Parameter",
-          "line": 1878,
+          "line": 1880,
           "owner": "LunaraWebApp.overlapsExisting"
         },
         {
           "name": "excludedId",
           "kind": "Parameter",
-          "line": 1878,
+          "line": 1880,
           "owner": "LunaraWebApp.overlapsExisting"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1879,
+          "line": 1881,
           "owner": "LunaraWebApp.overlapsExisting"
         },
         {
           "name": "startPeriod",
           "kind": "MethodDeclaration",
-          "line": 1885,
+          "line": 1887,
           "owner": "LunaraWebApp"
         },
         {
           "name": "date",
           "kind": "Parameter",
-          "line": 1885,
+          "line": 1887,
           "owner": "LunaraWebApp.startPeriod"
         },
         {
           "name": "period",
           "kind": "VariableDeclaration",
-          "line": 1895,
+          "line": 1897,
           "owner": "LunaraWebApp.startPeriod"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1907,
+          "line": 1909,
           "owner": "LunaraWebApp.startPeriod.period"
         },
         {
           "name": "queued",
           "kind": "VariableDeclaration",
-          "line": 1908,
+          "line": 1910,
           "owner": "LunaraWebApp.startPeriod.period"
         },
         {
           "name": "endPeriod",
           "kind": "MethodDeclaration",
-          "line": 1930,
+          "line": 1932,
           "owner": "LunaraWebApp"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 1930,
+          "line": 1932,
           "owner": "LunaraWebApp.endPeriod"
         },
         {
           "name": "date",
           "kind": "Parameter",
-          "line": 1930,
+          "line": 1932,
           "owner": "LunaraWebApp.endPeriod"
         },
         {
           "name": "item",
           "kind": "Parameter",
-          "line": 1934,
+          "line": 1936,
           "owner": "LunaraWebApp.endPeriod"
         },
         {
           "name": "updated",
           "kind": "VariableDeclaration",
-          "line": 1941,
+          "line": 1943,
           "owner": "LunaraWebApp.endPeriod"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 1950,
+          "line": 1952,
           "owner": "LunaraWebApp.endPeriod.updated"
         },
         {
           "name": "queued",
           "kind": "VariableDeclaration",
-          "line": 1951,
+          "line": 1953,
           "owner": "LunaraWebApp.endPeriod.updated"
         },
         {
           "name": "updatedPeriods",
           "kind": "VariableDeclaration",
-          "line": 1956,
+          "line": 1958,
           "owner": "LunaraWebApp.endPeriod"
         },
         {
           "name": "item",
           "kind": "Parameter",
-          "line": 1956,
+          "line": 1958,
           "owner": "LunaraWebApp.endPeriod.updatedPeriods"
         },
         {
           "name": "ensureTrackerSettingsLoaded",
           "kind": "MethodDeclaration",
-          "line": 1974,
+          "line": 1976,
           "owner": "LunaraWebApp"
         },
         {
           "name": "userId",
           "kind": "VariableDeclaration",
-          "line": 1975,
+          "line": 1977,
           "owner": "LunaraWebApp.ensureTrackerSettingsLoaded"
         },
         {
           "name": "retry",
           "kind": "VariableDeclaration",
-          "line": 1978,
+          "line": 1980,
           "owner": "LunaraWebApp.ensureTrackerSettingsLoaded"
         },
         {
           "name": "state",
           "kind": "Parameter",
-          "line": 1978,
+          "line": 1980,
           "owner": "LunaraWebApp.ensureTrackerSettingsLoaded.retry"
         },
         {
           "name": "settings",
           "kind": "Parameter",
-          "line": 1983,
+          "line": 1985,
           "owner": "LunaraWebApp.ensureTrackerSettingsLoaded"
         },
         {
           "name": "profile",
           "kind": "Parameter",
-          "line": 1989,
+          "line": 1991,
           "owner": "LunaraWebApp.ensureTrackerSettingsLoaded"
         },
         {
           "name": "settingsNotice",
           "kind": "MethodDeclaration",
-          "line": 1994,
+          "line": 1996,
           "owner": "LunaraWebApp"
         },
         {
           "name": "area",
           "kind": "Parameter",
-          "line": 1994,
+          "line": 1996,
           "owner": "LunaraWebApp.settingsNotice"
         },
         {
           "name": "card",
           "kind": "Parameter",
-          "line": 1994,
+          "line": 1996,
           "owner": "LunaraWebApp.settingsNotice"
         },
         {
           "name": "message",
           "kind": "VariableDeclaration",
-          "line": 1996,
+          "line": 1998,
           "owner": "LunaraWebApp.settingsNotice"
         },
         {
           "name": "toggleRow",
           "kind": "MethodDeclaration",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp"
         },
         {
           "name": "label",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "checked",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "disabled",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "onChange",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow.onChange"
         },
         {
           "name": "hint",
           "kind": "Parameter",
-          "line": 2001,
+          "line": 2003,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "row",
           "kind": "VariableDeclaration",
-          "line": 2002,
+          "line": 2004,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 2003,
+          "line": 2005,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "text",
           "kind": "VariableDeclaration",
-          "line": 2008,
+          "line": 2010,
           "owner": "LunaraWebApp.toggleRow"
         },
         {
           "name": "sharingSettingsCard",
           "kind": "MethodDeclaration",
-          "line": 2016,
+          "line": 2018,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 2018,
+          "line": 2020,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "state",
           "kind": "VariableDeclaration",
-          "line": 2020,
+          "line": 2022,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "settings",
           "kind": "VariableDeclaration",
-          "line": 2025,
+          "line": 2027,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "offline",
           "kind": "VariableDeclaration",
-          "line": 2027,
+          "line": 2029,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "fertilityOn",
           "kind": "VariableDeclaration",
-          "line": 2028,
+          "line": 2030,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "save",
           "kind": "VariableDeclaration",
-          "line": 2029,
+          "line": 2031,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "patch",
           "kind": "Parameter",
-          "line": 2029,
+          "line": 2031,
           "owner": "LunaraWebApp.sharingSettingsCard.save"
         },
         {
           "name": "before",
           "kind": "VariableDeclaration",
-          "line": 2030,
+          "line": 2032,
           "owner": "LunaraWebApp.sharingSettingsCard.save"
         },
         {
           "name": "saved",
           "kind": "Parameter",
-          "line": 2036,
+          "line": 2038,
           "owner": "LunaraWebApp.sharingSettingsCard.save"
-        },
-        {
-          "name": "value",
-          "kind": "Parameter",
-          "line": 2047,
-          "owner": "LunaraWebApp.sharingSettingsCard"
-        },
-        {
-          "name": "value",
-          "kind": "Parameter",
-          "line": 2048,
-          "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "value",
@@ -70877,727 +71279,739 @@
         {
           "name": "value",
           "kind": "Parameter",
+          "line": 2051,
+          "owner": "LunaraWebApp.sharingSettingsCard"
+        },
+        {
+          "name": "value",
+          "kind": "Parameter",
           "line": 2052,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 2053,
+          "line": 2054,
+          "owner": "LunaraWebApp.sharingSettingsCard"
+        },
+        {
+          "name": "value",
+          "kind": "Parameter",
+          "line": 2055,
           "owner": "LunaraWebApp.sharingSettingsCard"
         },
         {
           "name": "cycleProfileCard",
           "kind": "MethodDeclaration",
-          "line": 2061,
+          "line": 2063,
           "owner": "LunaraWebApp"
         },
         {
           "name": "card",
-          "kind": "VariableDeclaration",
-          "line": 2063,
-          "owner": "LunaraWebApp.cycleProfileCard"
-        },
-        {
-          "name": "state",
           "kind": "VariableDeclaration",
           "line": 2065,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
+          "name": "state",
+          "kind": "VariableDeclaration",
+          "line": 2067,
+          "owner": "LunaraWebApp.cycleProfileCard"
+        },
+        {
           "name": "profile",
-          "kind": "VariableDeclaration",
-          "line": 2070,
-          "owner": "LunaraWebApp.cycleProfileCard"
-        },
-        {
-          "name": "form",
-          "kind": "VariableDeclaration",
-          "line": 2071,
-          "owner": "LunaraWebApp.cycleProfileCard"
-        },
-        {
-          "name": "phaseLabel",
           "kind": "VariableDeclaration",
           "line": 2072,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
-          "name": "phase",
+          "name": "form",
           "kind": "VariableDeclaration",
           "line": 2073,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
-          "name": "phases",
+          "name": "phaseLabel",
+          "kind": "VariableDeclaration",
+          "line": 2074,
+          "owner": "LunaraWebApp.cycleProfileCard"
+        },
+        {
+          "name": "phase",
           "kind": "VariableDeclaration",
           "line": 2075,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
-          "name": "mode",
-          "kind": "VariableDeclaration",
-          "line": 2076,
-          "owner": "LunaraWebApp.cycleProfileCard"
-        },
-        {
-          "name": "option",
+          "name": "phases",
           "kind": "VariableDeclaration",
           "line": 2077,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
+          "name": "mode",
+          "kind": "VariableDeclaration",
+          "line": 2078,
+          "owner": "LunaraWebApp.cycleProfileCard"
+        },
+        {
+          "name": "option",
+          "kind": "VariableDeclaration",
+          "line": 2079,
+          "owner": "LunaraWebApp.cycleProfileCard"
+        },
+        {
           "name": "number",
           "kind": "VariableDeclaration",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "label",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "hint",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "min",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "max",
           "kind": "Parameter",
-          "line": 2083,
+          "line": 2085,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "wrapper",
           "kind": "VariableDeclaration",
-          "line": 2084,
+          "line": 2086,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 2085,
+          "line": 2087,
           "owner": "LunaraWebApp.cycleProfileCard.number"
         },
         {
           "name": "[cycleLabel, cycleLength]",
           "kind": "VariableDeclaration",
-          "line": 2096,
+          "line": 2098,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "[periodLabel, periodLength]",
           "kind": "VariableDeclaration",
-          "line": 2097,
+          "line": 2099,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "paused",
           "kind": "VariableDeclaration",
-          "line": 2098,
+          "line": 2100,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "fertility",
           "kind": "VariableDeclaration",
-          "line": 2099,
+          "line": 2101,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 2100,
+          "line": 2102,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 2107,
+          "line": 2109,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "value",
           "kind": "Parameter",
-          "line": 2108,
+          "line": 2110,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 2111,
+          "line": 2113,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "toNumber",
           "kind": "VariableDeclaration",
-          "line": 2113,
+          "line": 2115,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "input",
           "kind": "Parameter",
-          "line": 2113,
+          "line": 2115,
           "owner": "LunaraWebApp.cycleProfileCard.toNumber"
         },
         {
           "name": "patch",
           "kind": "VariableDeclaration",
-          "line": 2114,
+          "line": 2116,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "saved",
           "kind": "Parameter",
-          "line": 2124,
+          "line": 2126,
           "owner": "LunaraWebApp.cycleProfileCard"
         },
         {
           "name": "periodDeleteControl",
           "kind": "MethodDeclaration",
-          "line": 2153,
+          "line": 2155,
           "owner": "LunaraWebApp"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 2153,
+          "line": 2155,
           "owner": "LunaraWebApp.periodDeleteControl"
         },
         {
           "name": "box",
           "kind": "VariableDeclaration",
-          "line": 2154,
+          "line": 2156,
           "owner": "LunaraWebApp.periodDeleteControl"
         },
         {
           "name": "busy",
           "kind": "VariableDeclaration",
-          "line": 2155,
+          "line": 2157,
           "owner": "LunaraWebApp.periodDeleteControl"
         },
         {
           "name": "ask",
           "kind": "VariableDeclaration",
-          "line": 2157,
+          "line": 2159,
           "owner": "LunaraWebApp.periodDeleteControl"
         },
         {
           "name": "confirm",
           "kind": "VariableDeclaration",
-          "line": 2165,
+          "line": 2167,
           "owner": "LunaraWebApp.periodDeleteControl"
         },
         {
           "name": "deletePeriod",
           "kind": "MethodDeclaration",
-          "line": 2178,
+          "line": 2180,
           "owner": "LunaraWebApp"
         },
         {
           "name": "period",
           "kind": "Parameter",
-          "line": 2178,
+          "line": 2180,
           "owner": "LunaraWebApp.deletePeriod"
         },
         {
           "name": "item",
           "kind": "Parameter",
-          "line": 2182,
+          "line": 2184,
           "owner": "LunaraWebApp.deletePeriod"
         },
         {
           "name": "remaining",
           "kind": "VariableDeclaration",
-          "line": 2186,
+          "line": 2188,
           "owner": "LunaraWebApp.deletePeriod"
         },
         {
           "name": "item",
           "kind": "Parameter",
-          "line": 2186,
+          "line": 2188,
           "owner": "LunaraWebApp.deletePeriod.remaining"
         },
         {
           "name": "assertCurrent",
           "kind": "Parameter",
-          "line": 2193,
+          "line": 2195,
           "owner": "LunaraWebApp.deletePeriod"
         },
         {
           "name": "toast",
           "kind": "MethodDeclaration",
-          "line": 2212,
+          "line": 2214,
           "owner": "LunaraWebApp"
         },
         {
           "name": "message",
           "kind": "Parameter",
-          "line": 2212,
+          "line": 2214,
           "owner": "LunaraWebApp.toast"
         },
         {
           "name": "toast",
           "kind": "VariableDeclaration",
-          "line": 2213,
+          "line": 2215,
           "owner": "LunaraWebApp.toast"
         },
         {
           "name": "oidcLinkCard",
           "kind": "MethodDeclaration",
-          "line": 2220,
+          "line": 2222,
           "owner": "LunaraWebApp"
         },
         {
           "name": "provider",
           "kind": "VariableDeclaration",
-          "line": 2222,
+          "line": 2224,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "card",
           "kind": "VariableDeclaration",
-          "line": 2223,
+          "line": 2225,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "userId",
           "kind": "VariableDeclaration",
-          "line": 2226,
+          "line": 2228,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "status",
           "kind": "Parameter",
-          "line": 2231,
+          "line": 2233,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "message",
           "kind": "VariableDeclaration",
-          "line": 2235,
+          "line": 2237,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "form",
-          "kind": "VariableDeclaration",
-          "line": 2245,
-          "owner": "LunaraWebApp.oidcLinkCard"
-        },
-        {
-          "name": "label",
-          "kind": "VariableDeclaration",
-          "line": 2246,
-          "owner": "LunaraWebApp.oidcLinkCard"
-        },
-        {
-          "name": "password",
           "kind": "VariableDeclaration",
           "line": 2247,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
+          "name": "label",
+          "kind": "VariableDeclaration",
+          "line": 2248,
+          "owner": "LunaraWebApp.oidcLinkCard"
+        },
+        {
+          "name": "password",
+          "kind": "VariableDeclaration",
+          "line": 2249,
+          "owner": "LunaraWebApp.oidcLinkCard"
+        },
+        {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 2253,
+          "line": 2255,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 2256,
+          "line": 2258,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "pending",
           "kind": "VariableDeclaration",
-          "line": 2260,
+          "line": 2262,
           "owner": "LunaraWebApp.oidcLinkCard"
         },
         {
           "name": "joinSection",
           "kind": "MethodDeclaration",
-          "line": 2302,
+          "line": 2304,
           "owner": "LunaraWebApp"
         },
         {
           "name": "section",
           "kind": "VariableDeclaration",
-          "line": 2303,
+          "line": 2305,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "form",
           "kind": "VariableDeclaration",
-          "line": 2311,
+          "line": 2313,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "field",
           "kind": "VariableDeclaration",
-          "line": 2312,
+          "line": 2314,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "label",
           "kind": "Parameter",
-          "line": 2312,
+          "line": 2314,
           "owner": "LunaraWebApp.joinSection.field"
         },
         {
           "name": "input",
           "kind": "Parameter",
-          "line": 2312,
+          "line": 2314,
           "owner": "LunaraWebApp.joinSection.field"
         },
         {
           "name": "hint",
           "kind": "Parameter",
-          "line": 2312,
+          "line": 2314,
           "owner": "LunaraWebApp.joinSection.field"
         },
         {
           "name": "wrapper",
           "kind": "VariableDeclaration",
-          "line": 2313,
+          "line": 2315,
           "owner": "LunaraWebApp.joinSection.field"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 2318,
+          "line": 2320,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 2318,
+          "line": 2320,
           "owner": "LunaraWebApp.joinSection.input"
         },
         {
           "name": "autocomplete",
           "kind": "Parameter",
-          "line": 2318,
+          "line": 2320,
           "owner": "LunaraWebApp.joinSection.input"
         },
         {
           "name": "type",
           "kind": "Parameter",
-          "line": 2318,
+          "line": 2320,
           "owner": "LunaraWebApp.joinSection.input"
         },
         {
           "name": "value",
           "kind": "VariableDeclaration",
-          "line": 2319,
+          "line": 2321,
           "owner": "LunaraWebApp.joinSection.input"
         },
         {
           "name": "displayName",
-          "kind": "VariableDeclaration",
-          "line": 2326,
-          "owner": "LunaraWebApp.joinSection"
-        },
-        {
-          "name": "username",
           "kind": "VariableDeclaration",
           "line": 2328,
           "owner": "LunaraWebApp.joinSection"
         },
         {
+          "name": "username",
+          "kind": "VariableDeclaration",
+          "line": 2330,
+          "owner": "LunaraWebApp.joinSection"
+        },
+        {
           "name": "password",
           "kind": "VariableDeclaration",
-          "line": 2331,
+          "line": 2333,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "code",
           "kind": "VariableDeclaration",
-          "line": 2334,
+          "line": 2336,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "submit",
-          "kind": "VariableDeclaration",
-          "line": 2339,
-          "owner": "LunaraWebApp.joinSection"
-        },
-        {
-          "name": "error",
           "kind": "VariableDeclaration",
           "line": 2341,
           "owner": "LunaraWebApp.joinSection"
         },
         {
+          "name": "error",
+          "kind": "VariableDeclaration",
+          "line": 2343,
+          "owner": "LunaraWebApp.joinSection"
+        },
+        {
           "name": "event",
           "kind": "Parameter",
-          "line": 2353,
+          "line": 2355,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "session",
           "kind": "VariableDeclaration",
-          "line": 2358,
+          "line": 2360,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "joinError",
           "kind": "VariableDeclaration",
-          "line": 2373,
+          "line": 2375,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "status",
           "kind": "VariableDeclaration",
-          "line": 2374,
+          "line": 2376,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "message",
           "kind": "VariableDeclaration",
-          "line": 2375,
+          "line": 2377,
           "owner": "LunaraWebApp.joinSection"
         },
         {
           "name": "setupForm",
           "kind": "MethodDeclaration",
-          "line": 2389,
+          "line": 2391,
           "owner": "LunaraWebApp"
         },
         {
           "name": "form",
           "kind": "VariableDeclaration",
-          "line": 2390,
+          "line": 2392,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "field",
           "kind": "VariableDeclaration",
-          "line": 2391,
+          "line": 2393,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "label",
           "kind": "Parameter",
-          "line": 2391,
+          "line": 2393,
           "owner": "LunaraWebApp.setupForm.field"
         },
         {
           "name": "input",
           "kind": "Parameter",
-          "line": 2391,
+          "line": 2393,
           "owner": "LunaraWebApp.setupForm.field"
         },
         {
           "name": "hint",
           "kind": "Parameter",
-          "line": 2391,
+          "line": 2393,
           "owner": "LunaraWebApp.setupForm.field"
         },
         {
           "name": "wrapper",
           "kind": "VariableDeclaration",
-          "line": 2392,
+          "line": 2394,
           "owner": "LunaraWebApp.setupForm.field"
         },
         {
           "name": "input",
           "kind": "VariableDeclaration",
-          "line": 2397,
+          "line": 2399,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "name",
           "kind": "Parameter",
-          "line": 2397,
+          "line": 2399,
           "owner": "LunaraWebApp.setupForm.input"
         },
         {
           "name": "autocomplete",
           "kind": "Parameter",
-          "line": 2397,
+          "line": 2399,
           "owner": "LunaraWebApp.setupForm.input"
         },
         {
           "name": "type",
           "kind": "Parameter",
-          "line": 2397,
+          "line": 2399,
           "owner": "LunaraWebApp.setupForm.input"
         },
         {
           "name": "value",
           "kind": "VariableDeclaration",
-          "line": 2398,
+          "line": 2400,
           "owner": "LunaraWebApp.setupForm.input"
         },
         {
           "name": "displayName",
           "kind": "VariableDeclaration",
-          "line": 2405,
+          "line": 2407,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "username",
           "kind": "VariableDeclaration",
-          "line": 2407,
+          "line": 2409,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "password",
           "kind": "VariableDeclaration",
-          "line": 2410,
+          "line": 2412,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "code",
           "kind": "VariableDeclaration",
-          "line": 2413,
+          "line": 2415,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "submit",
           "kind": "VariableDeclaration",
-          "line": 2417,
+          "line": 2419,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "error",
           "kind": "VariableDeclaration",
-          "line": 2419,
+          "line": 2421,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "event",
           "kind": "Parameter",
-          "line": 2431,
+          "line": 2433,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "session",
           "kind": "VariableDeclaration",
-          "line": 2436,
+          "line": 2438,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "setupError",
           "kind": "VariableDeclaration",
-          "line": 2450,
+          "line": 2452,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "status",
           "kind": "VariableDeclaration",
-          "line": 2451,
+          "line": 2453,
           "owner": "LunaraWebApp.setupForm"
         },
         {
           "name": "keepLegacyLanguage",
           "kind": "MethodDeclaration",
-          "line": 2475,
+          "line": 2477,
           "owner": "LunaraWebApp"
         },
         {
           "name": "decided",
           "kind": "VariableDeclaration",
-          "line": 2477,
+          "line": 2479,
           "owner": "LunaraWebApp.keepLegacyLanguage"
         },
         {
           "name": "existing",
           "kind": "VariableDeclaration",
-          "line": 2479,
+          "line": 2481,
           "owner": "LunaraWebApp.keepLegacyLanguage"
         },
         {
           "name": "setLanguage",
           "kind": "MethodDeclaration",
-          "line": 2490,
+          "line": 2492,
           "owner": "LunaraWebApp"
         },
         {
           "name": "language",
           "kind": "Parameter",
-          "line": 2490,
+          "line": 2492,
           "owner": "LunaraWebApp.setLanguage"
         },
         {
           "name": "loadTheme",
           "kind": "MethodDeclaration",
-          "line": 2497,
+          "line": 2499,
           "owner": "LunaraWebApp"
         },
         {
           "name": "stored",
           "kind": "VariableDeclaration",
-          "line": 2498,
+          "line": 2500,
           "owner": "LunaraWebApp.loadTheme"
         },
         {
           "name": "setTheme",
           "kind": "MethodDeclaration",
-          "line": 2502,
+          "line": 2504,
           "owner": "LunaraWebApp"
         },
         {
           "name": "theme",
           "kind": "Parameter",
-          "line": 2502,
+          "line": 2504,
           "owner": "LunaraWebApp.setTheme"
         },
         {
           "name": "extras",
           "kind": "VariableDeclaration",
-          "line": 2507,
+          "line": 2509,
           "owner": "LunaraWebApp.setTheme"
         },
         {
           "name": "applyTheme",
           "kind": "MethodDeclaration",
-          "line": 2524,
+          "line": 2526,
           "owner": "LunaraWebApp"
         },
         {
           "name": "logout",
           "kind": "MethodDeclaration",
-          "line": 2528,
+          "line": 2530,
           "owner": "LunaraWebApp"
         },
         {
           "name": "updateSW",
           "kind": "VariableDeclaration",
-          "line": 2578,
+          "line": 2580,
           "owner": ""
         },
         {
           "name": "onNeedRefresh",
           "kind": "MethodDeclaration",
-          "line": 2579,
+          "line": 2581,
           "owner": "updateSW"
         },
         {
           "name": "notice",
           "kind": "VariableDeclaration",
-          "line": 2580,
+          "line": 2582,
           "owner": "updateSW.onNeedRefresh"
         }
       ]
@@ -73162,8 +73576,8 @@
     {
       "path": "apps/web/src/styles.css",
       "role": "Web application",
-      "bytes": 26643,
-      "sha256": "d5a1b2ba56ae4807c26dc70445ff0721ec14e97c2ea2f33bd6abb308fb4beacd",
+      "bytes": 26694,
+      "sha256": "2162eacfc2fff9b445ddd8ad2c55ed04be6fc7992a6dbf9af477c0030fbc82ae",
       "symbols": []
     },
     {
@@ -73879,7 +74293,7 @@
       "path": "docker-compose.yml",
       "role": "Documentation or project configuration",
       "bytes": 5515,
-      "sha256": "341af5daa867889b812832a3d406edc272a5721bff36c2975808f766939c3432",
+      "sha256": "212219f21bba340083b781b758d3dedb38750aa101ab6b3da8650b45ddbfdf07",
       "lines": 184,
       "symbols": []
     },
@@ -73911,7 +74325,7 @@
       "path": "docs/INSTALL.md",
       "role": "Documentation or project configuration",
       "bytes": 14454,
-      "sha256": "439914c3614cde302135a29e46920b37004895277028792eb680ffb264567beb",
+      "sha256": "e77e9a7aac0282212ac7fa0abbde162b0ddd2787e605e4d670b33a947b351291",
       "lines": 342,
       "symbols": []
     },
@@ -73935,7 +74349,7 @@
       "path": "docs/SETUP.md",
       "role": "Documentation or project configuration",
       "bytes": 16615,
-      "sha256": "1c23e96132ea57fb7086e52c0187c1343275d1b23eccfb99e9bf36082a514f99",
+      "sha256": "453503276e4b4bbbad47f46276d021b9a30e086bc53a7f64e86eb96467710c53",
       "lines": 354,
       "symbols": []
     },
@@ -74208,7 +74622,7 @@
       "path": "infra/docker/api.Dockerfile",
       "role": "Deployment",
       "bytes": 2827,
-      "sha256": "7a9fc15749a7f038f147305b87ead6cbeafcc8c6581a7834aba9bc3fc554443f",
+      "sha256": "535e8597534779ba4665222982ae15296b7af4d0c7db266eb65a2069f1d36d77",
       "symbols": []
     },
     {
@@ -74263,7 +74677,7 @@
       "path": "package-lock.json",
       "role": "Documentation or project configuration",
       "bytes": 629049,
-      "sha256": "735de0bcd42c1d07e3c8a92bacf58798a8fe7c6267f212521bdccd95e1d9943b",
+      "sha256": "15a4ae025b9c9b9e092c09bb4bc59586915112e3dec6d462c3b085d7e247744c",
       "lines": 17590,
       "symbols": []
     },
@@ -74271,7 +74685,7 @@
       "path": "package.json",
       "role": "Documentation or project configuration",
       "bytes": 1930,
-      "sha256": "23947e6debce1842f69f5be2cb8dc3e09ba7a380fab88bc8e6c8af0c6ae822ce",
+      "sha256": "a0e96d26e8b0830bfa2f7f45eac90e31ed7ddb0fc3b5edeabb52ec8bec4ae913",
       "lines": 57,
       "symbols": []
     },
@@ -75079,7 +75493,7 @@
       "path": "packages/openapi-client/package.json",
       "role": "Documentation or project configuration",
       "bytes": 377,
-      "sha256": "37a6d48e7764bc49530cdbf47771a64ded30e105e545a57ce84d71dc7531af95",
+      "sha256": "a38623f66acf3239da6d9a24ad52eac587da24fa7f8c12d9e7117554657b95bb",
       "lines": 13,
       "symbols": []
     },
@@ -76302,7 +76716,7 @@
       "path": "services/api/package.json",
       "role": "Documentation or project configuration",
       "bytes": 2056,
-      "sha256": "5c06e13fb113f7714a93e8aefa3853a1751623e26fad300ccb564d2211e8489f",
+      "sha256": "fabb0bdfcfc481976a323946ff40743596b24c6a57cc4fc0127fe20ae14b7df5",
       "lines": 67,
       "symbols": []
     },

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+- **Support Lunara in the browser too:** the web settings (App group) now offer the same optional PayPal link as the Android app, with the same confirmation before PayPal opens.
+- Web sign-in: the hint "only choose if this Authentik account has no cycle profile yet" now sits directly below the "create a new cycle profile" button it belongs to.
+- Android: if the cycle settings keep changing while a prediction loads, the app no longer shows or caches an estimate from before the change; it keeps the previous value and refreshes again.
+
 ## 1.6.0
 
 - **Choose what your partner sees in the browser too:** the web app now has the sharing switches (pause, expected range, period dates, phase, fertile window, tips) – important for couples without Android.

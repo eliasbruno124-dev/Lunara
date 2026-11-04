@@ -1,6 +1,6 @@
 # Setting up Lunara
 
-This guide describes Lunara 1.6.0. The screenshots show the real interface
+This guide describes Lunara 1.6.1. The screenshots show the real interface
 with synthetic test accounts and sample data; no private accounts, passwords
 or health data.
 

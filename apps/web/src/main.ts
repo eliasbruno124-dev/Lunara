@@ -14,6 +14,7 @@ import {
 import { createCalendarLegend, SwipeCalendar } from './calendar';
 import { createBrandMark, createIcon, type IconName } from './ui-icons';
 import { createApkDownloadCard } from './apk-download';
+import { createDonationCard } from './donation';
 import { hasCurrentFertileEstimate, hasFertileEstimate } from './fertility-presentation';
 import { periodEndState, periodForDate, periodRangesOverlap } from './period-end';
 import { parsePeriodFile, periodImportPlan, serializePeriods, PeriodTransferError, PERIOD_FILE_LIMIT, type PeriodRange, type PeriodTransferFormat } from './period-transfer';
@@ -1433,6 +1434,7 @@ class LunaraWebApp {
     const appItems = [server, createApkDownloadCard(this.language), ...(install ? [install] : [])];
     const oidcCard = this.oidcLinkCard();
     if (oidcCard) appItems.splice(1, 0, oidcCard);
+    appItems.push(createDonationCard(this.language, (message) => window.confirm(message)));
     view.append(this.settingsGroup('app', 'appGroup', 'appHint', ...appItems));
     const accountActions = element('div', 'account-actions');
     accountActions.append(logout);

@@ -6,6 +6,8 @@ export class MinimalElement {
   offsetWidth = 500;
   href = '';
   download = '';
+  target = '';
+  rel = '';
   dataset: Record<string, string> = {};
   attributes = new Map<string, string>();
   children: MinimalElement[] = [];
