@@ -28,6 +28,8 @@ interface PendingAuthorization {
   intent: OidcEnrollmentIntent['kind'];
   preferredLanguage: PreferredLanguage;
   invitationCode?: string;
+  /** Account that started connecting the provider; the result is only valid for it. */
+  linkUserId?: string;
 }
 
 const INVITATION_PATTERN = /^[A-HJ-NP-Z2-9]{8,12}$/u;
@@ -143,6 +145,7 @@ export async function startOidc(
     intent: intent.kind,
     preferredLanguage: preferredLanguage(intent),
     ...(intent.kind === 'partner' ? { invitationCode: intent.invitationCode } : {}),
+    ...(intent.kind === 'link' ? { linkUserId: intent.userId } : {}),
   };
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(pending));
   authorizationEndpoint.searchParams.set('client_id', meta.oidc.clientId);
@@ -196,6 +199,9 @@ function pendingAuthorization(raw: string): PendingAuthorization {
       invitationCode,
     };
   }
+  if (intent === 'link' && (typeof value.linkUserId !== 'string' || !value.linkUserId)) {
+    throw new Error('OIDC callback state is invalid');
+  }
   return {
     state: value.state,
     verifier: value.verifier,
@@ -204,6 +210,7 @@ function pendingAuthorization(raw: string): PendingAuthorization {
     clientId: value.clientId,
     redirectUri: value.redirectUri,
     createdAt: value.createdAt,
+    ...(intent === 'link' ? { linkUserId: value.linkUserId as string } : {}),
     intent: intent as 'login' | 'new-tracker' | 'link',
     preferredLanguage: language as PreferredLanguage,
   };
@@ -214,7 +221,7 @@ function enrollmentIntent(pending: PendingAuthorization): OidcEnrollmentIntent {
     case 'login':
       return { kind: 'login' };
     case 'link':
-      return { kind: 'link' };
+      return { kind: 'link', userId: pending.linkUserId ?? '' };
     case 'new-tracker':
       return {
         kind: 'new-tracker',
@@ -233,6 +240,8 @@ function enrollmentIntent(pending: PendingAuthorization): OidcEnrollmentIntent {
 /** Result of returning from the provider to connect it to the signed-in account. */
 export interface OidcLinkCallback {
   linkAccessToken: string;
+  linkUserId: string;
+  receivedAt: number;
 }
 
 export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse | OidcLinkCallback | null> {
@@ -280,7 +289,9 @@ export async function finishOidcCallback(api: LunaraApi): Promise<AuthResponse |
     throw new Error('OIDC provider returned no renewable session');
   }
   // Connecting needs the signed-in Lunara session plus the password, not a new login.
-  if (pending.intent === 'link') return { linkAccessToken: tokenBody.access_token };
+  if (pending.intent === 'link') {
+    return { linkAccessToken: tokenBody.access_token, linkUserId: pending.linkUserId ?? '', receivedAt: Date.now() };
+  }
   const refreshSession: OidcRefreshSession = {
     accessToken: tokenBody.access_token,
     refreshToken: tokenBody.refresh_token,

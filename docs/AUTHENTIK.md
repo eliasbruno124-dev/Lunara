@@ -68,6 +68,12 @@ AUTHENTIK_URL=https://auth.example.com
 AUTHENTIK_CLIENT_ID=paste-the-client-id-here
 ```
 
+> Installed Lunara before version 1.5.0? Download the current
+> `docker-compose.yml` once more into the same folder (your `.env` stays) –
+> older files do not pass these two settings on:
+> `curl -fsSLO https://raw.githubusercontent.com/eliasbruno124-dev/Lunara/main/examples/docker-compose.yml`
+> (or `…/docker-compose.proxy.yml -o docker-compose.yml` if you use your own proxy).
+
 Then restart Lunara:
 
 ```bash

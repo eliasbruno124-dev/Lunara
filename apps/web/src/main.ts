@@ -124,9 +124,10 @@ class LunaraWebApp {
   private initError: string | null = null;
   private joinExpanded = false;
   // Provider token held only in memory until the password confirms the connection.
-  private pendingOidcLink: string | null = null;
+  private pendingOidcLink: { token: string; userId: string; receivedAt: number } | null = null;
   private oidcStatus: { linked: boolean } | null = null;
-  private oidcStatusRequested = false;
+  // Account the status above belongs to; another account loads its own.
+  private oidcStatusUserId: string | null = null;
   private oidcLinkMessage: { text: string; error: boolean } | null = null;
   private localMode = false;
   private localVaultAvailable = false;
@@ -210,7 +211,11 @@ class LunaraWebApp {
     try {
       const oidcResult = await finishOidcCallback(this.api);
       if (oidcResult && 'linkAccessToken' in oidcResult) {
-        this.pendingOidcLink = oidcResult.linkAccessToken;
+        this.pendingOidcLink = {
+          token: oidcResult.linkAccessToken,
+          userId: oidcResult.linkUserId,
+          receivedAt: oidcResult.receivedAt,
+        };
         // Show the waiting password confirmation right away.
         this.screen = 'settings';
         this.expandedSettings.add('app');
@@ -231,6 +236,8 @@ class LunaraWebApp {
       }
       if (restoredUser) await this.rememberUser(restoredUser);
     }
+    // A provider result is only valid for the account that started connecting it.
+    if (this.pendingOidcLink && this.pendingOidcLink.userId !== this.user?.id) this.pendingOidcLink = null;
     if (this.user) {
       // Settings need the server's capabilities (e.g. Authentik) after a reload too.
       if (!this.meta) this.meta = (await this.fetchMeta()) ?? (await settingsStore.get<MetaResponse>('meta')) ?? null;
@@ -1960,16 +1967,24 @@ class LunaraWebApp {
     const provider = this.meta.oidc?.providerName ?? 'Authentik';
     const card = element('section', 'info-card setting-card oidc-link-card');
     card.append(element('h2', '', this.t('oidcLinkTitle', { provider })));
-    if (!this.oidcStatusRequested) {
-      this.oidcStatusRequested = true;
+    if (this.oidcStatusUserId !== this.user.id) {
+      const userId = this.user.id;
+      this.oidcStatusUserId = userId;
+      this.oidcStatus = null;
+      this.oidcLinkMessage = null;
       void this.api.oidcStatus()
-        .then((status) => { this.oidcStatus = status; this.render(); })
+        .then((status) => { if (this.user?.id === userId) { this.oidcStatus = status; this.render(); } })
         .catch(() => undefined);
     }
     if (this.oidcLinkMessage) {
       const message = element('p', this.oidcLinkMessage.error ? 'form-error' : 'notice', this.oidcLinkMessage.text);
       if (this.oidcLinkMessage.error) message.setAttribute('role', 'alert');
       card.append(message);
+    }
+    // Discard results that belong to another account or are too old to be accepted.
+    if (this.pendingOidcLink && (this.pendingOidcLink.userId !== this.user.id
+      || Date.now() - this.pendingOidcLink.receivedAt > 5 * 60_000)) {
+      this.pendingOidcLink = null;
     }
     if (this.pendingOidcLink) {
       const form = element('form', 'login-form');
@@ -1987,7 +2002,9 @@ class LunaraWebApp {
         event.preventDefault();
         submit.disabled = true;
         try {
-          await this.api.linkOidc(this.pendingOidcLink ?? '', password.value);
+          const pending = this.pendingOidcLink;
+          if (!pending || pending.userId !== this.user?.id) throw new Error('Connection belongs to another account');
+          await this.api.linkOidc(pending.token, password.value);
           this.pendingOidcLink = null;
           this.oidcStatus = { linked: true };
           this.oidcLinkMessage = { text: this.t('oidcLinked', { provider }), error: false };
@@ -1999,7 +2016,11 @@ class LunaraWebApp {
           this.render();
         }
       });
-      card.append(form);
+      card.append(form, button('text-button', this.t('oidcLinkCancel'), () => {
+        this.pendingOidcLink = null;
+        this.oidcLinkMessage = null;
+        this.render();
+      }));
       return card;
     }
     if (this.oidcStatus?.linked) {
@@ -2010,7 +2031,7 @@ class LunaraWebApp {
       element('p', 'subtle', this.t('oidcLinkIntro', { provider })),
       button('secondary-button', this.t('oidcLinkButton', { provider }), () => {
         this.oidcLinkMessage = null;
-        void startOidc(this.meta!, { kind: 'link' }).catch(() => {
+        void startOidc(this.meta!, { kind: 'link', userId: this.user!.id }).catch(() => {
           this.oidcLinkMessage = { text: this.t('oidcUnavailable'), error: true };
           this.render();
         });

@@ -100,11 +100,12 @@ fi
 if [ -n "${AUTHENTIK_URL:-}" ] && [ -n "${AUTHENTIK_CLIENT_ID:-}" ] && [ -z "${OIDC_ENABLED+x}" ]; then
   authentik_base="${AUTHENTIK_URL%/}/application/o/${AUTHENTIK_SLUG:-lunara}"
   export OIDC_ENABLED=true
-  export OIDC_PROVIDER_NAME="${OIDC_PROVIDER_NAME:-Authentik}"
-  export OIDC_ISSUER="$authentik_base/"
-  export OIDC_JWKS_URL="$authentik_base/jwks/"
-  export OIDC_CLIENT_ID="$AUTHENTIK_CLIENT_ID"
-  export OIDC_AUDIENCE="$AUTHENTIK_CLIENT_ID"
+  # Only fill values that were not set explicitly.
+  [ -n "${OIDC_PROVIDER_NAME+x}" ] || export OIDC_PROVIDER_NAME=Authentik
+  [ -n "${OIDC_ISSUER+x}" ] || export OIDC_ISSUER="$authentik_base/"
+  [ -n "${OIDC_JWKS_URL+x}" ] || export OIDC_JWKS_URL="$authentik_base/jwks/"
+  [ -n "${OIDC_CLIENT_ID+x}" ] || export OIDC_CLIENT_ID="$AUTHENTIK_CLIENT_ID"
+  [ -n "${OIDC_AUDIENCE+x}" ] || export OIDC_AUDIENCE="$AUTHENTIK_CLIENT_ID"
 fi
 
 # Print the one-time setup code only while the server still needs its first
