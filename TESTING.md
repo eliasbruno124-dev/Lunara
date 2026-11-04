@@ -1,8 +1,8 @@
 # Tests
 
 This file distinguishes checks that were actually performed from test source
-files that merely exist. The currently verified results are listed in
-`FINAL_REPORT.md`. Checks that are still running or have not been evaluated
+files that merely exist. Current results are visible in the GitHub Actions
+runs of each release. Checks that are still running or have not been evaluated
 do not count as passed. The matrix below is retained as the historical 1.1.0 verification.
 
 ## Additional checks for 1.3.2
@@ -63,8 +63,7 @@ Both are captured in German and English as real Compose views.
 allowlist against HTTP, similar third-party domains, URL credentials, and
 private query/fragment suffixes. Sources are not requested in the background.
 Browser visual verification also measures the actual DOM order and vertical
-card positions between 320 and 1280 pixels. Running checks are counted in
-`FINAL_REPORT.md` only after their complete results are available.
+card positions between 320 and 1280 pixels. Running checks only count once their complete results are available.
 
 ## Additional checks for 1.2.0
 
@@ -363,7 +362,6 @@ configuration.
 cd artifacts
 sha256sum -c SHA256SUMS
 unzip -t lunara-release.apk
-unzip -t lunara-play-upload.aab
 ```
 
 Also check APKs with `apksigner verify --verbose --print-certs` and AABs with

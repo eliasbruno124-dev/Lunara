@@ -6,7 +6,7 @@
 
 **Your cycle. Your space. Shared only the way you want.**
 
-A private cycle tracker for one person – and, if you like, their partner.<br>
+A private **period & cycle tracker** for one person – and, if you like, their partner.<br>
 Works **standalone on Android without any server**, or together via your own server.<br>
 No ads, no tracking, no cloud company. Your data stays with you.
 

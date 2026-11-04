@@ -74,8 +74,8 @@
     {
       "path": ".gitignore",
       "role": "Documentation or project configuration",
-      "bytes": 800,
-      "sha256": "f1dcd3ea854daeb3a29d4dd8adbaf030643e42442fc912114a350e061ff7da70",
+      "bytes": 766,
+      "sha256": "931337d53a52cfbfa0584badca79c8b7fbee8f0a45f0e54113d2ea68c9540f57",
       "symbols": []
     },
     {
@@ -112,17 +112,9 @@
     {
       "path": "DEPLOYMENT.md",
       "role": "Documentation or project configuration",
-      "bytes": 15782,
-      "sha256": "401b5c374582283e83c26fbad288e145bc7441033a7f04dd7bf0beb263696da1",
-      "lines": 379,
-      "symbols": []
-    },
-    {
-      "path": "FINAL_REPORT.md",
-      "role": "Documentation or project configuration",
-      "bytes": 8253,
-      "sha256": "4489a5462a5aeea0930725956fa8d3c2df2327452abd7fdacd2c5a19198c725e",
-      "lines": 139,
+      "bytes": 15756,
+      "sha256": "fac6d8d5324d9a4402028f12a8db990b1e56842580199e11f26a1f3842e16677",
+      "lines": 378,
       "symbols": []
     },
     {
@@ -143,8 +135,8 @@
     {
       "path": "README.md",
       "role": "Documentation or project configuration",
-      "bytes": 7989,
-      "sha256": "715b21484a638ed49b73f6d859ce91d69ba7f78ae55c9f31682ed385136ebb98",
+      "bytes": 8002,
+      "sha256": "16180c3631e3d3c55a1a39731bed20ca30e79f027d03d6b7a71d92d3fbb1ce39",
       "lines": 198,
       "symbols": []
     },
@@ -159,9 +151,9 @@
     {
       "path": "TESTING.md",
       "role": "Documentation or project configuration",
-      "bytes": 19539,
-      "sha256": "6743b50e0af643b5a2620d06bc9c3003e1c328c6219d010ac2e72deb76bcc271",
-      "lines": 408,
+      "bytes": 19487,
+      "sha256": "1834c2a0949921bc5b7011f734e398e6541050176494a8d6df7462ee8a56339c",
+      "lines": 406,
       "symbols": []
     },
     {
@@ -71894,27 +71886,11 @@
       "symbols": []
     },
     {
-      "path": "docs/ANDROID_SIGNING.md",
-      "role": "Documentation or project configuration",
-      "bytes": 1718,
-      "sha256": "8e6e9ffbd9690d01edb0b1922d344c9632406341cc46b7cab7f8e28b031df0c0",
-      "lines": 46,
-      "symbols": []
-    },
-    {
       "path": "docs/CODE_GUIDE.md",
       "role": "Documentation or project configuration",
       "bytes": 6731,
       "sha256": "b95e73aef30b2c7568be1888384fd6d3bea331ea4be2fdad3b2c0a03a004f600",
       "lines": 46,
-      "symbols": []
-    },
-    {
-      "path": "docs/COMMERCIAL_READINESS.md",
-      "role": "Documentation or project configuration",
-      "bytes": 11765,
-      "sha256": "e614a7aeff273ee93e3a3fc079cb8778e8fd1c87861058977a5fa20d5806c9b3",
-      "lines": 202,
       "symbols": []
     },
     {
@@ -71926,19 +71902,11 @@
       "symbols": []
     },
     {
-      "path": "docs/GOOGLE_PLAY_RELEASE.md",
-      "role": "Documentation or project configuration",
-      "bytes": 16388,
-      "sha256": "937f4ae1888490bf383dc814633978250120b23a0964d65fe5774ee5d2f87883",
-      "lines": 297,
-      "symbols": []
-    },
-    {
       "path": "docs/INSTALL.md",
       "role": "Documentation or project configuration",
-      "bytes": 10984,
-      "sha256": "b1de4ec1bc27eb918d9fcb59722f5d3f75b3b54a6173f263bdf2ccdd55a63faa",
-      "lines": 251,
+      "bytes": 14178,
+      "sha256": "f997c6e590780044b89e4ffbe4f46317b89b623ab3bc728482849c5804e939a5",
+      "lines": 336,
       "symbols": []
     },
     {
@@ -71963,22 +71931,6 @@
       "bytes": 16615,
       "sha256": "8db24abde6359f8a1b0aef1917bd9ac7fea2dfaba8e81bacdabe82c4f18437b8",
       "lines": 354,
-      "symbols": []
-    },
-    {
-      "path": "docs/STORE_LISTING_DE.md",
-      "role": "Documentation or project configuration",
-      "bytes": 3371,
-      "sha256": "671eeebab839b94ae6bde4ea679cfd964087ac1c53e4639fefee19fcc271e31e",
-      "lines": 77,
-      "symbols": []
-    },
-    {
-      "path": "docs/STORE_LISTING_EN.md",
-      "role": "Documentation or project configuration",
-      "bytes": 3015,
-      "sha256": "7b1dc7ebf18c3cefc91714223b30e2fc2856d494f7358bd10618c2604fd63805",
-      "lines": 73,
       "symbols": []
     },
     {

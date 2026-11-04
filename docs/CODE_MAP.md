@@ -4,7 +4,7 @@ Generated from source. Run `npm run code-map:check` before relying on line links
 
 All non-ignored repository files, excluding generated maps and APK artifacts. Kotlin PSI and TypeScript syntax inventory; not a resolved call graph. Generated API client files are hashed but declarations are omitted.
 
-Files: 625. Parsed declarations: 15434. Full hashes and symbols: [code-map.json](code-map.json).
+Files: 619. Parsed declarations: 15434. Full hashes and symbols: [code-map.json](code-map.json).
 
 ## App entry and presentation
 
@@ -112,7 +112,6 @@ The server reports effective sharing permissions without disclosing whether priv
 | [ALGORITHM.md](../ALGORITHM.md) | Documentation or project configuration | 0 |
 | [CHANGELOG.md](../CHANGELOG.md) | Documentation or project configuration | 0 |
 | [DEPLOYMENT.md](../DEPLOYMENT.md) | Documentation or project configuration | 0 |
-| [FINAL_REPORT.md](../FINAL_REPORT.md) | Documentation or project configuration | 0 |
 | [LICENSE](../LICENSE) | Documentation or project configuration | 0 |
 | [PRIVACY.md](../PRIVACY.md) | Documentation or project configuration | 0 |
 | [README.md](../README.md) | Documentation or project configuration | 0 |
@@ -392,17 +391,12 @@ The server reports effective sharing permissions without disclosing whether priv
 | [apps/web/tsconfig.json](../apps/web/tsconfig.json) | Web application | 0 |
 | [apps/web/vite.config.ts](../apps/web/vite.config.ts) | Web application | 2 |
 | [docker-compose.yml](../docker-compose.yml) | Documentation or project configuration | 0 |
-| [docs/ANDROID_SIGNING.md](../docs/ANDROID_SIGNING.md) | Documentation or project configuration | 0 |
 | [docs/CODE_GUIDE.md](../docs/CODE_GUIDE.md) | Documentation or project configuration | 0 |
-| [docs/COMMERCIAL_READINESS.md](../docs/COMMERCIAL_READINESS.md) | Documentation or project configuration | 0 |
 | [docs/DESIGN.md](../docs/DESIGN.md) | Documentation or project configuration | 0 |
-| [docs/GOOGLE_PLAY_RELEASE.md](../docs/GOOGLE_PLAY_RELEASE.md) | Documentation or project configuration | 0 |
 | [docs/INSTALL.md](../docs/INSTALL.md) | Documentation or project configuration | 0 |
 | [docs/PARTNER_TIPS.md](../docs/PARTNER_TIPS.md) | Documentation or project configuration | 0 |
 | [docs/PERIOD-ENDS.md](../docs/PERIOD-ENDS.md) | Documentation or project configuration | 0 |
 | [docs/SETUP.md](../docs/SETUP.md) | Documentation or project configuration | 0 |
-| [docs/STORE_LISTING_DE.md](../docs/STORE_LISTING_DE.md) | Documentation or project configuration | 0 |
-| [docs/STORE_LISTING_EN.md](../docs/STORE_LISTING_EN.md) | Documentation or project configuration | 0 |
 | [docs/TIP_QUALITY.md](../docs/TIP_QUALITY.md) | Documentation or project configuration | 0 |
 | [docs/code-map-flows.json](../docs/code-map-flows.json) | Documentation or project configuration | 0 |
 | [docs/partner-tips.seed.json](../docs/partner-tips.seed.json) | Documentation or project configuration | 0 |

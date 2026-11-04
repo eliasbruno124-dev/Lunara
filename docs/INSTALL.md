@@ -34,6 +34,30 @@ All screenshots show the real interface with made-up accounts ("Mia" and
 | A web address (domain) pointing to that computer, e.g. `lunara.example.com` | the apps only talk to Lunara over HTTPS |
 | Ports 80 and 443 reachable from the internet | so Lunara can get its free HTTPS certificate |
 
+<details>
+<summary><b>Never done this before? How to get a web address and open the ports</b></summary>
+
+**Rented server (VPS):** it already has a fixed address. At your domain
+provider, create an "A record" for e.g. `lunara.your-domain.com` that points to
+the server's IP address. Ports 80 and 443 are usually open already.
+
+**At home (Raspberry Pi, home server):**
+
+1. **Free web address:** sign up at a free dynamic-DNS service such as
+   [DuckDNS](https://www.duckdns.org) and create a name, e.g.
+   `our-lunara.duckdns.org`. Follow their short guide so the name always points
+   to your home connection (many routers can do this themselves, e.g. FRITZ!Box:
+   *Internet → Permit Access → DynDNS*).
+2. **Open the ports in your router** ("port forwarding" / "port sharing"):
+   forward **TCP 80** and **TCP 443** to the computer that runs Lunara.
+   On a FRITZ!Box: *Internet → Permit Access → Port Sharing → Add Device for
+   Sharing*, choose the computer, then add HTTPS (443) and HTTP (80).
+3. Use that name as `LUNARA_DOMAIN` in the next step.
+
+Only Lunara's own HTTPS service is reachable this way; the database stays
+inside the server.
+</details>
+
 ## 2. Start Lunara
 
 Run these commands on your server:
@@ -135,9 +159,10 @@ You can correct the end at any time ([details](PERIOD-ENDS.md)).
 
 ## 7. Existing reverse proxy or Portainer
 
-**You already run Traefik, Nginx Proxy Manager, Caddy or Pangolin?** Use the
-second file, which leaves out the built-in HTTPS. Save it under the usual name,
-so every other command in this guide stays the same:
+Already running a web server on ports 80/443 (Nginx Proxy Manager, Traefik,
+Caddy, Pangolin …)? Then use the second file, which leaves out the built-in
+HTTPS. Save it under the usual name, so every other command in this guide stays
+the same:
 
 ```bash
 mkdir lunara && cd lunara
@@ -146,21 +171,81 @@ echo "LUNARA_DOMAIN=lunara.example.com" > .env
 docker compose up -d
 ```
 
-Then point your proxy to Lunara over HTTPS:
+Then connect your proxy – pick the one you use:
 
-- proxy runs directly on the server: `http://127.0.0.1:3000`
-- proxy runs in Docker: add it to the network `lunara_web` and use
-  `http://lunara:3000`
+<details>
+<summary><b>Nginx Proxy Manager</b></summary>
 
-Use exactly one proxy in front of Lunara. Change the port with `LUNARA_PORT`
-in `.env` if 3000 is taken.
+1. Let Nginx Proxy Manager reach Lunara (replace the name with the name of your
+   Nginx Proxy Manager container, see `docker ps`):
+   ```bash
+   docker network connect lunara_web nginx-proxy-manager
+   ```
+2. In Nginx Proxy Manager: **Hosts → Proxy Hosts → Add Proxy Host**
+   - *Domain Names:* `lunara.example.com`
+   - *Scheme:* `http`, *Forward Hostname / IP:* `lunara`, *Forward Port:* `3000`
+   - tick *Block Common Exploits*
+3. Tab **SSL**: *Request a new SSL Certificate*, tick *Force SSL* and
+   *HTTP/2 Support*, accept the terms, **Save**.
+4. Tab **Advanced** (for instant sync between your phones), paste and save:
+   ```nginx
+   proxy_buffering off;
+   ```
+</details>
 
-**Portainer** (standalone Docker, not Swarm): *Stacks → Add stack*, paste one of
-the two files, add the environment variable `LUNARA_DOMAIN` and deploy. The
-setup code is in the logs of the `lunara` container.
+<details>
+<summary><b>Traefik</b></summary>
 
-Want to manage the secrets yourself, use Authentik/OIDC or build the image from
-source? See [DEPLOYMENT.md](../DEPLOYMENT.md).
+1. Connect Traefik to Lunara's network (use your Traefik container name):
+   ```bash
+   docker network connect lunara_web traefik
+   ```
+2. Add these lines to the `lunara` service in your `docker-compose.yml`
+   (adjust the entry point and certificate resolver names to your Traefik
+   setup), then run `docker compose up -d` again:
+   ```yaml
+       labels:
+         traefik.enable: "true"
+         traefik.docker.network: lunara_web
+         traefik.http.routers.lunara.rule: Host(`lunara.example.com`)
+         traefik.http.routers.lunara.entrypoints: websecure
+         traefik.http.routers.lunara.tls.certresolver: letsencrypt
+         traefik.http.services.lunara.loadbalancer.server.port: "3000"
+   ```
+</details>
+
+<details>
+<summary><b>Proxy installed directly on the server (not in Docker)</b></summary>
+
+Forward `https://lunara.example.com` to `http://127.0.0.1:3000`. An nginx
+example:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_buffering off;
+}
+```
+</details>
+
+Use exactly one proxy in front of Lunara. If port 3000 is already taken on the
+server, add `LUNARA_PORT=3100` (any free port) to `.env`.
+
+<details>
+<summary><b>Portainer</b> (standalone Docker, not Swarm)</summary>
+
+1. **Stacks → Add stack**, name it `lunara`.
+2. *Web editor:* paste the content of
+   [`docker-compose.yml`](../examples/docker-compose.yml) (or the proxy version).
+3. *Environment variables → Add an environment variable:*
+   name `LUNARA_DOMAIN`, value `lunara.example.com`.
+4. **Deploy the stack**.
+5. **Containers → lunara-lunara-1 → Logs** shows the setup code. Continue with
+   [step 3](#3-create-your-account).
+</details>
 
 ## 8. Updates, backup and restore
 

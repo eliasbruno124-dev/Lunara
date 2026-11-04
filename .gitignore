@@ -44,7 +44,6 @@ captures/
 artifacts/*
 !artifacts/.gitkeep
 !artifacts/lunara-release.apk
-!artifacts/lunara-play-upload.aab
 !artifacts/SHA256SUMS
 authentik-gateway-credentials.json
 gateway-a.url

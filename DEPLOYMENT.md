@@ -58,8 +58,8 @@ test -s artifacts/lunara-release.apk
 ```
 
 Do not use a debug or unsigned APK as a user download.
-For your own Android builds, also follow the
-[signing and App Link requirements](docs/GOOGLE_PLAY_RELEASE.md).
+Your own Android builds must be signed with your own key; see
+[the Android callback section](#android-the-api-domain-is-not-the-callback-host).
 Private keys and keystores must stay outside the build context.
 
 ## 3. Configuration and secrets
@@ -374,5 +374,4 @@ Do not leave it privileged "for troubleshooting" or expose the database
 to the internet.
 
 [Security](SECURITY.md) · [Privacy](PRIVACY.md) ·
-[Android signing and Play](docs/GOOGLE_PLAY_RELEASE.md) ·
 [Code navigation](docs/CODE_GUIDE.md)
