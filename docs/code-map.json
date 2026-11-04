@@ -72217,9 +72217,9 @@
     {
       "path": "infra/docker/entrypoint.sh",
       "role": "Deployment",
-      "bytes": 4242,
-      "sha256": "dfd9735480b3b0cd35d184da97886b13431e08af525db4e0209a3167dc374268",
-      "lines": 120,
+      "bytes": 4498,
+      "sha256": "8d998068422a45c779440212e002080f7fcf1d0c73bcc7051afbb0b6c34b70de",
+      "lines": 126,
       "symbols": []
     },
     {
