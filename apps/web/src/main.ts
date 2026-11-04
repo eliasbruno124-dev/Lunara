@@ -719,13 +719,14 @@ class LunaraWebApp {
       const oidcActions = element('div', 'oidc-actions');
       oidcActions.append(oidcButton);
       if (canStartOidc(this.meta, 'new-tracker')) {
+        // The hint belongs to the "new tracker" button, so it sits directly below it.
         oidcActions.append(
-          element('p', 'subtle oidc-hint', this.t('oidcCreateTrackerHint')),
           button(
             'secondary-button',
             this.t('oidcCreateTracker', { provider }),
             () => beginOidc({ kind: 'new-tracker', preferredLanguage }),
           ),
+          element('p', 'subtle oidc-hint', this.t('oidcCreateTrackerHint')),
         );
       }
       if (canStartOidc(this.meta, 'partner')) {
