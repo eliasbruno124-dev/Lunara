@@ -96,7 +96,9 @@ describe('offline period mutation queue', () => {
     const engine = new PeriodSyncEngine(api, storage, metadata);
 
     await expect(engine.flush()).rejects.toBe(error);
-    expect([...storage.values.values()][0]).toEqual(original);
+    // No failure bookkeeping after the boundary; only the marker stored before
+    // the request left (so a later delete cannot skip the server) is allowed.
+    expect([...storage.values.values()][0]).toEqual({ ...original, sent: true });
   });
 
   it('does not apply a delayed account-A sync response after switching identity', async () => {

@@ -120,7 +120,20 @@ class DashboardRepository @Inject constructor(
     fun predictionGeneration(): Long = cycleSettingsGeneration.get()
 
     suspend fun trackerPrediction(expectedUserId: String): de.lunara.app.data.remote.dto.PredictionDto {
-        val generation = cycleSettingsGeneration.get()
+        // If the cycle settings change while a request runs, ask again so that the
+        // screen and reminders never get an estimate from before the change.
+        repeat(2) {
+            val generation = cycleSettingsGeneration.get()
+            val prediction = trackerPredictionOnce(expectedUserId, generation)
+            if (generation == cycleSettingsGeneration.get()) return prediction
+        }
+        return trackerPredictionOnce(expectedUserId, cycleSettingsGeneration.get())
+    }
+
+    private suspend fun trackerPredictionOnce(
+        expectedUserId: String,
+        generation: Long,
+    ): de.lunara.app.data.remote.dto.PredictionDto {
         val preferenceState = preferences.state.first()
         if (preferenceState.appMode == AppMode.LOCAL) {
             if (preferenceState.session?.userId != expectedUserId) throw SessionChangedException()
@@ -212,6 +225,7 @@ class DashboardRepository @Inject constructor(
                 settings.typicalPeriodLength,
                 settings.predictionPaused,
             )
+            cycleSettingsGeneration.incrementAndGet()
             if (settings.switchesPredictionsOff()) notificationDataCache.clear()
             return cycleProfile()
         }

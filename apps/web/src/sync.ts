@@ -179,8 +179,12 @@ export class PeriodSyncEngine extends EventTarget {
     let currentCursor = cursor;
     const mutations = await this.storage.getMutations();
     assertCurrent();
-    for (const mutation of mutations) {
-      if (!canAttempt(mutation, Date.now(), force)) continue;
+    for (const queued of mutations) {
+      if (!canAttempt(queued, Date.now(), force)) continue;
+      // Stored before the request leaves: if the tab closes mid-request, a later
+      // delete still knows the server may already have this change.
+      const mutation: SyncMutation = queued.sent ? queued : { ...queued, sent: true };
+      if (!queued.sent) await this.storage.putMutation(mutation);
       try {
         const response = await this.api.sync(currentCursor, mutation);
         assertCurrent();
